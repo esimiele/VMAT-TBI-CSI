@@ -74,17 +74,21 @@
       <DependentUpon>AutorunProgress.xaml</DependentUpon>
     </Compile>
     <Compile Include="ESAPIworker.cs" />
-    <Compile Include="selectItem.cs">
+    <Compile Include="helpers\selectItem.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="selectItem.Designer.cs">
+    <Compile Include="helpers\selectItem.Designer.cs">
       <DependentUpon>selectItem.cs</DependentUpon>
     </Compile>
     <Page Include="AutorunProgress.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="autoPlanMW.xaml">
+    <Page Include="VMAT-CSI\CSIAutoPlanMW.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="VMAT-TBI\TBIAutoPlanMW.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -92,22 +96,25 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="confirmUI.cs">
+    <Compile Include="helpers\confirmUI.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="confirmUI.Designer.cs">
+    <Compile Include="helpers\confirmUI.Designer.cs">
       <DependentUpon>confirmUI.cs</DependentUpon>
     </Compile>
-    <Compile Include="enterMissingInfo.cs">
+    <Compile Include="helpers\enterMissingInfo.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="enterMissingInfo.Designer.cs">
+    <Compile Include="helpers\enterMissingInfo.Designer.cs">
       <DependentUpon>enterMissingInfo.cs</DependentUpon>
     </Compile>
     <Compile Include="generateTS.cs" />
     <Compile Include="isoNameHelper.cs" />
-    <Compile Include="autoPlanMW.xaml.cs">
-      <DependentUpon>autoPlanMW.xaml</DependentUpon>
+    <Compile Include="VMAT-CSI\CSIAutoPlanMW.xaml.cs">
+      <DependentUpon>CSIAutoPlanMW.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="VMAT-TBI\TBIAutoPlanMW.xaml.cs">
+      <DependentUpon>TBIAutoPlanMW.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
@@ -127,17 +134,17 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
-    <EmbeddedResource Include="confirmUI.resx">
+    <EmbeddedResource Include="helpers\confirmUI.resx">
       <DependentUpon>confirmUI.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="enterMissingInfo.resx">
+    <EmbeddedResource Include="helpers\enterMissingInfo.resx">
       <DependentUpon>enterMissingInfo.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Include="selectItem.resx">
+    <EmbeddedResource Include="helpers\selectItem.resx">
       <DependentUpon>selectItem.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="Properties\Settings.settings">

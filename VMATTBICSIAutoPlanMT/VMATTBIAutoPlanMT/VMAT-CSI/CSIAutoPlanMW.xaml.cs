@@ -32,7 +32,7 @@ using System.Threading;
 
 namespace VMATTBIAutoPlanMT
 {
-    public partial class MainWindow : Window
+    public partial class TBIAutoPlanMW : Window
     {
         string configFile = "";
         /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -204,7 +204,7 @@ namespace VMATTBIAutoPlanMT
         bool autoSave = false;
         ProcessStartInfo optLoopProcess;
 
-        public MainWindow(string[] args)
+        public TBIAutoPlanMW(string[] args)
         {
             InitializeComponent();
             string mrn = "";

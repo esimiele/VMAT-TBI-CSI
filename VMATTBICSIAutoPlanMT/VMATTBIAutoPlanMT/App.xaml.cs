@@ -12,8 +12,7 @@ namespace VMATTBIAutoPlanMT
     {
         private void Application_Startup(object sender, StartupEventArgs e)
         {
-            var args = e.Args;
-            MainWindow mw = new MainWindow(e.Args);
+            TBIAutoPlanMW mw = new TBIAutoPlanMW(e.Args);
             mw.Show();
         }
     }
