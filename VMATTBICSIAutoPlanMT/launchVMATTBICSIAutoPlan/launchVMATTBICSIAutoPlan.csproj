@@ -54,17 +54,6 @@
   <ItemGroup>
     <Compile Include="Script.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="selectOption.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="selectOption.Designer.cs">
-      <DependentUpon>selectOption.cs</DependentUpon>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="selectOption.resx">
-      <DependentUpon>selectOption.cs</DependentUpon>
-    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

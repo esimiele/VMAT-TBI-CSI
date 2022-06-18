@@ -17,14 +17,17 @@ namespace VMS.TPS
         {
             try
             {
+                //string configFile = "";
+                //launchVMATTBIAutoPlan.esapi.selectOption SO = new launchVMATTBIAutoPlan.esapi.selectOption();
+                //SO.ShowDialog();
+                //string extension = "";
+                //string exeName = "";
+                //if (SO.isVMATTBI) { extension = "\\configuration\\VMAT_TBI_config.ini"; exeName = "VMATTBIAutoPlanMT"; }
+                //else if (SO.isVMATCSI) { extension = "\\configuration\\VMAT_CSI_config.ini"; exeName = "VMATCSIAutoPlanMT"; }
+                //else return;
                 string configFile = "";
-                launchVMATTBIAutoPlan.esapi.selectOption SO = new launchVMATTBIAutoPlan.esapi.selectOption();
-                SO.ShowDialog();
-                string extension = "";
-                string exeName = "";
-                if (SO.isVMATTBI) { extension = "\\configuration\\VMAT_TBI_config.ini"; exeName = "VMATTBIAutoPlanMT"; }
-                else if (SO.isVMATCSI) { extension = "\\configuration\\VMAT_CSI_config.ini"; exeName = "VMATCSIAutoPlanMT"; }
-                else return;
+                string extension = "\\configuration\\VMAT_autoPlanning_config.ini";
+                string exeName = "VMAT_TBI-CSI";
                 string path = AppExePath(exeName);
                 if (!string.IsNullOrEmpty(path))
                 {
