@@ -81,7 +81,7 @@
                     <ComboBox x:Name="flashVolume" HorizontalContentAlignment="Center" HorizontalAlignment="Right" Margin="0,8,27,0" VerticalAlignment="Top" Width="120" Visibility="Hidden"/>
                 </Grid>
             </Grid>
-            <TabControl Background="DarkGray" HorizontalAlignment="Left" Height="480" Margin="0,0,0,0" VerticalAlignment="Bottom" Width="600">
+            <TabControl Background="DarkGray" HorizontalAlignment="Left" Height="480" Margin="0,0,0,0" VerticalAlignment="Bottom" Width="600" TabStripPlacement="Top">
                 <TabItem Header="TS Generation">
                     <StackPanel Name="TS_SP" HorizontalAlignment="Center" Margin="5">
                         <Grid>

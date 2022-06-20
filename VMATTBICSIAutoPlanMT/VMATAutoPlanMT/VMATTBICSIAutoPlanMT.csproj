@@ -109,7 +109,7 @@
     <Compile Include="helpers\enterMissingInfo.Designer.cs">
       <DependentUpon>enterMissingInfo.cs</DependentUpon>
     </Compile>
-    <Compile Include="generateTS.cs" />
+    <Compile Include="VMAT-TBI\generateTS.cs" />
     <Compile Include="helpers\selectOption.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -117,6 +117,7 @@
       <DependentUpon>selectOption.cs</DependentUpon>
     </Compile>
     <Compile Include="helpers\isoNameHelper.cs" />
+    <Compile Include="baseClasses\placeBeamsBase.cs" />
     <Compile Include="VMAT-CSI\CSIAutoPlanMW.xaml.cs">
       <DependentUpon>CSIAutoPlanMW.xaml</DependentUpon>
     </Compile>
@@ -126,8 +127,8 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="placeBeams.cs" />
-    <Compile Include="planPrep.cs" />
+    <Compile Include="VMAT-TBI\placeBeams.cs" />
+    <Compile Include="VMAT-TBI\planPrep.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>

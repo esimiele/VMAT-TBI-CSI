@@ -187,7 +187,6 @@ namespace VMATAutoPlanMT
         public List<string> isoNames = new List<string> { };
         Tuple<int, DoseValue> prescription = null;
         bool useFlash = false;
-        string flashType = "";
         List<Structure> jnxs = new List<Structure> { };
         Structure flashStructure = null;
         planPrep prep = null;
@@ -989,7 +988,7 @@ namespace VMATAutoPlanMT
             }
             else place = new placeBeams(selectedSS, prescription, isoNames, numIsos, numVMATIsos, singleAPPAplan, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, useFlash);
 
-            VMATplan = place.generate_beams();
+            VMATplan = place.generatePlan("VMAT TBI");
             if (VMATplan == null) return;
 
             //if the user elected to contour the overlap between fields in adjacent isocenters, get this list of structures from the placeBeams class and copy them to the jnxs vector

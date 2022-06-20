@@ -219,7 +219,7 @@ namespace VMATAutoPlanMT
                     e.ShowDialog();
                     if (!e.confirm) { this.Close(); return; }
                     try { if (app != null) pi = app.OpenPatientById(e.value.Text); }
-                    catch (Exception) { MessageBox.Show(string.Format("Error! Could not open patient: {0}! Please try again!", e.value.Text)); }
+                    catch (Exception) { MessageBox.Show(string.Format("Error! Could not open patient: {0}! Please try again!", e.value.Text)); pi = null; }
                 }
                 else pi = app.OpenPatientById(mrn);
 
@@ -250,12 +250,14 @@ namespace VMATAutoPlanMT
 
         private void Help_Button_Click(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Process.Start(documentationPath + "VMAT_TBI_guide.pdf");
+            if (!File.Exists(documentationPath + "VMAT_TBI_guide.pdf")) MessageBox.Show("VMAT_TBI_guide PDF file does not exist!");
+            else Process.Start(documentationPath + "VMAT_TBI_guide.pdf");
         }
 
         private void QuickStart_Click(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Process.Start(documentationPath + "TBI_plugIn_quickStart_guide.pdf");
+            if (!File.Exists(documentationPath + "TBI_plugIn_quickStart_guide.pdf")) MessageBox.Show("TBI_plugIn_quickStart_guide PDF file does not exist!");
+            else Process.Start(documentationPath + "TBI_plugIn_quickStart_guide.pdf");
         }
 
         //method to display the loaded configuration settings
@@ -1061,7 +1063,7 @@ namespace VMATAutoPlanMT
             }
             else place = new placeBeams(selectedSS, prescription, isoNames, numIsos, numVMATIsos, singleAPPAplan, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, useFlash);
 
-            VMATplan = place.generate_beams();
+            VMATplan = place.generatePlan("VMAT TBI");
             if (VMATplan == null) return;
 
             //if the user elected to contour the overlap between fields in adjacent isocenters, get this list of structures from the placeBeams class and copy them to the jnxs vector
@@ -2010,8 +2012,11 @@ namespace VMATAutoPlanMT
                 CUI.cancelBTN.Text = "No";
                 if (CUI.confirm) app.SaveModifications();
             }
-            if (pi != null) app.ClosePatient();
-            app.Dispose();
+            if(app != null)
+            {
+                if (pi != null) app.ClosePatient();
+                app.Dispose();
+            }
         }
 
         private void autorun_Click(object sender, RoutedEventArgs e)
