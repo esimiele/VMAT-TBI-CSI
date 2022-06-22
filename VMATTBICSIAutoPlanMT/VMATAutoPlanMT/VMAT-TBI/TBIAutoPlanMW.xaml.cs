@@ -977,7 +977,6 @@ namespace VMATAutoPlanMT
                 isoNames = new List<string>(new isoNameHelper().getIsoNames(numVMATIsos, numIsos));
                 populateBeamsTab();
             }
-
         }
 
         private void place_beams_Click(object sender, RoutedEventArgs e)
@@ -1196,77 +1195,9 @@ namespace VMATAutoPlanMT
 
         private void setOptConst_Click(object sender, RoutedEventArgs e)
         {
-            if (opt_parameters.Children.Count == 0)
-            {
-                MessageBox.Show("No optimization parameters present to assign to VMAT TBI plan!");
-                return;
-            }
-
-            //get constraints
-            List<Tuple<string, string, double, double, int>> optParametersList = new List<Tuple<string, string, double, double, int>> { };
-            string structure = "";
-            string constraintType = "";
-            double dose = -1.0;
-            double vol = -1.0;
-            int priority = -1;
-            int txtbxNum = 1;
-            bool firstCombo = true;
-            bool headerObj = true;
-            foreach (object obj in opt_parameters.Children)
-            {
-                //skip over header row
-                if (!headerObj)
-                {
-                    foreach (object obj1 in ((StackPanel)obj).Children)
-                    {
-                        if (obj1.GetType() == typeof(ComboBox))
-                        {
-                            if (firstCombo)
-                            {
-                                //first combobox is the structure
-                                structure = (obj1 as ComboBox).SelectedItem.ToString();
-                                firstCombo = false;
-                            }
-                            //second combobox is the constraint type
-                            else constraintType = (obj1 as ComboBox).SelectedItem.ToString();
-                        }
-                        else if (obj1.GetType() == typeof(TextBox))
-                        {
-                            if (!string.IsNullOrWhiteSpace((obj1 as TextBox).Text))
-                            {
-                                //first text box is the volume percentage
-                                if (txtbxNum == 1) double.TryParse((obj1 as TextBox).Text, out vol);
-                                //second text box is the dose constraint
-                                else if (txtbxNum == 2) double.TryParse((obj1 as TextBox).Text, out dose);
-                                //third text box is the priority
-                                else int.TryParse((obj1 as TextBox).Text, out priority);
-                            }
-                            txtbxNum++;
-                        }
-                    }
-                    //do some checks to ensure the integrity of the data
-                    if (structure == "--select--" || constraintType == "--select--")
-                    {
-                        MessageBox.Show("Error! \nStructure or Sparing Type not selected! \nSelect an option and try again");
-                        return;
-                    }
-                    else if (dose == -1.0 || vol == -1.0 || priority == -1.0)
-                    {
-                        MessageBox.Show("Error! \nDose, volume, or priority values are invalid! \nEnter new values and try again");
-                        return;
-                    }
-                    //if the row of data passes the above checks, add it the optimization parameter list
-                    else optParametersList.Add(Tuple.Create(structure, constraintType, dose, vol, priority));
-                    //reset the values of the variables used to parse the data
-                    firstCombo = true;
-                    txtbxNum = 1;
-                    dose = -1.0;
-                    vol = -1.0;
-                    priority = -1;
-                }
-                else headerObj = false;
-            }
-
+            UIhelper helper = new UIhelper();
+            List<Tuple<string, string, double, double, int>> optParametersList = helper.parseOptConstraints(sender, opt_parameters);
+            if (!optParametersList.Any()) return;
             if (VMATplan == null)
             {
                 //search for a course named VMAT TBI. If it is found, search for a plan named _VMAT TBI inside the VMAT TBI course. If neither are found, throw an error and return
@@ -1284,21 +1215,8 @@ namespace VMATAutoPlanMT
                 //the plan has existing objectives, which need to be removed be assigning the new objectives
                 foreach (OptimizationObjective o in VMATplan.OptimizationSetup.Objectives) VMATplan.OptimizationSetup.RemoveObjective(o);
             }
-            foreach (Tuple<string, string, double, double, int> opt in optParametersList)
-            {
-                //assign the constraints to the plan. I haven't found a use for the exact constraint yet, so I just wrote the script to throw a warning if the exact constraint was selected (that row of data will NOT be
-                //assigned to the VMAT plan)
-                if (opt.Item2 == "Upper") VMATplan.OptimizationSetup.AddPointObjective(VMATplan.StructureSet.Structures.First(x => x.Id == opt.Item1), OptimizationObjectiveOperator.Upper, new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item4, (double)opt.Item5);
-                else if (opt.Item2 == "Lower") VMATplan.OptimizationSetup.AddPointObjective(VMATplan.StructureSet.Structures.First(x => x.Id == opt.Item1), OptimizationObjectiveOperator.Lower, new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item4, (double)opt.Item5);
-                else if (opt.Item2 == "Mean") VMATplan.OptimizationSetup.AddMeanDoseObjective(VMATplan.StructureSet.Structures.First(x => x.Id == opt.Item1), new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), (double)opt.Item5);
-                else if (opt.Item2 == "Exact") MessageBox.Show("Script not setup to handle exact dose constraints!");
-                else MessageBox.Show("Constraint type not recognized!");
-            }
-            //turn on jaw tracking
-            try { VMATplan.OptimizationSetup.UseJawTracking = true; }
-            catch (Exception except) { MessageBox.Show(String.Format("Warning! Could not set jaw tracking to true for VMAT plan because: {0}\nJaw tacking will not be enabled!", except.Message)); }
-            //set auto NTO priority to zero (i.e., shut it off). It has to be done this way because every plan created in ESAPI has an instance of an automatic NTO, which CAN'T be deleted.
-            VMATplan.OptimizationSetup.AddAutomaticNormalTissueObjective(0.0);
+            //optimization parameter list, the plan object, enable jaw tracking?, Auto NTO priority
+            helper.assignOptConstraints(optParametersList, VMATplan, true, 0.0);
 
             confirmUI CUI = new confirmUI();
             CUI.message.Text = "Optimization objectives have been successfully set!" + Environment.NewLine + Environment.NewLine + "Save changes and launch optimization loop?";
@@ -1336,188 +1254,36 @@ namespace VMATAutoPlanMT
 
         private void add_opt_header()
         {
-            StackPanel sp1 = new StackPanel();
-            sp1.Height = 30;
-            sp1.Width = structures_sp.Width;
-            sp1.Orientation = Orientation.Horizontal;
-            sp1.Margin = new Thickness(5, 0, 5, 5);
-
-            Label strName = new Label();
-            strName.Content = "Structure";
-            strName.HorizontalAlignment = HorizontalAlignment.Center;
-            strName.VerticalAlignment = VerticalAlignment.Top;
-            strName.Width = 110;
-            strName.FontSize = 14;
-            strName.Margin = new Thickness(27, 0, 0, 0);
-
-            Label spareType = new Label();
-            spareType.Content = "Constraint";
-            spareType.HorizontalAlignment = HorizontalAlignment.Center;
-            spareType.VerticalAlignment = VerticalAlignment.Top;
-            spareType.Width = 90;
-            spareType.FontSize = 14;
-            spareType.Margin = new Thickness(2, 0, 0, 0);
-
-            Label volLabel = new Label();
-            volLabel.Content = "V (%)";
-            volLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            volLabel.VerticalAlignment = VerticalAlignment.Top;
-            volLabel.Width = 60;
-            volLabel.FontSize = 14;
-            volLabel.Margin = new Thickness(18, 0, 0, 0);
-
-            Label doseLabel = new Label();
-            doseLabel.Content = "D (cGy)";
-            doseLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            doseLabel.VerticalAlignment = VerticalAlignment.Top;
-            doseLabel.Width = 60;
-            doseLabel.FontSize = 14;
-            doseLabel.Margin = new Thickness(3, 0, 0, 0);
-
-            Label priorityLabel = new Label();
-            priorityLabel.Content = "Priority";
-            priorityLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            priorityLabel.VerticalAlignment = VerticalAlignment.Top;
-            priorityLabel.Width = 65;
-            priorityLabel.FontSize = 14;
-            priorityLabel.Margin = new Thickness(13, 0, 0, 0);
-
-            sp1.Children.Add(strName);
-            sp1.Children.Add(spareType);
-            sp1.Children.Add(volLabel);
-            sp1.Children.Add(doseLabel);
-            sp1.Children.Add(priorityLabel);
-            opt_parameters.Children.Add(sp1);
-
+            opt_parameters.Children.Add(new UIhelper().getOptHeader(structures_sp));
             firstOptStruct = false;
         }
 
         private void add_opt_volumes(StructureSet selectedSS, List<Tuple<string, string, double, double, int>> defaultList)
         {
+            //if (selectedSS == null) { MessageBox.Show("Error! The structure set has not been assigned! Choose a structure set and try again!"); return; }
             if (firstOptStruct) add_opt_header();
             for (int i = 0; i < defaultList.Count; i++)
             {
-                StackPanel sp = new StackPanel();
-                sp.Height = 30;
-                sp.Width = opt_parameters.Width;
-                sp.Orientation = Orientation.Horizontal;
-                sp.Margin = new Thickness(5);
-
-                ComboBox opt_str_cb = new ComboBox();
-                opt_str_cb.Name = "opt_str_cb";
-                opt_str_cb.Width = 120;
-                opt_str_cb.Height = sp.Height - 5;
-                opt_str_cb.HorizontalAlignment = HorizontalAlignment.Left;
-                opt_str_cb.VerticalAlignment = VerticalAlignment.Top;
-                opt_str_cb.Margin = new Thickness(5, 5, 0, 0);
-
-                opt_str_cb.Items.Add("--select--");
-                //this code is used to fix the issue where the structure exists in the structure set, but doesn't populate as the default option in the combo box.
-                int index = 0;
-                //j is initially 1 because we already added "--select--" to the combo box 
-                int j = 1;
-                foreach (Structure s in selectedSS.Structures)
-                {
-                    opt_str_cb.Items.Add(s.Id);
-                    if (s.Id.ToLower() == defaultList[i].Item1.ToLower()) index = j;
-                    j++;
-                }
-                opt_str_cb.SelectedIndex = index;
-                opt_str_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
-                sp.Children.Add(opt_str_cb);
-
-                ComboBox constraint_cb = new ComboBox();
-                constraint_cb.Name = "type_cb";
-                constraint_cb.Width = 100;
-                constraint_cb.Height = sp.Height - 5;
-                constraint_cb.HorizontalAlignment = HorizontalAlignment.Left;
-                constraint_cb.VerticalAlignment = VerticalAlignment.Top;
-                constraint_cb.Margin = new Thickness(5, 5, 0, 0);
-                string[] types = new string[] { "--select--", "Upper", "Lower", "Mean", "Exact" };
-                foreach (string s in types) constraint_cb.Items.Add(s);
-                constraint_cb.Text = defaultList[i].Item2;
-                constraint_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
-                sp.Children.Add(constraint_cb);
-
-                //the order of the dose and volume values are switched when they are displayed to the user. This way, the optimization objective appears to the user as it would in the optimization workspace.
-                //However, due to the way ESAPI assigns optimization objectives via VMATplan.OptimizationSetup.AddPointObjective, they need to be stored in the order listed in the templates above
-                TextBox dose_tb = new TextBox();
-                dose_tb.Name = "dose_tb";
-                dose_tb.Width = 65;
-                dose_tb.Height = sp.Height - 5;
-                dose_tb.HorizontalAlignment = HorizontalAlignment.Left;
-                dose_tb.VerticalAlignment = VerticalAlignment.Top;
-                dose_tb.Margin = new Thickness(5, 5, 0, 0);
-                dose_tb.Text = String.Format("{0:0.#}", defaultList[i].Item4);
-                dose_tb.TextAlignment = TextAlignment.Center;
-                sp.Children.Add(dose_tb);
-
-                TextBox vol_tb = new TextBox();
-                vol_tb.Name = "vol_tb";
-                vol_tb.Width = 70;
-                vol_tb.Height = sp.Height - 5;
-                vol_tb.HorizontalAlignment = HorizontalAlignment.Left;
-                vol_tb.VerticalAlignment = VerticalAlignment.Top;
-                vol_tb.Margin = new Thickness(5, 5, 0, 0);
-                vol_tb.Text = String.Format("{0:0.#}", defaultList[i].Item3);
-                vol_tb.TextAlignment = TextAlignment.Center;
-                sp.Children.Add(vol_tb);
-
-                TextBox priority_tb = new TextBox();
-                priority_tb.Name = "priority_tb";
-                priority_tb.Width = 65;
-                priority_tb.Height = sp.Height - 5;
-                priority_tb.HorizontalAlignment = HorizontalAlignment.Left;
-                priority_tb.VerticalAlignment = VerticalAlignment.Top;
-                priority_tb.Margin = new Thickness(5, 5, 0, 0);
-                priority_tb.Text = Convert.ToString(defaultList[i].Item5);
-                priority_tb.TextAlignment = TextAlignment.Center;
-                sp.Children.Add(priority_tb);
-
-                Button clearOptStructBtn = new Button();
                 clearOptBtnCounter++;
-                clearOptStructBtn.Name = "clearOptStructBtn" + clearOptBtnCounter;
-                clearOptStructBtn.Content = "Clear";
-                clearOptStructBtn.Click += new RoutedEventHandler(this.clearOptStructBtn_click);
-                clearOptStructBtn.Width = 50;
-                clearOptStructBtn.Height = sp.Height - 5;
-                clearOptStructBtn.HorizontalAlignment = HorizontalAlignment.Left;
-                clearOptStructBtn.VerticalAlignment = VerticalAlignment.Top;
-                clearOptStructBtn.Margin = new Thickness(10, 5, 0, 0);
-                sp.Children.Add(clearOptStructBtn);
-
-                opt_parameters.Children.Add(sp);
+                opt_parameters.Children.Add(new UIhelper().addOptVolume(opt_parameters, selectedSS, defaultList[i], clearOptBtnCounter, new RoutedEventHandler(this.clearOptStructBtn_click)));
             }
         }
 
-        private void clear_optParams_Click(object sender, RoutedEventArgs e) { clear_optimization_parameter_list(); }
-
-        private void clear_optimization_parameter_list()
-        {
-            firstOptStruct = true;
-            opt_parameters.Children.Clear();
-            clearOptBtnCounter = 0;
+        private void clear_optParams_Click(object sender, RoutedEventArgs e) 
+        { 
+            clear_optimization_parameter_list(); 
         }
 
         private void clearOptStructBtn_click(object sender, EventArgs e)
         {
-            //same deal as the clear sparing structure button (clearStructBtn_click)
-            Button btn = (Button)sender;
-            int i = 0;
-            int k = 0;
-            foreach (object obj in opt_parameters.Children)
-            {
-                foreach (object obj1 in ((StackPanel)obj).Children)
-                {
-                    if (obj1.Equals(btn)) k = i;
-                }
-                if (k > 0) break;
-                i++;
-            }
+            if (new UIhelper().clearRow(sender, opt_parameters)) clear_optimization_parameter_list();
+        }
 
-            //clear entire list if there are only two entries (header + 1 real entry)
-            if (opt_parameters.Children.Count < 3) clear_optimization_parameter_list();
-            else opt_parameters.Children.RemoveAt(k);
+        private void clear_optimization_parameter_list()
+        {
+            opt_parameters.Children.Clear();
+            firstOptStruct = true;
+            clearOptBtnCounter = 0;
         }
 
         private void Sclero_chkbox_Checked(object sender, RoutedEventArgs e)

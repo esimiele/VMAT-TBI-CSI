@@ -109,6 +109,7 @@
     <Compile Include="helpers\enterMissingInfo.Designer.cs">
       <DependentUpon>enterMissingInfo.cs</DependentUpon>
     </Compile>
+    <Compile Include="helpers\UIhelper.cs" />
     <Compile Include="VMAT-TBI\generateTS.cs" />
     <Compile Include="helpers\selectOption.cs">
       <SubType>Form</SubType>
