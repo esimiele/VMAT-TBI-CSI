@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Controls;
@@ -12,7 +10,455 @@ namespace VMATAutoPlanMT
 {
     public class UIhelper
     {
-        public List<Tuple<string, string, double, double, int>> parseOptConstraints(object sender, StackPanel sp)
+        public bool clearRow(object sender, StackPanel sp)
+        {
+            //same deal as the clear sparing structure button (clearStructBtn_click)
+            Button btn = (Button)sender;
+            int i = 0;
+            int k = 0;
+            foreach (object obj in sp.Children)
+            {
+                foreach (object obj1 in ((StackPanel)obj).Children)
+                {
+                    if (obj1.Equals(btn)) k = i;
+                }
+                if (k > 0) break;
+                i++;
+            }
+
+            //clear entire list if there are only two entries (header + 1 real entry)
+            if (sp.Children.Count < 3) { return true; }
+            else sp.Children.RemoveAt(k);
+            return false;
+        }
+
+        public StackPanel getSpareStructHeader(StackPanel theSP)
+        {
+            StackPanel sp = new StackPanel();
+            sp.Height = 30;
+            sp.Width = theSP.Width;
+            sp.Orientation = Orientation.Horizontal;
+            sp.Margin = new Thickness(5, 0, 5, 5);
+
+            Label strName = new Label();
+            strName.Content = "Structure Name";
+            strName.HorizontalAlignment = HorizontalAlignment.Center;
+            strName.VerticalAlignment = VerticalAlignment.Top;
+            strName.Width = 150;
+            strName.FontSize = 14;
+            strName.Margin = new Thickness(27, 0, 0, 0);
+
+            Label spareType = new Label();
+            spareType.Content = "Sparing Type";
+            spareType.HorizontalAlignment = HorizontalAlignment.Center;
+            spareType.VerticalAlignment = VerticalAlignment.Top;
+            spareType.Width = 150;
+            spareType.FontSize = 14;
+            spareType.Margin = new Thickness(10, 0, 0, 0);
+
+            Label marginLabel = new Label();
+            marginLabel.Content = "Margin (cm)";
+            marginLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            marginLabel.VerticalAlignment = VerticalAlignment.Top;
+            marginLabel.Width = 150;
+            marginLabel.FontSize = 14;
+            marginLabel.Margin = new Thickness(0, 0, 0, 0);
+
+            sp.Children.Add(strName);
+            sp.Children.Add(spareType);
+            sp.Children.Add(marginLabel);
+
+            return sp;
+        }
+
+        public StackPanel addSpareStructVolume(StackPanel theSP, StructureSet selectedSS, Tuple<string, string, double> listItem, int clearSpareBtnCounter, SelectionChangedEventHandler typeChngHndl, RoutedEventHandler clearEvtHndl)
+        {
+            StackPanel sp = new StackPanel();
+            sp.Height = 30;
+            sp.Width = theSP.Width;
+            sp.Orientation = Orientation.Horizontal;
+            sp.Margin = new Thickness(10, 0, 5, 5);
+
+            ComboBox str_cb = new ComboBox();
+            str_cb.Name = "str_cb";
+            str_cb.Width = 150;
+            str_cb.Height = sp.Height - 5;
+            str_cb.HorizontalAlignment = HorizontalAlignment.Left;
+            str_cb.VerticalAlignment = VerticalAlignment.Top;
+            str_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
+            str_cb.Margin = new Thickness(5, 5, 0, 0);
+
+            str_cb.Items.Add("--select--");
+            //this code is used to fix the issue where the structure exists in the structure set, but doesn't populate as the default option in the combo box.
+            int index = 0;
+            //j is initially 1 because we already added "--select--" to the combo box
+            int j = 1;
+            foreach (Structure s in selectedSS.Structures)
+            {
+                str_cb.Items.Add(s.Id);
+                if (s.Id.ToLower() == listItem.Item1.ToLower()) index = j;
+                j++;
+            }
+            str_cb.SelectedIndex = index;
+            sp.Children.Add(str_cb);
+
+            ComboBox type_cb = new ComboBox();
+            type_cb.Name = "type_cb";
+            type_cb.Width = 150;
+            type_cb.Height = sp.Height - 5;
+            type_cb.HorizontalAlignment = HorizontalAlignment.Left;
+            type_cb.VerticalAlignment = VerticalAlignment.Top;
+            type_cb.Margin = new Thickness(5, 5, 0, 0);
+            type_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
+            string[] types = new string[] { "--select--", "Mean Dose < Rx Dose", "Dmax ~ Rx Dose" };
+            foreach (string s in types) type_cb.Items.Add(s);
+            type_cb.Text = listItem.Item2;
+            type_cb.SelectionChanged += typeChngHndl;
+            sp.Children.Add(type_cb);
+
+            TextBox addMargin = new TextBox();
+            addMargin.Name = "addMargin_tb";
+            addMargin.Width = 120;
+            addMargin.Height = sp.Height - 5;
+            addMargin.HorizontalAlignment = HorizontalAlignment.Left;
+            addMargin.VerticalAlignment = VerticalAlignment.Top;
+            addMargin.TextAlignment = TextAlignment.Center;
+            addMargin.VerticalContentAlignment = VerticalAlignment.Center;
+            addMargin.Margin = new Thickness(5, 5, 0, 0);
+            addMargin.Text = Convert.ToString(listItem.Item3);
+            if (listItem.Item2 != "Mean Dose < Rx Dose") addMargin.Visibility = Visibility.Hidden;
+            sp.Children.Add(addMargin);
+
+            Button clearStructBtn = new Button();
+            clearStructBtn.Name = "clearStructBtn" + clearSpareBtnCounter;
+            clearStructBtn.Content = "Clear";
+            clearStructBtn.Click += clearEvtHndl;
+            clearStructBtn.Width = 50;
+            clearStructBtn.Height = sp.Height - 5;
+            clearStructBtn.HorizontalAlignment = HorizontalAlignment.Left;
+            clearStructBtn.VerticalAlignment = VerticalAlignment.Top;
+            clearStructBtn.Margin = new Thickness(10, 5, 0, 0);
+            sp.Children.Add(clearStructBtn);
+
+            return sp;
+        }
+
+        public List<Tuple<string, string, double>> parseSpareStructList(StackPanel theSP)
+        {
+            List<Tuple<string, string, double>> structureSpareList = new List<Tuple<string, string, double>> { };
+            string structure = "";
+            string spareType = "";
+            double margin = -1000.0;
+            bool firstCombo = true;
+            bool headerObj = true;
+            foreach (object obj in theSP.Children)
+            {
+                //skip over the header row
+                if (!headerObj)
+                {
+                    foreach (object obj1 in ((StackPanel)obj).Children)
+                    {
+                        if (obj1.GetType() == typeof(ComboBox))
+                        {
+                            //first combo box is the structure and the second is the sparing type
+                            if (firstCombo)
+                            {
+                                structure = (obj1 as ComboBox).SelectedItem.ToString();
+                                firstCombo = false;
+                            }
+                            else spareType = (obj1 as ComboBox).SelectedItem.ToString();
+                        }
+                        //try to parse the margin value as a double
+                        else if (obj1.GetType() == typeof(TextBox)) if (!string.IsNullOrWhiteSpace((obj1 as TextBox).Text)) double.TryParse((obj1 as TextBox).Text, out margin);
+                    }
+                    if (structure == "--select--" || spareType == "--select--")
+                    {
+                        MessageBox.Show("Error! \nStructure or Sparing Type not selected! \nSelect an option and try again");
+                        return new List<Tuple<string, string, double>> { };
+                    }
+                    //margin will not be assigned from the default value (-1000) if the input is empty, a whitespace, or NaN
+                    else if (margin == -1000.0)
+                    {
+                        MessageBox.Show("Error! \nEntered margin value is invalid! \nEnter a new margin and try again");
+                        return new List<Tuple<string, string, double>> { };
+                    }
+                    //only add the current row to the structure sparing list if all the parameters were successful parsed
+                    else structureSpareList.Add(Tuple.Create(structure, spareType, margin));
+                    firstCombo = true;
+                    margin = -1000.0;
+                }
+                else headerObj = false;
+            }
+
+            return structureSpareList;
+        }
+
+        public List<StackPanel> populateBeamsTabHelper(StackPanel theSP, List<string> linacs, List<string> beamEnergies, List<string> isoNames, int[] beamsPerIso, int numIsos, int numVMATIsos)
+        {
+            List<StackPanel> theSPList = new List<StackPanel> { };
+            StackPanel sp = new StackPanel();
+            sp.Height = 30;
+            sp.Width = theSP.Width;
+            sp.Orientation = Orientation.Horizontal;
+            sp.HorizontalAlignment = HorizontalAlignment.Center;
+            sp.Margin = new Thickness(5);
+
+            //select linac (LA-16 or LA-17)
+            Label linac = new Label();
+            linac.Content = "Linac:";
+            linac.HorizontalAlignment = HorizontalAlignment.Right;
+            linac.VerticalAlignment = VerticalAlignment.Top;
+            linac.Width = 208;
+            linac.FontSize = 14;
+            linac.Margin = new Thickness(0, 0, 10, 0);
+            sp.Children.Add(linac);
+
+            ComboBox linac_cb = new ComboBox();
+            linac_cb.Name = "linac_cb";
+            linac_cb.Width = 80;
+            linac_cb.Height = sp.Height - 5;
+            linac_cb.HorizontalAlignment = HorizontalAlignment.Right;
+            linac_cb.VerticalAlignment = VerticalAlignment.Center;
+            linac_cb.Margin = new Thickness(0, 0, 65, 0);
+            if (linacs.Count() > 0) foreach (string s in linacs) linac_cb.Items.Add(s);
+            else
+            {
+                enterMissingInfo linacName = new enterMissingInfo("Enter the name of the linac you want to use", "Linac:");
+                linacName.ShowDialog();
+                if (!linacName.confirm) return new List<StackPanel> { };
+                linac_cb.Items.Add(linacName.value.Text);
+            }
+            linac_cb.SelectedIndex = 0;
+            linac_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
+            sp.Children.Add(linac_cb);
+
+            theSPList.Add(sp);
+
+            //select energy (6X or 10X)
+            sp = new StackPanel();
+            sp.Height = 30;
+            sp.Width = theSP.Width;
+            sp.Orientation = Orientation.Horizontal;
+            sp.HorizontalAlignment = HorizontalAlignment.Center;
+            sp.Margin = new Thickness(5);
+
+            Label energy = new Label();
+            energy.Content = "Beam energy:";
+            energy.HorizontalAlignment = HorizontalAlignment.Right;
+            energy.VerticalAlignment = VerticalAlignment.Top;
+            energy.Width = 215;
+            energy.FontSize = 14;
+            energy.Margin = new Thickness(0, 0, 10, 0);
+            sp.Children.Add(energy);
+
+            ComboBox energy_cb = new ComboBox();
+            energy_cb.Name = "energy_cb";
+            energy_cb.Width = 70;
+            energy_cb.Height = sp.Height - 5;
+            energy_cb.HorizontalAlignment = HorizontalAlignment.Right;
+            energy_cb.VerticalAlignment = VerticalAlignment.Center;
+            energy_cb.Margin = new Thickness(0, 0, 65, 0);
+            if (beamEnergies.Count() > 0) foreach (string s in beamEnergies) energy_cb.Items.Add(s);
+            else
+            {
+                enterMissingInfo energyName = new enterMissingInfo("Enter the photon beam energy you want to use", "Energy:");
+                energyName.ShowDialog();
+                if (!energyName.confirm) return new List<StackPanel> { };
+                energy_cb.Items.Add(energyName.value.Text);
+            }
+            energy_cb.SelectedIndex = 0;
+            energy_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
+            sp.Children.Add(energy_cb);
+
+            theSPList.Add(sp);
+
+            //add iso names and suggested number of beams
+            for (int i = 0; i < numIsos; i++)
+            {
+                sp = new StackPanel();
+                sp.Height = 30;
+                sp.Width = theSP.Width;
+                sp.Orientation = Orientation.Horizontal;
+                sp.HorizontalAlignment = HorizontalAlignment.Center;
+                sp.Margin = new Thickness(2);
+
+                Label iso = new Label();
+                iso.Content = String.Format("Isocenter {0} <{1}>:", (i + 1).ToString(), isoNames.ElementAt(i));
+                iso.HorizontalAlignment = HorizontalAlignment.Right;
+                iso.VerticalAlignment = VerticalAlignment.Top;
+                iso.Width = 230;
+                iso.FontSize = 14;
+                iso.Margin = new Thickness(0, 0, 10, 0);
+                sp.Children.Add(iso);
+
+                TextBox beams_tb = new TextBox();
+                beams_tb.Name = "beams_tb";
+                beams_tb.Width = 40;
+                beams_tb.Height = sp.Height - 5;
+                beams_tb.HorizontalAlignment = HorizontalAlignment.Right;
+                beams_tb.VerticalAlignment = VerticalAlignment.Center;
+                beams_tb.Margin = new Thickness(0, 0, 80, 0);
+
+                if (i >= numVMATIsos) beams_tb.IsReadOnly = true;
+                beams_tb.Text = beamsPerIso[i].ToString();
+                beams_tb.TextAlignment = TextAlignment.Center;
+                sp.Children.Add(beams_tb);
+
+                theSPList.Add(sp);
+            }
+            return theSPList;
+        }
+         
+        public StackPanel getOptHeader(StackPanel theSP)
+        {
+            StackPanel sp = new StackPanel();
+            sp.Height = 30;
+            sp.Width = theSP.Width;
+            sp.Orientation = Orientation.Horizontal;
+            sp.Margin = new Thickness(5, 0, 5, 5);
+
+            Label strName = new Label();
+            strName.Content = "Structure";
+            strName.HorizontalAlignment = HorizontalAlignment.Center;
+            strName.VerticalAlignment = VerticalAlignment.Top;
+            strName.Width = 110;
+            strName.FontSize = 14;
+            strName.Margin = new Thickness(27, 0, 0, 0);
+
+            Label spareType = new Label();
+            spareType.Content = "Constraint";
+            spareType.HorizontalAlignment = HorizontalAlignment.Center;
+            spareType.VerticalAlignment = VerticalAlignment.Top;
+            spareType.Width = 90;
+            spareType.FontSize = 14;
+            spareType.Margin = new Thickness(2, 0, 0, 0);
+
+            Label volLabel = new Label();
+            volLabel.Content = "V (%)";
+            volLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            volLabel.VerticalAlignment = VerticalAlignment.Top;
+            volLabel.Width = 60;
+            volLabel.FontSize = 14;
+            volLabel.Margin = new Thickness(18, 0, 0, 0);
+
+            Label doseLabel = new Label();
+            doseLabel.Content = "D (cGy)";
+            doseLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            doseLabel.VerticalAlignment = VerticalAlignment.Top;
+            doseLabel.Width = 60;
+            doseLabel.FontSize = 14;
+            doseLabel.Margin = new Thickness(3, 0, 0, 0);
+
+            Label priorityLabel = new Label();
+            priorityLabel.Content = "Priority";
+            priorityLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            priorityLabel.VerticalAlignment = VerticalAlignment.Top;
+            priorityLabel.Width = 65;
+            priorityLabel.FontSize = 14;
+            priorityLabel.Margin = new Thickness(13, 0, 0, 0);
+
+            sp.Children.Add(strName);
+            sp.Children.Add(spareType);
+            sp.Children.Add(volLabel);
+            sp.Children.Add(doseLabel);
+            sp.Children.Add(priorityLabel);
+            return sp;
+        }
+
+        public StackPanel addOptVolume(StackPanel theSP, StructureSet selectedSS, Tuple<string, string, double, double, int> listItem, int clearOptBtnCounter, RoutedEventHandler e)
+        {
+            StackPanel sp = new StackPanel();
+            sp.Height = 30;
+            sp.Width = theSP.Width;
+            sp.Orientation = Orientation.Horizontal;
+            sp.Margin = new Thickness(5);
+
+            ComboBox opt_str_cb = new ComboBox();
+            opt_str_cb.Name = "opt_str_cb";
+            opt_str_cb.Width = 120;
+            opt_str_cb.Height = sp.Height - 5;
+            opt_str_cb.HorizontalAlignment = HorizontalAlignment.Left;
+            opt_str_cb.VerticalAlignment = VerticalAlignment.Top;
+            opt_str_cb.Margin = new Thickness(5, 5, 0, 0);
+
+            opt_str_cb.Items.Add("--select--");
+            //this code is used to fix the issue where the structure exists in the structure set, but doesn't populate as the default option in the combo box.
+            int index = 0;
+            //j is initially 1 because we already added "--select--" to the combo box 
+            int j = 1;
+            foreach (Structure s in selectedSS.Structures)
+            {
+                opt_str_cb.Items.Add(s.Id);
+                if (s.Id.ToLower() == listItem.Item1.ToLower()) index = j;
+                j++;
+            }
+            opt_str_cb.SelectedIndex = index;
+            opt_str_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
+            sp.Children.Add(opt_str_cb);
+
+            ComboBox constraint_cb = new ComboBox();
+            constraint_cb.Name = "type_cb";
+            constraint_cb.Width = 100;
+            constraint_cb.Height = sp.Height - 5;
+            constraint_cb.HorizontalAlignment = HorizontalAlignment.Left;
+            constraint_cb.VerticalAlignment = VerticalAlignment.Top;
+            constraint_cb.Margin = new Thickness(5, 5, 0, 0);
+            string[] types = new string[] { "--select--", "Upper", "Lower", "Mean", "Exact" };
+            foreach (string s in types) constraint_cb.Items.Add(s);
+            constraint_cb.Text = listItem.Item2;
+            constraint_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
+            sp.Children.Add(constraint_cb);
+
+            //the order of the dose and volume values are switched when they are displayed to the user. This way, the optimization objective appears to the user as it would in the optimization workspace.
+            //However, due to the way ESAPI assigns optimization objectives via VMATplan.OptimizationSetup.AddPointObjective, they need to be stored in the order listed in the templates above
+            TextBox dose_tb = new TextBox();
+            dose_tb.Name = "dose_tb";
+            dose_tb.Width = 65;
+            dose_tb.Height = sp.Height - 5;
+            dose_tb.HorizontalAlignment = HorizontalAlignment.Left;
+            dose_tb.VerticalAlignment = VerticalAlignment.Top;
+            dose_tb.Margin = new Thickness(5, 5, 0, 0);
+            dose_tb.Text = String.Format("{0:0.#}", listItem.Item4);
+            dose_tb.TextAlignment = TextAlignment.Center;
+            sp.Children.Add(dose_tb);
+
+            TextBox vol_tb = new TextBox();
+            vol_tb.Name = "vol_tb";
+            vol_tb.Width = 70;
+            vol_tb.Height = sp.Height - 5;
+            vol_tb.HorizontalAlignment = HorizontalAlignment.Left;
+            vol_tb.VerticalAlignment = VerticalAlignment.Top;
+            vol_tb.Margin = new Thickness(5, 5, 0, 0);
+            vol_tb.Text = String.Format("{0:0.#}", listItem.Item3);
+            vol_tb.TextAlignment = TextAlignment.Center;
+            sp.Children.Add(vol_tb);
+
+            TextBox priority_tb = new TextBox();
+            priority_tb.Name = "priority_tb";
+            priority_tb.Width = 65;
+            priority_tb.Height = sp.Height - 5;
+            priority_tb.HorizontalAlignment = HorizontalAlignment.Left;
+            priority_tb.VerticalAlignment = VerticalAlignment.Top;
+            priority_tb.Margin = new Thickness(5, 5, 0, 0);
+            priority_tb.Text = Convert.ToString(listItem.Item5);
+            priority_tb.TextAlignment = TextAlignment.Center;
+            sp.Children.Add(priority_tb);
+
+            Button clearOptStructBtn = new Button();
+            clearOptStructBtn.Name = "clearOptStructBtn" + clearOptBtnCounter;
+            clearOptStructBtn.Content = "Clear";
+            clearOptStructBtn.Width = 50;
+            clearOptStructBtn.Height = sp.Height - 5;
+            clearOptStructBtn.HorizontalAlignment = HorizontalAlignment.Left;
+            clearOptStructBtn.VerticalAlignment = VerticalAlignment.Top;
+            clearOptStructBtn.Margin = new Thickness(10, 5, 0, 0);
+            clearOptStructBtn.Click += e;
+            sp.Children.Add(clearOptStructBtn);
+
+            return sp;
+        }
+
+        public List<Tuple<string, string, double, double, int>> parseOptConstraints(StackPanel sp)
         {
             if (sp.Children.Count == 0)
             {
@@ -104,178 +550,6 @@ namespace VMATAutoPlanMT
             catch (Exception except) { System.Windows.Forms.MessageBox.Show(String.Format("Warning! Could not set jaw tracking for VMAT plan because: {0}\nJaw tacking will have to be set manually!", except.Message)); }
             //set auto NTO priority to zero (i.e., shut it off). It has to be done this way because every plan created in ESAPI has an instance of an automatic NTO, which CAN'T be deleted.
             VMATplan.OptimizationSetup.AddAutomaticNormalTissueObjective(NTOpriority);
-        }
-        
-        public bool clearRow(object sender, StackPanel sp)
-        {
-            //same deal as the clear sparing structure button (clearStructBtn_click)
-            Button btn = (Button)sender;
-            int i = 0;
-            int k = 0;
-            foreach (object obj in sp.Children)
-            {
-                foreach (object obj1 in ((StackPanel)obj).Children)
-                {
-                    if (obj1.Equals(btn)) k = i;
-                }
-                if (k > 0) break;
-                i++;
-            }
-
-            //clear entire list if there are only two entries (header + 1 real entry)
-            if (sp.Children.Count < 3) { return true; }
-            else sp.Children.RemoveAt(k);
-            return false;
-        }
-
-        public StackPanel getOptHeader(StackPanel theSP)
-        {
-            StackPanel sp = new StackPanel();
-            sp.Height = 30;
-            sp.Width = theSP.Width;
-            sp.Orientation = Orientation.Horizontal;
-            sp.Margin = new Thickness(5, 0, 5, 5);
-
-            Label strName = new Label();
-            strName.Content = "Structure";
-            strName.HorizontalAlignment = HorizontalAlignment.Center;
-            strName.VerticalAlignment = VerticalAlignment.Top;
-            strName.Width = 110;
-            strName.FontSize = 14;
-            strName.Margin = new Thickness(27, 0, 0, 0);
-
-            Label spareType = new Label();
-            spareType.Content = "Constraint";
-            spareType.HorizontalAlignment = HorizontalAlignment.Center;
-            spareType.VerticalAlignment = VerticalAlignment.Top;
-            spareType.Width = 90;
-            spareType.FontSize = 14;
-            spareType.Margin = new Thickness(2, 0, 0, 0);
-
-            Label volLabel = new Label();
-            volLabel.Content = "V (%)";
-            volLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            volLabel.VerticalAlignment = VerticalAlignment.Top;
-            volLabel.Width = 60;
-            volLabel.FontSize = 14;
-            volLabel.Margin = new Thickness(18, 0, 0, 0);
-
-            Label doseLabel = new Label();
-            doseLabel.Content = "D (cGy)";
-            doseLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            doseLabel.VerticalAlignment = VerticalAlignment.Top;
-            doseLabel.Width = 60;
-            doseLabel.FontSize = 14;
-            doseLabel.Margin = new Thickness(3, 0, 0, 0);
-
-            Label priorityLabel = new Label();
-            priorityLabel.Content = "Priority";
-            priorityLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            priorityLabel.VerticalAlignment = VerticalAlignment.Top;
-            priorityLabel.Width = 65;
-            priorityLabel.FontSize = 14;
-            priorityLabel.Margin = new Thickness(13, 0, 0, 0);
-
-            sp.Children.Add(strName);
-            sp.Children.Add(spareType);
-            sp.Children.Add(volLabel);
-            sp.Children.Add(doseLabel);
-            sp.Children.Add(priorityLabel);
-            return sp;
-        }
-    
-        public StackPanel addOptVolume(StackPanel theSP, StructureSet selectedSS, Tuple<string, string, double, double, int> listItem, int clearOptBtnCounter, RoutedEventHandler e)
-        {
-            StackPanel sp = new StackPanel();
-            sp.Height = 30;
-            sp.Width = theSP.Width;
-            sp.Orientation = Orientation.Horizontal;
-            sp.Margin = new Thickness(5);
-
-            ComboBox opt_str_cb = new ComboBox();
-            opt_str_cb.Name = "opt_str_cb";
-            opt_str_cb.Width = 120;
-            opt_str_cb.Height = sp.Height - 5;
-            opt_str_cb.HorizontalAlignment = HorizontalAlignment.Left;
-            opt_str_cb.VerticalAlignment = VerticalAlignment.Top;
-            opt_str_cb.Margin = new Thickness(5, 5, 0, 0);
-
-            opt_str_cb.Items.Add("--select--");
-            //this code is used to fix the issue where the structure exists in the structure set, but doesn't populate as the default option in the combo box.
-            int index = 0;
-            //j is initially 1 because we already added "--select--" to the combo box 
-            int j = 1;
-            foreach (Structure s in selectedSS.Structures)
-            {
-                opt_str_cb.Items.Add(s.Id);
-                if (s.Id.ToLower() == listItem.Item1.ToLower()) index = j;
-                j++;
-            }
-            opt_str_cb.SelectedIndex = index;
-            opt_str_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
-            sp.Children.Add(opt_str_cb);
-
-            ComboBox constraint_cb = new ComboBox();
-            constraint_cb.Name = "type_cb";
-            constraint_cb.Width = 100;
-            constraint_cb.Height = sp.Height - 5;
-            constraint_cb.HorizontalAlignment = HorizontalAlignment.Left;
-            constraint_cb.VerticalAlignment = VerticalAlignment.Top;
-            constraint_cb.Margin = new Thickness(5, 5, 0, 0);
-            string[] types = new string[] { "--select--", "Upper", "Lower", "Mean", "Exact" };
-            foreach (string s in types) constraint_cb.Items.Add(s);
-            constraint_cb.Text = listItem.Item2;
-            constraint_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
-            sp.Children.Add(constraint_cb);
-
-            //the order of the dose and volume values are switched when they are displayed to the user. This way, the optimization objective appears to the user as it would in the optimization workspace.
-            //However, due to the way ESAPI assigns optimization objectives via VMATplan.OptimizationSetup.AddPointObjective, they need to be stored in the order listed in the templates above
-            TextBox dose_tb = new TextBox();
-            dose_tb.Name = "dose_tb";
-            dose_tb.Width = 65;
-            dose_tb.Height = sp.Height - 5;
-            dose_tb.HorizontalAlignment = HorizontalAlignment.Left;
-            dose_tb.VerticalAlignment = VerticalAlignment.Top;
-            dose_tb.Margin = new Thickness(5, 5, 0, 0);
-            dose_tb.Text = String.Format("{0:0.#}", listItem.Item4);
-            dose_tb.TextAlignment = TextAlignment.Center;
-            sp.Children.Add(dose_tb);
-
-            TextBox vol_tb = new TextBox();
-            vol_tb.Name = "vol_tb";
-            vol_tb.Width = 70;
-            vol_tb.Height = sp.Height - 5;
-            vol_tb.HorizontalAlignment = HorizontalAlignment.Left;
-            vol_tb.VerticalAlignment = VerticalAlignment.Top;
-            vol_tb.Margin = new Thickness(5, 5, 0, 0);
-            vol_tb.Text = String.Format("{0:0.#}", listItem.Item3);
-            vol_tb.TextAlignment = TextAlignment.Center;
-            sp.Children.Add(vol_tb);
-
-            TextBox priority_tb = new TextBox();
-            priority_tb.Name = "priority_tb";
-            priority_tb.Width = 65;
-            priority_tb.Height = sp.Height - 5;
-            priority_tb.HorizontalAlignment = HorizontalAlignment.Left;
-            priority_tb.VerticalAlignment = VerticalAlignment.Top;
-            priority_tb.Margin = new Thickness(5, 5, 0, 0);
-            priority_tb.Text = Convert.ToString(listItem.Item5);
-            priority_tb.TextAlignment = TextAlignment.Center;
-            sp.Children.Add(priority_tb);
-
-            Button clearOptStructBtn = new Button();
-            clearOptBtnCounter++;
-            clearOptStructBtn.Name = "clearOptStructBtn" + clearOptBtnCounter;
-            clearOptStructBtn.Content = "Clear";
-            clearOptStructBtn.Width = 50;
-            clearOptStructBtn.Height = sp.Height - 5;
-            clearOptStructBtn.HorizontalAlignment = HorizontalAlignment.Left;
-            clearOptStructBtn.VerticalAlignment = VerticalAlignment.Top;
-            clearOptStructBtn.Margin = new Thickness(10, 5, 0, 0);
-            clearOptStructBtn.Click += e;
-            sp.Children.Add(clearOptStructBtn);
-
-            return sp;
         }
     }
 }

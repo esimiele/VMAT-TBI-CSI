@@ -5,6 +5,8 @@ using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.IO;
+using System.Reflection;
 
 namespace VMATAutoPlanMT
 {
@@ -15,8 +17,9 @@ namespace VMATAutoPlanMT
             selectOption SO = new selectOption();
             SO.ShowDialog();
             Window mw;
-            if (SO.isVMATTBI) mw = new TBIAutoPlanMW(e.Args);
-            else if (SO.isVMATCSI) mw = new CSIAutoPlanMW(e.Args);
+            List<string> theArguments;
+            if (SO.isVMATTBI) { theArguments = new List<string>(e.Args.Append(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_TBI_config.ini").ToList()); mw = new TBIAutoPlanMW(theArguments); }
+            else if (SO.isVMATCSI) { theArguments = new List<string>(e.Args.Append(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_CSI_config.ini").ToList()); mw = new CSIAutoPlanMW(theArguments); } 
             else return;
             mw.Show();
         }

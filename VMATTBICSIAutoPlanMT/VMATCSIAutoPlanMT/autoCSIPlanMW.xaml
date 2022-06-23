@@ -1,14 +1,11 @@
-﻿<Window x:Class="VMATAutoPlanMT.TBIAutoPlanMW"
+﻿<Window x:Class="VMATCSIAutoPlanMT.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:VMATAutoPlanMT"
-        mc:Ignorable="d" 
-        Title="VMAT TBI Autoplanning" 
-        SizeToContent="WidthAndHeight"
-        SizeChanged="MainWindow_SizeChanged"
-        Closing="Window_Closing" WindowStartupLocation="CenterScreen">
+        xmlns:local="clr-namespace:VMATCSIAutoPlanMT"
+        mc:Ignorable="d"
+        Title="VMAT CSI autoplanning" SizeToContent="WidthAndHeight" Closing="Window_Closing">
     <Window.Resources>
         <Style TargetType="TextBox">
             <Setter Property="Background" Value="White"/>
@@ -22,124 +19,17 @@
         <Style TargetType="Label">
             <Setter Property="Foreground" Value="Black"/>
         </Style>
-        <Style x:Key="ViewerScrollBar" TargetType="{x:Type ScrollBar}">
-            <Setter Property="Background" Value="DimGray"/>
+        <Style TargetType="ScrollBar">
+            <Setter Property="Background" Value="LightGray"/>
         </Style>
         <Style TargetType="TabItem">
             <Setter Property="Background" Value="LightGray"/>
         </Style>
-        <!--Scrollbar Thumbs-->
-        <Style x:Key="ScrollThumbs" TargetType="{x:Type Thumb}">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type Thumb}">
-                        <Grid x:Name="Grid">
-                            <Rectangle HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Width="Auto" Height="Auto" Fill="Transparent"/>
-                            <Border x:Name="Rectangle1" CornerRadius="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Width="Auto" Height="Auto" Background="{TemplateBinding Background}"/>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="Tag" Value="Horizontal">
-                                <Setter TargetName="Rectangle1" Property="Width" Value="Auto"/>
-                                <Setter TargetName="Rectangle1" Property="Height" Value="7"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!--ScrollBars-->
-        <Style x:Key="ScrollBarStyle" TargetType="{x:Type ScrollBar}">
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Width" Value="8"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type ScrollBar}">
-                        <Grid x:Name="GridRoot" Width="8" Background="{TemplateBinding Background}">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="0.00001*"/>
-                            </Grid.RowDefinitions>
-
-                            <Track x:Name="PART_Track" Grid.Row="0" IsDirectionReversed="true" Focusable="false">
-                                <Track.Thumb>
-                                    <Thumb x:Name="Thumb" Background="{TemplateBinding Foreground}" Style="{StaticResource ScrollThumbs}"/>
-                                </Track.Thumb>
-                                <Track.IncreaseRepeatButton>
-                                    <RepeatButton x:Name="PageUp" Command="ScrollBar.PageDownCommand" Opacity="0" Focusable="false"/>
-                                </Track.IncreaseRepeatButton>
-                                <Track.DecreaseRepeatButton>
-                                    <RepeatButton x:Name="PageDown" Command="ScrollBar.PageUpCommand" Opacity="0" Focusable="false"/>
-                                </Track.DecreaseRepeatButton>
-                            </Track>
-                        </Grid>
-
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsEnabled" Value="false">
-                                <Setter TargetName="Thumb" Property="Visibility" Value="Collapsed"/>
-                            </Trigger>
-                            <Trigger Property="Orientation" Value="Horizontal">
-                                <Setter TargetName="GridRoot" Property="LayoutTransform">
-                                    <Setter.Value>
-                                        <RotateTransform Angle="-90"/>
-                                    </Setter.Value>
-                                </Setter>
-                                <Setter TargetName="PART_Track" Property="LayoutTransform">
-                                    <Setter.Value>
-                                        <RotateTransform Angle="-90"/>
-                                    </Setter.Value>
-                                </Setter>
-                                <Setter Property="Width" Value="Auto"/>
-                                <Setter Property="Height" Value="8"/>
-                                <Setter TargetName="Thumb" Property="Tag" Value="Horizontal"/>
-                                <Setter TargetName="PageDown" Property="Command" Value="ScrollBar.PageLeftCommand"/>
-                                <Setter TargetName="PageUp" Property="Command" Value="ScrollBar.PageRightCommand"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- ScrollViewer -->
-        <Style x:Key="ScrollViewerStyle" TargetType="{x:Type ScrollViewer}">
-            <Setter Property="OverridesDefaultStyle" Value="True"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type ScrollViewer}">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="16"/>
-                                <ColumnDefinition />
-                                <ColumnDefinition Width="16"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition />
-                            </Grid.RowDefinitions>
-                            <ScrollContentPresenter Grid.ColumnSpan="3" />
-                            <ScrollBar x:Name="PART_VerticalScrollBar" Grid.Column="2" Value="{TemplateBinding VerticalOffset}" Maximum="{TemplateBinding ScrollableHeight}" ViewportSize="{TemplateBinding ViewportHeight}" Style="{DynamicResource ScrollBarStyle}" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
     </Window.Resources>
     <Grid Width="600">
-        <Grid.Background>
-            <ImageBrush ImageSource="/Images/Stanford.png" Stretch="Uniform" AlignmentY="Top" Opacity="0.20">
-                <ImageBrush.Transform>
-                    <TransformGroup>
-                        <ScaleTransform ScaleX="0.65" ScaleY="0.65"/>
-                        <SkewTransform/>
-                        <RotateTransform/>
-                        <TranslateTransform Y="0" X="104"/>
-                    </TransformGroup>
-                </ImageBrush.Transform>
-            </ImageBrush>
-        </Grid.Background>
         <StackPanel>
             <Grid>
-                <Label Content="VMAT TBI auto planning script" FontSize="20" HorizontalAlignment="Center" Margin="0,0,0,0" VerticalAlignment="Top"/>
+                <Label Content="VMAT CSI auto planning script" FontSize="20" HorizontalAlignment="Center" Margin="0,0,0,0" VerticalAlignment="Top"/>
                 <Button Content="Help" HorizontalAlignment="Right" Margin="0,10,30,0" VerticalAlignment="Top" Width="75" Click="Help_Button_Click"/>
                 <Button x:Name="quickStart" Content="Quick Start" HorizontalAlignment="Left" Margin="30,10,0,0" VerticalAlignment="Top" Width="75" Click="QuickStart_Click"/>
 
@@ -169,28 +59,20 @@
                 <Grid Width="600" Height="34" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,177,0,5">
                     <Label Content="Add flash:" HorizontalAlignment="Right" Margin="0,5,515,0" VerticalAlignment="Top"/>
                     <CheckBox x:Name="flash_chkbox" HorizontalContentAlignment="Center" HorizontalAlignment="Right" Margin="0,11,500,0" VerticalAlignment="Top" Click="flash_chkbox_Click"/>
-                    <ComboBox x:Name="flashOption" HorizontalContentAlignment="Center" HorizontalAlignment="Right" Margin="0,8,380,0" VerticalAlignment="Top" Width="90" Visibility="Hidden" SelectionChanged="FlashOption_SelectionChanged"/>
-                    <Label x:Name="flashMarginLabel" Content="Margin (cm):" HorizontalAlignment="Right" Margin="0,5,280,0" VerticalAlignment="Top" Visibility="Hidden"/>
-                    <TextBox x:Name="flashMarginTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="50" Height="21" Margin="0,8,225,0" Visibility="Hidden"></TextBox>
-                    <Label x:Name="flashVolumeLabel" Content="Volume:" HorizontalAlignment="Right" Margin="0,5,150,0" VerticalAlignment="Top" Visibility="Hidden"/>
-                    <ComboBox x:Name="flashVolume" HorizontalContentAlignment="Center" HorizontalAlignment="Right" Margin="0,8,27,0" VerticalAlignment="Top" Width="120" Visibility="Hidden"/>
+                    <Label x:Name="flashMarginLabel" Content="Margin (cm):" HorizontalAlignment="Right" Margin="0,5,380,0" VerticalAlignment="Top" Visibility="Hidden"/>
+                    <TextBox x:Name="flashMarginTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="50" Height="21" Margin="0,8,325,0" Visibility="Hidden"></TextBox>
                 </Grid>
             </Grid>
-            <TabControl Background="DarkGray" HorizontalAlignment="Left" Height="480" Margin="0,0,0,0" VerticalAlignment="Bottom" Width="600" TabStripPlacement="Top">
+            <TabControl Background="DarkGray" HorizontalAlignment="Left" Height="480" Margin="0,0,0,0" VerticalAlignment="Bottom" Width="600">
                 <TabItem Header="TS Generation">
                     <StackPanel Name="TS_SP" HorizontalAlignment="Center" Margin="5">
-                        <Grid>
-                            <Label Content="PTV inner margin from body (cm):" FontSize="13" FontStyle="Normal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,240,0"></Label>
-                            <TextBox x:Name="targetMarginTB" FontSize="12" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,155,0"></TextBox>
-                            <Button x:Name="targetMarginInfo" Content="?" HorizontalAlignment="Right" VerticalAlignment="Top" Width="30" Height="20" Margin="0,4,100,0" Click="TargetMarginInfo_Click"></Button>
-                        </Grid>
                         <Label Content="Structures to Spare" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,3,0,0"></Label>
                         <Grid Height="25" Width ="500" HorizontalAlignment="Center" Margin="0,5,0,0">
                             <Button x:Name="add_str" Content="Add Structure" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_str_click"/>
                             <Button x:Name="addDefaultsBtn" Content="Add Defaults" Width="100" HorizontalAlignment="Center" VerticalAlignment="Top" Click="add_defaults_click"/>
                             <Button Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_list_click"/>
                         </Grid>
-                        <ScrollViewer x:Name="spareStructScroller" Height="310" Width="550" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                        <ScrollViewer x:Name="spareStructScroller" Height="310" Width="550" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom">
                             <StackPanel Name="structures_sp" Margin="5"></StackPanel>
                         </ScrollViewer>
                         <Button Content="Generate Tuning Structures" FontWeight="Bold" Width="170" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,7,0,0" Click="generateStruct"></Button>
@@ -224,7 +106,7 @@
                             <Button Content="Scan RTSTRUCT and Add Constraints" Width="210" HorizontalAlignment="Center" VerticalAlignment="Top" Click="scanSS_Click"/>
                             <Button Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_optParams_Click"/>
                         </Grid>
-                        <ScrollViewer x:Name="optParamScroller" Height="332" Width="550" Margin="0,10,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                        <ScrollViewer x:Name="optParamScroller" Height="332" Width="550" Margin="0,10,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom">
                             <StackPanel Name="opt_parameters" Margin="5"></StackPanel>
                         </ScrollViewer>
                         <Button Content="Set Optimization Constraints" FontWeight="Bold" Width="170" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,10,0,0" Click="setOptConst_Click"></Button>

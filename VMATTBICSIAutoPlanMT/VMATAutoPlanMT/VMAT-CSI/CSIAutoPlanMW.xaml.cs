@@ -195,17 +195,17 @@ namespace VMATAutoPlanMT
         bool autoSave = false;
         ProcessStartInfo optLoopProcess;
 
-        public CSIAutoPlanMW(string[] args)
+        public CSIAutoPlanMW(List<string> args)
         {
             InitializeComponent();
             string mrn = "";
             string ss = "";
             string configurationFile = "";
-            for (int i = 0; i < args.Length; i++)
+            for (int i = 0; i < args.Count; i++)
             {
-                if (i == 0) mrn = args[i];
-                if (i == 1) ss = args[i];
-                if (i == 2) configurationFile = args[i];
+                if (i == 0) mrn = args.ElementAt(i);
+                if (i == 1) ss = args.ElementAt(i);
+                if (i == 2) configurationFile = args.ElementAt(i);
             }
             if (string.IsNullOrEmpty(mrn) || string.IsNullOrWhiteSpace(mrn))
             {

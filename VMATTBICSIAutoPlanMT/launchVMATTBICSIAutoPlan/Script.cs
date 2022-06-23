@@ -25,15 +25,15 @@ namespace VMS.TPS
                 //if (SO.isVMATTBI) { extension = "\\configuration\\VMAT_TBI_config.ini"; exeName = "VMATTBIAutoPlanMT"; }
                 //else if (SO.isVMATCSI) { extension = "\\configuration\\VMAT_CSI_config.ini"; exeName = "VMATCSIAutoPlanMT"; }
                 //else return;
-                string configFile = "";
-                string extension = "\\configuration\\VMAT_autoPlanning_config.ini";
-                string exeName = "VMAT_TBI-CSI";
+                //string configFile = "";
+                //string extension = "\\configuration\\VMAT_autoPlanning_config.ini";
+                string exeName = "VMATTBICSIAutoPlanMT";
                 string path = AppExePath(exeName);
                 if (!string.IsNullOrEmpty(path))
                 {
                     ProcessStartInfo p = new ProcessStartInfo(path);
-                    if (File.Exists(System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + extension)) configFile = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + extension;
-                    if (context.Patient != null) p.Arguments = String.Format("{0} {1} {2}", context.Patient.Id, context.StructureSet.Id, configFile);
+                    //if (File.Exists(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + extension)) configFile = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + extension;
+                    if (context.Patient != null) p.Arguments = String.Format("{0} {1}", context.Patient.Id, context.StructureSet.Id);
                     Process.Start(p);
                 }
                 else MessageBox.Show(String.Format("Error! {0} executable NOT found!", exeName));
