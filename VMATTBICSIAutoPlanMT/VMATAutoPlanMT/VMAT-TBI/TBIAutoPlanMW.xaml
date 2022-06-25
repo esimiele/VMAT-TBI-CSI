@@ -22,9 +22,6 @@
         <Style TargetType="Label">
             <Setter Property="Foreground" Value="Black"/>
         </Style>
-        <Style x:Key="ViewerScrollBar" TargetType="{x:Type ScrollBar}">
-            <Setter Property="Background" Value="DimGray"/>
-        </Style>
         <Style TargetType="TabItem">
             <Setter Property="Background" Value="LightGray"/>
         </Style>
@@ -50,7 +47,7 @@
 
         <!--ScrollBars-->
         <Style x:Key="ScrollBarStyle" TargetType="{x:Type ScrollBar}">
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="GhostWhite"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Width" Value="8"/>
             <Setter Property="Template">
@@ -191,7 +188,8 @@
                             <Button Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_list_click"/>
                         </Grid>
                         <ScrollViewer x:Name="spareStructScroller" Height="310" Width="550" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
-                            <StackPanel Name="structures_sp" Margin="5"></StackPanel>
+                            <StackPanel Name="structures_sp" Margin="5">
+                            </StackPanel>
                         </ScrollViewer>
                         <Button Content="Generate Tuning Structures" FontWeight="Bold" Width="170" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,7,0,0" Click="generateStruct"></Button>
                     </StackPanel>

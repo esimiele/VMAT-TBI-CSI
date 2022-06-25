@@ -74,6 +74,7 @@
       <DependentUpon>AutorunProgress.xaml</DependentUpon>
     </Compile>
     <Compile Include="baseClasses\generateTSbase.cs" />
+    <Compile Include="baseClasses\planPrepBase.cs" />
     <Compile Include="ESAPIworker.cs" />
     <Compile Include="helpers\selectItem.cs">
       <SubType>Form</SubType>

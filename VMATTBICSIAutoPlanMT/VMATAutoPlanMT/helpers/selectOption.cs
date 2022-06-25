@@ -14,8 +14,9 @@ namespace VMATAutoPlanMT
     {
         public bool isVMATTBI = false;
         public bool isVMATCSI = false;
-        public selectOption()
+        public selectOption(bool showOpt = false)
         {
+            if (showOpt) launchOptBtn.Visible = true;
             InitializeComponent();
         }
 

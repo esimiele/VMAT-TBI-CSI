@@ -6,7 +6,6 @@ using System.Windows.Controls;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.IO;
-using System.Reflection;
 using System.Diagnostics;
 using Microsoft.Win32;
 using System.Windows.Threading;
@@ -184,7 +183,7 @@ namespace VMATAutoPlanMT
         public VMS.TPS.Common.Model.API.Application app = null;
         bool isModified = false;
         bool autoSave = false;
-        ProcessStartInfo optLoopProcess;
+        //ProcessStartInfo optLoopProcess;
 
         public TBIAutoPlanMW(List<string> args)
         {
@@ -200,7 +199,7 @@ namespace VMATAutoPlanMT
                 {
                     if (i == 0) mrn = args.ElementAt(i);
                     if (i == 1) ss = args.ElementAt(i);
-                    if (i == 2) configurationFile = args.ElementAt(i);
+                    if (i == 3) configurationFile = args.ElementAt(i);
                 }
                 if (string.IsNullOrEmpty(mrn) || string.IsNullOrWhiteSpace(mrn))
                 {
@@ -934,31 +933,32 @@ namespace VMATAutoPlanMT
             //optimization parameter list, the plan object, enable jaw tracking?, Auto NTO priority
             helper.assignOptConstraints(optParametersList, VMATplan, true, 0.0);
 
-            confirmUI CUI = new confirmUI();
-            CUI.message.Text = "Optimization objectives have been successfully set!" + Environment.NewLine + Environment.NewLine + "Save changes and launch optimization loop?";
-            CUI.confirmBTN.Text = "Yes";
-            CUI.cancelBTN.Text = "No";
-            CUI.ShowDialog();
-            if (CUI.confirm)
+            //confirmUI CUI = new confirmUI();
+            //CUI.message.Text = "Optimization objectives have been successfully set!" + Environment.NewLine + Environment.NewLine + "Save changes and launch optimization loop?";
+            //CUI.confirmBTN.Text = "Yes";
+            //CUI.cancelBTN.Text = "No";
+            //CUI.ShowDialog();
+            //if (CUI.confirm)
+            //{
+            //    string binDir = System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            //    string optLoopExe = Directory.GetFiles(binDir, "*.exe").FirstOrDefault(x => x.Contains("VMATTBI_optLoopMT"));
+            //    optLoopProcess = new ProcessStartInfo(optLoopExe);
+            //    optLoopProcess.Arguments = String.Format("{0} {1}", pi.Id, configFile);
+            //    autoSave = true;
+            //    this.Close();
+            //}
+            //else
+            //{
+            string message = "Optimization objectives have been successfully set!" + Environment.NewLine + Environment.NewLine + "Please review the generated structures, placed isocenters, placed beams, and optimization parameters!";
+            if (optParametersList.Where(x => x.Item1.ToLower().Contains("_lowres")).Any()) message += "\n\nBE SURE TO VERIFY THE ACCURACY OF THE GENERATED LOW-RESOLUTION CONTOURS!";
+            if (numIsos != 0 && numIsos != numVMATIsos)
             {
-                string binDir = System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-                string optLoopExe = Directory.GetFiles(binDir, "*.exe").FirstOrDefault(x => x.Contains("VMATTBI_optLoopMT"));
-                optLoopProcess = new ProcessStartInfo(optLoopExe);
-                optLoopProcess.Arguments = String.Format("{0} {1}", pi.Id, configFile);
-                autoSave = true;
-                this.Close();
+                //VMAT only TBI plan was created with the script in this instance info or the user wants to only set the optimization constraints
+                message += "\n\nFor the AP/PA Legs plan, be sure to change the orientation from head-first supine to feet-first supine!";
             }
-            else
-            {
-                string message = "Please review the generated structures, placed isocenters, placed beams, and optimization parameters!";
-                if (optParametersList.Where(x => x.Item1.ToLower().Contains("_lowres")).Any()) message += "\n\nBE SURE TO VERIFY THE ACCURACY OF THE GENERATED LOW-RESOLUTION CONTOURS!";
-                if (numIsos != 0 && numIsos != numVMATIsos)
-                {
-                    //VMAT only TBI plan was created with the script in this instance info or the user wants to only set the optimization constraints
-                    message += "\n\nFor the AP/PA Legs plan, be sure to change the orientation from head-first supine to feet-first supine!";
-                }
-                MessageBox.Show(message);
-            }
+            MessageBox.Show(message);
+            //}
+            autoSave = true;
             isModified = true;
         }
 
@@ -1485,7 +1485,8 @@ namespace VMATAutoPlanMT
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             //be sure to close the patient before closing the application. Not doing so will result in unclosed timestamps in eclipse
-            if (autoSave) { app.SaveModifications(); Process.Start(optLoopProcess); }
+            //if (autoSave) { app.SaveModifications(); Process.Start(optLoopProcess); }
+            if (autoSave) app.SaveModifications();
             else if (isModified)
             {
                 confirmUI CUI = new confirmUI();

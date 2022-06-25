@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
 using System.IO;
 using System.Reflection;
@@ -14,7 +10,10 @@ namespace VMATAutoPlanMT
     {
         private void Application_Startup(object sender, StartupEventArgs e)
         {
-            selectOption SO = new selectOption();
+            selectOption SO;
+
+            if (e.Args.Length == 3) SO = new selectOption(true);
+            else SO = new selectOption(false);
             SO.ShowDialog();
             Window mw;
             List<string> theArguments;

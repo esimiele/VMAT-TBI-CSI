@@ -27,13 +27,25 @@ namespace VMS.TPS
                 //else return;
                 //string configFile = "";
                 //string extension = "\\configuration\\VMAT_autoPlanning_config.ini";
+                bool addOptLaunchOption = false;
+                ExternalPlanSetup plan = context.ExternalPlanSetup;
+                if (plan != null && (plan.Id.ToLower() == "_vmat tbi" || plan.Id.ToLower() == "_vmat csi") && !plan.IsDoseValid) addOptLaunchOption |= true;
+                else
+                {
+                    List<Course> courses = context.Patient.Courses.Where(x => x.Id.ToLower().Contains("VMAT TBI") || x.Id.ToLower().Contains("VMAT CSI")).ToList();
+                    if (courses.Any()) { foreach (Course c in courses) if (c.ExternalPlanSetups.Where(x => (x.Id.ToLower() == "_vmat tbi" || x.Id.ToLower() == "_vmat csi") && !x.IsDoseValid).Any()) { addOptLaunchOption = true; break; } }
+                }
                 string exeName = "VMATTBICSIAutoPlanMT";
                 string path = AppExePath(exeName);
                 if (!string.IsNullOrEmpty(path))
                 {
                     ProcessStartInfo p = new ProcessStartInfo(path);
                     //if (File.Exists(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + extension)) configFile = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + extension;
-                    if (context.Patient != null) p.Arguments = String.Format("{0} {1}", context.Patient.Id, context.StructureSet.Id);
+                    if (context.Patient != null)
+                    {
+                        if(!addOptLaunchOption) p.Arguments = String.Format("{0} {1}", context.Patient.Id, context.StructureSet.Id);
+                        else p.Arguments = String.Format("{0} {1} {2}", context.Patient.Id, context.StructureSet.Id, "true");
+                    }
                     Process.Start(p);
                 }
                 else MessageBox.Show(String.Format("Error! {0} executable NOT found!", exeName));
