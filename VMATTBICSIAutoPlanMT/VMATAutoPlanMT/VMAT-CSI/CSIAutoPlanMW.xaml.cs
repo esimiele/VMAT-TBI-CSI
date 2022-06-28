@@ -189,7 +189,7 @@ namespace VMATAutoPlanMT
         bool useFlash = false;
         List<Structure> jnxs = new List<Structure> { };
         Structure flashStructure = null;
-        planPrep prep = null;
+        planPrep_CSI prep = null;
         public VMS.TPS.Common.Model.API.Application app = VMS.TPS.Common.Model.API.Application.CreateApplication();
         bool isModified = false;
         bool autoSave = false;
@@ -234,9 +234,6 @@ namespace VMATAutoPlanMT
 
             //pre-populate the flash comboxes (set global flash as default)
             flashMarginTB.Text = defaultFlashMargin;
-
-            //set default PTV inner margin from body
-            targetMarginTB.Text = defaultTargetMargin;
         }
 
         private void Help_Button_Click(object sender, RoutedEventArgs e)
@@ -668,17 +665,6 @@ namespace VMATAutoPlanMT
                 //    if (!CUI.confirm) return;
                 //}
             }
-            double targetMargin;
-            if (!double.TryParse(targetMarginTB.Text, out targetMargin))
-            {
-                MessageBox.Show("Error! PTV margin from body is NaN! \nExiting!");
-                return;
-            }
-            if (targetMargin < 0.0 || targetMargin > 5.0)
-            {
-                MessageBox.Show("Error! PTV margin from body is either < 0.0 or > 5.0 cm \nExiting!");
-                return;
-            }
 
             List<Tuple<string, string, double>> structureSpareList = new List<Tuple<string, string, double>> { };
             string structure = "";
@@ -727,10 +713,10 @@ namespace VMATAutoPlanMT
 
             //create an instance of the generateTS class, passing the structure sparing list vector, the selected structure set, and if this is the scleroderma trial treatment regiment
             //The scleroderma trial contouring/margins are specific to the trial, so this trial needs to be handled separately from the generic VMAT treatment type
-            generateTS generate;
+            generateTS_CSI generate;
             //overloaded constructor depending on if the user requested to use flash or not. If so, pass the relevant flash parameters to the generateTS class
-            if (!useFlash) generate = new generateTS(TS_structures, scleroStructures, structureSpareList, selectedSS, targetMargin, false);
-            else generate = new generateTS(TS_structures, scleroStructures, structureSpareList, selectedSS, targetMargin, false, useFlash, flashStructure, flashMargin);
+            if (!useFlash) generate = new generateTS_CSI(TS_structures, scleroStructures, structureSpareList, selectedSS, 0.0, false);
+            else generate = new generateTS_CSI(TS_structures, scleroStructures, structureSpareList, selectedSS, 0.0, false, useFlash, flashStructure, flashMargin);
             pi.BeginModifications();
             if (generate.generateStructures()) return;
             //does the structure sparing list need to be updated? This occurs when structures the user elected to spare with option of 'Mean Dose < Rx Dose' are high resolution. Since Eclipse can't perform
@@ -972,7 +958,7 @@ namespace VMATAutoPlanMT
             }
 
             //Added code to account for the scenario where the user either requested or did not request to contour the overlap between fields in adjacent isocenters
-            placeBeams place;
+            placeBeams_CSI place;
             if (contourOverlap_chkbox.IsChecked.Value)
             {
                 //ensure the value entered in the added margin text box for contouring field overlap is a valid double
@@ -984,9 +970,9 @@ namespace VMATAutoPlanMT
                 //convert from mm to cm
                 contourOverlapMargin *= 10.0;
                 //overloaded constructor for the placeBeams class
-                place = new placeBeams(selectedSS, prescription, isoNames, numIsos, numVMATIsos, singleAPPAplan, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, useFlash, contourOverlapMargin);
+                place = new placeBeams_CSI(selectedSS, prescription, isoNames, numIsos, numVMATIsos, singleAPPAplan, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, useFlash, contourOverlapMargin);
             }
-            else place = new placeBeams(selectedSS, prescription, isoNames, numIsos, numVMATIsos, singleAPPAplan, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, useFlash);
+            else place = new placeBeams_CSI(selectedSS, prescription, isoNames, numIsos, numVMATIsos, singleAPPAplan, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, useFlash);
 
             VMATplan = place.generatePlan("VMAT TBI");
             if (VMATplan == null) return;
@@ -1566,7 +1552,7 @@ namespace VMATAutoPlanMT
                 }
 
                 //create an instance of the planPep class and pass it the vmatPlan and appaPlan objects as arguments. Get the shift note for the plan of interest
-                prep = new planPrep(vmatPlan, appaPlan);
+                prep = new planPrep_CSI(vmatPlan, appaPlan);
             }
             if (prep.getShiftNote()) return;
 

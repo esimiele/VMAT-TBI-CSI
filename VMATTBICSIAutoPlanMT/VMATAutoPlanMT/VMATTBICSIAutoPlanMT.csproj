@@ -52,13 +52,11 @@
     <Reference Include="System.Xaml">
       <RequiredTargetFramework>4.0</RequiredTargetFramework>
     </Reference>
-    <Reference Include="VMS.TPS.Common.Model.API, Version=1.0.450.29, Culture=neutral, PublicKeyToken=305b81e210ec4b89, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Program Files\Varian\RTM\16.1\esapi\API\VMS.TPS.Common.Model.API.dll</HintPath>
+    <Reference Include="VMS.TPS.Common.Model.API">
+      <HintPath>..\..\VMS_TPS_resources\v16\VMS.TPS.Common.Model.API.dll</HintPath>
     </Reference>
-    <Reference Include="VMS.TPS.Common.Model.Types, Version=1.0.450.29, Culture=neutral, PublicKeyToken=305b81e210ec4b89, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Program Files\Varian\RTM\16.1\esapi\API\VMS.TPS.Common.Model.Types.dll</HintPath>
+    <Reference Include="VMS.TPS.Common.Model.Types">
+      <HintPath>..\..\VMS_TPS_resources\v16\VMS.TPS.Common.Model.Types.dll</HintPath>
     </Reference>
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
@@ -111,7 +109,11 @@
       <DependentUpon>enterMissingInfo.cs</DependentUpon>
     </Compile>
     <Compile Include="helpers\UIhelper.cs" />
-    <Compile Include="VMAT-TBI\generateTS.cs" />
+    <Compile Include="Launcher\launchVMATTBICSIautoPlan.cs" />
+    <Compile Include="VMAT-CSI\generateTS_CSI.cs" />
+    <Compile Include="VMAT-CSI\placeBeams_CSI.cs" />
+    <Compile Include="VMAT-CSI\planPrep_CSI.cs" />
+    <Compile Include="VMAT-TBI\generateTS_TBI.cs" />
     <Compile Include="helpers\selectOption.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -129,8 +131,8 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="VMAT-TBI\placeBeams.cs" />
-    <Compile Include="VMAT-TBI\planPrep.cs" />
+    <Compile Include="VMAT-TBI\placeBeams_TBI.cs" />
+    <Compile Include="VMAT-TBI\planPrep_TBI.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -174,5 +176,11 @@
   <ItemGroup>
     <Resource Include="Images\Stanford.png" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Parameters\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>copy $(ProjectDir)Launcher\* $(ProjectDir)$(OutDir)</PostBuildEvent>
+  </PropertyGroup>
 </Project>

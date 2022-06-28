@@ -35,10 +35,10 @@ namespace VMATAutoPlanMT
             {
                 //create an instance of the generateTS class, passing the structure sparing list vector, the selected structure set, and if this is the scleroderma trial treatment regiment
                 //The scleroderma trial contouring/margins are specific to the trial, so this trial needs to be handled separately from the generic VMAT treatment type
-                generateTS generate;
+                generateTS_TBI generate;
                 //overloaded constructor depending on if the user requested to use flash or not. If so, pass the relevant flash parameters to the generateTS class
-                if (!d.useFlash) generate = new generateTS(d.TS_structures, d.scleroStructures, d.structureSpareList, d.selectedSS, d.targetMargin, d.isScleroRegimen);
-                else generate = new generateTS(d.TS_structures, d.scleroStructures, d.structureSpareList, d.selectedSS, d.targetMargin, d.isScleroRegimen, d.useFlash, d.flashStructure, d.flashMargin);
+                if (!d.useFlash) generate = new generateTS_TBI(d.TS_structures, d.scleroStructures, d.structureSpareList, d.selectedSS, d.targetMargin, d.isScleroRegimen);
+                else generate = new generateTS_TBI(d.TS_structures, d.scleroStructures, d.structureSpareList, d.selectedSS, d.targetMargin, d.isScleroRegimen, d.useFlash, d.flashStructure, d.flashMargin);
                 //if (generate.generateStructures(this, System.Windows.Threading.Dispatcher.CurrentDispatcher)) return;
                 //does the structure sparing list need to be updated? This occurs when structures the user elected to spare with option of 'Mean Dose < Rx Dose' are high resolution. Since Eclipse can't perform
                 //boolean operations on structures of two different resolutions, code was added to the generateTS class to automatically convert these structures to low resolution with the name of

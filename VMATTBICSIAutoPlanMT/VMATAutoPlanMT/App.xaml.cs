@@ -16,9 +16,17 @@ namespace VMATAutoPlanMT
             else SO = new selectOption(false);
             SO.ShowDialog();
             Window mw;
-            List<string> theArguments;
-            if (SO.isVMATTBI) { theArguments = new List<string>(e.Args.Append(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_TBI_config.ini").ToList()); mw = new TBIAutoPlanMW(theArguments); }
-            else if (SO.isVMATCSI) { theArguments = new List<string>(e.Args.Append(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_CSI_config.ini").ToList()); mw = new CSIAutoPlanMW(theArguments); } 
+            List<string> theArguments = new List<string> { e.Args[0], e.Args[1]};
+            if (SO.isVMATTBI) 
+            { 
+                theArguments.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location + "\\configuration\\VMAT_TBI_config.ini")); 
+                mw = new TBIAutoPlanMW(theArguments); 
+            }
+            else if (SO.isVMATCSI) 
+            { 
+                theArguments.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_CSI_config.ini"); 
+                mw = new CSIAutoPlanMW(theArguments); 
+            } 
             else return;
             mw.Show();
         }

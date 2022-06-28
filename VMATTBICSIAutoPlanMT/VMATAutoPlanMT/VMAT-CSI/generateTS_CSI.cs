@@ -12,8 +12,8 @@ using System.Windows.Threading;
 
 namespace VMATAutoPlanMT
 {
-    class generateTS : generateTSbase
-    {
+    public class generateTS_CSI : generateTSbase
+    { 
         //structure, sparing type, added margin
         public List<Tuple<string, string, double>> spareStructList;
         //StructureSet selectedSS;
@@ -34,7 +34,7 @@ namespace VMATAutoPlanMT
         private double flashMargin;
         public bool updateSparingList = false;
 
-        public generateTS(List<Tuple<string, string>> ts, List<Tuple<string, string>> sclero_ts, List<Tuple<string, string, double>> list, StructureSet ss, double tm, bool st)
+        public generateTS_CSI(List<Tuple<string, string>> ts, List<Tuple<string, string>> sclero_ts, List<Tuple<string, string, double>> list, StructureSet ss, double tm, bool st)
         {
             TS_structures = new List<Tuple<string, string>>(ts);
             scleroStructures = new List<Tuple<string, string>>(sclero_ts);
@@ -44,7 +44,7 @@ namespace VMATAutoPlanMT
             scleroTrial = st;
         }
 
-        public generateTS(List<Tuple<string, string>> ts, List<Tuple<string, string>> sclero_ts, List<Tuple<string, string, double>> list, StructureSet ss, double tm, bool st, bool flash, Structure fSt, double fM)
+        public generateTS_CSI(List<Tuple<string, string>> ts, List<Tuple<string, string>> sclero_ts, List<Tuple<string, string, double>> list, StructureSet ss, double tm, bool st, bool flash, Structure fSt, double fM)
         {
             //overloaded constructor for the case where the user wants to include flash in the simulation
             TS_structures = new List<Tuple<string, string>>(ts);
@@ -153,7 +153,7 @@ namespace VMATAutoPlanMT
                 if (!CUI.confirm) return true;
 
                 List<Tuple<string, string, double>> newData = convertHighToLowRes(highResStructList, highResSpareList, spareStructList);
-                if(!newData.Any()) return true;
+                if (!newData.Any()) return true;
                 spareStructList = new List<Tuple<string, string, double>>(newData);
                 //inform the main UI class that the UI needs to be updated
                 updateSparingList = true;
@@ -380,14 +380,14 @@ namespace VMATAutoPlanMT
 
                             //box with contour points located at (x,y), (x,0), (x,-y), (0,-y), (-x,-y), (-x,0), (-x, y), (0,y)
                             VVector[] pts = new[] {
-                                    new VVector(xMax, yMax, 0),
-                                    new VVector(xMax, 0, 0),
-                                    new VVector(xMax, yMin, 0),
-                                    new VVector(0, yMin, 0),
-                                    new VVector(xMin, yMin, 0),
-                                    new VVector(xMin, 0, 0),
-                                    new VVector(xMin, yMax, 0),
-                                    new VVector(0, yMax, 0)};
+                                        new VVector(xMax, yMax, 0),
+                                        new VVector(xMax, 0, 0),
+                                        new VVector(xMax, yMin, 0),
+                                        new VVector(0, yMin, 0),
+                                        new VVector(xMin, yMin, 0),
+                                        new VVector(xMin, 0, 0),
+                                        new VVector(xMin, yMax, 0),
+                                        new VVector(0, yMax, 0)};
 
                             //give 5cm margin on TS_PTV_LEGS (one slice of the CT should be 5mm) in case user wants to include flash up to 5 cm
                             for (int i = matchplaneLocation - 1; i > lowLim - 10; i--) dummyBox.AddContourOnImagePlane(pts, i);

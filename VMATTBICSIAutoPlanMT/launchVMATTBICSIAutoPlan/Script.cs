@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using VMS.TPS.Common.Model.API;
 using System.Diagnostics;
 using System.Windows.Forms;
 using System.IO;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace VMS.TPS
 {
@@ -43,7 +42,7 @@ namespace VMS.TPS
                     //if (File.Exists(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + extension)) configFile = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + extension;
                     if (context.Patient != null)
                     {
-                        if(!addOptLaunchOption) p.Arguments = String.Format("{0} {1}", context.Patient.Id, context.StructureSet.Id);
+                        if (!addOptLaunchOption) p.Arguments = String.Format("{0} {1}", context.Patient.Id, context.StructureSet.Id);
                         else p.Arguments = String.Format("{0} {1} {2}", context.Patient.Id, context.StructureSet.Id, "true");
                     }
                     Process.Start(p);
@@ -54,7 +53,7 @@ namespace VMS.TPS
         }
         private string AppExePath(string exeName)
         {
-            return FirstExePathIn(AssemblyDirectory(), exeName);
+            return FirstExePathIn(Path.GetDirectoryName(GetSourceFilePath()), exeName);
         }
 
         private string FirstExePathIn(string dir, string exeName)
@@ -62,9 +61,9 @@ namespace VMS.TPS
             return Directory.GetFiles(dir, "*.exe").FirstOrDefault(x => x.Contains(exeName));
         }
 
-        private string AssemblyDirectory()
+        private string GetSourceFilePath([CallerFilePath] string sourceFilePath = "")
         {
-            return Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            return sourceFilePath;
         }
     }
 }

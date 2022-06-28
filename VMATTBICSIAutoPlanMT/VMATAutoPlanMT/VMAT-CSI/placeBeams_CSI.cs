@@ -8,7 +8,7 @@ using System.Windows.Media.Media3D;
 
 namespace VMATAutoPlanMT
 {
-    class placeBeams : placeBeamsBase
+    class placeBeams_CSI : placeBeamsBase
     {
         int numIsos;
         int[] numBeams;
@@ -26,7 +26,7 @@ namespace VMATAutoPlanMT
         List<VRect<double>> jawPos;
         private bool useFlash;
 
-        public placeBeams(StructureSet ss, Tuple<int, DoseValue> presc, List<string> i, int iso, int vmatIso, bool appaPlan, int[] beams, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool flash)
+        public placeBeams_CSI(StructureSet ss, Tuple<int, DoseValue> presc, List<string> i, int iso, int vmatIso, bool appaPlan, int[] beams, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool flash)
         {
             selectedSS = ss;
             prescription = presc;
@@ -49,7 +49,7 @@ namespace VMATAutoPlanMT
             useFlash = flash;
         }
 
-        public placeBeams(StructureSet ss, Tuple<int, DoseValue> presc, List<string> i, int iso, int vmatIso, bool appaPlan, int[] beams, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool flash, double overlapMargin)
+        public placeBeams_CSI(StructureSet ss, Tuple<int, DoseValue> presc, List<string> i, int iso, int vmatIso, bool appaPlan, int[] beams, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool flash, double overlapMargin)
         {
             selectedSS = ss;
             prescription = presc;
