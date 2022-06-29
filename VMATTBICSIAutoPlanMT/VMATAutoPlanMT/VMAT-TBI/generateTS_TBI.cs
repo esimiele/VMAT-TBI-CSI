@@ -16,20 +16,15 @@ namespace VMATAutoPlanMT
     {
         //structure, sparing type, added margin
         public List<Tuple<string, string, double>> spareStructList;
-        //StructureSet selectedSS;
         //DICOM types
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
         List<Tuple<string, string>> TS_structures;
         List<Tuple<string, string>> scleroStructures;
-        //List<string> addedStructures = new List<string> { };
-        //public List<Tuple<string, string>> optParameters = new List<Tuple<string, string>> { };
         public int numIsos;
         public int numVMATIsos;
-        //public List<string> isoNames = new List<string> { };
         private double targetMargin;
         private bool scleroTrial;
-        //private bool useFlash = false;
         private Structure flashStructure = null;
         private double flashMargin;
         public bool updateSparingList = false;
