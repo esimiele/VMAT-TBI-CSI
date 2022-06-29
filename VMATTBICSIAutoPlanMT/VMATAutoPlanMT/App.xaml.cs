@@ -16,7 +16,8 @@ namespace VMATAutoPlanMT
             else SO = new selectOption(false);
             SO.ShowDialog();
             Window mw;
-            List<string> theArguments = new List<string> { e.Args[0], e.Args[1]};
+            List<string> theArguments = new List<string> { };
+            for(int i = 0; i < e.Args.Length; i++) theArguments.Add(e.Args[i]);
             if (SO.isVMATTBI) 
             { 
                 theArguments.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location + "\\configuration\\VMAT_TBI_config.ini")); 

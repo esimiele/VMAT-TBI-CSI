@@ -181,6 +181,6 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy $(ProjectDir)Launcher\* $(ProjectDir)$(OutDir)</PostBuildEvent>
+    <PostBuildEvent>copy "$(ProjectDir)Launcher\*" "$(ProjectDir)$(OutDir)"</PostBuildEvent>
   </PropertyGroup>
 </Project>
