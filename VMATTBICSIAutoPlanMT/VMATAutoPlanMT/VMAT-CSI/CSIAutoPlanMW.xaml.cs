@@ -146,6 +146,8 @@ namespace VMATAutoPlanMT
         public VMS.TPS.Common.Model.API.Application app = null;
         bool isModified = false;
         bool autoSave = false;
+
+        VMS.TPS.Common.Model.API.Image theImg = null;
         //ProcessStartInfo optLoopProcess;
 
         public CSIAutoPlanMW(List<string> args)
@@ -184,7 +186,7 @@ namespace VMATAutoPlanMT
                     //SSID is combobox defined in UI.xaml
                     foreach (StructureSet s in pi.StructureSets) SSID.Items.Add(s.Id);
                     //SSID default is the current structure set in the context
-                    if (!string.IsNullOrEmpty(ss)) { selectedSS = pi.StructureSets.FirstOrDefault(x => x.Id == ss); SSID.Text = selectedSS.Id; }
+                    if (!string.IsNullOrEmpty(ss)) { selectedSS = pi.StructureSets.FirstOrDefault(x => x.Id == ss); SSID.Text = selectedSS.Id; theImg = selectedSS.Image; }
                     else MessageBox.Show("Warning! No structure set in context! Please select a structure set at the top of the GUI!");
                 }
                 else MessageBox.Show("Could not open patient!");
@@ -302,6 +304,22 @@ namespace VMATAutoPlanMT
             MessageBox.Show("Selecting this option will contour the (approximate) overlap between fields in adjacent isocenters in the VMAT plan and assign the resulting structures as targets in the optimization.");
         }
 
+        private void exportImgInfo_Click(object sender, RoutedEventArgs e)
+        {
+            if (theImg != null) MessageBox.Show(theImg.Id);
+            else MessageBox.Show("No Image!");
+        }
+
+        private void exportImg_Click(object sender, RoutedEventArgs e)
+        {
+            if (theImg != null)
+            {
+                if (new UIhelper().imageExport(theImg)) return;
+                MessageBox.Show(String.Format("{0} has been exported successfully!", theImg.Id));
+            }
+            else MessageBox.Show("No image to export");
+        }
+
         //add structure to spare to the list
         private void add_str_click(object sender, RoutedEventArgs e)
         {
@@ -366,6 +384,8 @@ namespace VMATAutoPlanMT
 
             //update selected structure set
             selectedSS = pi.StructureSets.FirstOrDefault(x => x.Id == SSID.SelectedItem.ToString());
+
+            theImg = selectedSS.Image;
         }
 
         private void add_defaults_click(object sender, RoutedEventArgs e)
@@ -1294,5 +1314,7 @@ namespace VMATAutoPlanMT
         {
             SizeToContent = SizeToContent.WidthAndHeight;
         }
+
+        
     }
 }

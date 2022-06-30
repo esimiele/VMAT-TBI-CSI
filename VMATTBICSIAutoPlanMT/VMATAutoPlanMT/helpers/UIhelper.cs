@@ -5,11 +5,72 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Controls;
 using System.Windows;
+using System.Drawing;
+using System.Windows.Media.Imaging;
 
 namespace VMATAutoPlanMT
 {
     public class UIhelper
     {
+        public bool imageExport(VMS.TPS.Common.Model.API.Image img)
+        {
+            int[,] pixels = new int[img.XSize,img.YSize];
+            //4 bytes per pixel
+            //byte[] pixelVals = new byte[img.XSize * img.YSize * 4];
+            //UInt16[] convertPix = new UInt16[img.XSize * img.YSize];
+            //int count = 0;
+            //int max = 0;
+            //for (int j = 0; j < img.YSize; j++)
+            //{
+            //    for (int i = 0; i < img.XSize; i++)
+            //    {
+            //        //int r, b, g;
+            //        //r = b = g = pixels[i,j];
+
+            //        //bmp.SetPixel(i, j, Color.FromArgb(255, r, b, g));
+            //        //msg += string.Format("{0}, ", pixels[i, j]);
+            //        byte[] *val = new byte[4];
+            //        val = &pixels[i, j];
+            //        for(int k = 0; k < 4; k++)
+            //        {
+            //            pixelVals[count] = pixels[i, j];
+            //            count++;
+            //        }
+                    
+            //        //if (pixels[i, j] > max) max = pixels[i, j];
+            //    }
+            //    //msg += Environment.NewLine;
+            //}
+
+            try
+            {
+                for (int k = 0; k < img.ZSize; k++)
+                {
+                    Bitmap bmp = new Bitmap(img.XSize, img.YSize, System.Drawing.Imaging.PixelFormat.Format48bppRgb);
+                    img.GetVoxels(k, pixels);
+                    int i, j;
+                    for (j = 0; j < img.YSize; j++)
+                    {
+                        for (i = 0; i < img.XSize; i++)
+                        {
+                            int r, b, g;
+                            r = b = g = (int)((double)pixels[i, j] / Math.Pow(2, 12) * 255);
+
+                            bmp.SetPixel(i, j, Color.FromArgb(255, r, g, b));
+                            //msg += string.Format("{0}, ", pixels[i, j]);
+                            //convertPix[count] = (UInt16)pixels[i, j];
+                            //count++;
+                            //if (pixels[i, j] > max) max = pixels[i, j];
+                        }
+                        //msg += Environment.NewLine;
+                    }
+                    bmp.Save(String.Format(@"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\images\{0}.png",k));
+                }
+            }
+            catch (Exception e) { MessageBox.Show(e.Message); return true; }
+            return false;
+        }
+
         public bool clearRow(object sender, StackPanel sp)
         {
             //same deal as the clear sparing structure button (clearStructBtn_click)

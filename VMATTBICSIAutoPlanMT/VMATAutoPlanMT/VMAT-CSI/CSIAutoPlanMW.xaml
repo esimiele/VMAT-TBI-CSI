@@ -198,7 +198,7 @@
                             <StackPanel>
                                 <Grid>
                                     <Label Content="Specify CT Image to Export" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"/>
-                                    <Button Content="?" HorizontalAlignment="Right" Width="24" Height="20" Margin="0,0,10,0"></Button>
+                                    <Button Content="?" HorizontalAlignment="Right" Width="24" Height="20" Margin="0,0,10,0" Click="exportImgInfo_Click"></Button>
                                 </Grid>
                                 <Grid Margin="5,5,0,0">
                                     <Label Content="Series ID" Margin="10,0,0,0"></Label>
@@ -211,7 +211,7 @@
                                     <StackPanel Name="CTimage_sp" Margin="5">
                                     </StackPanel>
                                 </ScrollViewer>
-                                <Button Content="Export CT Data" FontWeight="Bold" Width="170" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,7,0,0"></Button>
+                                <Button Content="Export CT Data" FontWeight="Bold" Width="170" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,7,0,0" Click="exportImg_Click"></Button>
                             </StackPanel>
                         </Border>
                     </TabItem>
