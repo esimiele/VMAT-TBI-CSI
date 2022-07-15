@@ -321,10 +321,11 @@ namespace VMATAutoPlanMT
             if (!string.IsNullOrWhiteSpace(selectedCTID))
             {
                 VMS.TPS.Common.Model.API.Image theImage = pi.StructureSets.FirstOrDefault(x => x.Image.Id == selectedCTID).Image;
-                if (helper.imageExport(theImage)) return;
+                if (helper.imageExport(theImage, @"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\images\", pi.Id)) return;
                 MessageBox.Show(String.Format("{0} has been exported successfully!", theImage.Id));
             }
-            else MessageBox.Show("No image to export!");
+            else MessageBox.Show(selectedCTID);
+            //"No image to export!"
         }
 
         //add structure to spare to the list

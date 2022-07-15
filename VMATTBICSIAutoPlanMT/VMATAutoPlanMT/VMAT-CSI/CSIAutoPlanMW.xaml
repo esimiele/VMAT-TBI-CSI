@@ -200,18 +200,18 @@
                                     <Label Content="Specify CT Image to Export" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"/>
                                     <Button Content="?" HorizontalAlignment="Right" Width="24" Height="20" Margin="0,0,10,0" Click="exportImgInfo_Click"></Button>
                                 </Grid>
-                                <Grid Margin="5,5,0,0">
-                                    <Label Content="Series ID" Margin="10,0,0,0"></Label>
-                                    <Label Content="CT ID" Margin="110,0,0,0"></Label>
-                                    <Label Content="Number of images" Margin="200,0,0,0"></Label>
-                                    <Label Content="Creation date" Margin="350,0,0,0"></Label>
-                                    <Label Content="Select?" Margin="500,0,0,0"></Label>
+                                <Grid Margin="25,5,0,0">
+                                    <Label Content="Series ID" Margin="15,0,0,0"></Label>
+                                    <Label Content="CT ID" Margin="165,0,0,0"></Label>
+                                    <Label Content="No of images" Margin="270,0,0,0"></Label>
+                                    <Label Content="Creation date" Margin="365,0,0,0"></Label>
+                                    <Label Content="Select?" Margin="470,0,0,0"></Label>
                                 </Grid>
                                 <ScrollViewer x:Name="CTimageScroller" Height="364" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                     <StackPanel Name="CTimage_sp" Margin="5">
                                     </StackPanel>
                                 </ScrollViewer>
-                                <Button Content="Export CT Data" FontWeight="Bold" Width="170" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,7,0,0" Click="exportImg_Click"></Button>
+                                <Button Content="Export CT Data" FontWeight="Bold" Width="170" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,9,0,0" Click="exportImg_Click"></Button>
                             </StackPanel>
                         </Border>
                     </TabItem>
@@ -309,7 +309,7 @@
                             </StackPanel>
                         </Border>
                     </TabItem>
-                    <TabItem Header="Script Configuration" VerticalAlignment="Bottom" BorderThickness="1" Margin="0,0,0,-152">
+                    <TabItem Header="Script Configuration" VerticalAlignment="Bottom" BorderThickness="1" Margin="0,0,0,-151">
                         <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                             <StackPanel Name="configuration" Margin="0,0,0,0">
                                 <Label Content="Current Configuration Parameters" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>

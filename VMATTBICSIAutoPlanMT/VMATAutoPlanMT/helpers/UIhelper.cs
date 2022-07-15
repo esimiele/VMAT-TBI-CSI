@@ -6,13 +6,13 @@ using VMS.TPS.Common.Model.Types;
 using System.Windows.Controls;
 using System.Windows;
 using System.Drawing;
-using System.Windows.Media.Imaging;
+using System.IO;
 
 namespace VMATAutoPlanMT
 {
     public class UIhelper
     {
-        public bool imageExport(VMS.TPS.Common.Model.API.Image img)
+        public bool imageExport(VMS.TPS.Common.Model.API.Image img, string imgWriteLocation, string patientID)
         {
             int[,] pixels = new int[img.XSize,img.YSize];
             //4 bytes per pixel
@@ -45,6 +45,9 @@ namespace VMATAutoPlanMT
             //the main limitation of this method is the maximum bit depth is limited to 8 (whereas CT data has a bit depth of 12)
             try
             {
+                string ct_ID = img.Id;
+                string folderLoc = Path.Combine(imgWriteLocation, patientID);
+                if (!Directory.Exists(folderLoc)) Directory.CreateDirectory(folderLoc);
                 for (int k = 0; k < img.ZSize; k++)
                 {
                     Bitmap bmp = new Bitmap(img.XSize, img.YSize, System.Drawing.Imaging.PixelFormat.Format48bppRgb);
@@ -65,7 +68,7 @@ namespace VMATAutoPlanMT
                         }
                         //msg += Environment.NewLine;
                     }
-                    bmp.Save(String.Format(@"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\images\{0}.png",k));
+                    bmp.Save(String.Format(@"{0}\{1}_{2}.png",folderLoc,ct_ID,k));
                 }
             }
             catch (Exception e) { MessageBox.Show(e.Message); return true; }
@@ -100,7 +103,7 @@ namespace VMATAutoPlanMT
             sp.Height = 30;
             sp.Width = theSP.Width;
             sp.Orientation = Orientation.Horizontal;
-            sp.Margin = new Thickness(5, 0, 5, 5);
+            sp.Margin = new Thickness(25, 0, 5, 5);
 
             TextBox SID_TB = new TextBox();
             SID_TB.Text = theImage.Series.Id;
@@ -112,37 +115,40 @@ namespace VMATAutoPlanMT
 
             TextBox CTID_TB = new TextBox();
             CTID_TB.Text = theImage.Id;
-            CTID_TB.Name = "TheTB";
+            CTID_TB.Name = "theTB";
             CTID_TB.HorizontalAlignment = HorizontalAlignment.Center;
             CTID_TB.VerticalAlignment = VerticalAlignment.Center;
-            CTID_TB.Width = 80;
+            CTID_TB.Width = 160;
             CTID_TB.FontSize = 14;
-            CTID_TB.Margin = new Thickness(0);
+            CTID_TB.Margin = new Thickness(25,0,0,0);
 
             TextBox numImg_TB = new TextBox();
             numImg_TB.Text = theImage.ZSize.ToString();
             numImg_TB.HorizontalAlignment = HorizontalAlignment.Center;
             numImg_TB.VerticalAlignment = VerticalAlignment.Center;
-            numImg_TB.Width = 80;
+            numImg_TB.Width = 40;
             numImg_TB.FontSize = 14;
-            numImg_TB.Margin = new Thickness(0);
+            numImg_TB.HorizontalContentAlignment = HorizontalAlignment.Center;
+            numImg_TB.Margin = new Thickness(25,0,0,0);
 
             TextBox creation_TB = new TextBox();
             creation_TB.Text = theImage.HistoryDateTime.ToString("MM/dd/yyyy");
             creation_TB.HorizontalAlignment = HorizontalAlignment.Center;
             creation_TB.VerticalAlignment = VerticalAlignment.Center;
-            creation_TB.Width = 80;
+            creation_TB.Width = 90;
             creation_TB.FontSize = 14;
-            creation_TB.Margin = new Thickness(0);
+            creation_TB.HorizontalContentAlignment = HorizontalAlignment.Center;
+            creation_TB.Margin = new Thickness(25,0,0,0);
 
             CheckBox select_CB = new CheckBox();
+            select_CB.Margin = new Thickness(30, 5, 0, 0);
             if (isFirst) select_CB.IsChecked = true;
-
 
             sp.Children.Add(SID_TB);
             sp.Children.Add(CTID_TB);
             sp.Children.Add(numImg_TB);
             sp.Children.Add(creation_TB);
+            sp.Children.Add(select_CB);
 
             return sp;
         }
