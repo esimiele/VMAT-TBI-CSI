@@ -146,8 +146,6 @@ namespace VMATAutoPlanMT
         public VMS.TPS.Common.Model.API.Application app = null;
         bool isModified = false;
         bool autoSave = false;
-
-        VMS.TPS.Common.Model.API.Image theImg = null;
         //ProcessStartInfo optLoopProcess;
 
         public CSIAutoPlanMW(List<string> args)
@@ -186,7 +184,7 @@ namespace VMATAutoPlanMT
                     //SSID is combobox defined in UI.xaml
                     foreach (StructureSet s in pi.StructureSets) SSID.Items.Add(s.Id);
                     //SSID default is the current structure set in the context
-                    if (!string.IsNullOrEmpty(ss)) { selectedSS = pi.StructureSets.FirstOrDefault(x => x.Id == ss); SSID.Text = selectedSS.Id; theImg = selectedSS.Image; }
+                    if (!string.IsNullOrEmpty(ss)) { selectedSS = pi.StructureSets.FirstOrDefault(x => x.Id == ss); SSID.Text = selectedSS.Id; populateCTImageSets(); }
                     else MessageBox.Show("Warning! No structure set in context! Please select a structure set at the top of the GUI!");
                 }
                 else MessageBox.Show("Could not open patient!");
@@ -207,6 +205,13 @@ namespace VMATAutoPlanMT
         {
             if (!File.Exists(documentationPath + "CSI_plugIn_quickStart_guide.pdf")) MessageBox.Show("CSI_plugIn_quickStart_guide PDF file does not exist!");
             else Process.Start(documentationPath + "CSI_plugIn_quickStart_guide.pdf");
+        }
+
+        private void populateCTImageSets()
+        {
+            UIhelper helper = new UIhelper();
+            CTimage_sp.Children.Add(helper.getCTImageSets(CTimage_sp, selectedSS.Image, true));
+            foreach (StructureSet itr in pi.StructureSets) CTimage_sp.Children.Add(helper.getCTImageSets(CTimage_sp, itr.Image, false));
         }
 
         //method to display the loaded configuration settings
@@ -306,18 +311,20 @@ namespace VMATAutoPlanMT
 
         private void exportImgInfo_Click(object sender, RoutedEventArgs e)
         {
-            if (theImg != null) MessageBox.Show(theImg.Id);
-            else MessageBox.Show("No Image!");
+            MessageBox.Show("Select a CT image to export to the deep learning model (for autocontouring)");
         }
 
         private void exportImg_Click(object sender, RoutedEventArgs e)
         {
-            if (theImg != null)
+            UIhelper helper = new UIhelper();
+            string selectedCTID = helper.parseSelectedCTImage(CTimage_sp);
+            if (!string.IsNullOrWhiteSpace(selectedCTID))
             {
-                if (new UIhelper().imageExport(theImg)) return;
-                MessageBox.Show(String.Format("{0} has been exported successfully!", theImg.Id));
+                VMS.TPS.Common.Model.API.Image theImage = pi.StructureSets.FirstOrDefault(x => x.Image.Id == selectedCTID).Image;
+                if (helper.imageExport(theImage)) return;
+                MessageBox.Show(String.Format("{0} has been exported successfully!", theImage.Id));
             }
-            else MessageBox.Show("No image to export");
+            else MessageBox.Show("No image to export!");
         }
 
         //add structure to spare to the list
@@ -384,8 +391,6 @@ namespace VMATAutoPlanMT
 
             //update selected structure set
             selectedSS = pi.StructureSets.FirstOrDefault(x => x.Id == SSID.SelectedItem.ToString());
-
-            theImg = selectedSS.Image;
         }
 
         private void add_defaults_click(object sender, RoutedEventArgs e)
