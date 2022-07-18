@@ -90,21 +90,21 @@ namespace VMATAutoPlanMT
             // Transform 2-dimensional Int32 array to 1-byte-per-pixel byte array
             Int32 width = data.GetLength(0);
             Int32 height = data.GetLength(1);
-            Int32 stride = width * 4;
+            //2 bytes per pixel
+            Int32 stride = width * 2;
             Int32 byteIndex = 0;
             Byte[] dataBytes = new Byte[height * stride];
             for (Int32 y = 0; y < height; y++)
             {
                 for (Int32 x = 0; x < width; x++)
                 {
+                    UInt32 val = (UInt32)data[x, y];
                     // logical AND to be 100% sure the int32 value fits inside
                     // the byte even if it contains more data (like, full ARGB).
-                    dataBytes[byteIndex] = (Byte)(((UInt32)data[x, y]) & 0x000000FF);
-                    dataBytes[byteIndex + 1] = (Byte)((((UInt32)data[x, y]) & 0x0000FF00) >> 08);
-                    dataBytes[byteIndex + 2] = (Byte)((((UInt32)data[x, y]) & 0x00FF0000) >> 16);
-                    dataBytes[byteIndex + 3] = (Byte)((((UInt32)data[x, y]) & 0xFF000000) >> 24);
+                    dataBytes[byteIndex] = (Byte)(val & 0x00FF);
+                    dataBytes[byteIndex + 1] = (Byte)((val & 0xFF00) >> 8);
                     // More efficient than multiplying
-                    byteIndex+=4;
+                    byteIndex+=2;
                 }
             }
             
