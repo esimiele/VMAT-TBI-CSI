@@ -6,7 +6,10 @@ using VMS.TPS.Common.Model.Types;
 using System.Windows.Controls;
 using System.Windows;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
+using System.Windows.Media.Imaging;
+using System.Windows.Media;
 
 namespace VMATAutoPlanMT
 {
@@ -15,6 +18,13 @@ namespace VMATAutoPlanMT
         public bool imageExport(VMS.TPS.Common.Model.API.Image img, string imgWriteLocation, string patientID)
         {
             int[,] pixels = new int[img.XSize,img.YSize];
+            try
+            {
+                Bitmap bmp = FromTwoDimIntArrayGray(pixels);
+                SaveBmp(bmp, imgWriteLocation);
+                return false;
+            }
+            catch (Exception e) { MessageBox.Show(e.Message); return true; }
             //4 bytes per pixel
             //byte[] pixelVals = new byte[img.XSize * img.YSize * 4];
             //UInt16[] convertPix = new UInt16[img.XSize * img.YSize];
@@ -60,7 +70,7 @@ namespace VMATAutoPlanMT
                             int r, b, g;
                             r = b = g = (int)((double)pixels[i, j] / Math.Pow(2, 12) * 255);
 
-                            bmp.SetPixel(i, j, Color.FromArgb(255, r, g, b));
+                            bmp.SetPixel(i, j, System.Drawing.Color.FromArgb(255, r, g, b));
                             //msg += string.Format("{0}, ", pixels[i, j]);
                             //convertPix[count] = (UInt16)pixels[i, j];
                             //count++;
@@ -73,6 +83,86 @@ namespace VMATAutoPlanMT
             }
             catch (Exception e) { MessageBox.Show(e.Message); return true; }
             return false;
+        }
+
+        public static Bitmap FromTwoDimIntArrayGray(Int32[,] data)
+        {
+            // Transform 2-dimensional Int32 array to 1-byte-per-pixel byte array
+            Int32 width = data.GetLength(0);
+            Int32 height = data.GetLength(1);
+            Int32 stride = width * 4;
+            Int32 byteIndex = 0;
+            Byte[] dataBytes = new Byte[height * stride];
+            for (Int32 y = 0; y < height; y++)
+            {
+                for (Int32 x = 0; x < width; x++)
+                {
+                    // logical AND to be 100% sure the int32 value fits inside
+                    // the byte even if it contains more data (like, full ARGB).
+                    dataBytes[byteIndex] = (Byte)(((UInt32)data[x, y]) & 0x000000FF);
+                    dataBytes[byteIndex + 1] = (Byte)((((UInt32)data[x, y]) & 0x0000FF00) >> 08);
+                    dataBytes[byteIndex + 2] = (Byte)((((UInt32)data[x, y]) & 0x00FF0000) >> 16);
+                    dataBytes[byteIndex + 3] = (Byte)((((UInt32)data[x, y]) & 0xFF000000) >> 24);
+                    // More efficient than multiplying
+                    byteIndex+=4;
+                }
+            }
+            
+            return new Bitmap(new MemoryStream(dataBytes));
+        }
+
+        private static void SaveBmp(Bitmap bmp, string path)
+        {
+            Rectangle rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
+
+            BitmapData bitmapData = bmp.LockBits(rect, ImageLockMode.ReadOnly, bmp.PixelFormat);
+
+            System.Windows.Media.PixelFormat pixelFormats = ConvertBmpPixelFormat(bmp.PixelFormat);
+
+            BitmapSource source = BitmapSource.Create(bmp.Width,
+                                                      bmp.Height,
+                                                      bmp.HorizontalResolution,
+                                                      bmp.VerticalResolution,
+                                                      pixelFormats,
+                                                      null,
+                                                      bitmapData.Scan0,
+                                                      bitmapData.Stride * bmp.Height,
+                                                      bitmapData.Stride);
+
+            bmp.UnlockBits(bitmapData);
+
+
+            FileStream stream = new FileStream(path, FileMode.Create);
+
+            TiffBitmapEncoder encoder = new TiffBitmapEncoder();
+
+            encoder.Compression = TiffCompressOption.Zip;
+            encoder.Frames.Add(BitmapFrame.Create(source));
+            encoder.Save(stream);
+
+            stream.Close();
+        }
+
+        private static System.Windows.Media.PixelFormat ConvertBmpPixelFormat(System.Drawing.Imaging.PixelFormat pixelformat)
+        {
+            //System.Windows.Media.PixelFormat pixelFormats = System.Windows.Media.PixelFormats.Default;
+
+            //switch (pixelformat)
+            //{
+            //    case System.Drawing.Imaging.PixelFormat.Format32bppArgb:
+            //        pixelFormats = PixelFormats.Bgr32;
+            //        break;
+
+            //    case System.Drawing.Imaging.PixelFormat.Format8bppIndexed:
+            //        pixelFormats = PixelFormats.Gray8;
+            //        break;
+
+            //    case System.Drawing.Imaging.PixelFormat.Format16bppGrayScale:
+            //        pixelFormats = PixelFormats.Gray16;
+            //        break;
+            //}
+
+            return PixelFormats.Gray16;
         }
 
         public bool clearRow(object sender, StackPanel sp)
