@@ -168,16 +168,24 @@
                     <ComboBox x:Name="SSID" HorizontalContentAlignment="Center" HorizontalAlignment="Right" Margin="0,5,20,0" VerticalAlignment="Top" Width="120" SelectionChanged="SSID_SelectionChanged"/>
                 </Grid>
 
-                <Grid Width="300" Height="92" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,73,0,0">
+                <Grid x:Name ="baseBoostInfo" Width="170" Height="120" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,85,365,0" Visibility="Visible">
+                    <Label Content="Base plan" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,0,0,0" ></Label>
+                    <Label Content="Boost plan" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,5,0" ></Label>
+                    <TextBox x:Name="boostDosePerFxTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,29,0,0" TextChanged="BoostDosePerFx_TextChanged"></TextBox>
+                    <TextBox x:Name="boostNumFxTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,59,0,0" TextChanged="BoostNumFx_TextChanged"></TextBox>
+                    <TextBox x:Name="boostRxTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,89,0,0" IsReadOnly="True"></TextBox>
+                </Grid>
+
+                <Grid Width="300" Height="92" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,103,0,0">
                     <Label Content="Reduced dose (Rx = 2340 cGy):" HorizontalAlignment="Right" Margin="0,5,50,0" VerticalAlignment="Top"/>
                     <Label Content="Base dose w/o boost (Rx = 3600 cGy):" HorizontalAlignment="Right" Margin="0,35,50,0" VerticalAlignment="Top"/>
                     <Label Content="Base dose w/ boost (Rx = 5400 cGy):" HorizontalAlignment="Right" Margin="0,65,50,0" VerticalAlignment="Top"/>
-                    <CheckBox x:Name="sclero_chkbox" HorizontalAlignment="Right" Margin="0,11,28,0" VerticalAlignment="Top"/>
-                    <CheckBox x:Name="nonmyelo_chkbox" HorizontalAlignment="Right" Margin="0,41,28,0" VerticalAlignment="Top"/>
-                    <CheckBox x:Name="myelo_chkbox" HorizontalAlignment="Right" Margin="0,71,28,0" VerticalAlignment="Top"/>
+                    <CheckBox x:Name="reduceDose_chkbox" HorizontalAlignment="Right" Margin="0,11,28,0" VerticalAlignment="Top" Checked="reduceDose_chkbox_Checked"/>
+                    <CheckBox x:Name="noBoost_chkbox" HorizontalAlignment="Right" Margin="0,41,28,0" VerticalAlignment="Top" Checked="noBoost_chkbox_Checked"/>
+                    <CheckBox x:Name="boost_chkbox" HorizontalAlignment="Right" Margin="0,71,28,0" VerticalAlignment="Top" Checked="boost_chkbox_Checked"/>
                 </Grid>
 
-                <Grid Width="300" Height="92" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,77,0,0">
+                <Grid Width="300" Height="92" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,107,0,0">
                     <Label Content="Dose per fraction (cGy/fraction):" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,115,0"></Label>
                     <Label Content="Number of fractions:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,35,115,0"></Label>
                     <Label Content="Rx dose (cGy):" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,65,115,0"></Label>

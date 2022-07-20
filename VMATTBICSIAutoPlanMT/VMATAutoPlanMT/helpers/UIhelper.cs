@@ -10,6 +10,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Windows.Media.Imaging;
 using System.Windows.Media;
+using System.Runtime.InteropServices;
 
 namespace VMATAutoPlanMT
 {
@@ -18,40 +19,19 @@ namespace VMATAutoPlanMT
         public bool imageExport(VMS.TPS.Common.Model.API.Image img, string imgWriteLocation, string patientID)
         {
             int[,] pixels = new int[img.XSize,img.YSize];
-            try
-            {
-                Bitmap bmp = FromTwoDimIntArrayGray(pixels);
-                SaveBmp(bmp, imgWriteLocation);
-                return false;
-            }
-            catch (Exception e) { MessageBox.Show(e.Message); return true; }
-            //4 bytes per pixel
-            //byte[] pixelVals = new byte[img.XSize * img.YSize * 4];
-            //UInt16[] convertPix = new UInt16[img.XSize * img.YSize];
-            //int count = 0;
-            //int max = 0;
-            //for (int j = 0; j < img.YSize; j++)
+            //write 16 bit-depth image (still having problems as of 7/20/2022. Geometry and image looks vaguely correct, but the gray levels look off)
+            //try
             //{
-            //    for (int i = 0; i < img.XSize; i++)
+            //    for (int k = 0; k < img.ZSize; k++)
             //    {
-            //        //int r, b, g;
-            //        //r = b = g = pixels[i,j];
-
-            //        //bmp.SetPixel(i, j, Color.FromArgb(255, r, b, g));
-            //        //msg += string.Format("{0}, ", pixels[i, j]);
-            //        byte[] *val = new byte[4];
-            //        val = &pixels[i, j];
-            //        for(int k = 0; k < 4; k++)
-            //        {
-            //            pixelVals[count] = pixels[i, j];
-            //            count++;
-            //        }
-                    
-            //        //if (pixels[i, j] > max) max = pixels[i, j];
+            //        img.GetVoxels(k, pixels);
+            //        FromTwoDimIntArrayGray(pixels, k);
+            //        //SaveBmp(bmp, imgWriteLocation);
             //    }
-            //    //msg += Environment.NewLine;
+            //    return false;
             //}
-
+            //catch (Exception e) { MessageBox.Show(e.StackTrace); return true; }
+            
             //the main limitation of this method is the maximum bit depth is limited to 8 (whereas CT data has a bit depth of 12)
             try
             {
@@ -60,7 +40,7 @@ namespace VMATAutoPlanMT
                 if (!Directory.Exists(folderLoc)) Directory.CreateDirectory(folderLoc);
                 for (int k = 0; k < img.ZSize; k++)
                 {
-                    Bitmap bmp = new Bitmap(img.XSize, img.YSize, System.Drawing.Imaging.PixelFormat.Format48bppRgb);
+                    Bitmap bmp = new Bitmap(img.XSize, img.YSize, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
                     img.GetVoxels(k, pixels);
                     int i, j;
                     for (j = 0; j < img.YSize; j++)
@@ -68,15 +48,11 @@ namespace VMATAutoPlanMT
                         for (i = 0; i < img.XSize; i++)
                         {
                             int r, b, g;
-                            r = b = g = (int)((double)pixels[i, j] / Math.Pow(2, 12) * 255);
-
+                            int val = (int)((double)pixels[i, j] / Math.Pow(2, 12) * 255);
+                            if (val > 255) r = b = g = 255;
+                            else r = b = g = val;
                             bmp.SetPixel(i, j, System.Drawing.Color.FromArgb(255, r, g, b));
-                            //msg += string.Format("{0}, ", pixels[i, j]);
-                            //convertPix[count] = (UInt16)pixels[i, j];
-                            //count++;
-                            //if (pixels[i, j] > max) max = pixels[i, j];
                         }
-                        //msg += Environment.NewLine;
                     }
                     bmp.Save(String.Format(@"{0}\{1}_{2}.png",folderLoc,ct_ID,k));
                 }
@@ -85,54 +61,51 @@ namespace VMATAutoPlanMT
             return false;
         }
 
-        public static Bitmap FromTwoDimIntArrayGray(Int32[,] data)
+        public void FromTwoDimIntArrayGray(Int32[,] data, int sliceNum)
         {
             // Transform 2-dimensional Int32 array to 1-byte-per-pixel byte array
             Int32 width = data.GetLength(0);
             Int32 height = data.GetLength(1);
-            //2 bytes per pixel
-            Int32 stride = width * 2;
+            //stride must be a multiple of 4
+            Int32 stride = 4*((width*2 + 3) / 4);
             Int32 byteIndex = 0;
-            Byte[] dataBytes = new Byte[height * stride];
+            byte[] dataBytes = new byte[height * stride];
             for (Int32 y = 0; y < height; y++)
             {
                 for (Int32 x = 0; x < width; x++)
                 {
-                    UInt32 val = (UInt32)data[x, y];
-                    // logical AND to be 100% sure the int32 value fits inside
-                    // the byte even if it contains more data (like, full ARGB).
-                    dataBytes[byteIndex] = (Byte)(val & 0x00FF);
-                    dataBytes[byteIndex + 1] = (Byte)((val & 0xFF00) >> 8);
+                    // read the bytes and shift right. Shifting bits right does NOT alter value.
+                    // NOTE: signed int is BIG ENDIAN (unsigned ints are little endian)
+                    //dataBytes[byteIndex] = (Byte)(val >> 24);
+                    //dataBytes[byteIndex + 1] = (Byte)(val >> 16);
+                    dataBytes[byteIndex] = (Byte)(data[x,y] >> 08);
+                    dataBytes[byteIndex + 1] = (Byte)data[x,y];
+
                     // More efficient than multiplying
-                    byteIndex+=2;
+                    byteIndex += 2;
+
                 }
             }
-            
-            return new Bitmap(new MemoryStream(dataBytes));
-        }
-
-        private static void SaveBmp(Bitmap bmp, string path)
-        {
-            Rectangle rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
-
-            BitmapData bitmapData = bmp.LockBits(rect, ImageLockMode.ReadOnly, bmp.PixelFormat);
-
-            System.Windows.Media.PixelFormat pixelFormats = ConvertBmpPixelFormat(bmp.PixelFormat);
+            //MemoryStream ms = new MemoryStream(dataBytes);
+            //ms.Seek(0, SeekOrigin.Begin);
+            //create new bitmap of width and hight equal to width and height of axial CT image
+            Bitmap bmp = new Bitmap(width, height);
+            //lock the bits (pay attention to pixel format argument)
+            BitmapData bmpData = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format16bppRgb565);
+            //copy the byte array determined from the loop above to the bitmap
+            Marshal.Copy(dataBytes, 0, bmpData.Scan0, dataBytes.Length);
 
             BitmapSource source = BitmapSource.Create(bmp.Width,
                                                       bmp.Height,
-                                                      bmp.HorizontalResolution,
-                                                      bmp.VerticalResolution,
-                                                      pixelFormats,
+                                                      96,
+                                                      96,
+                                                      System.Windows.Media.PixelFormats.Gray16,
                                                       null,
-                                                      bitmapData.Scan0,
-                                                      bitmapData.Stride * bmp.Height,
-                                                      bitmapData.Stride);
-
-            bmp.UnlockBits(bitmapData);
-
-
-            FileStream stream = new FileStream(path, FileMode.Create);
+                                                      bmpData.Scan0,
+                                                      bmpData.Stride * bmp.Height,
+                                                      bmpData.Stride);
+            bmp.UnlockBits(bmpData);
+            FileStream stream = new FileStream(Path.Combine(@"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\images\", String.Format("{0}.bmp",sliceNum)), FileMode.Create);
 
             TiffBitmapEncoder encoder = new TiffBitmapEncoder();
 
@@ -143,27 +116,59 @@ namespace VMATAutoPlanMT
             stream.Close();
         }
 
-        private static System.Windows.Media.PixelFormat ConvertBmpPixelFormat(System.Drawing.Imaging.PixelFormat pixelformat)
-        {
-            //System.Windows.Media.PixelFormat pixelFormats = System.Windows.Media.PixelFormats.Default;
+        //private void SaveBmp(Bitmap bmp, string path)
+        //{
+        //    Rectangle rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
 
-            //switch (pixelformat)
-            //{
-            //    case System.Drawing.Imaging.PixelFormat.Format32bppArgb:
-            //        pixelFormats = PixelFormats.Bgr32;
-            //        break;
+        //    BitmapData bitmapData = bmp.LockBits(rect, ImageLockMode.ReadOnly, bmp.PixelFormat);
 
-            //    case System.Drawing.Imaging.PixelFormat.Format8bppIndexed:
-            //        pixelFormats = PixelFormats.Gray8;
-            //        break;
+        //    System.Windows.Media.PixelFormat pixelFormats = ConvertBmpPixelFormat(bmp.PixelFormat);
 
-            //    case System.Drawing.Imaging.PixelFormat.Format16bppGrayScale:
-            //        pixelFormats = PixelFormats.Gray16;
-            //        break;
-            //}
+        //    BitmapSource source = BitmapSource.Create(bmp.Width,
+        //                                              bmp.Height,
+        //                                              bmp.HorizontalResolution,
+        //                                              bmp.VerticalResolution,
+        //                                              pixelFormats,
+        //                                              null,
+        //                                              bitmapData.Scan0,
+        //                                              bitmapData.Stride * bmp.Height,
+        //                                              bitmapData.Stride);
 
-            return PixelFormats.Gray16;
-        }
+        //    bmp.UnlockBits(bitmapData);
+
+
+        //    FileStream stream = new FileStream(Path.Combine(path,"testing.bmp"), FileMode.Create);
+
+        //    TiffBitmapEncoder encoder = new TiffBitmapEncoder();
+
+        //    encoder.Compression = TiffCompressOption.Zip;
+        //    encoder.Frames.Add(BitmapFrame.Create(source));
+        //    encoder.Save(stream);
+
+        //    stream.Close();
+        //}
+
+        //private static System.Windows.Media.PixelFormat ConvertBmpPixelFormat(System.Drawing.Imaging.PixelFormat pixelformat)
+        //{
+        //    //System.Windows.Media.PixelFormat pixelFormats = System.Windows.Media.PixelFormats.Default;
+
+        //    //switch (pixelformat)
+        //    //{
+        //    //    case System.Drawing.Imaging.PixelFormat.Format32bppArgb:
+        //    //        pixelFormats = PixelFormats.Bgr32;
+        //    //        break;
+
+        //    //    case System.Drawing.Imaging.PixelFormat.Format8bppIndexed:
+        //    //        pixelFormats = PixelFormats.Gray8;
+        //    //        break;
+
+        //    //    case System.Drawing.Imaging.PixelFormat.Format16bppGrayScale:
+        //    //        pixelFormats = PixelFormats.Gray16;
+        //    //        break;
+        //    //}
+            
+        //    return PixelFormats.Gray32Float;
+        //}
 
         public bool clearRow(object sender, StackPanel sp)
         {
