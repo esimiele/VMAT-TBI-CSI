@@ -180,9 +180,9 @@
                     <Label Content="Reduced dose (Rx = 2340 cGy):" HorizontalAlignment="Right" Margin="0,5,50,0" VerticalAlignment="Top"/>
                     <Label Content="Base dose w/o boost (Rx = 3600 cGy):" HorizontalAlignment="Right" Margin="0,35,50,0" VerticalAlignment="Top"/>
                     <Label Content="Base dose w/ boost (Rx = 5400 cGy):" HorizontalAlignment="Right" Margin="0,65,50,0" VerticalAlignment="Top"/>
-                    <CheckBox x:Name="reduceDose_chkbox" HorizontalAlignment="Right" Margin="0,11,28,0" VerticalAlignment="Top" Checked="reduceDose_chkbox_Checked"/>
-                    <CheckBox x:Name="noBoost_chkbox" HorizontalAlignment="Right" Margin="0,41,28,0" VerticalAlignment="Top" Checked="noBoost_chkbox_Checked"/>
-                    <CheckBox x:Name="boost_chkbox" HorizontalAlignment="Right" Margin="0,71,28,0" VerticalAlignment="Top" Checked="boost_chkbox_Checked"/>
+                    <CheckBox x:Name="reduceDose_chkbox" HorizontalAlignment="Right" Margin="0,11,28,0" VerticalAlignment="Top" Checked="reduceDose_chkbox_Checked" Unchecked="reduceDose_chkbox_Checked"/>
+                    <CheckBox x:Name="noBoost_chkbox" HorizontalAlignment="Right" Margin="0,41,28,0" VerticalAlignment="Top" Checked="noBoost_chkbox_Checked" Unchecked="noBoost_chkbox_Checked"/>
+                    <CheckBox x:Name="boost_chkbox" HorizontalAlignment="Right" Margin="0,71,28,0" VerticalAlignment="Top" Checked="boost_chkbox_Checked" Unchecked="boost_chkbox_Checked"/>
                 </Grid>
 
                 <Grid Width="300" Height="92" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,107,0,0">
@@ -228,8 +228,9 @@
                             <StackPanel HorizontalAlignment="Center" Margin="0">
                                 <Label Content="Specify Targets" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"/>
                                 <Grid Height="25" Width ="560" HorizontalAlignment="Center" Margin="0,5,0,0">
-                                    <Button x:Name="add_target" Content="Add Target" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-                                    <Button x:Name="addDefaultTargetsBtn" Content="Scan SS and Add Targets" Width="180" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                                    <Button x:Name="add_target" Content="Add Target" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="addTarget_Click"/>
+                                    <Button x:Name="addDefaultsTargetsBtn" Content="Add defaults" Width="120" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,315,0"/>
+                                    <Button x:Name="scanSSandAddTargetsBtn" Content="Scan SS and Add Targets" Width="180" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,115,0"/>
                                     <Button Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top"/>
                                 </Grid>
                                 <ScrollViewer x:Name="targetsScroller" Height="365" Width="550" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">

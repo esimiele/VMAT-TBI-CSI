@@ -329,6 +329,8 @@ namespace VMATAutoPlanMT
             configScroller.ScrollToTop();
         }
 
+
+        //stuff related to Export CT tab
         private void populateCTImageSets()
         {
             UIhelper helper = new UIhelper();
@@ -356,6 +358,18 @@ namespace VMATAutoPlanMT
             }
             else MessageBox.Show(selectedCTID);
             //"No image to export!"
+        }
+
+        //stuff related to Set Targets tab
+        private void addTarget_Click(object sender, RoutedEventArgs e)
+        {
+            add_target_volumes();
+            targetsScroller.ScrollToBottom();
+        }
+
+        private void add_target_volumes()
+        {
+
         }
 
         //stuff related to TS Generation tab
@@ -891,30 +905,29 @@ namespace VMATAutoPlanMT
             //non-myelo
             if (noBoost_chkbox.IsChecked.Value)
             {
-                if (noBoost_chkbox.IsChecked.Value) reduceDose_chkbox.IsChecked = false;
-                if (boost_chkbox.IsChecked.Value) boost_chkbox.IsChecked = false;
+                if (reduceDose_chkbox.IsChecked.Value) reduceDose_chkbox.IsChecked = false;
                 setPresciptionInfo(noBoostDosePerFx, noBoostNumFx);
             }
-            else if (!noBoost_chkbox.IsChecked.Value && !boost_chkbox.IsChecked.Value && dosePerFx.Text == noBoostDosePerFx.ToString() && numFx.Text == noBoostNumFx.ToString())
+            else if (!noBoost_chkbox.IsChecked.Value && dosePerFx.Text == noBoostDosePerFx.ToString() && numFx.Text == noBoostNumFx.ToString())
             {
                 dosePerFx.Text = "";
                 numFx.Text = "";
+                if (boost_chkbox.IsChecked.Value) boost_chkbox.IsChecked = false;
             }
         }
 
         private void boost_chkbox_Checked(object sender, RoutedEventArgs e)
         {
-            //sclero
             if (boost_chkbox.IsChecked.Value)
             {
-                if (noBoost_chkbox.IsChecked.Value) noBoost_chkbox.IsChecked = false;
+                if (!noBoost_chkbox.IsChecked.Value) noBoost_chkbox.IsChecked = true;
                 if (reduceDose_chkbox.IsChecked.Value) reduceDose_chkbox.IsChecked = false;
-                setPresciptionInfo(boostDosePerFx, boostNumFx);
+                setBoostPrescriptionInfo(boostDosePerFx, boostNumFx);
             }
-            else if (!noBoost_chkbox.IsChecked.Value && !reduceDose_chkbox.IsChecked.Value && dosePerFx.Text == boostDosePerFx.ToString() && numFx.Text == boostNumFx.ToString())
+            else if (boostDosePerFxTB.Text == boostDosePerFx.ToString() && boostNumFxTB.Text == boostNumFx.ToString())
             {
-                dosePerFx.Text = "";
-                numFx.Text = "";
+                boostDosePerFxTB.Text = "";
+                boostNumFxTB.Text = "";
             }
         }
 
@@ -924,6 +937,14 @@ namespace VMATAutoPlanMT
             if (dosePerFx.Text != dose_perFx.ToString() && numFx.Text != num_Fx.ToString()) waitToUpdate = true;
             dosePerFx.Text = dose_perFx.ToString();
             numFx.Text = num_Fx.ToString();
+        }
+
+        bool boostWaitToUpdate = false;
+        private void setBoostPrescriptionInfo(double dose_perFx, int num_Fx)
+        {
+            if (boostDosePerFxTB.Text != dose_perFx.ToString() && boostNumFxTB.Text != num_Fx.ToString()) boostWaitToUpdate = true;
+            boostDosePerFxTB.Text = dose_perFx.ToString();
+            boostNumFxTB.Text = num_Fx.ToString();
         }
 
         private void NumFx_TextChanged(object sender, TextChangedEventArgs e)
@@ -948,16 +969,6 @@ namespace VMATAutoPlanMT
             else resetRxDose();
         }
 
-        private void BoostDosePerFx_TextChanged(object sender, TextChangedEventArgs e)
-        {
-
-        }
-
-        private void BoostNumFx_TextChanged(object sender, TextChangedEventArgs e)
-        {
-
-        }
-
         private void resetRxDose()
         {
             if (waitToUpdate) waitToUpdate = false;
@@ -966,7 +977,39 @@ namespace VMATAutoPlanMT
                 Rx.Text = (newNumFx * newDoseFx).ToString();
                 if (noBoost_chkbox.IsChecked.Value && newNumFx * newDoseFx != reduceDoseDosePerFx * reduceDoseNumFx) reduceDose_chkbox.IsChecked = false;
                 else if (noBoost_chkbox.IsChecked.Value && newNumFx * newDoseFx != noBoostDosePerFx * noBoostNumFx) noBoost_chkbox.IsChecked = false;
-                else if (boost_chkbox.IsChecked.Value && newNumFx * newDoseFx != boostDosePerFx * boostNumFx) boost_chkbox.IsChecked = false;
+                //else if (boost_chkbox.IsChecked.Value && newNumFx * newDoseFx != boostDosePerFx * boostNumFx) boost_chkbox.IsChecked = false;
+            }
+        }
+
+        private void BoostDosePerFx_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (!double.TryParse(boostDosePerFxTB.Text, out double newDoseFx)) boostRxTB.Text = "";
+            else if (newDoseFx <= 0)
+            {
+                MessageBox.Show("Error! The dose per fraction must be a number and non-negative!");
+                Rx.Text = "";
+            }
+            else resetBoostRxDose();
+        }
+
+        private void BoostNumFx_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (!int.TryParse(boostNumFxTB.Text, out int newNumFx)) boostRxTB.Text = "";
+            else if (newNumFx < 1)
+            {
+                MessageBox.Show("Error! The number of fractions must be non-negative integer and greater than zero!");
+                Rx.Text = "";
+            }
+            else resetBoostRxDose();
+        }
+
+        private void resetBoostRxDose()
+        {
+            if (boostWaitToUpdate) boostWaitToUpdate = false;
+            else if (int.TryParse(boostNumFxTB.Text, out int newNumFx) && double.TryParse(boostDosePerFxTB.Text, out double newDoseFx))
+            {
+                boostRxTB.Text = (newNumFx * newDoseFx).ToString();
+                if (boost_chkbox.IsChecked.Value && newNumFx * newDoseFx != boostDosePerFx * boostNumFx) boost_chkbox.IsChecked = false;
             }
         }
 
