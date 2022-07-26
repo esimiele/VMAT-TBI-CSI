@@ -23,11 +23,11 @@ namespace VMATAutoPlanMT
         double reduceDoseDosePerFx = 180;
         int reduceDoseNumFx = 13;
         //structure, constraint type, dose cGy, volume %, priority
-        List<Tuple<string, string, double, double, int>> optConstDefaultSclero = new List<Tuple<string, string, double, double, int>>
+        List<Tuple<string, string, double, double, int>> optConstReduceDose = new List<Tuple<string, string, double, double, int>>
         {
-            new Tuple<string, string, double, double, int>("TS_PTV_VMAT", "Lower", 800.0, 100.0, 100),
-            new Tuple<string, string, double, double, int>("TS_PTV_VMAT", "Upper", 808.0, 0.0, 100),
-            new Tuple<string, string, double, double, int>("TS_PTV_VMAT", "Lower", 802.0, 98.0, 100),
+            new Tuple<string, string, double, double, int>("PTV_2340", "Lower", 2340.0, 100.0, 100),
+            new Tuple<string, string, double, double, int>("PTV_2340", "Upper", 2400.0, 0.0, 100),
+            new Tuple<string, string, double, double, int>("PTV_2340", "Lower", 2360.0, 98.0, 100),
             new Tuple<string, string, double, double, int>("Kidneys", "Mean", 100.0, 0.0, 80),
             new Tuple<string, string, double, double, int>("Kidneys-1cm", "Mean", 25.0, 0.0, 80),
             new Tuple<string, string, double, double, int>("Lungs", "Mean", 150.0, 0.0, 80),
@@ -35,14 +35,19 @@ namespace VMATAutoPlanMT
             new Tuple<string, string, double, double, int>("Lungs-2cm", "Mean", 50.0, 0.0, 80),
             new Tuple<string, string, double, double, int>("Bowel", "Upper", 850.0, 0.0, 50)
         };
+        List<Tuple<string, double, string>> targetsReduceDose = new List<Tuple<string, double, string>>
+        {
+            new Tuple<string, double, string>("PTV_2340", 2340.0, "VMAT_CSI")
+        };
+
         double noBoostDosePerFx = 180;
         int noBoostNumFx = 20;
         //structure, constraint type, dose cGy, volume %, priority
-        List<Tuple<string, string, double, double, int>> optConstDefaultMyelo = new List<Tuple<string, string, double, double, int>>
+        List<Tuple<string, string, double, double, int>> optConstNoBoost = new List<Tuple<string, string, double, double, int>>
         {
-            new Tuple<string, string, double, double, int>("TS_PTV_VMAT", "Lower", 1200.0, 100.0, 100),
-            new Tuple<string, string, double, double, int>("TS_PTV_VMAT", "Upper", 1212.0, 0.0, 100),
-            new Tuple<string, string, double, double, int>("TS_PTV_VMAT", "Lower", 1202.0, 98.0, 100),
+            new Tuple<string, string, double, double, int>("PTV_3600", "Lower", 3600.0, 100.0, 100),
+            new Tuple<string, string, double, double, int>("PTV_3600", "Upper", 3700.0, 0.0, 100),
+            new Tuple<string, string, double, double, int>("PTV_3600", "Lower", 3620.0, 98.0, 100),
             new Tuple<string, string, double, double, int>("Kidneys", "Mean", 750, 0.0, 80),
             new Tuple<string, string, double, double, int>("Kidneys-1cm", "Mean", 400.0, 0.0, 50),
             new Tuple<string, string, double, double, int>("Lenses", "Upper", 1140, 0.0, 50),
@@ -51,13 +56,18 @@ namespace VMATAutoPlanMT
             new Tuple<string, string, double, double, int>("Lungs-2cm", "Mean", 200.0, 0.0, 70),
             new Tuple<string, string, double, double, int>("Bowel", "Upper", 1205.0, 0.0, 50)
         };
+        List<Tuple<string, double, string>> targetsNoBoost = new List<Tuple<string, double, string>>
+        {
+            new Tuple<string, double, string>("PTV_3600", 3600.0, "VMAT_CSI")
+        };
+
         double boostDosePerFx = 180;
         int boostNumFx = 10;
-        List<Tuple<string, string, double, double, int>> optConstDefaultNonMyelo = new List<Tuple<string, string, double, double, int>>
+        List<Tuple<string, string, double, double, int>> optConstBoost = new List<Tuple<string, string, double, double, int>>
         {
-            new Tuple<string, string, double, double, int>("TS_PTV_VMAT", "Lower", 200.0, 100.0, 100),
-            new Tuple<string, string, double, double, int>("TS_PTV_VMAT", "Upper", 202.0, 0.0, 100),
-            new Tuple<string, string, double, double, int>("TS_PTV_VMAT", "Lower", 201.0, 98.0, 100),
+            new Tuple<string, string, double, double, int>("PTV_5400", "Lower", 200.0, 100.0, 100),
+            new Tuple<string, string, double, double, int>("PTV_5400", "Upper", 202.0, 0.0, 100),
+            new Tuple<string, string, double, double, int>("PTV_5400", "Lower", 201.0, 98.0, 100),
             new Tuple<string, string, double, double, int>("Kidneys", "Mean", 120.0, 0.0, 80),
             new Tuple<string, string, double, double, int>("Kidneys-1cm", "Mean", 75.0, 0.0, 50),
             new Tuple<string, string, double, double, int>("Lungs", "Mean", 75.0, 0.0, 90),
@@ -74,6 +84,10 @@ namespace VMATAutoPlanMT
             new Tuple<string, string, double, double, int>("Brain-3cm", "Mean", 50.0, 0.0, 50),
             new Tuple<string, string, double, double, int>("Bowel", "Upper", 201.0, 0.0, 50),
             new Tuple<string, string, double, double, int>("Thyroid", "Mean", 100.0, 0.0, 50)
+        };
+        List<Tuple<string, double, string>> targetsBoost = new List<Tuple<string, double, string>>
+        {
+            new Tuple<string, double, string>("PTV_5400", 5400.0, "VMAT_CSI_bst")
         };
 
         //general tuning structures to be added (if selected for sparing) to all case types
@@ -146,8 +160,10 @@ namespace VMATAutoPlanMT
         //data members
         public Patient pi = null;
         StructureSet selectedSS = null;
+        private bool firstTargetStruct = true;
         private bool firstSpareStruct = true;
         private bool firstOptStruct = true;
+        public int clearTargetBtnCounter = 0;
         public int clearSpareBtnCounter = 0;
         public int clearOptBtnCounter = 0;
         List<Tuple<string, string>> optParameters = new List<Tuple<string, string>> { };
@@ -290,7 +306,7 @@ namespace VMATAutoPlanMT
             else configTB.Text += String.Format(" No additional sparing structures for Myeloablative case") + System.Environment.NewLine + System.Environment.NewLine;
             configTB.Text += String.Format(" Optimization parameters:") + System.Environment.NewLine;
             configTB.Text += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + System.Environment.NewLine;
-            foreach (Tuple<string, string, double, double, int> opt in optConstDefaultMyelo) configTB.Text += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
+            foreach (Tuple<string, string, double, double, int> opt in optConstNoBoost) configTB.Text += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
             configTB.Text += System.Environment.NewLine;
 
             configTB.Text += "-----------------------------------------------------------------------------" + System.Environment.NewLine;
@@ -307,7 +323,7 @@ namespace VMATAutoPlanMT
             else configTB.Text += String.Format(" No additional sparing structures for Myeloablative case") + System.Environment.NewLine + System.Environment.NewLine;
             configTB.Text += String.Format(" Optimization parameters:") + System.Environment.NewLine;
             configTB.Text += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + System.Environment.NewLine;
-            foreach (Tuple<string, string, double, double, int> opt in optConstDefaultMyelo) configTB.Text += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
+            foreach (Tuple<string, string, double, double, int> opt in optConstNoBoost) configTB.Text += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
             configTB.Text += System.Environment.NewLine;
 
             configTB.Text += "-----------------------------------------------------------------------------" + System.Environment.NewLine;
@@ -324,11 +340,10 @@ namespace VMATAutoPlanMT
             else configTB.Text += String.Format(" No additional sparing structures for Non-Myeloablative case") + System.Environment.NewLine + System.Environment.NewLine;
             configTB.Text += String.Format(" Optimization parameters:") + System.Environment.NewLine;
             configTB.Text += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + System.Environment.NewLine;
-            foreach (Tuple<string, string, double, double, int> opt in optConstDefaultNonMyelo) configTB.Text += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
+            foreach (Tuple<string, string, double, double, int> opt in optConstBoost) configTB.Text += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
             configTB.Text += "-----------------------------------------------------------------------------" + System.Environment.NewLine;
             configScroller.ScrollToTop();
         }
-
 
         //stuff related to Export CT tab
         private void populateCTImageSets()
@@ -363,13 +378,200 @@ namespace VMATAutoPlanMT
         //stuff related to Set Targets tab
         private void addTarget_Click(object sender, RoutedEventArgs e)
         {
-            add_target_volumes();
+            add_target_volumes(new List<Tuple<string, double, string>> { Tuple.Create("--select--", 0.0, "--select--") });
             targetsScroller.ScrollToBottom();
         }
 
-        private void add_target_volumes()
+        private void addTargetDefaults_Click(object sender, RoutedEventArgs e)
+        {
+            List<Tuple<string, double, string>> templateList = new List<Tuple<string, double, string>> { Tuple.Create("--select--", 0.0, "--select--") };
+            if (reduceDose_chkbox.IsChecked.Value) templateList = new List<Tuple<string, double, string>>(targetsReduceDose);
+            if (noBoost_chkbox.IsChecked.Value && boost_chkbox.IsChecked.Value)
+            {
+                templateList = new List<Tuple<string, double, string>>(targetsNoBoost);
+                templateList.Add(targetsBoost.First());
+            }
+            else if (noBoost_chkbox.IsChecked.Value) templateList = new List<Tuple<string, double, string>>(targetsNoBoost);
+            clear_targets_list();
+            add_target_volumes(templateList);
+            targetsScroller.ScrollToBottom();
+        }
+
+        private void scanSSAndAddTargets_Click(object sender, RoutedEventArgs e)
         {
 
+        }
+
+        private void clearTargetBtn_click(object sender, RoutedEventArgs e)
+        {
+            //same deal as the clear sparing structure button (clearStructBtn_click)
+            Button btn = (Button)sender;
+            int i = 0;
+            int k = 0;
+            foreach (object obj in targets_sp.Children)
+            {
+                foreach (object obj1 in ((StackPanel)obj).Children)
+                {
+                    if (obj1.Equals(btn)) k = i;
+                }
+                if (k > 0) break;
+                i++;
+            }
+
+            //clear entire list if there are only two entries (header + 1 real entry)
+            if (targets_sp.Children.Count < 3) clear_targets_list();
+            else targets_sp.Children.RemoveAt(k);
+        }
+
+        private void clear_targetList_click(object sender, RoutedEventArgs e) { clear_targets_list(); }
+
+        private void clear_targets_list()
+        {
+            firstTargetStruct = true;
+            targets_sp.Children.Clear();
+            clearTargetBtnCounter = 0;
+        }
+
+        private void targetUI_cb_change(object sender, EventArgs e, bool isTargetStructure)
+        {
+            //not the most elegent code, but it works. Basically, it finds the combobox where the selection was changed and increments one additional child to get the add margin text box. Then it can change
+            //the visibility of this textbox based on the sparing type selected for this structure
+            ComboBox c = (ComboBox)sender;
+            if (c.SelectedItem.ToString() != "--Add New--") return;
+            foreach (object obj in targets_sp.Children)
+            {
+                UIElementCollection row = ((StackPanel)obj).Children;
+                foreach (object obj1 in row)
+                {
+                    //the btn has a unique tag to it, so we can just loop through all children in the structures_sp children list and find which button is equivalent to our button
+                    if (obj1.Equals(c))
+                    {
+                        string msg = "Enter the Id of the target structure!";
+                        if(!isTargetStructure) msg = "Enter the requested plan Id!";
+                        enterMissingInfo emi = new enterMissingInfo(msg, "Id:");
+                        emi.ShowDialog();
+                        if (emi.confirm)
+                        {
+                            c.Items.Insert(c.Items.Count - 1, emi.value.Text);
+                            //c.Items.Add(emi.value.Text);
+                            c.Text = emi.value.Text;
+                        }
+                        else c.SelectedIndex = 0;
+
+                        return;
+                    }
+                }
+            }
+        }
+
+        private void add_target_volumes(List<Tuple<string,double,string>> defaultList)
+        {
+            if (firstTargetStruct) add_target_header();
+            foreach(Tuple<string, double, string> itr in defaultList)
+            {
+                clearTargetBtnCounter++;
+
+                StackPanel sp = new StackPanel();
+                sp.Height = 30;
+                sp.Width = targets_sp.Width;
+                sp.Orientation = Orientation.Horizontal;
+                sp.Margin = new Thickness(5, 0, 5, 5);
+
+                ComboBox str_cb = new ComboBox();
+                str_cb.Name = "str_cb";
+                str_cb.Width = 150;
+                str_cb.Height = sp.Height - 5;
+                str_cb.HorizontalAlignment = HorizontalAlignment.Left;
+                str_cb.VerticalAlignment = VerticalAlignment.Top;
+                str_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
+                str_cb.Margin = new Thickness(5, 5, 0, 0);
+
+                str_cb.Items.Add(itr.Item1);
+                str_cb.Items.Add("--Add New--");
+                str_cb.SelectedIndex = 0;
+                str_cb.SelectionChanged += delegate(object sender, SelectionChangedEventArgs e) { targetUI_cb_change(sender, e, true); };
+                sp.Children.Add(str_cb);
+
+                TextBox RxDose_tb = new TextBox();
+                RxDose_tb.Name = "RxDose_tb";
+                RxDose_tb.Width = 120;
+                RxDose_tb.Height = sp.Height - 5;
+                RxDose_tb.HorizontalAlignment = HorizontalAlignment.Left;
+                RxDose_tb.VerticalAlignment = VerticalAlignment.Top;
+                RxDose_tb.TextAlignment = TextAlignment.Center;
+                RxDose_tb.VerticalContentAlignment = VerticalAlignment.Center;
+                RxDose_tb.Margin = new Thickness(5, 5, 0, 0);
+                RxDose_tb.Text = itr.Item2.ToString();
+                sp.Children.Add(RxDose_tb);
+
+                ComboBox planId_cb = new ComboBox();
+                planId_cb.Name = "planId_cb";
+                planId_cb.Width = 150;
+                planId_cb.Height = sp.Height - 5;
+                planId_cb.HorizontalAlignment = HorizontalAlignment.Left;
+                planId_cb.VerticalAlignment = VerticalAlignment.Top;
+                planId_cb.Margin = new Thickness(5, 5, 0, 0);
+                planId_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
+                string[] types = new string[] { itr.Item3, "--Add New--" };
+                foreach (string s in types) planId_cb.Items.Add(s);
+                planId_cb.Text = itr.Item3;
+                planId_cb.SelectionChanged += delegate (object sender, SelectionChangedEventArgs e) { targetUI_cb_change(sender, e, false); };
+                //planId_cb.SelectionChanged += new SelectionChangedEventHandler(type_cb_change);
+                sp.Children.Add(planId_cb);
+
+                Button clearStructBtn = new Button();
+                clearStructBtn.Name = "clearTargetBtn" + clearTargetBtnCounter;
+                clearStructBtn.Content = "Clear";
+                clearStructBtn.Click += new RoutedEventHandler(this.clearTargetBtn_click);
+                clearStructBtn.Width = 50;
+                clearStructBtn.Height = sp.Height - 5;
+                clearStructBtn.HorizontalAlignment = HorizontalAlignment.Left;
+                clearStructBtn.VerticalAlignment = VerticalAlignment.Top;
+                clearStructBtn.Margin = new Thickness(10, 5, 0, 0);
+                sp.Children.Add(clearStructBtn);
+
+                targets_sp.Children.Add(sp);
+            }
+        }
+
+        private void add_target_header()
+        {
+            StackPanel sp = new StackPanel();
+            sp.Height = 30;
+            sp.Width = targets_sp.Width;
+            sp.Orientation = Orientation.Horizontal;
+            sp.Margin = new Thickness(5, 0, 5, 5);
+
+            Label strName = new Label();
+            strName.Content = "Target Id";
+            strName.HorizontalAlignment = HorizontalAlignment.Center;
+            strName.VerticalAlignment = VerticalAlignment.Top;
+            strName.Width = 100;
+            strName.FontSize = 14;
+            strName.Margin = new Thickness(45, 0, 0, 0);
+
+            Label spareType = new Label();
+            spareType.Content = "Prescription (cGy)";
+            spareType.HorizontalAlignment = HorizontalAlignment.Center;
+            spareType.VerticalAlignment = VerticalAlignment.Top;
+            spareType.Width = 130;
+            spareType.FontSize = 14;
+            spareType.Margin = new Thickness(20, 0, 0, 0);
+
+            Label marginLabel = new Label();
+            marginLabel.Content = "Plan Id";
+            marginLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            marginLabel.VerticalAlignment = VerticalAlignment.Top;
+            marginLabel.Width = 150;
+            marginLabel.FontSize = 14;
+            marginLabel.Margin = new Thickness(30, 0, 0, 0);
+
+            sp.Children.Add(strName);
+            sp.Children.Add(spareType);
+            sp.Children.Add(marginLabel);
+            targets_sp.Children.Add(sp);
+
+            firstTargetStruct = false;
         }
 
         //stuff related to TS Generation tab
@@ -387,7 +589,7 @@ namespace VMATAutoPlanMT
         private void add_str_click(object sender, RoutedEventArgs e)
         {
             //populate the comboboxes
-            add_sp_volumes(selectedSS, new List<Tuple<string, string, double>> { Tuple.Create("--select--", "--select--", 0.0) });
+            add_sp_volumes(new List<Tuple<string, string, double>> { Tuple.Create("--select--", "--select--", 0.0) });
             spareStructScroller.ScrollToBottom();
         }
 
@@ -401,7 +603,7 @@ namespace VMATAutoPlanMT
         }
 
         //populate the structure sparing list. This method is called whether the add structure or add defaults buttons are hit (because a vector containing the list of structures is passed as an argument to this method)
-        private void add_sp_volumes(StructureSet selectedSS, List<Tuple<string, string, double>> defaultList)
+        private void add_sp_volumes(List<Tuple<string, string, double>> defaultList)
         {
             if (firstSpareStruct) add_sp_header();
             UIhelper helper = new UIhelper();
@@ -482,7 +684,7 @@ namespace VMATAutoPlanMT
             }
 
             clear_spare_list();
-            add_sp_volumes(selectedSS, defaultList);
+            add_sp_volumes(defaultList);
             if (missCount > 0) MessageBox.Show(missOutput);
             if (emptyCount > 0) MessageBox.Show(emptyOutput);
         }
@@ -534,7 +736,7 @@ namespace VMATAutoPlanMT
                 clear_spare_list();
                 //update the structure sparing list in this class and update the structure sparing list displayed to the user in TS Generation tab
                 structureSpareList = generate.spareStructList;
-                add_sp_volumes(selectedSS, structureSpareList);
+                add_sp_volumes(structureSpareList);
             }
             if (generate.optParameters.Count() > 0) optParameters = generate.optParameters;
             numIsos = generate.numIsos;
@@ -687,9 +889,9 @@ namespace VMATAutoPlanMT
             List<Tuple<string, string, double, double, int>> defaultList = new List<Tuple<string, string, double, double, int>> { };
 
             //non-meyloabalative regime
-            if (noBoost_chkbox.IsChecked.Value) tmp = optConstDefaultNonMyelo;
+            if (noBoost_chkbox.IsChecked.Value) tmp = optConstBoost;
             //meylo-abalative regime
-            else if (noBoost_chkbox.IsChecked.Value) tmp = optConstDefaultMyelo;
+            else if (noBoost_chkbox.IsChecked.Value) tmp = optConstNoBoost;
             //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose
             else if (prescription != null)
             {
@@ -699,12 +901,12 @@ namespace VMATAutoPlanMT
                 //use optimization objects of the closer of the two default regiments (6-18-2021)
                 //if (Math.Pow(RxDose - (nonmyeloNumFx * nonmyeloDosePerFx), 2) <= Math.Pow(RxDose - (reduceDoseNumFx * reduceDoseDosePerFx), 2))
                 //{
-                //    dummy = optConstDefaultNonMyelo;
+                //    dummy = optConstBoost;
                 //    baseDose = nonmyeloDosePerFx * nonmyeloNumFx;
                 //}
                 //else
                 //{
-                //    dummy = optConstDefaultMyelo;
+                //    dummy = optConstNoBoost;
                 //    baseDose = reduceDoseDosePerFx * reduceDoseNumFx;
                 //}
                 foreach (Tuple<string, string, double, double, int> opt in dummy) tmp.Add(Tuple.Create(opt.Item1, opt.Item2, opt.Item3 * (RxDose / baseDose), opt.Item4, opt.Item5));
@@ -772,7 +974,7 @@ namespace VMATAutoPlanMT
             //clear the current list of optimization objectives
             clear_optimization_parameter_list();
             //add the default list of optimization objectives to the displayed list of optimization objectives
-            add_opt_volumes(selectedSS, defaultList);
+            add_opt_volumes(defaultList);
         }
 
         private void scanSS_Click(object sender, RoutedEventArgs e)
@@ -845,7 +1047,7 @@ namespace VMATAutoPlanMT
 
         private void add_constraint_Click(object sender, RoutedEventArgs e)
         {
-            add_opt_volumes(selectedSS, new List<Tuple<string, string, double, double, int>> { Tuple.Create("--select--", "--select--", 0.0, 0.0, 0) });
+            add_opt_volumes(new List<Tuple<string, string, double, double, int>> { Tuple.Create("--select--", "--select--", 0.0, 0.0, 0) });
             optParamScroller.ScrollToBottom();
         }
 
@@ -855,7 +1057,7 @@ namespace VMATAutoPlanMT
             firstOptStruct = false;
         }
 
-        private void add_opt_volumes(StructureSet selectedSS, List<Tuple<string, string, double, double, int>> defaultList)
+        private void add_opt_volumes(List<Tuple<string, string, double, double, int>> defaultList)
         {
             //if (selectedSS == null) { MessageBox.Show("Error! The structure set has not been assigned! Choose a structure set and try again!"); return; }
             if (firstOptStruct) add_opt_header();
@@ -1157,8 +1359,8 @@ namespace VMATAutoPlanMT
                     List<Tuple<string, string>> TSstructures_temp = new List<Tuple<string, string>> { };
                     List<Tuple<string, string>> scleroTSstructures_temp = new List<Tuple<string, string>> { };
                     List<Tuple<string, string, double, double, int>> optConstDefaultSclero_temp = new List<Tuple<string, string, double, double, int>> { };
-                    List<Tuple<string, string, double, double, int>> optConstDefaultMyelo_temp = new List<Tuple<string, string, double, double, int>> { };
-                    List<Tuple<string, string, double, double, int>> optConstDefaultNonMyelo_temp = new List<Tuple<string, string, double, double, int>> { };
+                    List<Tuple<string, string, double, double, int>> optConstNoBoost_temp = new List<Tuple<string, string, double, double, int>> { };
+                    List<Tuple<string, string, double, double, int>> optConstBoost_temp = new List<Tuple<string, string, double, double, int>> { };
                     List<Tuple<string, string, double>> scleroSpareStruct_temp = new List<Tuple<string, string, double>> { };
                     List<Tuple<string, string, double>> myeloSpareStruct_temp = new List<Tuple<string, string, double>> { };
                     List<Tuple<string, string, double>> nonmyeloSpareStruct_temp = new List<Tuple<string, string, double>> { };
@@ -1268,7 +1470,7 @@ namespace VMATAutoPlanMT
                                                     else if (parameter == "num fx") { if (int.TryParse(value, out int fxResult)) reduceDoseNumFx = fxResult; }
                                                 }
                                                 else if (line.Contains("add sparing structure")) myeloSpareStruct_temp.Add(parseSparingStructure(line));
-                                                else if (line.Contains("add opt constraint")) optConstDefaultMyelo_temp.Add(parseOptimizationConstraint(line));
+                                                else if (line.Contains("add opt constraint")) optConstNoBoost_temp.Add(parseOptimizationConstraint(line));
                                             }
                                         }
                                     }
@@ -1287,7 +1489,7 @@ namespace VMATAutoPlanMT
                                                     else if (parameter == "num fx") { if (int.TryParse(value, out int fxResult)) noBoostNumFx = fxResult; }
                                                 }
                                                 else if (line.Contains("add sparing structure")) nonmyeloSpareStruct_temp.Add(parseSparingStructure(line));
-                                                else if (line.Contains("add opt constraint")) optConstDefaultNonMyelo_temp.Add(parseOptimizationConstraint(line));
+                                                else if (line.Contains("add opt constraint")) optConstBoost_temp.Add(parseOptimizationConstraint(line));
                                             }
                                         }
                                     }
@@ -1303,8 +1505,8 @@ namespace VMATAutoPlanMT
                     if (TSstructures_temp.Any()) TS_structures = new List<Tuple<string, string>>(TSstructures_temp);
                     if (myeloSpareStruct_temp.Any()) myeloSpareStruct = new List<Tuple<string, string, double>>(myeloSpareStruct_temp);
                     if (nonmyeloSpareStruct_temp.Any()) nonmyeloSpareStruct = new List<Tuple<string, string, double>>(nonmyeloSpareStruct_temp);
-                    if (optConstDefaultMyelo_temp.Any()) optConstDefaultMyelo = new List<Tuple<string, string, double, double, int>>(optConstDefaultMyelo_temp);
-                    if (optConstDefaultNonMyelo_temp.Any()) optConstDefaultNonMyelo = new List<Tuple<string, string, double, double, int>>(optConstDefaultNonMyelo_temp);
+                    if (optConstNoBoost_temp.Any()) optConstNoBoost = new List<Tuple<string, string, double, double, int>>(optConstNoBoost_temp);
+                    if (optConstBoost_temp.Any()) optConstBoost = new List<Tuple<string, string, double, double, int>>(optConstBoost_temp);
                 }
                 return false;
             }
