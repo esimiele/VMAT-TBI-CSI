@@ -692,13 +692,26 @@ namespace VMATAutoPlanMT
                     structuresToUnion.Add(new Tuple<Structure, Structure>(itr, RStruct));
                 }
             }
-            string msg = "Structures to union" + Environment.NewLine;
-            foreach(Tuple<Structure,Structure> itr in structuresToUnion)
+            string msg = "Structures to union:" + Environment.NewLine;
+            foreach(Tuple<Structure,Structure> itr in structuresToUnion) msg += String.Format("{0}, {1}", itr.Item1.Id, itr.Item2.Id) + Environment.NewLine;
+            msg += Environment.NewLine + "Continue?";
+            confirmUI CUI = new confirmUI();
+            CUI.message.Text = msg;
+            CUI.ShowDialog();
+            if(CUI.confirm)
             {
-                msg += String.Format("{0}, {1}", itr.Item1.Id, itr.Item2.Id) + Environment.NewLine;
-            }
-            MessageBox.Show(msg);
+                foreach(Tuple<Structure,Structure> itr in structuresToUnion)
+                {
+                    string newName = itr.Item1.Id.Substring(0, itr.Item1.Id.Length - 2);
+                    if (selectedSS.CanAddStructure("CONTROL",newName))
+                    {
+                        Structure newStructure = selectedSS.AddStructure("CONTROL", newName);
+                        newStructure.SegmentVolume = newStructure.And(itr.Item1);
+                        newStructure.SegmentVolume = newStructure.And(itr.Item2);
 
+                    }
+                }
+            }
         }
 
         //add structure to spare to the list
