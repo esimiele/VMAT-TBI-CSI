@@ -15,6 +15,8 @@ namespace VMATAutoPlanMT
             if (e.Args.Length == 3) SO = new selectOption(true);
             else SO = new selectOption(false);
             SO.ShowDialog();
+            //if (SO.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+
             Window mw;
             List<string> theArguments = new List<string> { };
             for(int i = 0; i < e.Args.Length; i++) theArguments.Add(e.Args[i]);
