@@ -170,18 +170,15 @@ namespace VMATAutoPlanMT
                 //in the previous run of the script)
                 //if (itr.Item2.ToLower() == "human_body" && tmp != null) selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").SegmentVolume = tmp.Margin(0.0);
 
-                if (itr.Item2.ToLower().Contains("human") || itr.Item2.ToLower().Contains("ptv"))
+                if (selectedSS.CanAddStructure(itr.Item1, itr.Item2))
                 {
-                    if (selectedSS.CanAddStructure(itr.Item1, itr.Item2))
-                    {
-                        selectedSS.AddStructure(itr.Item1, itr.Item2);
-                        addedStructures.Add(itr.Item2);
-                    }
-                    else
-                    {
-                        MessageBox.Show(String.Format("Can't add {0} to the structure set!", itr.Item2));
-                        return true;
-                    }
+                    selectedSS.AddStructure(itr.Item1, itr.Item2);
+                    addedStructures.Add(itr.Item2);
+                }
+                else
+                {
+                    MessageBox.Show(String.Format("Can't add {0} to the structure set!", itr.Item2));
+                    return true;
                 }
             }
 
@@ -195,7 +192,7 @@ namespace VMATAutoPlanMT
                 {
                     if (itr.Item1.ToLower().Contains("lungs"))
                     {
-                        if (itr.Item2 == "Mean Dose < Rx Dose") foreach (Tuple<string, string> itr1 in TS_structures.Where(x => x.Item2.ToLower().Contains("lungs"))) AddTSStructures(itr1);
+                        foreach (Tuple<string, string> itr1 in TS_structures.Where(x => x.Item2.ToLower().Contains("lungs"))) AddTSStructures(itr1);
                         //do NOT add the scleroStructures to the addedStructures vector as these will be handled manually!
                         if (scleroTrial)
                         {

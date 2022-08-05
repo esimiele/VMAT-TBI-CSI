@@ -110,6 +110,7 @@
     </Compile>
     <Compile Include="helpers\UIhelper.cs" />
     <Compile Include="Launcher\launchVMATTBICSIautoPlan.cs" />
+    <Compile Include="VMAT-CSI\autoPlanTemplate.cs" />
     <Compile Include="VMAT-CSI\generateTS_CSI.cs" />
     <Compile Include="VMAT-CSI\placeBeams_CSI.cs" />
     <Compile Include="VMAT-CSI\planPrep_CSI.cs" />

@@ -11,45 +11,13 @@ using Microsoft.Win32;
 using System.Windows.Threading;
 using System.Threading;
 using System.Collections.ObjectModel;
+using VMATAutoPlanMT.VMAT_CSI;
 
 namespace VMATAutoPlanMT
 {
     //8/1/2022
     //idea to migrate checkboxes and hard-coded constraints to a template class that will be populated using the configuration file (saves me the trouble of hard-coding everything)
     //replace labels and checkboxes with listbox that will be populated with template prescriptions
-    public class autoPlanTemplate
-    {
-        public string templateName { get; set; }
-        public double initialRxDosePerFx = 0.1;
-        public int initialRxNumFx = 1;
-        public double boostRxDosePerFx = 0.1;
-        public int boostRxNumFx = 1;
-
-        //structure ID, Rx dose, plan Id
-        public List<Tuple<string, double, string>> targets = new List<Tuple<string, double, string>> { };
-        //structure ID, sparing type, margin
-        public List<Tuple<string, string, double>> spareStructures = new List<Tuple<string, string, double>> { };
-        //structure, constraint type, dose cGy, volume %, priority
-        public List<Tuple<string, string, double, double, int>> init_constraints = new List<Tuple<string, string, double, double, int>> { };
-        public List<Tuple<string, string, double, double, int>> bst_constraints = new List<Tuple<string, string, double, double, int>> { };
-        //DICOM type, structure ID
-        public List<Tuple<string, string>> TS_structures = new List<Tuple<string, string>> { };
-
-        public autoPlanTemplate()
-        {
-        }
-
-        public autoPlanTemplate(int count)
-        {
-            templateName = String.Format("Template: {0}", count);
-        }
-
-        public autoPlanTemplate(string name)
-        {
-            templateName = name;
-
-        }
-    }
     public partial class CSIAutoPlanMW : Window
     {
         string configFile = "";
@@ -203,6 +171,7 @@ namespace VMATAutoPlanMT
         public VMS.TPS.Common.Model.API.Application app = null;
         bool isModified = false;
         bool autoSave = false;
+        bool checkStructuresToUnion = true;
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
         public ObservableCollection<autoPlanTemplate> PlanTemplates { get; set; }
         //ProcessStartInfo optLoopProcess;
@@ -500,7 +469,6 @@ namespace VMATAutoPlanMT
                             c.Text = emi.value.Text;
                         }
                         else c.SelectedIndex = 0;
-
                         return;
                     }
                 }
@@ -619,6 +587,11 @@ namespace VMATAutoPlanMT
 
         private void set_targets_Click(object sender, RoutedEventArgs e)
         {
+            if (targets_sp.Children.Count == 0)
+            {
+                MessageBox.Show("No targets present in list! Please add some targets to the list before setting the target structures!");
+                return;
+            }
             string structure = "";
             double tgtRx = -1000.0;
             string planID = "";
@@ -676,47 +649,39 @@ namespace VMATAutoPlanMT
             MessageBox.Show("Selecting this option will contour the (approximate) overlap between fields in adjacent isocenters in the VMAT plan and assign the resulting structures as targets in the optimization.");
         }
 
-        private void unionLRStructures_Click(object sender, RoutedEventArgs e)
+        private void checkLRStructures()
         {
-            //Finish this (8-2-2022)
-            List<Structure> LStructs = new List<Structure> { };
-            List<Structure> RStructs = new List<Structure> { };
-            LStructs = selectedSS.Structures.Where(x => x.Id.Substring(x.Id.Length - 2, 2).ToLower() == "_l" || x.Id.Substring(x.Id.Length - 2, 2).ToLower() == " l").ToList();
-            RStructs = selectedSS.Structures.Where(x => x.Id.Substring(x.Id.Length - 2, 2).ToLower() == "_r" || x.Id.Substring(x.Id.Length - 2, 2).ToLower() == " r").ToList();
-            List<Tuple<Structure, Structure>> structuresToUnion = new List<Tuple<Structure, Structure>> { }; 
-            foreach(Structure itr in LStructs)
+            //check if structures need to be unioned before adding defaults
+            UIhelper helper = new UIhelper();
+            List<Tuple<Structure, Structure>> structuresToUnion = helper.checkStructuresToUnion(selectedSS);
+            if (structuresToUnion.Any())
             {
-                Structure RStruct = RStructs.FirstOrDefault(x => x.Id.Substring(0, x.Id.Length - 2) == itr.Id.Substring(0, itr.Id.Length - 2));
-                if (RStruct != null)
+                string msg = "Structures to union:" + Environment.NewLine;
+                foreach (Tuple<Structure, Structure> itr in structuresToUnion) msg += String.Format("{0}, {1}", itr.Item1.Id, itr.Item2.Id) + Environment.NewLine;
+                msg += Environment.NewLine + "Continue?";
+                confirmUI CUI = new confirmUI();
+                CUI.message.Text = msg;
+                CUI.message.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+                CUI.ShowDialog();
+                if (CUI.confirm)
                 {
-                    structuresToUnion.Add(new Tuple<Structure, Structure>(itr, RStruct));
-                }
-            }
-            string msg = "Structures to union:" + Environment.NewLine;
-            foreach(Tuple<Structure,Structure> itr in structuresToUnion) msg += String.Format("{0}, {1}", itr.Item1.Id, itr.Item2.Id) + Environment.NewLine;
-            msg += Environment.NewLine + "Continue?";
-            confirmUI CUI = new confirmUI();
-            CUI.message.Text = msg;
-            CUI.ShowDialog();
-            if(CUI.confirm)
-            {
-                foreach(Tuple<Structure,Structure> itr in structuresToUnion)
-                {
-                    string newName = itr.Item1.Id.Substring(0, itr.Item1.Id.Length - 2);
-                    if (selectedSS.CanAddStructure("CONTROL",newName))
+                    int numUnioned = 0;
+                    pi.BeginModifications();
+                    foreach (Tuple<Structure, Structure> itr in structuresToUnion) if (!helper.unionLRStructures(itr, selectedSS)) numUnioned++;
+                    if (numUnioned > 0)
                     {
-                        Structure newStructure = selectedSS.AddStructure("CONTROL", newName);
-                        newStructure.SegmentVolume = newStructure.And(itr.Item1);
-                        newStructure.SegmentVolume = newStructure.And(itr.Item2);
-
+                        MessageBox.Show("L and R structures have been unioned! Please review the contours after saving!");
+                        isModified = true;
                     }
                 }
             }
+            checkStructuresToUnion = false;
         }
 
         //add structure to spare to the list
         private void add_str_click(object sender, RoutedEventArgs e)
         {
+            if (checkStructuresToUnion) checkLRStructures();
             //populate the comboboxes
             add_sp_volumes(new List<Tuple<string, string, double>> { Tuple.Create("--select--", "--select--", 0.0) });
             spareStructScroller.ScrollToBottom();
@@ -782,6 +747,7 @@ namespace VMATAutoPlanMT
 
         private void add_spareDefaults_click(object sender, RoutedEventArgs e)
         {
+            if (checkStructuresToUnion) checkLRStructures();
             //copy the sparing structures in the defaultSpareStruct list to a temporary vector
             List<Tuple<string, string, double>> templateSpareList = new List<Tuple<string, string, double>>(defaultSpareStruct);
             //add the case-specific sparing structures to the temporary list

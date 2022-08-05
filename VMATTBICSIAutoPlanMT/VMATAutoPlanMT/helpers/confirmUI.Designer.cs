@@ -61,6 +61,7 @@
             this.message.Location = new System.Drawing.Point(12, 12);
             this.message.Multiline = true;
             this.message.Name = "message";
+            this.message.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.message.Size = new System.Drawing.Size(368, 194);
             this.message.TabIndex = 2;
             this.message.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;

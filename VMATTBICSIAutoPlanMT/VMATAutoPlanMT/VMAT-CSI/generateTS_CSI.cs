@@ -27,34 +27,27 @@ namespace VMATAutoPlanMT
             selectedSS = ss;
         }
 
+        public override bool generateStructures()
+        {
+            isoNames.Clear();
+            if (preliminaryChecks()) return true;
+            if (createTSStructures()) return true;
+            if (calculateNumIsos()) return true;
+            MessageBox.Show("Structures generated successfully!\nPlease proceed to the beam placement tab!");
+            return false;
+        }
+
         public override bool preliminaryChecks()
         {
             //check if user origin was set
             if (isUOriginInside()) return true;
 
-            //get the points collection for the Body (used for calculating number of isocenters)
-            Point3DCollection pts = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").MeshGeometry.Positions;
-
-            //check if patient length is > 116cm, if so, check for matchline contour
-            if ((pts.Max(p => p.Z) - pts.Min(p => p.Z)) > 1160.0 && !(selectedSS.Structures.Where(x => x.Id.ToLower() == "matchline").Any()))
+            //verify brain and spine structures are present
+            if(selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "brain") == null || selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinalcord") == null)
             {
-                //check to see if the user wants to proceed even though there is no matchplane contour or the matchplane contour exists, but is not filled
-                confirmUI CUI = new confirmUI();
-                CUI.message.Text = "No matchplane contour found even though patient length > 116.0 cm!" + Environment.NewLine + Environment.NewLine + "Continue?!";
-                CUI.ShowDialog();
-                if (!CUI.confirm) return true;
-
-                //checks for LA16 couch and spinning manny couch/bolt will be performed at optimization stage
+                MessageBox.Show("Missing brain and/or spine structures! Please add and try again!");
+                return true;
             }
-
-            //For these cases the maximum number of allowed isocenters is 3.
-            //the reason for the explicit statements calculating the number of isos and then truncating them to 3 was to account for patients requiring < 3 isos and if, later on, we want to remove the restriction of 3 isos
-            numIsos = numVMATIsos = (int)Math.Ceiling(((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 - 20.0)));
-            if (numIsos > 3) numIsos = numVMATIsos = 3;
-            
-
-            //set isocenter names based on numIsos and numVMATIsos (determined these names from prior cases)
-            isoNames = new List<string>(new isoNameHelper().getIsoNames(numVMATIsos, numIsos));
 
             //check if selected structures are empty or of high-resolution (i.e., no operations can be performed on high-resolution structures)
             string output = "The following structures are high-resolution:" + System.Environment.NewLine;
@@ -97,83 +90,141 @@ namespace VMATAutoPlanMT
             return false;
         }
 
+        public bool calculateNumIsos()
+        {
+            //get the points collection for the Body (used for calculating number of isocenters)
+            Point3DCollection pts = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").MeshGeometry.Positions;
+
+            //For these cases the maximum number of allowed isocenters is 3.
+            //the reason for the explicit statements calculating the number of isos and then truncating them to 3 was to account for patients requiring < 3 isos and if, later on, we want to remove the restriction of 3 isos
+            numIsos = numVMATIsos = (int)Math.Ceiling(((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 - 20.0)));
+            if (numIsos > 3) numIsos = numVMATIsos = 3;
+
+            //set isocenter names based on numIsos and numVMATIsos (determined these names from prior cases)
+            isoNames = new List<string>(new isoNameHelper().getIsoNames(numVMATIsos, numIsos));
+            return false;
+        }
+
+        public bool createTargetStructures()
+        {
+            //create the CTV and PTV structures
+            //if these structures were present, they should have been removed (regardless if they were contoured or not). 
+            List<Structure> addedTargets = new List<Structure> { };
+            foreach (Tuple<string, string> itr in TS_structures.Where(x => x.Item2.ToLower().Contains("ctv") || x.Item2.ToLower().Contains("ptv")).OrderBy(x => x.Item2))
+            {
+                if (selectedSS.CanAddStructure(itr.Item1, itr.Item2))
+                {
+                    addedStructures.Add(itr.Item2);
+                    addedTargets.Add(selectedSS.AddStructure(itr.Item1, itr.Item2));
+                }
+                else
+                {
+                    MessageBox.Show(String.Format("Can't add {0} to the structure set!", itr.Item2));
+                    return true;
+                }
+            }
+
+            foreach(Structure itr in addedTargets)
+            {
+                if (itr.Id.ToLower().Contains("brain"))
+                {
+                    Structure tmp = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "brain");
+                    if (tmp != null && !tmp.IsEmpty)
+                    {
+                        if (itr.Id.ToLower().Contains("ctv"))
+                        {
+                            //CTV structure. Brain CTV IS the brain structure
+                            itr.SegmentVolume = tmp.Margin(0.0);
+                        }
+                        else
+                        {
+                            //PTV structure
+                            //5 mm uniform margin to generate PTV
+                            itr.SegmentVolume = tmp.Margin(5.0);
+                        }
+                    }
+                    else { MessageBox.Show("Error! Could not retrieve brain structure! Exiting!"); return true; }
+                }
+                else if(itr.Id.ToLower().Contains("spine"))
+                {
+                    Structure tmp = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinalcord");
+                    if (tmp != null && !tmp.IsEmpty)
+                    {
+                        if (itr.Id.ToLower().Contains("ctv"))
+                        {
+                            //CTV structure. Brain CTV IS the brain structure
+                            //AxisAlignedMargins(inner or outer margin, margin from negative x, margin for negative y, margin for negative z, margin for positive x, margin for positive y, margin for positive z)
+                            //according to Nataliya: CTV_spine = spinal_cord+0.5cm ANT, +1.5cm Inf, and +1.0 cm in all other directions
+                            itr.SegmentVolume = tmp.AsymmetricMargin(new AxisAlignedMargins(StructureMarginGeometry.Outer,
+                                                                                            10.0,
+                                                                                            5.0,
+                                                                                            15.0,
+                                                                                            10.0,
+                                                                                            10.0,
+                                                                                            10.0));
+                        }
+                        else
+                        {
+                            //PTV structure
+                            //5 mm uniform margin to generate PTV
+                            tmp = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ctv_spine");
+                            if (tmp != null && !tmp.IsEmpty)
+                            {
+                                itr.SegmentVolume = tmp.Margin(5.0);
+                            }
+                            else { MessageBox.Show("Error! Could not retrieve CTV_Spine structure! Exiting!"); return true; }
+                        }
+                    }
+                    else { MessageBox.Show("Error! Could not retrieve brain structure! Exiting!"); return true; }
+                }
+            }
+                
+            foreach(Structure itr in addedTargets.Where(x => x.Id.ToLower().Contains("csi")))
+            {
+                Structure tmp = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_brain"));
+                Structure tmp1 = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_spine"));
+                itr.SegmentVolume = tmp.Margin(0.0);
+                itr.SegmentVolume = itr.Or(tmp1.Margin(0.0));
+            }
+
+            return false;
+        }
+
         public override bool createTSStructures()
         {
             if (RemoveOldTSStructures(TS_structures)) return true;
+            if (createTargetStructures()) return true;
 
-            //Need to add the Human body, PTV_BODY, and TS_PTV_VMAT contours manually
-            //if these structures were present, they should have been removed (regardless if they were contoured or not). 
-            foreach (Tuple<string, string> itr in TS_structures.Where(x => x.Item2.ToLower().Contains("human") || x.Item2.ToLower().Contains("ptv")))
-            {
-                //4-15-2022 
-                //if the human_body structure exists and is not null, it is likely this script has been run previously. As a precaution, copy the human_body structure onto the body (in case flash was requested
-                //in the previous run of the script)
-                //if (itr.Item2.ToLower() == "human_body" && tmp != null) selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").SegmentVolume = tmp.Margin(0.0);
-
-                if (itr.Item2.ToLower().Contains("human") || itr.Item2.ToLower().Contains("ptv"))
-                {
-                    if (selectedSS.CanAddStructure(itr.Item1, itr.Item2))
-                    {
-                        selectedSS.AddStructure(itr.Item1, itr.Item2);
-                        addedStructures.Add(itr.Item2);
-                    }
-                    else
-                    {
-                        MessageBox.Show(String.Format("Can't add {0} to the structure set!", itr.Item2));
-                        return true;
-                    }
-                }
-            }
-
-            //determine if any TS structures need to be added to the selected structure set (i.e., were not present or were removed in the first foreach loop)
-            //this is provided here to only add additional TS if they are relevant to the current case (i.e., it doesn't make sense to add the brain TS's if we 
-            //are not interested in sparing brain)
+            //determine if any TS structures need to be added to the selected structure set
             foreach (Tuple<string, string, double> itr in spareStructList)
             {
                 optParameters.Add(Tuple.Create(itr.Item1, itr.Item2));
-                if (itr.Item2 == "Mean Dose < Rx Dose")
-                {
-                    if (itr.Item1.ToLower().Contains("lungs"))
-                    {
-                        if (itr.Item2 == "Mean Dose < Rx Dose") foreach (Tuple<string, string> itr1 in TS_structures.Where(x => x.Item2.ToLower().Contains("lungs"))) AddTSStructures(itr1);
-                        //do NOT add the scleroStructures to the addedStructures vector as these will be handled manually!
-                        
-                    }
-                    else if (itr.Item1.ToLower().Contains("liver")) foreach (Tuple<string, string> itr1 in TS_structures.Where(x => x.Item2.ToLower().Contains("liver"))) AddTSStructures(itr1);
-                    else if (itr.Item1.ToLower().Contains("brain")) foreach (Tuple<string, string> itr1 in TS_structures.Where(x => x.Item2.ToLower().Contains("brain"))) AddTSStructures(itr1);
-                    else if (itr.Item1.ToLower().Contains("kidneys"))
-                    {
-                        foreach (Tuple<string, string> itr1 in TS_structures.Where(x => x.Item2.ToLower().Contains("kidneys"))) AddTSStructures(itr1);
-                        //do NOT add the scleroStructures to the addedStructures vector as these will be handled manually!
-                        
-                    }
-                }
+                if (itr.Item2 == "Mean Dose < Rx Dose") foreach (Tuple<string, string> itr1 in TS_structures.Where(x => x.Item2.ToLower().Contains(itr.Item1.ToLower()))) AddTSStructures(itr1);
             }
 
             //now contour the various structures
-            foreach (string s in addedStructures)
+            foreach (string itr in addedStructures)
             {
-                Structure tmp = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == s.ToLower());
+                Structure tmp = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.ToLower());
                 //MessageBox.Show(s);
-                if (!(s.ToLower().Contains("ptv")))
+                if (!(itr.ToLower().Contains("ptv")))
                 {
                     Structure tmp1 = null;
                     double margin = 0.0;
-                    if (s.ToLower().Contains("human")) tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "body");
-                    else if (s.ToLower().Contains("lungs")) if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "lungs_lowres") == null) tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "lungs"); else tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "lungs_lowres");
-                    else if (s.ToLower().Contains("liver")) if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "liver_lowres") == null) tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "liver"); else tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "liver_lowres");
-                    else if (s.ToLower().Contains("kidneys")) if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "kidneys_lowres") == null) tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "kidneys"); else tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "kidneys_lowres");
-                    else if (s.ToLower().Contains("brain")) if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "brain_lowres") == null) tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "brain"); else tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "brain_lowres");
-
+                    if (itr.ToLower().Contains("_low"))
+                    {
+                        if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains(itr.ToLower()) && x.Id.ToLower().Contains("_low")) == null) tmp1 = selectedSS.Structures.First(x => x.Id.ToLower().Contains(itr.ToLower()));
+                        else tmp1 = selectedSS.Structures.First(x => x.Id.ToLower().Contains(itr.ToLower()) && x.Id.ToLower().Contains("_low"));
+                    }
                     //all structures in TS_structures and scleroStructures are inner margins, which is why the below code works.
-                    int pos1 = s.IndexOf("-");
-                    int pos2 = s.IndexOf("cm");
-                    if (pos1 != -1 && pos2 != -1) double.TryParse(s.Substring(pos1, pos2 - pos1), out margin);
+                    int pos1 = itr.IndexOf("-");
+                    int pos2 = itr.IndexOf("cm");
+                    if (pos1 != -1 && pos2 != -1) double.TryParse(itr.Substring(pos1, pos2 - pos1), out margin);
 
                     //convert from cm to mm
                     tmp.SegmentVolume = tmp1.Margin(margin * 10);
                 }
-                else if (s.ToLower() == "ptv_body")
+                else if (itr.ToLower() == "ptv_body")
                 {
                     //get the body contour and create the ptv structure using the user-specified inner margin
                     Structure tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "body");
@@ -190,7 +241,7 @@ namespace VMATAutoPlanMT
                         }
                     }
                 }
-                else if (s.ToLower() == "ts_ptv_vmat")
+                else if (itr.ToLower() == "ts_ptv_vmat")
                 {
                     //copy the ptv_body contour onto the TS_ptv_vmat contour
                     Structure tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "ptv_body");

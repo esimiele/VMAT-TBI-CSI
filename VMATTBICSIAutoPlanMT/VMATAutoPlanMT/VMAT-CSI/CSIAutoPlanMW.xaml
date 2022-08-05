@@ -248,13 +248,12 @@
                         <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                         <StackPanel HorizontalAlignment="Center" Margin="0">
                             <Label Content="Structures to Spare" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
-                            <Button Content="Union L and R structures" Height="21" Width="150" Margin="0,5,0,5" Click="unionLRStructures_Click"/>
                             <Grid Height="25" Width ="560" HorizontalAlignment="Center" Margin="0,5,0,0">
                                 <Button x:Name="add_str" Content="Add Structure" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_str_click"/>
                                 <Button x:Name="addSpareDefaultsBtn" Content="Add Defaults" Width="100" HorizontalAlignment="Center" VerticalAlignment="Top" Click="add_spareDefaults_click"/>
                                 <Button Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_spareList_click"/>
                             </Grid>
-                            <ScrollViewer x:Name="spareStructScroller" Height="334" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                            <ScrollViewer x:Name="spareStructScroller" Height="365" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                 <StackPanel Name="structures_sp" Margin="5">
                                 </StackPanel>
                             </ScrollViewer>

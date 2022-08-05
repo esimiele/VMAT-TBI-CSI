@@ -384,6 +384,39 @@ namespace VMATAutoPlanMT
             return sp;
         }
 
+        public List<Tuple<Structure,Structure>> checkStructuresToUnion(StructureSet selectedSS)
+        {
+            List<Tuple<Structure, Structure>> structuresToUnion = new List<Tuple<Structure, Structure>> { };
+            List<Structure> LStructs = selectedSS.Structures.Where(x => x.Id.Substring(x.Id.Length - 2, 2).ToLower() == "_l" || x.Id.Substring(x.Id.Length - 2, 2).ToLower() == " l").ToList();
+            List<Structure> RStructs = selectedSS.Structures.Where(x => x.Id.Substring(x.Id.Length - 2, 2).ToLower() == "_r" || x.Id.Substring(x.Id.Length - 2, 2).ToLower() == " r").ToList();
+            foreach (Structure itr in LStructs)
+            {
+                Structure RStruct = RStructs.FirstOrDefault(x => x.Id.Substring(0, x.Id.Length - 2) == itr.Id.Substring(0, itr.Id.Length - 2));
+                if (RStruct != null) structuresToUnion.Add(new Tuple<Structure, Structure>(itr, RStruct));
+            }
+            return structuresToUnion;
+        }
+
+        public bool unionLRStructures(Tuple<Structure, Structure> itr, StructureSet selectedSS)
+        {
+            Structure newStructure = null;
+            string newName = itr.Item1.Id.Substring(0, itr.Item1.Id.Length - 2).ToLower();
+            if (newName.Substring(newName.Length - 1, 1) == "y" && newName.Substring(newName.Length - 2, 2) != "ey") newName = newName.Substring(0, newName.Length - 1) + "ies";
+            else if (newName.Substring(newName.Length - 1, 1) == "s") newName += "es";
+            else newName += "s";
+            try
+            {
+                Structure existStructure = selectedSS.Structures.FirstOrDefault(x => x.Id == newName);
+                //a structure already exists in the structure set with the intended name
+                if (existStructure != null) newStructure = existStructure;
+                else newStructure = selectedSS.AddStructure("CONTROL", newName);
+                newStructure.SegmentVolume = itr.Item1.Margin(0.0);
+                newStructure.SegmentVolume = newStructure.Or(itr.Item2.Margin(0.0));
+            }
+            catch (Exception except) { MessageBox.Show(String.Format("Warning! Could not add structure: {0}\nBecause: {1}", newName, except.Message)); return true; }
+            return false;
+        }
+
         public List<Tuple<string, string, double>> parseSpareStructList(StackPanel theSP)
         {
             List<Tuple<string, string, double>> structureSpareList = new List<Tuple<string, string, double>> { };
