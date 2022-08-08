@@ -11,6 +11,7 @@ using Microsoft.Win32;
 using System.Windows.Threading;
 using System.Threading;
 using System.Collections.ObjectModel;
+using System.Reflection;
 using VMATAutoPlanMT.VMAT_CSI;
 
 namespace VMATAutoPlanMT
@@ -25,78 +26,7 @@ namespace VMATAutoPlanMT
         /// HARD-CODED MAIN PARAMETERS FOR THIS CLASS AND ALL OTHER CLASSES IN THIS DLL APPLICATION.
         /// ADJUST THESE PARAMETERS TO YOUR TASTE. THESE PARAMETERS WILL BE OVERWRITTEN BY THE CONFIG.INI FILE IF IT IS SUPPLIED.
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        //double reduceDoseDosePerFx = 200;
-        //int reduceDoseNumFx = 6;
-        ////structure, constraint type, dose cGy, volume %, priority
-        //List<Tuple<string, string, double, double, int>> optConstReduceDose = new List<Tuple<string, string, double, double, int>>
-        //{
-        //    new Tuple<string, string, double, double, int>("PTV_2340", "Lower", 2340.0, 100.0, 100),
-        //    new Tuple<string, string, double, double, int>("PTV_2340", "Upper", 2400.0, 0.0, 100),
-        //    new Tuple<string, string, double, double, int>("PTV_2340", "Lower", 2360.0, 98.0, 100),
-        //    new Tuple<string, string, double, double, int>("Kidneys", "Mean", 100.0, 0.0, 80),
-        //    new Tuple<string, string, double, double, int>("Kidneys-1cm", "Mean", 25.0, 0.0, 80),
-        //    new Tuple<string, string, double, double, int>("Lungs", "Mean", 150.0, 0.0, 80),
-        //    new Tuple<string, string, double, double, int>("Lungs-1cm", "Mean", 100.0, 0.0, 80),
-        //    new Tuple<string, string, double, double, int>("Lungs-2cm", "Mean", 50.0, 0.0, 80),
-        //    new Tuple<string, string, double, double, int>("Bowel", "Upper", 850.0, 0.0, 50)
-        //};
-        //List<Tuple<string, double, string>> targetsReduceDose = new List<Tuple<string, double, string>>
-        //{
-        //    new Tuple<string, double, string>("PTV_2340", 2340.0, "VMAT_CSI")
-        //};
-
-        //double regimen1DosePerFx = 180;
-        //int regiment1NumFx = 20;
-        ////structure, constraint type, dose cGy, volume %, priority
-        //List<Tuple<string, string, double, double, int>> optConstNoBoost = new List<Tuple<string, string, double, double, int>>
-        //{
-        //    new Tuple<string, string, double, double, int>("PTV_3600", "Lower", 3600.0, 100.0, 100),
-        //    new Tuple<string, string, double, double, int>("PTV_3600", "Upper", 3700.0, 0.0, 100),
-        //    new Tuple<string, string, double, double, int>("PTV_3600", "Lower", 3620.0, 98.0, 100),
-        //    new Tuple<string, string, double, double, int>("Kidneys", "Mean", 750, 0.0, 80),
-        //    new Tuple<string, string, double, double, int>("Kidneys-1cm", "Mean", 400.0, 0.0, 50),
-        //    new Tuple<string, string, double, double, int>("Lenses", "Upper", 1140, 0.0, 50),
-        //    new Tuple<string, string, double, double, int>("Lungs", "Mean", 600.0, 0.0, 90),
-        //    new Tuple<string, string, double, double, int>("Lungs-1cm", "Mean", 300.0, 0.0, 80),
-        //    new Tuple<string, string, double, double, int>("Lungs-2cm", "Mean", 200.0, 0.0, 70),
-        //    new Tuple<string, string, double, double, int>("Bowel", "Upper", 1205.0, 0.0, 50)
-        //};
-        //List<Tuple<string, double, string>> targetsNoBoost = new List<Tuple<string, double, string>>
-        //{
-        //    new Tuple<string, double, string>("PTV_3600", 3600.0, "VMAT_CSI")
-        //};
-
-        //double boostDosePerFx = 180;
-        //int boostNumFx = 10;
-        //List<Tuple<string, string, double, double, int>> optConstBoost = new List<Tuple<string, string, double, double, int>>
-        //{
-        //    new Tuple<string, string, double, double, int>("PTV_5400", "Lower", 200.0, 100.0, 100),
-        //    new Tuple<string, string, double, double, int>("PTV_5400", "Upper", 202.0, 0.0, 100),
-        //    new Tuple<string, string, double, double, int>("PTV_5400", "Lower", 201.0, 98.0, 100),
-        //    new Tuple<string, string, double, double, int>("Kidneys", "Mean", 120.0, 0.0, 80),
-        //    new Tuple<string, string, double, double, int>("Kidneys-1cm", "Mean", 75.0, 0.0, 50),
-        //    new Tuple<string, string, double, double, int>("Lungs", "Mean", 75.0, 0.0, 90),
-        //    new Tuple<string, string, double, double, int>("Lungs-1cm", "Mean", 50.0, 0.0, 80),
-        //    new Tuple<string, string, double, double, int>("Lungs-2cm", "Mean", 25.0, 0.0, 70),
-        //    new Tuple<string, string, double, double, int>("Ovaries", "Mean", 50.0, 0.0, 50),
-        //    new Tuple<string, string, double, double, int>("Ovaries", "Upper", 75.0, 0.0, 70),
-        //    new Tuple<string, string, double, double, int>("Testes", "Mean", 50.0, 0.0, 50),
-        //    new Tuple<string, string, double, double, int>("Testes", "Upper", 75.0, 0.0, 70),
-        //    new Tuple<string, string, double, double, int>("Lenses", "Upper", 190.0, 0.0, 50),
-        //    new Tuple<string, string, double, double, int>("Brain", "Mean", 150.0, 0.0, 60),
-        //    new Tuple<string, string, double, double, int>("Brain-1cm", "Mean", 100.0, 0.0, 50),
-        //    new Tuple<string, string, double, double, int>("Brain-2cm", "Mean", 75.0, 0.0, 50),
-        //    new Tuple<string, string, double, double, int>("Brain-3cm", "Mean", 50.0, 0.0, 50),
-        //    new Tuple<string, string, double, double, int>("Bowel", "Upper", 201.0, 0.0, 50),
-        //    new Tuple<string, string, double, double, int>("Thyroid", "Mean", 100.0, 0.0, 50)
-        //};
-        //List<Tuple<string, double, string>> targetsBoost = new List<Tuple<string, double, string>>
-        //{
-        //    new Tuple<string, double, string>("PTV_5400", 5400.0, "VMAT_CSI_bst")
-        //};
         List<Tuple<string, double, string>> targets = new List<Tuple<string, double, string>> { };
-        //double initialDosePerFx, boostDosePerFx;
-        //int initialNumFx, boostNumFx;
 
         //general tuning structures to be added (if selected for sparing) to all case types
         List<Tuple<string, string>> defaultTS_structures = new List<Tuple<string, string>>
@@ -113,6 +43,8 @@ namespace VMATAutoPlanMT
           Tuple.Create("PTV","PTV_Body"),
           Tuple.Create("CONTROL","TS_PTV_VMAT")
         };
+
+        List<Tuple<string, string>> TS_structures = new List<Tuple<string, string>> { };
 
         List<Tuple<string, string, double>> defaultSpareStruct = new List<Tuple<string, string, double>>
         {
@@ -749,6 +681,7 @@ namespace VMATAutoPlanMT
 
         private void add_spareDefaults_click(object sender, RoutedEventArgs e)
         {
+            if (selectedSS == null) { MessageBox.Show("Error! No structure set selected! Select a structure set from the list and try again!"); return; }
             if (checkStructuresToUnion) checkLRStructures();
             //copy the sparing structures in the defaultSpareStruct list to a temporary vector
             List<Tuple<string, string, double>> templateSpareList = new List<Tuple<string, string, double>>(defaultSpareStruct);
@@ -821,9 +754,12 @@ namespace VMATAutoPlanMT
             List<Tuple<string, string, double>> structureSpareList = new UIhelper().parseSpareStructList(structures_sp);
             if (!structureSpareList.Any()) return;
 
+            TS_structures = new List<Tuple<string, string>> (defaultTS_structures);
+            if(templateList.SelectedItem != null) foreach (Tuple<string, string> itr in ((autoPlanTemplate)templateList.SelectedItem).TS_structures) TS_structures.Add(itr);
+
             //create an instance of the generateTS class, passing the structure sparing list vector, the selected structure set, and if this is the scleroderma trial treatment regiment
             //The scleroderma trial contouring/margins are specific to the trial, so this trial needs to be handled separately from the generic VMAT treatment type
-            generateTS_CSI generate = new generateTS_CSI(defaultTS_structures, structureSpareList, selectedSS);
+            generateTS_CSI generate = new generateTS_CSI(TS_structures, structureSpareList, targets, selectedSS);
             pi.BeginModifications();
             if (generate.generateStructures()) return;
             //does the structure sparing list need to be updated? This occurs when structures the user elected to spare with option of 'Mean Dose < Rx Dose' are high resolution. Since Eclipse can't perform
@@ -1592,7 +1528,7 @@ namespace VMATAutoPlanMT
                     if (defaultSpareStruct_temp.Any()) defaultSpareStruct = new List<Tuple<string, string, double>>(defaultSpareStruct_temp);
                     if (defaultTSstructures_temp.Any()) defaultTS_structures = new List<Tuple<string, string>>(defaultTSstructures_temp);
                 }
-                foreach (string itr in Directory.GetFiles(@"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\bin\templates", "*.ini").OrderBy(x => x)) readTemplatePlan(itr);
+                foreach (string itr in Directory.GetFiles(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\", "*.ini").OrderBy(x => x)) readTemplatePlan(itr);
                 return false;
             }
             //let the user know if the data parsing failed

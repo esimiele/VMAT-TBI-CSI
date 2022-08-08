@@ -16,14 +16,16 @@ namespace VMATAutoPlanMT
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
         List<Tuple<string, string>> TS_structures;
+        List<Tuple<string, double, string>> targets;
         public int numIsos;
         public int numVMATIsos;
         public bool updateSparingList = false;
 
-        public generateTS_CSI(List<Tuple<string, string>> ts, List<Tuple<string, string, double>> list, StructureSet ss)
+        public generateTS_CSI(List<Tuple<string, string>> ts, List<Tuple<string, string, double>> list, List<Tuple<string, double, string>> targs, StructureSet ss)
         {
             TS_structures = new List<Tuple<string, string>>(ts);
             spareStructList = new List<Tuple<string, string, double>>(list);
+            targets = new List<Tuple<string, double, string>>(targs);
             selectedSS = ss;
         }
 
@@ -31,6 +33,8 @@ namespace VMATAutoPlanMT
         {
             isoNames.Clear();
             if (preliminaryChecks()) return true;
+            if (RemoveOldTSStructures(TS_structures)) return true;
+            if (createTargetStructures()) return true;
             if (createTSStructures()) return true;
             if (calculateNumIsos()) return true;
             MessageBox.Show("Structures generated successfully!\nPlease proceed to the beam placement tab!");
@@ -191,15 +195,14 @@ namespace VMATAutoPlanMT
 
         public override bool createTSStructures()
         {
-            if (RemoveOldTSStructures(TS_structures)) return true;
-            if (createTargetStructures()) return true;
-
             //determine if any TS structures need to be added to the selected structure set
             foreach (Tuple<string, string, double> itr in spareStructList)
             {
                 optParameters.Add(Tuple.Create(itr.Item1, itr.Item2));
                 if (itr.Item2 == "Mean Dose < Rx Dose") foreach (Tuple<string, string> itr1 in TS_structures.Where(x => x.Item2.ToLower().Contains(itr.Item1.ToLower()))) AddTSStructures(itr1);
             }
+            //add ring structures to the stack
+            foreach (Tuple<string, string> itr in TS_structures.Where(x => x.Item2.ToLower().Contains("ts_ring"))) AddTSStructures(itr);
 
             //now contour the various structures
             foreach (string itr in addedStructures)
@@ -298,6 +301,38 @@ namespace VMATAutoPlanMT
                     //        if (!useFlash) selectedSS.RemoveStructure(dummyBox);
                     //    }
                     //}
+                }
+                else if (itr.ToLower().Contains("ts_ring"))
+                {
+                    if (double.TryParse(itr.Substring(7, itr.Length - 7), out double ringDose))
+                    {
+                        foreach(Tuple<string,double,string> itr1 in targets)
+                        {
+                            Structure tmp1 = selectedSS.Structures.FirstOrDefault(x => x.Id == itr1.Item1);
+                            if (tmp1 != null)
+                            {
+                                //margin in mm. 
+                                double margin = (itr1.Item2 - ringDose) / 200.0;
+                                if(margin > 0.0)
+                                {
+                                    //method to create ring of 2.0 cm thickness
+                                    //first create structure that is a copy of the target structure with an outer margin of (Rx - ring dose / 200 cGy/mm) + 20 mm.
+                                    ////This uses the rule of thumb Nataliya provided of 200.0 cGy/mm for standard VMAT plans
+                                    tmp.SegmentVolume = tmp1.Margin(margin + 20.0);
+                                    //next, add a dummy structure that is a copy of the target structure with an outer margin of (Rx - ring dose / 2 Gy/mm)
+                                    if (selectedSS.Structures.Where(x => x.Id.ToLower() == "dummy").Any()) selectedSS.RemoveStructure(selectedSS.Structures.First(x => x.Id.ToLower() == "dummy"));
+                                    Structure dummy = selectedSS.AddStructure("CONTROL", "Dummy");
+                                    dummy.SegmentVolume = tmp1.Margin(margin);
+                                    //now, contour the ring as the original ring minus the dummy structure
+                                    tmp.SegmentVolume = tmp.Sub(dummy.Margin(0.0));
+                                    //remove the dummy structure
+                                    selectedSS.RemoveStructure(dummy);
+                                }
+                            }
+                            else MessageBox.Show(String.Format("Error! Target structure {0} could not be found!", itr1.Item1));
+                        }
+                    }
+                    else MessageBox.Show(String.Format("Could not parse ring dose for {0}! Skipping!", itr));
                 }
             }
             return false;
