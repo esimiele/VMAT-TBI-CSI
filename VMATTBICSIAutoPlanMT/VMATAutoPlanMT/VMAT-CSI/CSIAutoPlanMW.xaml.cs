@@ -126,6 +126,8 @@ namespace VMATAutoPlanMT
         string contourFieldOverlapMargin = "1.0";
         //point this to the directory holding the documentation files
         string documentationPath = @"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\Research\VMAT_TBI\documentation\";
+        //location where CT images should be exported
+        string imgExportPath = @"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\exportedImages\";
         //treatment units and associated photon beam energies
         List<string> linacs = new List<string> { "LA16", "LA17" };
         List<string> beamEnergies = new List<string> { "6X"};
@@ -304,8 +306,8 @@ namespace VMATAutoPlanMT
                 if (itr.targets.Any())
                 {
                     configTB.Text += String.Format(" {0} targets:", itr.templateName) + System.Environment.NewLine;
-                    configTB.Text += String.Format("  {0, -15} | {1, -19} | {2, -11} |", "structure Id", "Rx (cGy)", "Plan Id") + System.Environment.NewLine;
-                    foreach (Tuple<string, double, string> tgt in itr.targets) configTB.Text += String.Format("  {0, -15} | {1, -19} | {2,-11:N1} |" + System.Environment.NewLine, tgt.Item1, tgt.Item2, tgt.Item3);
+                    configTB.Text += String.Format("  {0, -15} | {1, -8} | {2, -14} |", "structure Id", "Rx (cGy)", "Plan Id") + System.Environment.NewLine;
+                    foreach (Tuple<string, double, string> tgt in itr.targets) configTB.Text += String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |" + System.Environment.NewLine, tgt.Item1, tgt.Item2, tgt.Item3);
                     configTB.Text += System.Environment.NewLine;
                 }
                 else configTB.Text += String.Format(" No targets set for template: {0}", itr.templateName) + System.Environment.NewLine + System.Environment.NewLine;
@@ -374,7 +376,7 @@ namespace VMATAutoPlanMT
             if (!string.IsNullOrWhiteSpace(selectedCTID))
             {
                 VMS.TPS.Common.Model.API.Image theImage = pi.StructureSets.FirstOrDefault(x => x.Image.Id == selectedCTID).Image;
-                if (helper.imageExport(theImage, @"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\images\", pi.Id)) return;
+                if (helper.imageExport(theImage, imgExportPath, pi.Id)) return;
                 MessageBox.Show(String.Format("{0} has been exported successfully!", theImage.Id));
             }
             else MessageBox.Show("No imaged selected for export!");
@@ -1476,8 +1478,6 @@ namespace VMATAutoPlanMT
                     List<VRect<double>> jawPos_temp = new List<VRect<double>> { };
                     List<Tuple<string, string, double>> defaultSpareStruct_temp = new List<Tuple<string, string, double>> { };
                     List<Tuple<string, string>> defaultTSstructures_temp = new List<Tuple<string, string>> { };
-                    List<Tuple<string, string, double, double, int>> optConstDefaultSclero_temp = new List<Tuple<string, string, double, double, int>> { };
-                    int templateCount = 1;
 
                     while ((line = reader.ReadLine()) != null)
                     {
@@ -1498,8 +1498,20 @@ namespace VMATAutoPlanMT
                                         string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
                                         if (parameter == "documentation path")
                                         {
-                                            documentationPath = value;
-                                            if (documentationPath.LastIndexOf("\\") != documentationPath.Length - 1) documentationPath += "\\";
+                                            if (Directory.Exists(value))
+                                            {
+                                                documentationPath = value;
+                                                if (documentationPath.LastIndexOf("\\") != documentationPath.Length - 1) documentationPath += "\\";
+                                            }
+                                        }
+                                        else if(parameter == "img export location")
+                                        {
+                                            if (Directory.Exists(value))
+                                            {
+                                                imgExportPath = value;
+                                                if (imgExportPath.LastIndexOf("\\") != imgExportPath.Length - 1) imgExportPath += "\\";
+                                            }
+                                            else MessageBox.Show(String.Format("Warning! {0} does NOT exist!", value));
                                         }
                                         else if (parameter == "beams per iso")
                                         {
@@ -1568,49 +1580,11 @@ namespace VMATAutoPlanMT
                                         if (tmp.Count != 4) MessageBox.Show("Error! Jaw positions not defined correctly!");
                                         else jawPos_temp.Add(new VRect<double>(tmp.ElementAt(0), tmp.ElementAt(1), tmp.ElementAt(2), tmp.ElementAt(3)));
                                     }
-                                    else if (line.Equals(":begin template case configuration:"))
-                                    {
-                                        autoPlanTemplate tempTemplate = new autoPlanTemplate(templateCount);
-                                        List<Tuple<string, string, double>> spareStruct_temp = new List<Tuple<string, string, double>> { };
-                                        List<Tuple<string, string>> TSstructures_temp = new List<Tuple<string, string>> { };
-                                        List<Tuple<string, string, double, double, int>> initOptConst_temp = new List<Tuple<string, string, double, double, int>> { };
-                                        List<Tuple<string, string, double, double, int>> bstOptConst_temp = new List<Tuple<string, string, double, double, int>> { };
-                                        List<Tuple<string, double, string>> targets_temp = new List<Tuple<string, double, string>> { };
-                                        //parse the data specific to the myeloablative case setup
-                                        while (!(line = reader.ReadLine()).Equals(":end template case configuration:"))
-                                        {
-                                            if (line.Substring(0, 1) != "%")
-                                            {
-                                                if (line.Contains("="))
-                                                {
-                                                    string parameter = line.Substring(0, line.IndexOf("="));
-                                                    string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
-                                                    if (parameter == "template name") tempTemplate.templateName = value;
-                                                    else if (parameter == "initial dose per fraction") { if (double.TryParse(value, out double initDPF)) tempTemplate.initialRxDosePerFx = initDPF; }
-                                                    else if (parameter == "initial num fx") { if (int.TryParse(value, out int initFx)) tempTemplate.initialRxNumFx = initFx; }
-                                                    else if (parameter == "boost dose per fraction") { if (double.TryParse(value, out double bstDPF)) tempTemplate.boostRxDosePerFx = bstDPF; }
-                                                    else if (parameter == "boost num fx") { if (int.TryParse(value, out int bstFx)) tempTemplate.boostRxNumFx = bstFx; }
-                                                }
-                                                else if (line.Contains("add sparing structure")) spareStruct_temp.Add(parseSparingStructure(line));
-                                                else if (line.Contains("add init opt constraint")) initOptConst_temp.Add(parseOptimizationConstraint(line));
-                                                else if (line.Contains("add boost opt constraint")) bstOptConst_temp.Add(parseOptimizationConstraint(line));
-                                                else if (line.Contains("add TS")) TSstructures_temp.Add(parseTS(line));
-                                                else if (line.Contains("add target")) targets_temp.Add(parseTargets(line));
-                                            }
-                                        }
-
-                                        tempTemplate.spareStructures = new List<Tuple<string, string, double>>(spareStruct_temp);
-                                        tempTemplate.TS_structures = new List<Tuple<string, string>>(TSstructures_temp);
-                                        tempTemplate.init_constraints = new List<Tuple<string, string, double, double, int>>(initOptConst_temp);
-                                        tempTemplate.bst_constraints = new List<Tuple<string, string, double, double, int>>(bstOptConst_temp);
-                                        tempTemplate.targets = new List<Tuple<string, double, string>>(targets_temp);
-                                        PlanTemplates.Add(tempTemplate);
-                                        templateCount++;
-                                    }
                                 }
                             }
                         }
                     }
+                    reader.Close();
                     //anything that is an array needs to be updated AFTER the while loop.
                     if (linac_temp.Any()) linacs = new List<string>(linac_temp);
                     if (energy_temp.Any()) beamEnergies = new List<string>(energy_temp);
@@ -1618,10 +1592,66 @@ namespace VMATAutoPlanMT
                     if (defaultSpareStruct_temp.Any()) defaultSpareStruct = new List<Tuple<string, string, double>>(defaultSpareStruct_temp);
                     if (defaultTSstructures_temp.Any()) defaultTS_structures = new List<Tuple<string, string>>(defaultTSstructures_temp);
                 }
+                foreach (string itr in Directory.GetFiles(@"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\bin\templates", "*.ini").OrderBy(x => x)) readTemplatePlan(itr);
                 return false;
             }
             //let the user know if the data parsing failed
             catch (Exception e) { MessageBox.Show(String.Format("Error could not load configuration file because: {0}\n\nAssuming default parameters", e.Message)); return true; }
+        }
+
+        private void readTemplatePlan(string file)
+        {
+            using (StreamReader reader = new StreamReader(file))
+            {
+                int templateCount = 1;
+                string line;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    if (!string.IsNullOrEmpty(line) && line.Substring(0, 1) != "%")
+                    {
+                        if (line.Equals(":begin template case configuration:"))
+                        {
+                            autoPlanTemplate tempTemplate = new autoPlanTemplate(templateCount);
+                            List<Tuple<string, string, double>> spareStruct_temp = new List<Tuple<string, string, double>> { };
+                            List<Tuple<string, string>> TSstructures_temp = new List<Tuple<string, string>> { };
+                            List<Tuple<string, string, double, double, int>> initOptConst_temp = new List<Tuple<string, string, double, double, int>> { };
+                            List<Tuple<string, string, double, double, int>> bstOptConst_temp = new List<Tuple<string, string, double, double, int>> { };
+                            List<Tuple<string, double, string>> targets_temp = new List<Tuple<string, double, string>> { };
+                            //parse the data specific to the myeloablative case setup
+                            while (!(line = reader.ReadLine()).Equals(":end template case configuration:"))
+                            {
+                                if (line.Substring(0, 1) != "%")
+                                {
+                                    if (line.Contains("="))
+                                    {
+                                        string parameter = line.Substring(0, line.IndexOf("="));
+                                        string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
+                                        if (parameter == "template name") tempTemplate.templateName = value;
+                                        else if (parameter == "initial dose per fraction") { if (double.TryParse(value, out double initDPF)) tempTemplate.initialRxDosePerFx = initDPF; }
+                                        else if (parameter == "initial num fx") { if (int.TryParse(value, out int initFx)) tempTemplate.initialRxNumFx = initFx; }
+                                        else if (parameter == "boost dose per fraction") { if (double.TryParse(value, out double bstDPF)) tempTemplate.boostRxDosePerFx = bstDPF; }
+                                        else if (parameter == "boost num fx") { if (int.TryParse(value, out int bstFx)) tempTemplate.boostRxNumFx = bstFx; }
+                                    }
+                                    else if (line.Contains("add sparing structure")) spareStruct_temp.Add(parseSparingStructure(line));
+                                    else if (line.Contains("add init opt constraint")) initOptConst_temp.Add(parseOptimizationConstraint(line));
+                                    else if (line.Contains("add boost opt constraint")) bstOptConst_temp.Add(parseOptimizationConstraint(line));
+                                    else if (line.Contains("add TS")) TSstructures_temp.Add(parseTS(line));
+                                    else if (line.Contains("add target")) targets_temp.Add(parseTargets(line));
+                                }
+                            }
+
+                            tempTemplate.spareStructures = new List<Tuple<string, string, double>>(spareStruct_temp);
+                            tempTemplate.TS_structures = new List<Tuple<string, string>>(TSstructures_temp);
+                            tempTemplate.init_constraints = new List<Tuple<string, string, double, double, int>>(initOptConst_temp);
+                            tempTemplate.bst_constraints = new List<Tuple<string, string, double, double, int>>(bstOptConst_temp);
+                            tempTemplate.targets = new List<Tuple<string, double, string>>(targets_temp);
+                            PlanTemplates.Add(tempTemplate);
+                            templateCount++;
+                        }
+                    }
+                }
+                reader.Close();
+            }
         }
 
         //very useful helper method to remove everything in the input string 'line' up to a given character 'cropChar'

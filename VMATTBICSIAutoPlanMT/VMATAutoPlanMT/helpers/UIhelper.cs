@@ -25,7 +25,7 @@ namespace VMATAutoPlanMT
             //    for (int k = 0; k < img.ZSize; k++)
             //    {
             //        img.GetVoxels(k, pixels);
-            //        FromTwoDimIntArrayGray(pixels, k);
+            //        FromTwoDimIntArrayGray(pixels, k, imgWriteLocation);
             //        //SaveBmp(bmp, imgWriteLocation);
             //    }
             //    return false;
@@ -61,7 +61,7 @@ namespace VMATAutoPlanMT
             return false;
         }
 
-        public void FromTwoDimIntArrayGray(Int32[,] data, int sliceNum)
+        public void FromTwoDimIntArrayGray(Int32[,] data, int sliceNum, string writeLocation)
         {
             // Transform 2-dimensional Int32 array to 1-byte-per-pixel byte array
             Int32 width = data.GetLength(0);
@@ -105,7 +105,7 @@ namespace VMATAutoPlanMT
                                                       bmpData.Stride * bmp.Height,
                                                       bmpData.Stride);
             bmp.UnlockBits(bmpData);
-            FileStream stream = new FileStream(Path.Combine(@"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\images\", String.Format("{0}.bmp",sliceNum)), FileMode.Create);
+            FileStream stream = new FileStream(Path.Combine(writeLocation, String.Format("{0}.bmp",sliceNum)), FileMode.Create);
 
             TiffBitmapEncoder encoder = new TiffBitmapEncoder();
 
