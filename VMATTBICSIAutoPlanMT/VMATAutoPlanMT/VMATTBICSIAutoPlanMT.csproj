@@ -167,6 +167,12 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+    <None Include="_configuration\CSI_plugin_config.ini" />
+    <None Include="_configuration\VMAT_TBI_config.ini" />
+    <None Include="_planTemplates\CSI\CSI_reduceDose.ini" />
+    <None Include="_planTemplates\CSI\CSI_regimen1.ini" />
+    <None Include="_planTemplates\CSI\CSI_regimen2.ini" />
+    <None Include="_planTemplates\TBI\TBI_regimen1.ini" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -182,6 +188,9 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy "$(ProjectDir)Launcher\*" "$(ProjectDir)$(OutDir)"</PostBuildEvent>
+    <PostBuildEvent>copy "$(ProjectDir)Launcher\*" "$(ProjectDir)$(OutDir)"
+copy "$(ProjectDir)_configuration\*" "$(ProjectDir)$(OutDir)\configuration"
+copy "$(ProjectDir)_planTemplates\CSI\*" "$(ProjectDir)$(OutDir)\templates"
+copy "$(ProjectDir)_planTemplates\TBI\*" "$(ProjectDir)$(OutDir)\templates"</PostBuildEvent>
   </PropertyGroup>
 </Project>

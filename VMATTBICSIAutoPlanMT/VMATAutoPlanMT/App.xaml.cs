@@ -27,7 +27,7 @@ namespace VMATAutoPlanMT
             }
             else if (SO.isVMATCSI) 
             { 
-                theArguments.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_CSI_config.ini"); 
+                theArguments.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\CSI_plugin_config.ini"); 
                 mw = new CSIAutoPlanMW(theArguments); 
             } 
             else return;
