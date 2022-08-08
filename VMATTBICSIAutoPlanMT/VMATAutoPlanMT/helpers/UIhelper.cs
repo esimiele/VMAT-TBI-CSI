@@ -392,7 +392,7 @@ namespace VMATAutoPlanMT
             foreach (Structure itr in LStructs)
             {
                 Structure RStruct = RStructs.FirstOrDefault(x => x.Id.Substring(0, x.Id.Length - 2) == itr.Id.Substring(0, itr.Id.Length - 2));
-                if (RStruct != null) structuresToUnion.Add(new Tuple<Structure, Structure>(itr, RStruct));
+                if (RStruct != null && selectedSS.Structures.FirstOrDefault(x => x.Id == itr.Id.Substring(0, itr.Id.Length - 2) && !x.IsEmpty) != null) structuresToUnion.Add(new Tuple<Structure, Structure>(itr, RStruct));
             }
             return structuresToUnion;
         }

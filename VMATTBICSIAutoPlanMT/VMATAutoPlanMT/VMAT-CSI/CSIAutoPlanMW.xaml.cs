@@ -751,6 +751,12 @@ namespace VMATAutoPlanMT
                 return;
             }
 
+            if(!targets.Any())
+            {
+                MessageBox.Show("Please set the targets first on the 'Set Targets' tab!");
+                return;
+            }
+
             List<Tuple<string, string, double>> structureSpareList = new UIhelper().parseSpareStructList(structures_sp);
             if (!structureSpareList.Any()) return;
 
