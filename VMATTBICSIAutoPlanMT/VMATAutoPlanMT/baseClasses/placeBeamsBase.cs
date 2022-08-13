@@ -12,11 +12,11 @@ namespace VMATAutoPlanMT
     {
         public bool contourOverlap = false;
         public bool checkIsoPlacement = false;
-        public ExternalPlanSetup plan = null;
+        public List<ExternalPlanSetup> plans = null;
         public double checkIsoPlacementLimit = 5.0;
         public Course theCourse;
         public StructureSet selectedSS;
-        public Tuple<int, DoseValue> prescription;
+        public List<Tuple<string, string, int, DoseValue, double>> prescriptions;
         public string calculationModel = "";
         public string optimizationModel = "";
         public string useGPUdose = "";
@@ -32,27 +32,31 @@ namespace VMATAutoPlanMT
 
         }
 
-        public virtual ExternalPlanSetup generatePlan(string planType)
+        public virtual List<ExternalPlanSetup> generatePlan(string courseId, List<Tuple<string, string, int, DoseValue, double>> presc)
         {
-            if (checkExistingCoursePlans(planType)) return null;
-            if (createCourseAndPlan(planType)) return null;
-            List<VVector> isoLocations = getIsocenterPositions();
-            if (contourOverlap) contourFieldOverlap(isoLocations);
-            setBeams(isoLocations);
+            prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(presc);
+            if (checkExistingCoursePlans(courseId)) return null;
+            if (createCourseAndPlan()) return null;
+            List<Tuple<ExternalPlanSetup, List<VVector>>> isoLocations = getIsocenterPositions();
+            foreach(Tuple<ExternalPlanSetup,List<VVector>> itr in isoLocations)
+            {
+                if (contourOverlap) contourFieldOverlap(itr);
+                setBeams(itr);
+            }
 
             if (checkIsoPlacement) MessageBox.Show(String.Format("WARNING: < {0:0.00} cm margin at most superior and inferior locations of body! Verify isocenter placement!", checkIsoPlacementLimit / 10));
-            return plan;
+            return plans;
         }
 
-        public virtual bool checkExistingCoursePlans(string planType)
+        public virtual bool checkExistingCoursePlans(string courseId)
         {
             //look for a course name VMAT TBI. If it does not exit, create it, otherwise load it into memory
-            if (!selectedSS.Patient.Courses.Where(x => x.Id == planType).Any())
+            if (!selectedSS.Patient.Courses.Where(x => x.Id == courseId).Any())
             {
                 if (selectedSS.Patient.CanAddCourse())
                 {
                     theCourse = selectedSS.Patient.AddCourse();
-                    theCourse.Id = planType;
+                    theCourse.Id = courseId;
                 }
                 else
                 {
@@ -60,85 +64,99 @@ namespace VMATAutoPlanMT
                     return true;
                 }
             }
-            else theCourse = selectedSS.Patient.Courses.FirstOrDefault(x => x.Id == planType);
+            else theCourse = selectedSS.Patient.Courses.FirstOrDefault(x => x.Id == courseId);
 
-            if(checkExistingPlans(planType)) return true;
+            if(checkExistingPlans()) return true;
             return false;
         }
 
-        public virtual bool checkExistingPlans(string planID)
+        public virtual bool checkExistingPlans()
         {
             //6-10-2020 EAS, research system only!
             //if (tbi.ExternalPlanSetups.Where(x => x.Id == "_VMAT TBI").Any()) if (tbi.CanRemovePlanSetup((tbi.ExternalPlanSetups.First(x => x.Id == "_VMAT TBI")))) tbi.RemovePlanSetup(tbi.ExternalPlanSetups.First(x => x.Id == "_VMAT TBI"));
-            if (theCourse.ExternalPlanSetups.Where(x => x.Id == String.Format("_{0}", planID)).Any())
+            string msg = "";
+            int numExistingPlans = 0;
+            foreach(Tuple<string, string, int, DoseValue, double> itr in prescriptions)
             {
-                MessageBox.Show(String.Format("A plan named '_{0}' Already exists! \nESAPI can't remove plans in the clinical environment! \nPlease manually remove this plan and try again.",planID));
+                if (theCourse.ExternalPlanSetups.Where(x => x.Id == String.Format("_{0}", itr.Item1)).Any())
+                {
+                    msg += itr + Environment.NewLine;
+                    numExistingPlans++;
+                }
+            }
+            if(numExistingPlans > 0)
+            {
+                MessageBox.Show(String.Format("The following plans already exist in course '{0}': {1}\nESAPI can't remove plans in the clinical environment! \nPlease manually remove this plan and try again.", theCourse, msg));
                 return true;
             }
+
             return false;
         }
 
-        public virtual bool createCourseAndPlan(string planType)
+        public virtual bool createCourseAndPlan()
         {
-            
-            plan = theCourse.AddExternalPlanSetup(selectedSS);
-            //100% dose prescribed in plan and plan ID is _VMAT TBI
-            plan.SetPrescription(prescription.Item1, prescription.Item2, 1.0);
-            plan.Id = String.Format("_{0}", planType);
-            //ask the user to set the calculation model if not calculation model was set in UI.xaml.cs (up near the top with the global parameters)
-            if (calculationModel == "")
+            foreach(Tuple<string, string, int, DoseValue, double> itr in prescriptions)
             {
-                IEnumerable<string> models = plan.GetModelsForCalculationType(CalculationType.PhotonVolumeDose);
-                selectItem SUI = new selectItem();
-                SUI.title.Text = "No calculation model set!" + Environment.NewLine + "Please select a calculation model!";
-                foreach (string s in plan.GetModelsForCalculationType(CalculationType.PhotonVolumeDose)) SUI.itemCombo.Items.Add(s);
-                SUI.ShowDialog();
-                if (!SUI.confirm) return true;
-                //get the plan the user chose from the combobox
-                calculationModel = SUI.itemCombo.SelectedItem.ToString();
-
-                //just an FYI that the calculation will likely run out of memory and crash the optimization when Acuros is used
-                if (calculationModel.ToLower().Contains("acuros") || calculationModel.ToLower().Contains("axb"))
+                ExternalPlanSetup thePlan = theCourse.AddExternalPlanSetup(selectedSS);
+                //100% dose prescribed in plan and plan ID is _VMAT TBI
+                thePlan.SetPrescription(itr.Item3, itr.Item4, 1.0);
+                thePlan.Id = String.Format("_{0}", itr.Item1);
+                //ask the user to set the calculation model if not calculation model was set in UI.xaml.cs (up near the top with the global parameters)
+                if (calculationModel == "")
                 {
-                    confirmUI CUI = new confirmUI();
-                    CUI.message.Text = "Warning!" + Environment.NewLine + "The optimization will likely crash (i.e., run out of memory) if Acuros is used!" + Environment.NewLine + "Continue?!";
-                    CUI.ShowDialog();
-                    if (!CUI.confirm) return true;
+                    selectItem SUI = new selectItem();
+                    SUI.title.Text = "No calculation model set!" + Environment.NewLine + "Please select a calculation model!";
+                    foreach (string s in thePlan.GetModelsForCalculationType(CalculationType.PhotonVolumeDose)) SUI.itemCombo.Items.Add(s);
+                    SUI.ShowDialog();
+                    if (!SUI.confirm) return true;
+                    //get the plan the user chose from the combobox
+                    calculationModel = SUI.itemCombo.SelectedItem.ToString();
+
+                    //just an FYI that the calculation will likely run out of memory and crash the optimization when Acuros is used
+                    if (calculationModel.ToLower().Contains("acuros") || calculationModel.ToLower().Contains("axb"))
+                    {
+                        confirmUI CUI = new confirmUI();
+                        CUI.message.Text = "Warning!" + Environment.NewLine + "The optimization will likely crash (i.e., run out of memory) if Acuros is used!" + Environment.NewLine + "Continue?!";
+                        CUI.ShowDialog();
+                        if (!CUI.confirm) return true;
+                    }
                 }
+                thePlan.SetCalculationModel(CalculationType.PhotonVolumeDose, calculationModel);
+                thePlan.SetCalculationModel(CalculationType.PhotonVMATOptimization, optimizationModel);
+
+                //Dictionary<string, string> d = plan.GetCalculationOptions(plan.GetCalculationModel(CalculationType.PhotonVMATOptimization));
+                //string m = "";
+                //foreach (KeyValuePair<string, string> t in d) m += String.Format("{0}, {1}", t.Key, t.Value) + System.Environment.NewLine;
+                //MessageBox.Show(m);
+
+                //set the GPU dose calculation option (only valid for acuros)
+                if (useGPUdose == "Yes" && !calculationModel.Contains("AAA")) thePlan.SetCalculationOption(calculationModel, "UseGPU", useGPUdose);
+                else thePlan.SetCalculationOption(calculationModel, "UseGPU", "No");
+
+                //set MR restart level option for the photon optimization
+                thePlan.SetCalculationOption(optimizationModel, "VMAT/MRLevelAtRestart", MRrestart);
+
+                //set the GPU optimization option
+                if (useGPUoptimization == "Yes") thePlan.SetCalculationOption(optimizationModel, "General/OptimizerSettings/UseGPU", useGPUoptimization);
+                else thePlan.SetCalculationOption(optimizationModel, "General/OptimizerSettings/UseGPU", "No");
+
+                //reference point can only be added for a plan that IS CURRENTLY OPEN
+                //plan.AddReferencePoint(selectedSS.Structures.First(x => x.Id == "TS_PTV_VMAT"), null, "VMAT TBI", "VMAT TBI");
+
+                //these need to be fixed
+                //v16 of Eclipse allows for the creation of a plan with a named target structure and named primary reference point. Neither of these options are available in v15
+                //plan.TargetVolumeID = selectedSS.Structures.First(x => x.Id == "TS_PTV_VMAT");
+                //plan.PrimaryReferencePoint = plan.ReferencePoints.Fisrt(x => x.Id == "VMAT TBI");
+                plans.Add(thePlan);
             }
-            plan.SetCalculationModel(CalculationType.PhotonVolumeDose, calculationModel);
-            plan.SetCalculationModel(CalculationType.PhotonVMATOptimization, optimizationModel);
 
-            //Dictionary<string, string> d = plan.GetCalculationOptions(plan.GetCalculationModel(CalculationType.PhotonVMATOptimization));
-            //string m = "";
-            //foreach (KeyValuePair<string, string> t in d) m += String.Format("{0}, {1}", t.Key, t.Value) + System.Environment.NewLine;
-            //MessageBox.Show(m);
-
-            //set the GPU dose calculation option (only valid for acuros)
-            if (useGPUdose == "Yes" && !calculationModel.Contains("AAA")) plan.SetCalculationOption(calculationModel, "UseGPU", useGPUdose);
-            else plan.SetCalculationOption(calculationModel, "UseGPU", "No");
-
-            //set MR restart level option for the photon optimization
-            plan.SetCalculationOption(optimizationModel, "VMAT/MRLevelAtRestart", MRrestart);
-
-            //set the GPU optimization option
-            if (useGPUoptimization == "Yes") plan.SetCalculationOption(optimizationModel, "General/OptimizerSettings/UseGPU", useGPUoptimization);
-            else plan.SetCalculationOption(optimizationModel, "General/OptimizerSettings/UseGPU", "No");
-
-            //reference point can only be added for a plan that IS CURRENTLY OPEN
-            //plan.AddReferencePoint(selectedSS.Structures.First(x => x.Id == "TS_PTV_VMAT"), null, "VMAT TBI", "VMAT TBI");
-
-            //these need to be fixed
-            //v16 of Eclipse allows for the creation of a plan with a named target structure and named primary reference point. Neither of these options are available in v15
-            //plan.TargetVolumeID = selectedSS.Structures.First(x => x.Id == "TS_PTV_VMAT");
-            //plan.PrimaryReferencePoint = plan.ReferencePoints.Fisrt(x => x.Id == "VMAT TBI");
 
             return false;
         }
 
         //function used to cnotour the overlap between fields in adjacent isocenters for the VMAT Plan ONLY!
         //this option is requested by the user by selecting the checkbox on the main UI on the beam placement tab
-        public virtual void contourFieldOverlap(List<VVector> isoLocations)
+        public virtual void contourFieldOverlap(Tuple<ExternalPlanSetup, List<VVector>> isoLocations)
         {
             //grab the image and get the z resolution and dicom origin (we only care about the z position of the dicom origin)
             Image image = selectedSS.Image;
@@ -153,9 +171,9 @@ namespace VMATAutoPlanMT
             for (int i = 1; i < numVMATIsos; i++)
             {
                 //calculate the center position between adjacent isocenters. NOTE: this calculation works from superior to inferior!
-                double center = isoLocations.ElementAt(i - 1).z + (isoLocations.ElementAt(i).z - isoLocations.ElementAt(i - 1).z) / 2;
+                double center = isoLocations.Item2.ElementAt(i - 1).z + (isoLocations.Item2.ElementAt(i).z - isoLocations.Item2.ElementAt(i - 1).z) / 2;
                 //this is left as a double so I can cast it to an int in the second overlap item and use it in the calculation in the third overlap item
-                double numSlices = Math.Ceiling(400.0 + contourOverlapMargin - Math.Abs(isoLocations.ElementAt(i).z - isoLocations.ElementAt(i - 1).z));
+                double numSlices = Math.Ceiling(400.0 + contourOverlapMargin - Math.Abs(isoLocations.Item2.ElementAt(i).z - isoLocations.Item2.ElementAt(i - 1).z));
                 overlap.Add(new Tuple<double, int, int>(
                     center,
                     (int)(numSlices / zResolution),
@@ -197,15 +215,15 @@ namespace VMATAutoPlanMT
             }
         }
 
-        public virtual void setBeams(List<VVector> isoLocations)
+        public virtual void setBeams(Tuple<ExternalPlanSetup, List<VVector>> isoLocations)
         {
 
         }
 
 
-        public virtual List<VVector> getIsocenterPositions()
+        public virtual List<Tuple<ExternalPlanSetup, List<VVector>>> getIsocenterPositions()
         {
-            return new List<VVector>();
+            return new List<Tuple<ExternalPlanSetup, List<VVector>>> { };
         }
     }
 }

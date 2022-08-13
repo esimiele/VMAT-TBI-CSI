@@ -17,15 +17,17 @@ namespace VMATAutoPlanMT
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
         List<Tuple<string, string>> TS_structures;
         List<Tuple<string, double, string>> targets;
+        List<Tuple<string, string, int, DoseValue, double>> prescriptions;
         public int numIsos;
         public int numVMATIsos;
         public bool updateSparingList = false;
 
-        public generateTS_CSI(List<Tuple<string, string>> ts, List<Tuple<string, string, double>> list, List<Tuple<string, double, string>> targs, StructureSet ss)
+        public generateTS_CSI(List<Tuple<string, string>> ts, List<Tuple<string, string, double>> list, List<Tuple<string, double, string>> targs, List<Tuple<string,string,int,DoseValue,double>> presc, StructureSet ss)
         {
             TS_structures = new List<Tuple<string, string>>(ts);
             spareStructList = new List<Tuple<string, string, double>>(list);
             targets = new List<Tuple<string, double, string>>(targs);
+            prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(presc);
             selectedSS = ss;
         }
 
@@ -59,7 +61,7 @@ namespace VMATAutoPlanMT
             List<Tuple<string, string, double>> highResSpareList = new List<Tuple<string, string, double>> { };
             foreach (Tuple<string, string, double> itr in spareStructList)
             {
-                if (itr.Item2 == "Mean Dose < Rx Dose")
+                if (itr.Item2 == "Crop from target")
                 {
                     if (selectedSS.Structures.First(x => x.Id == itr.Item1).IsEmpty)
                     {
@@ -96,16 +98,20 @@ namespace VMATAutoPlanMT
 
         public bool calculateNumIsos()
         {
-            //get the points collection for the Body (used for calculating number of isocenters)
-            Point3DCollection pts = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_spine").MeshGeometry.Positions;
+            foreach(Tuple<string,string,int,DoseValue,double> itr in prescriptions)
+            {
+                //get the points collection for the Body (used for calculating number of isocenters)
+                Point3DCollection pts = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.Item2).MeshGeometry.Positions;
 
-            //For these cases the maximum number of allowed isocenters is 3. One isocenter is reserved for the brain and either one or two isocenters are used for the spine (depending on length).
-            //calculateNumIsos the number of isocenters needed for the spine and add 1 to get the total number of isos.
-            numIsos = numVMATIsos = (int)Math.Ceiling(((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 - 20.0))) + 1;
-            if (numIsos > 3) numIsos = numVMATIsos = 3;
+                //For these cases the maximum number of allowed isocenters is 3. One isocenter is reserved for the brain and either one or two isocenters are used for the spine (depending on length).
+                //calculateNumIsos the number of isocenters needed for the spine and add 1 to get the total number of isos.
+                numIsos = numVMATIsos = (int)Math.Ceiling(((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 - 20.0))) + 1;
+                if (numIsos > 3) numIsos = numVMATIsos = 3;
 
-            //set isocenter names based on numIsos and numVMATIsos (reuse same naming convention as VMAT TBI for simplicity)
-            isoNames = new List<string>(new isoNameHelper().getIsoNames(numVMATIsos, numIsos));
+                //set isocenter names based on numIsos and numVMATIsos (reuse same naming convention as VMAT TBI for simplicity)
+                isoNames.Add(Tuple.Create(itr.Item1, new List<string>(new isoNameHelper().getIsoNames(numVMATIsos, numIsos))));
+            }
+            
             return false;
         }
 
@@ -199,7 +205,7 @@ namespace VMATAutoPlanMT
             foreach (Tuple<string, string, double> itr in spareStructList)
             {
                 optParameters.Add(Tuple.Create(itr.Item1, itr.Item2));
-                if (itr.Item2 == "Mean Dose < Rx Dose") foreach (Tuple<string, string> itr1 in TS_structures.Where(x => x.Item2.ToLower().Contains(itr.Item1.ToLower()))) AddTSStructures(itr1);
+                if (itr.Item2 == "Crop from target") foreach (Tuple<string, string> itr1 in TS_structures.Where(x => x.Item2.ToLower().Contains(itr.Item1.ToLower()))) AddTSStructures(itr1);
             }
             //add ring structures to the stack
             foreach (Tuple<string, string> itr in TS_structures.Where(x => x.Item2.ToLower().Contains("ts_ring"))) AddTSStructures(itr);
@@ -221,10 +227,10 @@ namespace VMATAutoPlanMT
                                 double margin = (itr1.Item2 - ringDose) / 150.0;
                                 if (margin > 0.0)
                                 {
-                                    //method to create ring of 2.0 cm thickness
-                                    //first create structure that is a copy of the target structure with an outer margin of (Rx - ring dose / 150 cGy/mm) + 20 mm.
+                                    //method to create ring of 1.0 cm thickness
+                                    //first create structure that is a copy of the target structure with an outer margin of (Rx - ring dose / 150 cGy/mm) + 10 mm.
                                     //This uses a loose rule of thumb of 150.0 cGy/mm compared to the rule of thumb Nataliya provided of 200.0 cGy/mm for standard VMAT plans
-                                    tmp.SegmentVolume = tmp1.Margin(margin + 20.0);
+                                    tmp.SegmentVolume = tmp1.Margin(margin + 10.0);
                                     //next, add a dummy structure that is a copy of the target structure with an outer margin of (Rx - ring dose / 2 Gy/mm)
                                     if (selectedSS.Structures.Where(x => x.Id.ToLower() == "dummy").Any()) selectedSS.RemoveStructure(selectedSS.Structures.First(x => x.Id.ToLower() == "dummy"));
                                     Structure dummy = selectedSS.AddStructure("CONTROL", "Dummy");
@@ -259,7 +265,7 @@ namespace VMATAutoPlanMT
                     //subtract all the structures the user wants to spare from PTV_CSI
                     foreach (Tuple<string, string, double> spare in spareStructList)
                     {
-                        if (spare.Item2 == "Mean Dose < Rx Dose")
+                        if (spare.Item2 == "Crop from target")
                         {
                             
                             Structure tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == spare.Item1.ToLower());

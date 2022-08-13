@@ -351,7 +351,7 @@ namespace VMATAutoPlanMT
             type_cb.VerticalAlignment = VerticalAlignment.Top;
             type_cb.Margin = new Thickness(5, 5, 0, 0);
             type_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
-            string[] types = new string[] { "--select--", "Mean Dose < Rx Dose", "Dmax ~ Rx Dose" };
+            string[] types = new string[] { "--select--", "Crop from target", "Contour overlap", "Mean Dose < Rx Dose", "Dmax ~ Rx Dose" };
             foreach (string s in types) type_cb.Items.Add(s);
             type_cb.Text = listItem.Item2;
             type_cb.SelectionChanged += typeChngHndl;
@@ -367,7 +367,7 @@ namespace VMATAutoPlanMT
             addMargin.VerticalContentAlignment = VerticalAlignment.Center;
             addMargin.Margin = new Thickness(5, 5, 0, 0);
             addMargin.Text = Convert.ToString(listItem.Item3);
-            if (listItem.Item2 != "Mean Dose < Rx Dose") addMargin.Visibility = Visibility.Hidden;
+            if (listItem.Item2 != "Mean Dose < Rx Dose" && listItem.Item2 != "Crop from target") addMargin.Visibility = Visibility.Hidden;
             sp.Children.Add(addMargin);
 
             Button clearStructBtn = new Button();
@@ -392,7 +392,7 @@ namespace VMATAutoPlanMT
             foreach (Structure itr in LStructs)
             {
                 Structure RStruct = RStructs.FirstOrDefault(x => x.Id.Substring(0, x.Id.Length - 2) == itr.Id.Substring(0, itr.Id.Length - 2));
-                if (RStruct != null && selectedSS.Structures.FirstOrDefault(x => x.Id == itr.Id.Substring(0, itr.Id.Length - 2) && !x.IsEmpty) != null) structuresToUnion.Add(new Tuple<Structure, Structure>(itr, RStruct));
+                if (RStruct != null && selectedSS.Structures.FirstOrDefault(x => x.Id == itr.Id.Substring(0, itr.Id.Length - 2) && !x.IsEmpty) == null) structuresToUnion.Add(new Tuple<Structure, Structure>(itr, RStruct));
             }
             return structuresToUnion;
         }

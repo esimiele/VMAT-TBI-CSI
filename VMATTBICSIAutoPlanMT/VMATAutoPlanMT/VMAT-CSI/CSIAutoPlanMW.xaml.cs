@@ -95,11 +95,13 @@ namespace VMATAutoPlanMT
         public int clearSpareBtnCounter = 0;
         public int clearOptBtnCounter = 0;
         List<Tuple<string, string>> optParameters = new List<Tuple<string, string>> { };
-        ExternalPlanSetup VMATplan = null;
+        List<ExternalPlanSetup> VMATplans = new List<ExternalPlanSetup> { };
         int numIsos = 0;
         int numVMATIsos = 0;
         public List<string> isoNames = new List<string> { };
-        Tuple<int, DoseValue> prescription = null;
+        //plan ID, target Id, numFx, dosePerFx, cumulative dose
+        List<Tuple<string, string,int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+        //Tuple<int, DoseValue> prescriptions;
         List<Structure> jnxs = new List<Structure> { };
         planPrep_CSI prep = null;
         public VMS.TPS.Common.Model.API.Application app = null;
@@ -160,7 +162,6 @@ namespace VMATAutoPlanMT
             PlanTemplates = new ObservableCollection<autoPlanTemplate>() { new autoPlanTemplate("--select--") };
             DataContext = this;
             //load script configuration and display the settings
-            //re-enable this once UI is finished (7-20-2022)
             if (configurationFile != "") loadConfigurationSettings(configurationFile);
             displayConfigurationParameters();
         }
@@ -569,7 +570,87 @@ namespace VMATAutoPlanMT
                 }
                 else headerObj = false;
             }
+
+            targets.Sort(delegate (Tuple<string, double, string> x, Tuple<string, double, string> y) { return x.Item3.CompareTo(y.Item3); });
+            prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+            string pid = targets.First().Item3;
+            string targetid = targets.First().Item1;
+            double rx = targets.First().Item2;
+            int numPlans = 0;
+            double dose_perFx = 0.0;
+            int numFractions = 0;
+
+            foreach (Tuple<string, double, string> itr in targets)
+            {
+                if (itr.Item3 != pid || itr == targets.Last())
+                {
+                    if(rx == double.Parse(initRxTB.Text))
+                    {
+                        if (!double.TryParse(initDosePerFxTB.Text, out dose_perFx) || !int.TryParse(initNumFxTB.Text, out numFractions))
+                        {
+                            MessageBox.Show("Error! Could not parse dose per fx or number of fractions for initial plan! Exiting");
+                            targets = new List<Tuple<string, double, string>> { };
+                            prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        if (!double.TryParse(boostDosePerFxTB.Text, out dose_perFx) || !int.TryParse(boostNumFxTB.Text, out numFractions))
+                        {
+                            MessageBox.Show("Error! Could not parse dose per fx or number of fractions for boost plan! Exiting");
+                            targets = new List<Tuple<string, double, string>> { };
+                            prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+                            return;
+                        }
+                    }
+                    prescriptions.Add(Tuple.Create(pid, targetid, numFractions, new DoseValue(dose_perFx, DoseValue.DoseUnit.cGy), rx));
+                    pid = itr.Item3;
+                    rx = itr.Item2;
+                    targetid = itr.Item1;
+                    numPlans++;
+                    if (numPlans > 2) { MessageBox.Show("Error! Number of request plans is > 2! Exiting!"); targets = new List<Tuple<string, double, string>> { };  prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { }; return; }
+                }
+                else
+                {
+                    if(itr.Item2 > rx)
+                    {
+                        rx = itr.Item2;
+                        targetid = itr.Item1;
+                    }
+                }
+            }
+            if (rx == double.Parse(initRxTB.Text))
+            {
+                if (!double.TryParse(initDosePerFxTB.Text, out dose_perFx) || !int.TryParse(initNumFxTB.Text, out numFractions))
+                {
+                    MessageBox.Show("Error! Could not parse dose per fx or number of fractions for initial plan! Exiting");
+                    targets = new List<Tuple<string, double, string>> { };
+                    prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+                    return;
+                }
+            }
+            else
+            {
+                if (!double.TryParse(boostDosePerFxTB.Text, out dose_perFx) || !int.TryParse(boostNumFxTB.Text, out numFractions))
+                {
+                    MessageBox.Show("Error! Could not parse dose per fx or number of fractions for boost plan! Exiting");
+                    targets = new List<Tuple<string, double, string>> { };
+                    prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+                    return;
+                }
+            }
+            prescriptions.Add(Tuple.Create(pid, targetid, numFractions, new DoseValue(dose_perFx, DoseValue.DoseUnit.cGy), rx));
+            //sort the prescription list by the cumulative rx dose
+            prescriptions.Sort(delegate (Tuple<string, string, int, DoseValue, double> x, Tuple<string, string, int, DoseValue, double> y) { return x.Item5.CompareTo(y.Item5); });
+
             MessageBox.Show("Targets set successfully!");
+            string msg = "Prescriptions:" + Environment.NewLine;
+            foreach(Tuple<string,string, int, DoseValue, double> itr in prescriptions)
+            {
+                msg += String.Format("{0}, {1}, {2}, {3}, {4}", itr.Item1, itr.Item2, itr.Item3, itr.Item4.Dose, itr.Item5) + Environment.NewLine;
+            }
+            MessageBox.Show(msg);
         }
 
         //stuff related to TS Generation tab
@@ -765,7 +846,7 @@ namespace VMATAutoPlanMT
 
             //create an instance of the generateTS class, passing the structure sparing list vector, the selected structure set, and if this is the scleroderma trial treatment regiment
             //The scleroderma trial contouring/margins are specific to the trial, so this trial needs to be handled separately from the generic VMAT treatment type
-            generateTS_CSI generate = new generateTS_CSI(TS_structures, structureSpareList, targets, selectedSS);
+            generateTS_CSI generate = new generateTS_CSI(TS_structures, structureSpareList, targets, prescriptions, selectedSS);
             pi.BeginModifications();
             if (generate.generateStructures()) return;
             //does the structure sparing list need to be updated? This occurs when structures the user elected to spare with option of 'Mean Dose < Rx Dose' are high resolution. Since Eclipse can't perform
@@ -780,17 +861,18 @@ namespace VMATAutoPlanMT
                 add_sp_volumes(structureSpareList);
             }
             if (generate.optParameters.Count() > 0) optParameters = generate.optParameters;
-            numIsos = generate.numIsos;
+            //the number of isocenters will always be equal to the number of vmat isocenters for vmat csi
             numVMATIsos = generate.numVMATIsos;
-            isoNames = generate.isoNames;
+            isoNames = generate.isoNames.First().Item2;
 
-            //get prescription
-            if (double.TryParse(initDosePerFxTB.Text, out double dose_perFx) && int.TryParse(initNumFxTB.Text, out int numFractions)) prescription = Tuple.Create(numFractions, new DoseValue(dose_perFx, DoseValue.DoseUnit.cGy));
-            else
-            {
-                MessageBox.Show("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
-                prescription = Tuple.Create(1, new DoseValue(0.1, DoseValue.DoseUnit.cGy));
-            }
+            //8-12-2022
+            //prescriptions retrieved from set targets tab
+            //if (double.TryParse(initDosePerFxTB.Text, out double dose_perFx) && int.TryParse(initNumFxTB.Text, out int numFractions)) prescriptions.Add(Tuple.Create(numFractions, new DoseValue(dose_perFx, DoseValue.DoseUnit.cGy)));
+            //else
+            //{
+            //    MessageBox.Show("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
+            //    prescriptions.Add(Tuple.Create(1, new DoseValue(0.1, DoseValue.DoseUnit.cGy)));
+            //}
 
             //populate the beams and optimization tabs
             populateBeamsTab();
@@ -823,11 +905,10 @@ namespace VMATAutoPlanMT
 
             BEAMS_SP.Children.Clear();
 
-            List<StackPanel> SPList = new UIhelper().populateBeamsTabHelper(structures_sp, linacs, beamEnergies, isoNames, beamsPerIso, numIsos, numVMATIsos);
+            //number of isocenters = number of vmat isocenters
+            List<StackPanel> SPList = new UIhelper().populateBeamsTabHelper(structures_sp, linacs, beamEnergies, isoNames, beamsPerIso, numVMATIsos, numVMATIsos);
             if (!SPList.Any()) return;
             foreach (StackPanel s in SPList) BEAMS_SP.Children.Add(s);
-            ////subtract a beam from the second isocenter (chest/abdomen area) if the user is NOT interested in sparing the kidneys
-            ////if (!optParameters.Where(x => x.Item1.ToLower().Contains("kidneys")).Any()) beamsPerIso[1]--;
         }
 
         private void place_beams_Click(object sender, RoutedEventArgs e)
@@ -842,7 +923,7 @@ namespace VMATAutoPlanMT
             bool firstCombo = true;
             string chosenLinac = "";
             string chosenEnergy = "";
-            int[] numBeams = new int[numIsos];
+            int[] numBeams = new int[numVMATIsos];
             foreach (object obj in BEAMS_SP.Children)
             {
                 foreach (object obj1 in ((StackPanel)obj).Children)
@@ -880,6 +961,7 @@ namespace VMATAutoPlanMT
                 }
             }
 
+            /*
             //AP/PA stuff (THIS NEEDS TO GO AFTER THE ABOVE CHECKS!). Ask the user if they want to split the AP/PA isocenters into two plans if there are two AP/PA isocenters
             bool singleAPPAplan = true;
             if (numIsos - numVMATIsos == 2)
@@ -895,6 +977,7 @@ namespace VMATAutoPlanMT
                 //get the option the user chose from the combobox
                 if (SUI.itemCombo.SelectedItem.ToString() == "Separate plans") singleAPPAplan = false;
             }
+            */
 
             //Added code to account for the scenario where the user either requested or did not request to contour the overlap between fields in adjacent isocenters
             placeBeams_CSI place;
@@ -909,15 +992,15 @@ namespace VMATAutoPlanMT
                 //convert from mm to cm
                 contourOverlapMargin *= 10.0;
                 //overloaded constructor for the placeBeams class
-                place = new placeBeams_CSI(selectedSS, prescription, isoNames, numIsos, numVMATIsos, singleAPPAplan, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, false, contourOverlapMargin);
+                place = new placeBeams_CSI(selectedSS, isoNames, numVMATIsos, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, contourOverlapMargin);
             }
-            else place = new placeBeams_CSI(selectedSS, prescription, isoNames, numIsos, numVMATIsos, singleAPPAplan, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, false);
+            else place = new placeBeams_CSI(selectedSS, isoNames, numVMATIsos, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel);
 
-            VMATplan = place.generatePlan("VMAT TBI");
-            if (VMATplan == null) return;
+            VMATplans = new List<ExternalPlanSetup>(place.generatePlan("VMAT CSI", prescriptions));
+            if (!VMATplans.Any()) return;
 
             //if the user elected to contour the overlap between fields in adjacent isocenters, get this list of structures from the placeBeams class and copy them to the jnxs vector
-            if (contourOverlap_chkbox.IsChecked.Value) jnxs = place.jnxs;
+           if (contourOverlap_chkbox.IsChecked.Value) jnxs = place.jnxs;
 
             //if the user requested to contour the overlap between fields in adjacent VMAT isocenters, repopulate the optimization tab (will include the newly added field junction structures)!
             if (contourOverlap_chkbox.IsChecked.Value) populateOptimizationTab();
@@ -934,9 +1017,9 @@ namespace VMATAutoPlanMT
             ////meylo-abalative regime
             //else if (noBoost_chkbox.IsChecked.Value) tmp = optConstNoBoost;
             //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose
-            if (prescription != null)
+            if (prescriptions != null)
             {
-                double RxDose = prescription.Item2.Dose * prescription.Item1;
+               // double RxDose = prescriptions.Item2.Dose * prescriptions.Item1;
                 double baseDose = 1.0;
                 List<Tuple<string, string, double, double, int>> dummy = new List<Tuple<string, string, double, double, int>> { };
                 //use optimization objects of the closer of the two default regiments (6-18-2021)
@@ -950,7 +1033,7 @@ namespace VMATAutoPlanMT
                 //    dummy = optConstNoBoost;
                 //    baseDose = reduceDoseDosePerFx * reduceDoseNumFx;
                 //}
-                foreach (Tuple<string, string, double, double, int> opt in dummy) tmp.Add(Tuple.Create(opt.Item1, opt.Item2, opt.Item3 * (RxDose / baseDose), opt.Item4, opt.Item5));
+              //  foreach (Tuple<string, string, double, double, int> opt in dummy) tmp.Add(Tuple.Create(opt.Item1, opt.Item2, opt.Item3 * (RxDose / baseDose), opt.Item4, opt.Item5));
             }
             else
             {
@@ -1007,8 +1090,8 @@ namespace VMATAutoPlanMT
                 foreach (Structure s in jnxs)
                 {
                     //per Nataliya's instructions, add both a lower and upper constraint to the junction volumes. Make the constraints match those of the ptv target
-                    defaultList.Insert(++index, new Tuple<string, string, double, double, int>(s.Id, "Lower", prescription.Item2.Dose * prescription.Item1, 100.0, 100));
-                    defaultList.Insert(++index, new Tuple<string, string, double, double, int>(s.Id, "Upper", prescription.Item2.Dose * prescription.Item1 * 1.01, 0.0, 100));
+                   // defaultList.Insert(++index, new Tuple<string, string, double, double, int>(s.Id, "Lower", prescriptions.Item2.Dose * prescriptions.Item1, 100.0, 100));
+                   // defaultList.Insert(++index, new Tuple<string, string, double, double, int>(s.Id, "Upper", prescriptions.Item2.Dose * prescriptions.Item1 * 1.01, 0.0, 100));
                 }
             }
 
@@ -1021,13 +1104,13 @@ namespace VMATAutoPlanMT
         private void scanSS_Click(object sender, RoutedEventArgs e)
         {
             //get prescription
-            if (double.TryParse(initDosePerFxTB.Text, out double dose_perFx) && int.TryParse(initNumFxTB.Text, out int numFractions)) prescription = Tuple.Create(numFractions, new DoseValue(dose_perFx, DoseValue.DoseUnit.cGy));
-            else
-            {
-                MessageBox.Show("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
-                prescription = Tuple.Create(1, new DoseValue(0.1, DoseValue.DoseUnit.cGy));
-            }
-            if (selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ts_jnx")).Any()) jnxs = selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ts_jnx")).ToList();
+            //if (double.TryParse(initDosePerFxTB.Text, out double dose_perFx) && int.TryParse(initNumFxTB.Text, out int numFractions)) prescriptions = Tuple.Create(numFractions, new DoseValue(dose_perFx, DoseValue.DoseUnit.cGy));
+            //else
+            //{
+            //    MessageBox.Show("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
+            //  //  prescriptions = Tuple.Create(1, new DoseValue(0.1, DoseValue.DoseUnit.cGy));
+            //}
+            //if (selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ts_jnx")).Any()) jnxs = selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ts_jnx")).ToList();
 
             populateOptimizationTab();
         }
@@ -1037,6 +1120,7 @@ namespace VMATAutoPlanMT
             UIhelper helper = new UIhelper();
             List<Tuple<string, string, double, double, int>> optParametersList = helper.parseOptConstraints(opt_parameters);
             if (!optParametersList.Any()) return;
+            /*
             if (VMATplan == null)
             {
                 //search for a course named VMAT TBI. If it is found, search for a plan named _VMAT TBI inside the VMAT TBI course. If neither are found, throw an error and return
@@ -1056,6 +1140,7 @@ namespace VMATAutoPlanMT
             }
             //optimization parameter list, the plan object, enable jaw tracking?, Auto NTO priority
             helper.assignOptConstraints(optParametersList, VMATplan, true, 0.0);
+            */
 
             //confirmUI CUI = new confirmUI();
             //CUI.message.Text = "Optimization objectives have been successfully set!" + Environment.NewLine + Environment.NewLine + "Save changes and launch optimization loop?";
@@ -1146,53 +1231,6 @@ namespace VMATAutoPlanMT
             }
         }
 
-        //private void reduceDose_chkbox_Checked(object sender, RoutedEventArgs e)
-        //{
-        //    //myelo
-        //    if (reduceDose_chkbox.IsChecked.Value)
-        //    {
-        //        if (noBoost_chkbox.IsChecked.Value) noBoost_chkbox.IsChecked = false;
-        //        if (boost_chkbox.IsChecked.Value) boost_chkbox.IsChecked = false;
-        //        setPresciptionInfo(reduceDoseDosePerFx, reduceDoseNumFx);
-        //    }
-        //    else if (!noBoost_chkbox.IsChecked.Value && !boost_chkbox.IsChecked.Value && dosePerFx.Text == reduceDoseDosePerFx.ToString() && numFx.Text == reduceDoseNumFx.ToString())
-        //    {
-        //        dosePerFx.Text = "";
-        //        numFx.Text = "";
-        //    }
-        //}
-
-        //private void noBoost_chkbox_Checked(object sender, RoutedEventArgs e)
-        //{
-        //    //non-myelo
-        //    if (noBoost_chkbox.IsChecked.Value)
-        //    {
-        //        if (reduceDose_chkbox.IsChecked.Value) reduceDose_chkbox.IsChecked = false;
-        //        setPresciptionInfo(regimen1DosePerFx, regiment1NumFx);
-        //    }
-        //    else if (!noBoost_chkbox.IsChecked.Value && dosePerFx.Text == regimen1DosePerFx.ToString() && numFx.Text == regiment1NumFx.ToString())
-        //    {
-        //        dosePerFx.Text = "";
-        //        numFx.Text = "";
-        //        if (boost_chkbox.IsChecked.Value) boost_chkbox.IsChecked = false;
-        //    }
-        //}
-
-        //private void boost_chkbox_Checked(object sender, RoutedEventArgs e)
-        //{
-        //    if (boost_chkbox.IsChecked.Value)
-        //    {
-        //        if (!noBoost_chkbox.IsChecked.Value) noBoost_chkbox.IsChecked = true;
-        //        if (reduceDose_chkbox.IsChecked.Value) reduceDose_chkbox.IsChecked = false;
-        //        setBoostPrescriptionInfo(boostDosePerFx, boostNumFx);
-        //    }
-        //    else if (boostDosePerFxTB.Text == boostDosePerFx.ToString() && boostNumFxTB.Text == boostNumFx.ToString())
-        //    {
-        //        boostDosePerFxTB.Text = "";
-        //        boostNumFxTB.Text = "";
-        //    }
-        //}
-
         bool waitToUpdate = false;
         private void setInitPresciptionInfo(double dose_perFx, int num_Fx)
         {
@@ -1237,9 +1275,6 @@ namespace VMATAutoPlanMT
             else if (int.TryParse(initNumFxTB.Text, out int newNumFx) && double.TryParse(initDosePerFxTB.Text, out double newDoseFx))
             {
                 initRxTB.Text = (newNumFx * newDoseFx).ToString();
-                //if (noBoost_chkbox.IsChecked.Value && newNumFx * newDoseFx != reduceDoseDosePerFx * reduceDoseNumFx) reduceDose_chkbox.IsChecked = false;
-                //else if (noBoost_chkbox.IsChecked.Value && newNumFx * newDoseFx != regimen1DosePerFx * regiment1NumFx) noBoost_chkbox.IsChecked = false;
-                //else if (boost_chkbox.IsChecked.Value && newNumFx * newDoseFx != boostDosePerFx * boostNumFx) boost_chkbox.IsChecked = false;
             }
         }
 
@@ -1271,7 +1306,6 @@ namespace VMATAutoPlanMT
             else if (int.TryParse(boostNumFxTB.Text, out int newNumFx) && double.TryParse(boostDosePerFxTB.Text, out double newDoseFx))
             {
                 boostRxTB.Text = (newNumFx * newDoseFx).ToString();
-               // if (boost_chkbox.IsChecked.Value && newNumFx * newDoseFx != boostDosePerFx * boostNumFx) boost_chkbox.IsChecked = false;
             }
         }
 

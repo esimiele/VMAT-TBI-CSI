@@ -16,7 +16,7 @@ namespace VMATAutoPlanMT
         public List<string> addedStructures = new List<string> { };
         public List<Tuple<string, string>> optParameters = new List<Tuple<string, string>> { };
         public bool useFlash = false;
-        public List<string> isoNames = new List<string> { };
+        public List<Tuple<string,List<string>>> isoNames = new List<Tuple<string, List<string>>> { };
 
         public generateTSbase()
         {

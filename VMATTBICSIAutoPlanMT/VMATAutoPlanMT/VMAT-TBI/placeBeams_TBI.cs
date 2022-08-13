@@ -4,7 +4,6 @@ using System.Linq;
 using System.Windows;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using System.Windows.Media.Media3D;
 
 namespace VMATAutoPlanMT
 {
@@ -16,6 +15,7 @@ namespace VMATAutoPlanMT
         double isoSeparation = 0;
         ExternalPlanSetup legs_planUpper = null;
         bool singleAPPAplan;
+        public ExternalPlanSetup plan = null;
 
         //5-5-2020 ask nataliya about importance of matching collimator angles to CW and CCW rotations...
         double[] collRot;
@@ -26,10 +26,9 @@ namespace VMATAutoPlanMT
         List<VRect<double>> jawPos;
         private bool useFlash;
 
-        public placeBeams_TBI(StructureSet ss, Tuple<int, DoseValue> presc, List<string> i, int iso, int vmatIso, bool appaPlan, int[] beams, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool flash)
+        public placeBeams_TBI(StructureSet ss, List<string> i, int iso, int vmatIso, bool appaPlan, int[] beams, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool flash)
         {
             selectedSS = ss;
-            prescription = presc;
             isoNames = new List<string>(i);
             numIsos = iso;
             numVMATIsos = vmatIso;
@@ -49,10 +48,9 @@ namespace VMATAutoPlanMT
             useFlash = flash;
         }
 
-        public placeBeams_TBI(StructureSet ss, Tuple<int, DoseValue> presc, List<string> i, int iso, int vmatIso, bool appaPlan, int[] beams, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool flash, double overlapMargin)
+        public placeBeams_TBI(StructureSet ss, List<string> i, int iso, int vmatIso, bool appaPlan, int[] beams, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool flash, double overlapMargin)
         {
             selectedSS = ss;
-            prescription = presc;
             isoNames = new List<string>(i);
             numIsos = iso;
             numVMATIsos = vmatIso;
@@ -75,8 +73,9 @@ namespace VMATAutoPlanMT
             contourOverlapMargin = overlapMargin;
         }
 
-        public override bool checkExistingPlans(string planID)
+        public override bool checkExistingPlans()
         {
+            string planID = prescriptions.First().Item1;
             //6-10-2020 EAS, research system only!
             //if (tbi.ExternalPlanSetups.Where(x => x.Id == "_VMAT TBI").Any()) if (tbi.CanRemovePlanSetup((tbi.ExternalPlanSetups.First(x => x.Id == "_VMAT TBI")))) tbi.RemovePlanSetup(tbi.ExternalPlanSetups.First(x => x.Id == "_VMAT TBI"));
             if (theCourse.ExternalPlanSetups.Where(x => x.Id == String.Format("_{0}", planID)).Any())
@@ -93,8 +92,10 @@ namespace VMATAutoPlanMT
             return false;
         }
 
-        public override List<VVector> getIsocenterPositions()
+        public override List<Tuple<ExternalPlanSetup, List<VVector>>> getIsocenterPositions()
         {
+            plan = plans.First();
+            List<Tuple<ExternalPlanSetup, List<VVector>>> allIsocenters = new List<Tuple<ExternalPlanSetup, List<VVector>>> { };
             List<VVector> iso = new List<VVector> { };
             Image image = selectedSS.Image;
             VVector userOrigin = image.UserOrigin;
@@ -158,6 +159,7 @@ namespace VMATAutoPlanMT
                     v = plan.StructureSet.Image.UserToDicom(v, plan);
                     iso.Add(v);
                 }
+                allIsocenters.Add(Tuple.Create(plan, new List<VVector>(iso)));
             }
             else
             {
@@ -194,6 +196,7 @@ namespace VMATAutoPlanMT
                     v = plan.StructureSet.Image.UserToDicom(v, plan);
                     iso.Add(v);
                 }
+                allIsocenters.Add(Tuple.Create(plan, new List<VVector>(iso)));
             }
 
             //evaluate the distance between the edge of the beam and the max/min of the PTV_body contour. If it is < checkIsoPlacementLimit, then warn the user that they might be fully covering the ptv_body structure.
@@ -211,10 +214,10 @@ namespace VMATAutoPlanMT
             //    (firstIso.z + 200.0 - target.MeshGeometry.Positions.Max(p => p.Z)),
             //    (target.MeshGeometry.Positions.Min(p => p.Z) - (lastIso.z - 200.0))));
 
-            return iso;
+            return allIsocenters;
         }
 
-        public override void setBeams(List<VVector> isoLocations)
+        public override void setBeams(Tuple<ExternalPlanSetup, List<VVector>> iso)
         {
             //DRR parameters (dummy parameters to generate DRRs for each field)
             DRRCalculationParameters DRR = new DRRCalculationParameters();
@@ -251,13 +254,13 @@ namespace VMATAutoPlanMT
                     //all even beams (e.g., 2, 4, etc.) will be CCW and all odd beams will be CW
                     if (count % 2 == 0)
                     {
-                        b = plan.AddArcBeam(ebmpArc, jp, coll, CCW[0], CCW[1], GantryDirection.CounterClockwise, 0, isoLocations.ElementAt(i));
+                        b = plan.AddArcBeam(ebmpArc, jp, coll, CCW[0], CCW[1], GantryDirection.CounterClockwise, 0, iso.Item2.ElementAt(i));
                         if (j >= 2) beamName += String.Format("CCW {0}{1}", isoNames.ElementAt(i), 90);
                         else beamName += String.Format("CCW {0}{1}", isoNames.ElementAt(i), "");
                     }
                     else
                     {
-                        b = plan.AddArcBeam(ebmpArc, jp, coll, CW[0], CW[1], GantryDirection.Clockwise, 0, isoLocations.ElementAt(i));
+                        b = plan.AddArcBeam(ebmpArc, jp, coll, CW[0], CW[1], GantryDirection.Clockwise, 0, iso.Item2.ElementAt(i));
                         if (j >= 2) beamName += String.Format("CW {0}{1}", isoNames.ElementAt(i), 90);
                         else beamName += String.Format("CW {0}{1}", isoNames.ElementAt(i), "");
                     }
@@ -275,7 +278,7 @@ namespace VMATAutoPlanMT
                 if (singleAPPAplan) legs_planUpper.Id = String.Format("_Legs");
                 else legs_planUpper.Id = String.Format("{0} Upper Legs", numVMATIsos + 1);
                 //100% dose prescribed in plan
-                legs_planUpper.SetPrescription(prescription.Item1, prescription.Item2, 1.0);
+                legs_planUpper.SetPrescription(prescriptions.First().Item3, prescriptions.First().Item4, 1.0);
                 legs_planUpper.SetCalculationModel(CalculationType.PhotonVolumeDose, calculationModel);
 
                 Structure target;
@@ -283,7 +286,7 @@ namespace VMATAutoPlanMT
                 else target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_body");
 
                 //adjust x2 jaw (furthest from matchline) so that it covers edge of target volume
-                double x2 = isoLocations.ElementAt(numVMATIsos).z - (target.MeshGeometry.Positions.Min(p => p.Z) - 20.0);
+                double x2 = iso.Item2.ElementAt(numVMATIsos).z - (target.MeshGeometry.Positions.Min(p => p.Z) - 20.0);
                 if (x2 > 200.0) x2 = 200.0;
                 else if (x2 < 10.0) x2 = 10.0;
 
@@ -295,12 +298,12 @@ namespace VMATAutoPlanMT
                     MLCpos[0, i] = (float)-200.0;
                     MLCpos[1, i] = (float)(x2);
                 }
-                Beam b = legs_planUpper.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(-200.0, -200.0, x2, 200.0), 90.0, 0.0, 0.0, isoLocations.ElementAt(numVMATIsos));
+                Beam b = legs_planUpper.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(-200.0, -200.0, x2, 200.0), 90.0, 0.0, 0.0, iso.Item2.ElementAt(numVMATIsos));
                 b.Id = String.Format("{0} AP Upper Legs", ++count);
                 b.CreateOrReplaceDRR(DRR);
 
                 //PA field
-                b = legs_planUpper.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(-200.0, -200.0, x2, 200.0), 90.0, 180.0, 0.0, isoLocations.ElementAt(numVMATIsos));
+                b = legs_planUpper.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(-200.0, -200.0, x2, 200.0), 90.0, 180.0, 0.0, iso.Item2.ElementAt(numVMATIsos));
                 b.Id = String.Format("{0} PA Upper Legs", ++count);
                 b.CreateOrReplaceDRR(DRR);
 
@@ -308,17 +311,17 @@ namespace VMATAutoPlanMT
                 {
                     VVector infIso = new VVector();
                     //the element at numVMATIsos in isoLocations vector is the first AP/PA isocenter
-                    infIso.x = isoLocations.ElementAt(numVMATIsos).x;
-                    infIso.y = isoLocations.ElementAt(numVMATIsos).y;
+                    infIso.x = iso.Item2.ElementAt(numVMATIsos).x;
+                    infIso.y = iso.Item2.ElementAt(numVMATIsos).y;
 
                     double x1 = -200.0;
                     //if the distance between the matchline and the inferior edge of the target is < 600 mm, set the beams in the second isocenter (inferior-most) to be half-beam blocks
                     if (selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - target.MeshGeometry.Positions.Min(p => p.Z) < 600.0)
                     {
-                        infIso.z = isoLocations.ElementAt(numVMATIsos).z - 200.0;
+                        infIso.z = iso.Item2.ElementAt(numVMATIsos).z - 200.0;
                         x1 = 0.0;
                     }
-                    else infIso.z = isoLocations.ElementAt(numVMATIsos).z - 390.0;
+                    else infIso.z = iso.Item2.ElementAt(numVMATIsos).z - 390.0;
                     //fit x1 jaw to extend of patient
                     x2 = infIso.z - (target.MeshGeometry.Positions.Min(p => p.Z) - 20.0);
                     if (x2 > 200.0) x2 = 200.0;
@@ -348,7 +351,7 @@ namespace VMATAutoPlanMT
                         //create a new legs plan if the user wants to separate the two APPA isocenters into separate plans
                         ExternalPlanSetup legs_planLower = theCourse.AddExternalPlanSetup(selectedSS);
                         legs_planLower.Id = String.Format("{0} Lower Legs", numIsos);
-                        legs_planLower.SetPrescription(prescription.Item1, prescription.Item2, 1.0);
+                        legs_planLower.SetPrescription(prescriptions.First().Item3, prescriptions.First().Item4, 1.0);
                         legs_planLower.SetCalculationModel(CalculationType.PhotonVolumeDose, calculationModel);
 
                         b = legs_planLower.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(x1, -200.0, x2, 200.0), 90.0, 0.0, 0.0, infIso);
