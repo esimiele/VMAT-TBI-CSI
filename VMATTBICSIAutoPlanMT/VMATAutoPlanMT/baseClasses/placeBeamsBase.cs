@@ -12,7 +12,7 @@ namespace VMATAutoPlanMT
     {
         public bool contourOverlap = false;
         public bool checkIsoPlacement = false;
-        public List<ExternalPlanSetup> plans = null;
+        public List<ExternalPlanSetup> plans = new List<ExternalPlanSetup> { };
         public double checkIsoPlacementLimit = 5.0;
         public Course theCourse;
         public StructureSet selectedSS;
@@ -38,11 +38,14 @@ namespace VMATAutoPlanMT
             if (checkExistingCoursePlans(courseId)) return null;
             if (createCourseAndPlan()) return null;
             List<Tuple<ExternalPlanSetup, List<VVector>>> isoLocations = getIsocenterPositions();
+            int isoCount = 0;
             foreach(Tuple<ExternalPlanSetup,List<VVector>> itr in isoLocations)
             {
-                if (contourOverlap) contourFieldOverlap(itr);
+                if (contourOverlap) contourFieldOverlap(itr, isoCount);
                 setBeams(itr);
+                isoCount += itr.Item2.Count;
             }
+            MessageBox.Show("Beams placed successfully!\nPlease proceed to the optimization setup tab!");
 
             if (checkIsoPlacement) MessageBox.Show(String.Format("WARNING: < {0:0.00} cm margin at most superior and inferior locations of body! Verify isocenter placement!", checkIsoPlacementLimit / 10));
             return plans;
@@ -78,7 +81,7 @@ namespace VMATAutoPlanMT
             int numExistingPlans = 0;
             foreach(Tuple<string, string, int, DoseValue, double> itr in prescriptions)
             {
-                if (theCourse.ExternalPlanSetups.Where(x => x.Id == String.Format("_{0}", itr.Item1)).Any())
+                if (theCourse.ExternalPlanSetups.Where(x => x.Id == itr.Item1).Any())
                 {
                     msg += itr + Environment.NewLine;
                     numExistingPlans++;
@@ -98,9 +101,11 @@ namespace VMATAutoPlanMT
             foreach(Tuple<string, string, int, DoseValue, double> itr in prescriptions)
             {
                 ExternalPlanSetup thePlan = theCourse.AddExternalPlanSetup(selectedSS);
-                //100% dose prescribed in plan and plan ID is _VMAT TBI
+                //100% dose prescribed in plan and plan ID is in the prescriptions
                 thePlan.SetPrescription(itr.Item3, itr.Item4, 1.0);
-                thePlan.Id = String.Format("_{0}", itr.Item1);
+                string planName = itr.Item1;
+                if (planName.Length > 13) planName = planName.Substring(0, 13);
+                thePlan.Id = planName;
                 //ask the user to set the calculation model if not calculation model was set in UI.xaml.cs (up near the top with the global parameters)
                 if (calculationModel == "")
                 {
@@ -149,15 +154,17 @@ namespace VMATAutoPlanMT
                 //plan.PrimaryReferencePoint = plan.ReferencePoints.Fisrt(x => x.Id == "VMAT TBI");
                 plans.Add(thePlan);
             }
-
-
             return false;
         }
 
         //function used to cnotour the overlap between fields in adjacent isocenters for the VMAT Plan ONLY!
         //this option is requested by the user by selecting the checkbox on the main UI on the beam placement tab
-        public virtual void contourFieldOverlap(Tuple<ExternalPlanSetup, List<VVector>> isoLocations)
+        public virtual void contourFieldOverlap(Tuple<ExternalPlanSetup, List<VVector>> isoLocations, int isoCount)
         {
+            //only one isocenter. No adjacent isocenters requiring overlap contouring
+            if (isoLocations.Item2.Count == 1) return;
+            Structure target_tmp = selectedSS.Structures.FirstOrDefault(x => x.Id == prescriptions.FirstOrDefault(y => y.Item1 == isoLocations.Item1.Id).Item2);
+            if (target_tmp == null) { MessageBox.Show(String.Format("Error getting target structure ({0}) for plan: {1}! Exiting!", prescriptions.FirstOrDefault(y => y.Item1 == isoLocations.Item1.Id).Item2, prescriptions.FirstOrDefault(y => y.Item1 == isoLocations.Item1.Id))); return; }
             //grab the image and get the z resolution and dicom origin (we only care about the z position of the dicom origin)
             Image image = selectedSS.Image;
             double zResolution = image.ZRes;
@@ -168,7 +175,7 @@ namespace VMATAutoPlanMT
             //calculate the center position between adjacent isocenters, number of image slices to contour on based on overlap and with additional user-specified margin (from main UI)
             //and the slice where the contouring should begin
             //string output = "";
-            for (int i = 1; i < numVMATIsos; i++)
+            for (int i = 1; i < isoLocations.Item2.Count; i++)
             {
                 //calculate the center position between adjacent isocenters. NOTE: this calculation works from superior to inferior!
                 double center = isoLocations.Item2.ElementAt(i - 1).z + (isoLocations.Item2.ElementAt(i).z - isoLocations.Item2.ElementAt(i - 1).z) / 2;
@@ -179,7 +186,7 @@ namespace VMATAutoPlanMT
                     (int)(numSlices / zResolution),
                     (int)(Math.Abs(dicomOrigin.z - center + numSlices / 2) / zResolution)));
                 //add a new junction structure (named TS_jnx<i>) to the stack. Contours will be added to these structure later
-                jnxs.Add(selectedSS.AddStructure("CONTROL", string.Format("TS_jnx{0}", i)));
+                jnxs.Add(selectedSS.AddStructure("CONTROL", string.Format("TS_jnx{0}", isoCount + i)));
                 //output += String.Format("{0}, {1}, {2}\n", 
                 //    isoLocations.ElementAt(i - 1).z + (isoLocations.ElementAt(i).z - isoLocations.ElementAt(i - 1).z) / 2,
                 //    (int)Math.Ceiling((410.0 - Math.Abs(isoLocations.ElementAt(i).z - isoLocations.ElementAt(i - 1).z)) / zResolution),
@@ -187,8 +194,9 @@ namespace VMATAutoPlanMT
             }
             //MessageBox.Show(output);
 
+
             //make a box at the min/max x,y positions of the target structure with 5 cm margin
-            Point3DCollection targetPts = target.MeshGeometry.Positions;
+            Point3DCollection targetPts = target_tmp.MeshGeometry.Positions;
             double xMax = targetPts.Max(p => p.X) + 50.0;
             double xMin = targetPts.Min(p => p.X) - 50.0;
             double yMax = targetPts.Max(p => p.Y) + 50.0;
@@ -210,7 +218,7 @@ namespace VMATAutoPlanMT
             {
                 for (int i = value.Item3; i < (value.Item3 + value.Item2); i++) jnxs.ElementAt(count).AddContourOnImagePlane(pts, i);
                 //only keep the portion of the box contour that overlaps with the target
-                jnxs.ElementAt(count).SegmentVolume = jnxs.ElementAt(count).And(target.Margin(0));
+                jnxs.ElementAt(count).SegmentVolume = jnxs.ElementAt(count).And(target_tmp.Margin(0));
                 count++;
             }
         }

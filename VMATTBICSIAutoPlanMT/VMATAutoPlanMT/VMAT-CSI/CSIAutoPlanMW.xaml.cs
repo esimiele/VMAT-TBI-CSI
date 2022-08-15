@@ -96,9 +96,8 @@ namespace VMATAutoPlanMT
         public int clearOptBtnCounter = 0;
         List<Tuple<string, string>> optParameters = new List<Tuple<string, string>> { };
         List<ExternalPlanSetup> VMATplans = new List<ExternalPlanSetup> { };
-        int numIsos = 0;
-        int numVMATIsos = 0;
-        public List<string> isoNames = new List<string> { };
+        //plan Id, list of isocenter names for this plan
+        public List<Tuple<string,List<string>>> isoNames = new List<Tuple<string, List<string>>> { };
         //plan ID, target Id, numFx, dosePerFx, cumulative dose
         List<Tuple<string, string,int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
         //Tuple<int, DoseValue> prescriptions;
@@ -557,6 +556,11 @@ namespace VMATAutoPlanMT
                         MessageBox.Show("Error! \nStructure or Sparing Type not selected! \nSelect an option and try again");
                         return;
                     }
+                    else if (planID.Length > 13)
+                    {
+                        MessageBox.Show(String.Format("Error! Plan Id {0} is greater than maximum length allowed by Eclipse (13)! Exiting!"));
+                        return;
+                    }
                     //margin will not be assigned from the default value (-1000) if the input is empty, a whitespace, or NaN
                     else if (tgtRx == -1000.0)
                     {
@@ -736,7 +740,7 @@ namespace VMATAutoPlanMT
                     //the btn has a unique tag to it, so we can just loop through all children in the structures_sp children list and find which button is equivalent to our button
                     if (row)
                     {
-                        if (c.SelectedItem.ToString() != "Mean Dose < Rx Dose") (obj1 as TextBox).Visibility = Visibility.Hidden;
+                        if (c.SelectedItem.ToString() != "Mean Dose < Rx Dose" && c.SelectedItem.ToString() != "Crop from target") (obj1 as TextBox).Visibility = Visibility.Hidden;
                         else (obj1 as TextBox).Visibility = Visibility.Visible;
                         return;
                     }
@@ -862,8 +866,7 @@ namespace VMATAutoPlanMT
             }
             if (generate.optParameters.Count() > 0) optParameters = generate.optParameters;
             //the number of isocenters will always be equal to the number of vmat isocenters for vmat csi
-            numVMATIsos = generate.numVMATIsos;
-            isoNames = generate.isoNames.First().Item2;
+            isoNames = generate.isoNames;
 
             //8-12-2022
             //prescriptions retrieved from set targets tab
@@ -906,7 +909,7 @@ namespace VMATAutoPlanMT
             BEAMS_SP.Children.Clear();
 
             //number of isocenters = number of vmat isocenters
-            List<StackPanel> SPList = new UIhelper().populateBeamsTabHelper(structures_sp, linacs, beamEnergies, isoNames, beamsPerIso, numVMATIsos, numVMATIsos);
+            List<StackPanel> SPList = new UIhelper().populateBeamsTabHelper(structures_sp, linacs, beamEnergies, isoNames, beamsPerIso);
             if (!SPList.Any()) return;
             foreach (StackPanel s in SPList) BEAMS_SP.Children.Add(s);
         }
@@ -923,7 +926,10 @@ namespace VMATAutoPlanMT
             bool firstCombo = true;
             string chosenLinac = "";
             string chosenEnergy = "";
-            int[] numBeams = new int[numVMATIsos];
+            //int[,] numBeams = new int[numVMATIsos];
+            List<List<int>> numBeams = new List<List<int>> { };
+            List<int> numBeams_temp = new List<int> { };
+            int numElementsPerRow = 0;
             foreach (object obj in BEAMS_SP.Children)
             {
                 foreach (object obj1 in ((StackPanel)obj).Children)
@@ -941,25 +947,38 @@ namespace VMATAutoPlanMT
                     if (obj1.GetType() == typeof(TextBox))
                     {
                         // MessageBox.Show(count.ToString());
-                        if (!int.TryParse((obj1 as TextBox).Text, out numBeams[count]))
+                        if (!int.TryParse((obj1 as TextBox).Text, out int beamTMP))
                         {
                             MessageBox.Show(String.Format("Error! \nNumber of beams entered in iso {0} is NaN!", isoNames.ElementAt(count)));
                             return;
                         }
-                        else if (numBeams[count] < 1)
+                        else if (beamTMP < 1)
                         {
                             MessageBox.Show(String.Format("Error! \nNumber of beams entered in iso {0} is < 1!", isoNames.ElementAt(count)));
                             return;
                         }
-                        else if (numBeams[count] > 4)
+                        else if (beamTMP > 4)
                         {
                             MessageBox.Show(String.Format("Error! \nNumber of beams entered in iso {0} is > 4!", isoNames.ElementAt(count)));
                             return;
                         }
+                        else
+                        {
+                            numBeams_temp.Add(beamTMP);
+                        }
                         count++;
                     }
+                    numElementsPerRow++;
                 }
+                if(numElementsPerRow == 1 && numBeams_temp.Any())
+                {
+                    //indicates only one item was in this stack panel indicating it was only a label indicating it was a new plan
+                    numBeams.Add(new List<int>(numBeams_temp));
+                    numBeams_temp = new List<int> { };
+                }
+                numElementsPerRow = 0;
             }
+            numBeams.Add(new List<int>(numBeams_temp));
 
             /*
             //AP/PA stuff (THIS NEEDS TO GO AFTER THE ABOVE CHECKS!). Ask the user if they want to split the AP/PA isocenters into two plans if there are two AP/PA isocenters
@@ -992,9 +1011,9 @@ namespace VMATAutoPlanMT
                 //convert from mm to cm
                 contourOverlapMargin *= 10.0;
                 //overloaded constructor for the placeBeams class
-                place = new placeBeams_CSI(selectedSS, isoNames, numVMATIsos, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, contourOverlapMargin);
+                place = new placeBeams_CSI(selectedSS, isoNames, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, contourOverlapMargin);
             }
-            else place = new placeBeams_CSI(selectedSS, isoNames, numVMATIsos, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel);
+            else place = new placeBeams_CSI(selectedSS, isoNames, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel);
 
             VMATplans = new List<ExternalPlanSetup>(place.generatePlan("VMAT CSI", prescriptions));
             if (!VMATplans.Any()) return;
@@ -1160,11 +1179,11 @@ namespace VMATAutoPlanMT
             //{
             string message = "Optimization objectives have been successfully set!" + Environment.NewLine + Environment.NewLine + "Please review the generated structures, placed isocenters, placed beams, and optimization parameters!";
             if (optParametersList.Where(x => x.Item1.ToLower().Contains("_lowres")).Any()) message += "\n\nBE SURE TO VERIFY THE ACCURACY OF THE GENERATED LOW-RESOLUTION CONTOURS!";
-            if (numIsos != 0 && numIsos != numVMATIsos)
-            {
-                //VMAT only TBI plan was created with the script in this instance info or the user wants to only set the optimization constraints
-                message += "\n\nFor the AP/PA Legs plan, be sure to change the orientation from head-first supine to feet-first supine!";
-            }
+            //if (numIsos != 0 && numIsos != numVMATIsos)
+            //{
+            //    //VMAT only TBI plan was created with the script in this instance info or the user wants to only set the optimization constraints
+            //    message += "\n\nFor the AP/PA Legs plan, be sure to change the orientation from head-first supine to feet-first supine!";
+            //}
             MessageBox.Show(message);
             //}
             autoSave = true;

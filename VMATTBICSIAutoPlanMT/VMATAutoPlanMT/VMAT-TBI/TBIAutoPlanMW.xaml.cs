@@ -777,7 +777,7 @@ namespace VMATAutoPlanMT
             }
             else place = new placeBeams_TBI(selectedSS, isoNames, numIsos, numVMATIsos, singleAPPAplan, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, useFlash);
 
-            VMATplan = place.generatePlan("VMAT TBI", new List<Tuple<string, string, int, DoseValue, double>> { Tuple.Create("_VMAT TBI", "", prescription.Item1, prescription.Item2, 0.0)}).First();
+            VMATplan = place.generatePlan("VMAT TBI", new List<Tuple<string, string, int, DoseValue, double>> { Tuple.Create("VMAT TBI", "", prescription.Item1, prescription.Item2, 0.0)}).First();
             if (VMATplan == null) return;
 
             //if the user elected to contour the overlap between fields in adjacent isocenters, get this list of structures from the placeBeams class and copy them to the jnxs vector
@@ -915,14 +915,14 @@ namespace VMATAutoPlanMT
             if (!optParametersList.Any()) return;
             if (VMATplan == null)
             {
-                //search for a course named VMAT TBI. If it is found, search for a plan named _VMAT TBI inside the VMAT TBI course. If neither are found, throw an error and return
-                if (!pi.Courses.Where(x => x.Id == "VMAT TBI").Any() || !pi.Courses.First(x => x.Id == "VMAT TBI").PlanSetups.Where(x => x.Id == "_VMAT TBI").Any())
+                //search for a course named VMAT TBI. If it is found, search for a plan named VMAT TBI inside the VMAT TBI course. If neither are found, throw an error and return
+                if (!pi.Courses.Where(x => x.Id == "VMAT TBI").Any() || !pi.Courses.First(x => x.Id == "VMAT TBI").PlanSetups.Where(x => x.Id == "VMAT TBI").Any())
                 {
-                    MessageBox.Show("No course or plan named 'VMAT TBI' and '_VMAT TBI' found! Exiting...");
+                    MessageBox.Show("No course or plan named 'VMAT TBI' found! Exiting...");
                     return;
                 }
                 //if both are found, grab an instance of that plan
-                VMATplan = pi.Courses.First(x => x.Id == "VMAT TBI").PlanSetups.First(x => x.Id == "_VMAT TBI") as ExternalPlanSetup;
+                VMATplan = pi.Courses.First(x => x.Id == "VMAT TBI").PlanSetups.First(x => x.Id == "VMAT TBI") as ExternalPlanSetup;
                 pi.BeginModifications();
             }
             if (VMATplan.OptimizationSetup.Objectives.Count() > 0)
@@ -1136,7 +1136,7 @@ namespace VMATAutoPlanMT
                     else
                     {
                         //course found and only one or fewer plans inside course with Id != "_Legs", get vmat and ap/pa plans
-                        vmatPlan = c.ExternalPlanSetups.FirstOrDefault(x => x.Id.ToLower() == "_vmat tbi");
+                        vmatPlan = c.ExternalPlanSetups.FirstOrDefault(x => x.Id.ToLower() == "vmat tbi");
                     }
                     if (vmatPlan == null)
                     {

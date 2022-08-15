@@ -100,15 +100,16 @@ namespace VMATAutoPlanMT
         {
             foreach(Tuple<string,string,int,DoseValue,double> itr in prescriptions)
             {
-                //get the points collection for the Body (used for calculating number of isocenters)
-                Point3DCollection pts = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.Item2).MeshGeometry.Positions;
+                //get the points collection for the target for each plan (used for calculating number of isocenters)
+                Point3DCollection pts = selectedSS.Structures.FirstOrDefault(x => x.Id == itr.Item2).MeshGeometry.Positions;
 
                 //For these cases the maximum number of allowed isocenters is 3. One isocenter is reserved for the brain and either one or two isocenters are used for the spine (depending on length).
-                //calculateNumIsos the number of isocenters needed for the spine and add 1 to get the total number of isos.
-                numIsos = numVMATIsos = (int)Math.Ceiling(((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 - 20.0))) + 1;
+                //the number of isocenters needed for the spine and add 1 to get the total number of isos.
+                numIsos = numVMATIsos = (int)Math.Ceiling((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 - 20.0));
                 if (numIsos > 3) numIsos = numVMATIsos = 3;
 
                 //set isocenter names based on numIsos and numVMATIsos (reuse same naming convention as VMAT TBI for simplicity)
+                //plan Id, list of isocenter names for this plan
                 isoNames.Add(Tuple.Create(itr.Item1, new List<string>(new isoNameHelper().getIsoNames(numVMATIsos, numIsos))));
             }
             
