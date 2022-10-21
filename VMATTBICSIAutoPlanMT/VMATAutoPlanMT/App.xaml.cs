@@ -22,7 +22,7 @@ namespace VMATAutoPlanMT
             for(int i = 0; i < e.Args.Length; i++) theArguments.Add(e.Args[i]);
             if (SO.isVMATTBI) 
             { 
-                theArguments.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location + "\\configuration\\VMAT_TBI_config.ini")); 
+                theArguments.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_TBI_config.ini"); 
                 mw = new TBIAutoPlanMW(theArguments); 
             }
             else if (SO.isVMATCSI) 

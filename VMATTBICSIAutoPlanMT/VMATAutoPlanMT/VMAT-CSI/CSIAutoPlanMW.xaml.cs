@@ -26,6 +26,7 @@ namespace VMATAutoPlanMT
         /// HARD-CODED MAIN PARAMETERS FOR THIS CLASS AND ALL OTHER CLASSES IN THIS DLL APPLICATION.
         /// ADJUST THESE PARAMETERS TO YOUR TASTE. THESE PARAMETERS WILL BE OVERWRITTEN BY THE CONFIG.INI FILE IF IT IS SUPPLIED.
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        //structure id, Rx dose, plan Id
         List<Tuple<string, double, string>> targets = new List<Tuple<string, double, string>> { };
 
         //general tuning structures to be added (if selected for sparing) to all case types
@@ -312,7 +313,6 @@ namespace VMATAutoPlanMT
                 MessageBox.Show(String.Format("{0} has been exported successfully!", theImage.Id));
             }
             else MessageBox.Show("No imaged selected for export!");
-            //"No image to export!"
         }
 
         //stuff related to Set Targets tab
@@ -558,7 +558,7 @@ namespace VMATAutoPlanMT
                     }
                     else if (planID.Length > 13)
                     {
-                        MessageBox.Show(String.Format("Error! Plan Id {0} is greater than maximum length allowed by Eclipse (13)! Exiting!"));
+                        MessageBox.Show(String.Format("Error! Plan Id '{0}' is greater than maximum length allowed by Eclipse (13)! Exiting!", planID));
                         return;
                     }
                     //margin will not be assigned from the default value (-1000) if the input is empty, a whitespace, or NaN
@@ -575,6 +575,7 @@ namespace VMATAutoPlanMT
                 else headerObj = false;
             }
 
+            //sort the targets based on requested plan Id
             targets.Sort(delegate (Tuple<string, double, string> x, Tuple<string, double, string> y) { return x.Item3.CompareTo(y.Item3); });
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
             string pid = targets.First().Item3;
@@ -650,10 +651,7 @@ namespace VMATAutoPlanMT
 
             MessageBox.Show("Targets set successfully!");
             string msg = "Prescriptions:" + Environment.NewLine;
-            foreach(Tuple<string,string, int, DoseValue, double> itr in prescriptions)
-            {
-                msg += String.Format("{0}, {1}, {2}, {3}, {4}", itr.Item1, itr.Item2, itr.Item3, itr.Item4.Dose, itr.Item5) + Environment.NewLine;
-            }
+            foreach(Tuple<string,string, int, DoseValue, double> itr in prescriptions) msg += String.Format("{0}, {1}, {2}, {3}, {4}", itr.Item1, itr.Item2, itr.Item3, itr.Item4.Dose, itr.Item5) + Environment.NewLine;
             MessageBox.Show(msg);
         }
 

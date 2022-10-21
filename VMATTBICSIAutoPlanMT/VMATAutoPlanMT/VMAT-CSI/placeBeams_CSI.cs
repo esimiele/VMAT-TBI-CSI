@@ -74,8 +74,7 @@ namespace VMATAutoPlanMT
                 //isoSeparation = Math.Round(((target.MeshGeometry.Positions.Max(p => p.Z) - target.MeshGeometry.Positions.Min(p => p.Z) - 30.0) / 3) / 10.0f) * 10.0f;
 
                 //however, the actual correct equation is given below:
-                if (numIsos > 1) isoSeparation = Math.Round(((target_tmp.MeshGeometry.Positions.Max(p => p.Z) - target_tmp.MeshGeometry.Positions.Min(p => p.Z) - 380.0) / (numIsos - 1)) / 10.0f) * 10.0f;
-                else isoSeparation = 0;
+                isoSeparation = Math.Round(((target_tmp.MeshGeometry.Positions.Max(p => p.Z) - target_tmp.MeshGeometry.Positions.Min(p => p.Z) - 380.0) / (numIsos - 1)) / 10.0f) * 10.0f;
 
                 //It is calculated by setting the most superior and inferior isocenters to be 19.0 cm from the target volume edge in the z-direction. The isocenter separtion is then calculated as half the distance between these two isocenters (sep = ((max-19cm)-(min+19cm)/2).
                 //Tested on 5-7-2020. When the correct equation is rounded, it gives the same answer as the original empirical equation above, however, the isocenters are better positioned in the target volume (i.e., more symmetric about the target volume). 
@@ -95,7 +94,7 @@ namespace VMATAutoPlanMT
                     v.x = userOrigin.x;
                     v.y = userOrigin.y;
                     //5-7-2020 isocenter positions for actual isocenter separation equation described above
-                    if (isoSeparation > 0) v.z = (target_tmp.MeshGeometry.Positions.Max(p => p.Z) - i * isoSeparation - 190.0);
+                    if (numIsos > 1) v.z = (target_tmp.MeshGeometry.Positions.Max(p => p.Z) - i * isoSeparation - 190.0);
                     else v.z = target_tmp.CenterPoint.z;
                     //round z position to the nearest integer
                     v = itr.StructureSet.Image.DicomToUser(v, itr);
@@ -114,10 +113,6 @@ namespace VMATAutoPlanMT
                 count++;
             }
             return allIsocenters;
-           // plan = plans.First();
-            //if the user requested to add flash to the plan, be sure to grab the ptv_body_flash structure (i.e., the ptv_body structure created from the body with added flash). 
-            //This structure is named 'TS_FLASH_TARGET'
-           // target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_body");
 
             ////matchline is present and not empty
             //if (selectedSS.Structures.Where(x => x.Id.ToLower() == "matchline").Any() && !selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").IsEmpty)
@@ -242,29 +237,32 @@ namespace VMATAutoPlanMT
             DRR.StructureOutlines = true;
             DRR.SetLayerParameters(1, 1.0, 100.0, 1000.0);
             int count = 0;
-            List<string> isoNameList = new List<string> { }; ;
+            List<string> isoNameList = new List<string> { }; 
             List<int> beamList = new List<int> { };
             foreach (Tuple<string,List<string>> itr in isoNames)
             {
+                //determine isocenter name list, number of beams per isocenter list, and target structure from matching the plan Ids in the isoNames list and iso list
                 if(itr.Item1 == iso.Item1.Id)
                 {
                     isoNameList = new List<string>(itr.Item2);
                     beamList = new List<int>(numBeams.ElementAt(count));
+                    //item 2 is target Id
+                    target = selectedSS.Structures.FirstOrDefault(x => x.Id == prescriptions.ElementAt(count).Item2);
+                    if (target.Id.ToLower().Contains("ptv_csi")) target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_brain"));
                     break;
                 }
                 count++;
             }
-            
+
             //if (isoNameList == null) { MessageBox.Show(String.Format("Failed to set beams for plan: {0}! Exiting!", iso.Item1.Id)); return; }
 
             //place the beams for the VMAT plan
-            //unfortunately, all of Nataliya's requirements for beam placement meant that this process couldn't simply draw from beam placement templates. Some of the beam placements for specific isocenters
-            //and under certain conditions needed to be hard-coded into the script. I'm not really a fan of this, but it was the only way to satisify Nataliya's requirements.
             count = 0;
             string beamName;
             VRect<double> jp;
             for (int i = 0; i < iso.Item2.Count; i++)
             {
+                if (target.Id.ToLower().Contains("ptv_brain") && i > 0) target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_spine"));
                 for (int j = 0; j < beamList.ElementAt(i); j++)
                 {
                     jp = jawPos.ElementAt(j);
@@ -285,6 +283,9 @@ namespace VMATAutoPlanMT
                         if (j >= 2) beamName += String.Format("CW {0}{1}", isoNameList.ElementAt(i), 90);
                         else beamName += String.Format("CW {0}{1}", isoNameList.ElementAt(i), "");
                     }
+                    //auto fit collimator to target structure
+                    //circular margin (in mm), target structure, use asymmetric x Jaws, use asymmetric y jaws, optimize collimator rotation
+                    b.FitCollimatorToStructure(new FitToStructureMargins(20.0), target, true, true, false);
                     b.Id = beamName;
                     b.CreateOrReplaceDRR(DRR);
                     count++;
