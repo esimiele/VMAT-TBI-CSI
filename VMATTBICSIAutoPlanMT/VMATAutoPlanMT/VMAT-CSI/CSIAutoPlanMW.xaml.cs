@@ -123,12 +123,9 @@ namespace VMATAutoPlanMT
             if (args.Count == 1) configurationFile = args.ElementAt(0);
             else
             {
-                for (int i = 0; i < args.Count; i++)
-                {
-                    if (i == 0) mrn = args.ElementAt(i);
-                    if (i == 1) ss = args.ElementAt(i);
-                    if (i == 2) configurationFile = args.ElementAt(i);
-                }
+                mrn = args.ElementAt(0);
+                ss = args.ElementAt(1);
+                configurationFile = args.ElementAt(2);
             }
             if (app != null)
             {
@@ -291,8 +288,7 @@ namespace VMATAutoPlanMT
         {
             UIhelper helper = new UIhelper();
             //needed to allow automatic selection of CT image for selected CT structure set (nothing will be selected if no structure set is selected)
-            List<StructureSet> structureSets = new List<StructureSet> { };
-            structureSets = new List<StructureSet>(pi.StructureSets.Where(x => x != selectedSS));
+            List<StructureSet> structureSets = new List<StructureSet>(pi.StructureSets.Where(x => x != selectedSS));
             if (selectedSS != null) { structureSets.Insert(0, selectedSS); }
             foreach (StructureSet itr in structureSets) CTimage_sp.Children.Add(helper.getCTImageSets(CTimage_sp, itr.Image, (itr == selectedSS ? true : false)));
         }

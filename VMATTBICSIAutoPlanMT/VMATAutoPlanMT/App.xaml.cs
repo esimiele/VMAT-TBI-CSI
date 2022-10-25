@@ -15,7 +15,7 @@ namespace VMATAutoPlanMT
             if (e.Args.Length == 3) SO = new selectOption(true);
             else SO = new selectOption(false);
             SO.ShowDialog();
-            //if (SO.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+            if (!SO.isVMATCSI && !SO.isVMATTBI) Current.Shutdown();
 
             Window mw;
             List<string> theArguments = new List<string> { };
