@@ -58,7 +58,7 @@ namespace VMATAutoPlanMT
         bool contourOverlap = true;
         string contourFieldOverlapMargin = "1.0";
         //point this to the directory holding the documentation files
-        string documentationPath = @"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\Research\VMAT_TBI\documentation\";
+        string documentationPath = @"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\documentation\";
         //location where CT images should be exported
         string imgExportPath = @"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\exportedImages\";
         //treatment units and associated photon beam energies
@@ -290,7 +290,7 @@ namespace VMATAutoPlanMT
             //needed to allow automatic selection of CT image for selected CT structure set (nothing will be selected if no structure set is selected)
             List<StructureSet> structureSets = new List<StructureSet>(pi.StructureSets.Where(x => x != selectedSS));
             if (selectedSS != null) { structureSets.Insert(0, selectedSS); }
-            foreach (StructureSet itr in structureSets) CTimage_sp.Children.Add(helper.getCTImageSets(CTimage_sp, itr.Image, (itr == selectedSS ? true : false)));
+            foreach (StructureSet itr in structureSets) CTimage_sp.Children.Add(helper.getCTImageSets(CTimage_sp, itr.Image, itr == selectedSS ? true : false));
         }
 
         private void exportImgInfo_Click(object sender, RoutedEventArgs e)
@@ -408,6 +408,9 @@ namespace VMATAutoPlanMT
         private void add_target_volumes(List<Tuple<string,double,string>> defaultList)
         {
             if (firstTargetStruct) add_target_header();
+            List<string> planIDs = new List<string> { };
+            foreach (Tuple<string, double, string> itr in defaultList) planIDs.Add(itr.Item3);
+            planIDs.Add("--Add New--");
             foreach(Tuple<string, double, string> itr in defaultList)
             {
                 clearTargetBtnCounter++;
@@ -453,8 +456,8 @@ namespace VMATAutoPlanMT
                 planId_cb.VerticalAlignment = VerticalAlignment.Top;
                 planId_cb.Margin = new Thickness(5, 5, 0, 0);
                 planId_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
-                string[] types = new string[] { itr.Item3, "--Add New--" };
-                foreach (string s in types) planId_cb.Items.Add(s);
+                //string[] types = new string[] { itr.Item3, "--Add New--" };
+                foreach (string p in planIDs) planId_cb.Items.Add(p);
                 planId_cb.Text = itr.Item3;
                 planId_cb.SelectionChanged += delegate (object sender, SelectionChangedEventArgs e) { targetUI_cb_change(sender, e, false); };
                 //planId_cb.SelectionChanged += new SelectionChangedEventHandler(type_cb_change);
@@ -522,6 +525,7 @@ namespace VMATAutoPlanMT
                 MessageBox.Show("No targets present in list! Please add some targets to the list before setting the target structures!");
                 return;
             }
+            targets = new List<Tuple<string, double, string>> { };
             string structure = "";
             double tgtRx = -1000.0;
             string planID = "";
@@ -544,7 +548,7 @@ namespace VMATAutoPlanMT
                             }
                             else planID = (obj1 as ComboBox).SelectedItem.ToString();
                         }
-                        //try to parse the margin value as a double
+                        //try to parse the target Rx as a double value
                         else if (obj1.GetType() == typeof(TextBox)) if (!string.IsNullOrWhiteSpace((obj1 as TextBox).Text)) double.TryParse((obj1 as TextBox).Text, out tgtRx);
                     }
                     if (structure == "--select--" || planID == "--select--")
@@ -554,8 +558,8 @@ namespace VMATAutoPlanMT
                     }
                     else if (planID.Length > 13)
                     {
-                        MessageBox.Show(String.Format("Error! Plan Id '{0}' is greater than maximum length allowed by Eclipse (13)! Exiting!", planID));
-                        return;
+                        //MessageBox.Show(String.Format("Error! Plan Id '{0}' is greater than maximum length allowed by Eclipse (13)! Exiting!", planID));
+                        planID = planID.Substring(0, 13);
                     }
                     //margin will not be assigned from the default value (-1000) if the input is empty, a whitespace, or NaN
                     else if (tgtRx == -1000.0)
@@ -571,12 +575,12 @@ namespace VMATAutoPlanMT
                 else headerObj = false;
             }
 
-            //sort the targets based on requested plan Id
+            //sort the targets based on requested plan Id (alphabetically)
             targets.Sort(delegate (Tuple<string, double, string> x, Tuple<string, double, string> y) { return x.Item3.CompareTo(y.Item3); });
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
-            string pid = targets.First().Item3;
             string targetid = targets.First().Item1;
             double rx = targets.First().Item2;
+            string pid = targets.First().Item3;
             int numPlans = 0;
             double dose_perFx = 0.0;
             int numFractions = 0;
@@ -966,7 +970,7 @@ namespace VMATAutoPlanMT
                 }
                 if(numElementsPerRow == 1 && numBeams_temp.Any())
                 {
-                    //indicates only one item was in this stack panel indicating it was only a label indicating it was a new plan
+                    //indicates only one item was in this stack panel indicating it was only a label indicating the code has finished reading the number of isos and beams per isos for this plan
                     numBeams.Add(new List<int>(numBeams_temp));
                     numBeams_temp = new List<int> { };
                 }
@@ -1722,9 +1726,9 @@ namespace VMATAutoPlanMT
             {
                 confirmUI CUI = new confirmUI();
                 CUI.message.Text = "Save work to database?";
-                CUI.ShowDialog();
                 CUI.confirmBTN.Text = "YES";
                 CUI.cancelBTN.Text = "No";
+                CUI.ShowDialog();
                 if (CUI.confirm) app.SaveModifications();
             }
             if (app != null)

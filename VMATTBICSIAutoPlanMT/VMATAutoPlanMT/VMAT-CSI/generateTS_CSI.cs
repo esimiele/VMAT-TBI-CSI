@@ -187,10 +187,7 @@ namespace VMATAutoPlanMT
                             //PTV structure
                             //5 mm uniform margin to generate PTV
                             tmp = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ctv_spine");
-                            if (tmp != null && !tmp.IsEmpty)
-                            {
-                                itr.SegmentVolume = tmp.Margin(5.0);
-                            }
+                            if (tmp != null && !tmp.IsEmpty) itr.SegmentVolume = tmp.Margin(5.0);
                             else { MessageBox.Show("Error! Could not retrieve CTV_Spine structure! Exiting!"); return true; }
                         }
                     }

@@ -16,6 +16,7 @@ namespace VMATAutoPlanMT
         public double checkIsoPlacementLimit = 5.0;
         public Course theCourse;
         public StructureSet selectedSS;
+        //plan ID, target Id, numFx, dosePerFx, cumulative dose
         public List<Tuple<string, string, int, DoseValue, double>> prescriptions;
         public string calculationModel = "";
         public string optimizationModel = "";
@@ -75,15 +76,13 @@ namespace VMATAutoPlanMT
 
         public virtual bool checkExistingPlans()
         {
-            //6-10-2020 EAS, research system only!
-            //if (tbi.ExternalPlanSetups.Where(x => x.Id == "_VMAT TBI").Any()) if (tbi.CanRemovePlanSetup((tbi.ExternalPlanSetups.First(x => x.Id == "_VMAT TBI")))) tbi.RemovePlanSetup(tbi.ExternalPlanSetups.First(x => x.Id == "_VMAT TBI"));
             string msg = "";
             int numExistingPlans = 0;
             foreach(Tuple<string, string, int, DoseValue, double> itr in prescriptions)
             {
                 if (theCourse.ExternalPlanSetups.Where(x => x.Id == itr.Item1).Any())
                 {
-                    msg += itr + Environment.NewLine;
+                    msg += itr.Item1 + Environment.NewLine;
                     numExistingPlans++;
                 }
             }
@@ -104,7 +103,6 @@ namespace VMATAutoPlanMT
                 //100% dose prescribed in plan and plan ID is in the prescriptions
                 thePlan.SetPrescription(itr.Item3, itr.Item4, 1.0);
                 string planName = itr.Item1;
-                if (planName.Length > 13) planName = planName.Substring(0, 13);
                 thePlan.Id = planName;
                 //ask the user to set the calculation model if not calculation model was set in UI.xaml.cs (up near the top with the global parameters)
                 if (calculationModel == "")
@@ -227,7 +225,6 @@ namespace VMATAutoPlanMT
         {
 
         }
-
 
         public virtual List<Tuple<ExternalPlanSetup, List<VVector>>> getIsocenterPositions()
         {
