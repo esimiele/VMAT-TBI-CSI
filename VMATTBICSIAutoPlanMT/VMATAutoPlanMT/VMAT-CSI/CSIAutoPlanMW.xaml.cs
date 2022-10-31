@@ -556,19 +556,23 @@ namespace VMATAutoPlanMT
                         MessageBox.Show("Error! \nStructure or Sparing Type not selected! \nSelect an option and try again");
                         return;
                     }
-                    else if (planID.Length > 13)
-                    {
-                        //MessageBox.Show(String.Format("Error! Plan Id '{0}' is greater than maximum length allowed by Eclipse (13)! Exiting!", planID));
-                        planID = planID.Substring(0, 13);
-                    }
                     //margin will not be assigned from the default value (-1000) if the input is empty, a whitespace, or NaN
                     else if (tgtRx == -1000.0)
                     {
                         MessageBox.Show("Error! \nEntered margin value is invalid! \nEnter a new margin and try again");
                         return;
                     }
-                    //only add the current row to the structure sparing list if all the parameters were successful parsed
-                    else targets.Add(Tuple.Create(structure, tgtRx, planID));
+                    else
+                    {
+                        if (planID.Length > 13)
+                        {
+                            //MessageBox.Show(String.Format("Error! Plan Id '{0}' is greater than maximum length allowed by Eclipse (13)! Exiting!", planID));
+                            planID = planID.Substring(0, 13);
+                        }
+                        //only add the current row to the structure sparing list if all the parameters were successful parsed
+                        targets.Add(Tuple.Create(structure, tgtRx, planID));
+                    }
+                    
                     firstCombo = true;
                     tgtRx = -1000.0;
                 }
@@ -578,74 +582,42 @@ namespace VMATAutoPlanMT
             //sort the targets based on requested plan Id (alphabetically)
             targets.Sort(delegate (Tuple<string, double, string> x, Tuple<string, double, string> y) { return x.Item3.CompareTo(y.Item3); });
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
-            string targetid = targets.First().Item1;
-            double rx = targets.First().Item2;
-            string pid = targets.First().Item3;
+            string targetid = "";
+            double rx = 0.0;
+            string pid = "";
             int numPlans = 0;
             double dose_perFx = 0.0;
             int numFractions = 0;
 
             foreach (Tuple<string, double, string> itr in targets)
             {
-                if (itr.Item3 != pid || itr == targets.Last())
+                if (itr.Item3 != pid) numPlans++;
+                pid = itr.Item3;
+                rx = itr.Item2;
+                targetid = itr.Item1;
+                if (rx == double.Parse(initRxTB.Text))
                 {
-                    if(rx == double.Parse(initRxTB.Text))
+                    if (!double.TryParse(initDosePerFxTB.Text, out dose_perFx) || !int.TryParse(initNumFxTB.Text, out numFractions))
                     {
-                        if (!double.TryParse(initDosePerFxTB.Text, out dose_perFx) || !int.TryParse(initNumFxTB.Text, out numFractions))
-                        {
-                            MessageBox.Show("Error! Could not parse dose per fx or number of fractions for initial plan! Exiting");
-                            targets = new List<Tuple<string, double, string>> { };
-                            prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
-                            return;
-                        }
+                        MessageBox.Show("Error! Could not parse dose per fx or number of fractions for initial plan! Exiting");
+                        targets = new List<Tuple<string, double, string>> { };
+                        prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+                        return;
                     }
-                    else
-                    {
-                        if (!double.TryParse(boostDosePerFxTB.Text, out dose_perFx) || !int.TryParse(boostNumFxTB.Text, out numFractions))
-                        {
-                            MessageBox.Show("Error! Could not parse dose per fx or number of fractions for boost plan! Exiting");
-                            targets = new List<Tuple<string, double, string>> { };
-                            prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
-                            return;
-                        }
-                    }
-                    prescriptions.Add(Tuple.Create(pid, targetid, numFractions, new DoseValue(dose_perFx, DoseValue.DoseUnit.cGy), rx));
-                    pid = itr.Item3;
-                    rx = itr.Item2;
-                    targetid = itr.Item1;
-                    numPlans++;
-                    if (numPlans > 2) { MessageBox.Show("Error! Number of request plans is > 2! Exiting!"); targets = new List<Tuple<string, double, string>> { };  prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { }; return; }
                 }
                 else
                 {
-                    if(itr.Item2 > rx)
+                    if (!double.TryParse(boostDosePerFxTB.Text, out dose_perFx) || !int.TryParse(boostNumFxTB.Text, out numFractions))
                     {
-                        rx = itr.Item2;
-                        targetid = itr.Item1;
+                        MessageBox.Show("Error! Could not parse dose per fx or number of fractions for boost plan! Exiting");
+                        targets = new List<Tuple<string, double, string>> { };
+                        prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+                        return;
                     }
                 }
+                prescriptions.Add(Tuple.Create(pid, targetid, numFractions, new DoseValue(dose_perFx, DoseValue.DoseUnit.cGy), rx));
+                if (numPlans > 2) { MessageBox.Show("Error! Number of request plans is > 2! Exiting!"); targets = new List<Tuple<string, double, string>> { };  prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { }; return; }
             }
-            if (rx == double.Parse(initRxTB.Text))
-            {
-                if (!double.TryParse(initDosePerFxTB.Text, out dose_perFx) || !int.TryParse(initNumFxTB.Text, out numFractions))
-                {
-                    MessageBox.Show("Error! Could not parse dose per fx or number of fractions for initial plan! Exiting");
-                    targets = new List<Tuple<string, double, string>> { };
-                    prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
-                    return;
-                }
-            }
-            else
-            {
-                if (!double.TryParse(boostDosePerFxTB.Text, out dose_perFx) || !int.TryParse(boostNumFxTB.Text, out numFractions))
-                {
-                    MessageBox.Show("Error! Could not parse dose per fx or number of fractions for boost plan! Exiting");
-                    targets = new List<Tuple<string, double, string>> { };
-                    prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
-                    return;
-                }
-            }
-            prescriptions.Add(Tuple.Create(pid, targetid, numFractions, new DoseValue(dose_perFx, DoseValue.DoseUnit.cGy), rx));
             //sort the prescription list by the cumulative rx dose
             prescriptions.Sort(delegate (Tuple<string, string, int, DoseValue, double> x, Tuple<string, string, int, DoseValue, double> y) { return x.Item5.CompareTo(y.Item5); });
 
@@ -769,10 +741,7 @@ namespace VMATAutoPlanMT
             //copy the sparing structures in the defaultSpareStruct list to a temporary vector
             List<Tuple<string, string, double>> templateSpareList = new List<Tuple<string, string, double>>(defaultSpareStruct);
             //add the case-specific sparing structures to the temporary list
-            if (templateList.SelectedItem != null)
-            {
-                templateSpareList = new List<Tuple<string, string, double>>(addTemplateSpecificSpareStructures((templateList.SelectedItem as autoPlanTemplate).spareStructures, templateSpareList));
-            }
+            if (templateList.SelectedItem != null) templateSpareList = new List<Tuple<string, string, double>>(addTemplateSpecificSpareStructures((templateList.SelectedItem as autoPlanTemplate).spareStructures, templateSpareList));
 
             string missOutput = "";
             string emptyOutput = "";
@@ -900,8 +869,8 @@ namespace VMATAutoPlanMT
         {
             //default option to contour overlap between fields in adjacent isocenters and assign the resulting structures as targets
             contourOverlap_chkbox.IsChecked = contourOverlap;
-            contourOverlapLabel.Visibility = Visibility.Visible;
-            contourOverlapTB.Visibility = Visibility.Visible;
+            //contourOverlapLabel.Visibility = Visibility.Visible;
+            //contourOverlapTB.Visibility = Visibility.Visible;
             contourOverlapTB.Text = contourFieldOverlapMargin;
 
             BEAMS_SP.Children.Clear();

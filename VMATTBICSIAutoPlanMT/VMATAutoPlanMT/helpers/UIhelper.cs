@@ -392,18 +392,27 @@ namespace VMATAutoPlanMT
             foreach (Structure itr in LStructs)
             {
                 Structure RStruct = RStructs.FirstOrDefault(x => x.Id.Substring(0, x.Id.Length - 2) == itr.Id.Substring(0, itr.Id.Length - 2));
-                if (RStruct != null && selectedSS.Structures.FirstOrDefault(x => x.Id == itr.Id.Substring(0, itr.Id.Length - 2) && !x.IsEmpty) == null) structuresToUnion.Add(new Tuple<Structure, Structure>(itr, RStruct));
+                if (RStruct != null && selectedSS.Structures.FirstOrDefault(x => x.Id == itr.Id.Substring(0, itr.Id.Length - 2) && !x.IsEmpty) == null)
+                {
+                    string newName = addProperEndingToName(itr.Id.Substring(0, itr.Id.Length - 2).ToLower());
+                    if(selectedSS.Structures.FirstOrDefault(x => x.Id == newName) == null) structuresToUnion.Add(new Tuple<Structure, Structure>(itr, RStruct));
+                }
             }
             return structuresToUnion;
+        }
+
+        private string addProperEndingToName(string initName)
+        {
+            if (initName.Substring(initName.Length - 1, 1) == "y" && initName.Substring(initName.Length - 2, 2) != "ey") initName = initName.Substring(0, initName.Length - 1) + "ies";
+            else if (initName.Substring(initName.Length - 1, 1) == "s") initName += "es";
+            else initName += "s";
+            return initName;
         }
 
         public bool unionLRStructures(Tuple<Structure, Structure> itr, StructureSet selectedSS)
         {
             Structure newStructure = null;
-            string newName = itr.Item1.Id.Substring(0, itr.Item1.Id.Length - 2).ToLower();
-            if (newName.Substring(newName.Length - 1, 1) == "y" && newName.Substring(newName.Length - 2, 2) != "ey") newName = newName.Substring(0, newName.Length - 1) + "ies";
-            else if (newName.Substring(newName.Length - 1, 1) == "s") newName += "es";
-            else newName += "s";
+            string newName = addProperEndingToName(itr.Item1.Id.Substring(0, itr.Item1.Id.Length - 2).ToLower());
             try
             {
                 Structure existStructure = selectedSS.Structures.FirstOrDefault(x => x.Id == newName);

@@ -49,7 +49,7 @@ namespace VMATAutoPlanMT
             if (isUOriginInside()) return true;
 
             //verify brain and spine structures are present
-            if(selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "brain") == null || selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinalcord") == null)
+            if(selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "brain") == null || selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinalcord" || x.Id.ToLower() == "spinal_cord") == null)
             {
                 MessageBox.Show("Missing brain and/or spine structures! Please add and try again!");
                 return true;
@@ -98,27 +98,95 @@ namespace VMATAutoPlanMT
 
         public bool calculateNumIsos()
         {
+            //revise to get the number of unique plans list, for each unique plan, find the target with the greatest z-extent and determine the number of isocenters based off that. If the target
+            //ID is PTV_CSI, calculate the number of isocenters based on PTV_spine and add one iso for the brain
+            //planId, target list
+            List<Tuple<string, List<string>>> planIdTargets = new List<Tuple<string, List<string>>> { };
+            string tmpPlanId = prescriptions.First().Item1;
+            List<string> targs = new List<string> { };
             foreach(Tuple<string,string,int,DoseValue,double> itr in prescriptions)
             {
-                //logic used to account for the initial CSI plan where we want the first isocenter centered in the brain and the remaining isos to be in the spine
-                //string targetID = itr.Item2;
-                //numVMATIsos = 0;
-                //if (targetID == "PTV_CSI")
-                //{
-                //    targetID = "PTV_Spine";
-                //    numVMATIsos = 1;
-                //}
-                //get the points collection for the target for each plan (used for calculating number of isocenters)
-                Point3DCollection pts = selectedSS.Structures.FirstOrDefault(x => x.Id == itr.Item2).MeshGeometry.Positions;
+                if (itr.Item1 != tmpPlanId)
+                {
+                    planIdTargets.Add(new Tuple<string, List<string>>(tmpPlanId, new List<string>(targs)));
+                    tmpPlanId = itr.Item1;
+                    targs = new List<string> { itr.Item2 };
+                }
+                else targs.Add(itr.Item2);
+            }
+            planIdTargets.Add(new Tuple<string, List<string>>(tmpPlanId, new List<string>(targs)));
+
+            foreach(Tuple<string,List<string>> itr in planIdTargets)
+            {
+                double maxTargetLength = 0.0;
+                string longestTargetInPlan = "";
+                foreach (string s in itr.Item2)
+                {
+                    Structure targStruct = selectedSS.Structures.FirstOrDefault(x => x.Id == itr.Item2.First());
+                    if (targStruct == null || targStruct.IsEmpty)
+                    {
+                        MessageBox.Show(String.Format("Error! No structure named: {0} found or contoured!", s));
+                        return true;
+                    }
+                    Point3DCollection pts = targStruct.MeshGeometry.Positions;
+                    double diff = pts.Max(p => p.Z) - pts.Min(p => p.Z);
+                    if (diff > maxTargetLength) { longestTargetInPlan = s; maxTargetLength = diff; }
+                }
 
                 //For these cases the maximum number of allowed isocenters is 3. One isocenter is reserved for the brain and either one or two isocenters are used for the spine (depending on length).
-                numVMATIsos = (int)Math.Ceiling((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 - 20.0));
+                if (longestTargetInPlan == "PTV_CSI")
+                {
+                    //special rules for initial plan, which should have a target named PTV_CSI
+                    Structure spineTarget = selectedSS.Structures.FirstOrDefault(x => x.Id == "PTV_Spine");
+                    if (spineTarget == null || spineTarget.IsEmpty)
+                    {
+                        MessageBox.Show(String.Format("Error! No structure named: PTV_Spine found or contoured!"));
+                        return true;
+                    }
+                    Point3DCollection pts = spineTarget.MeshGeometry.Positions;
+
+                    //Grab the thyroid structure. If it exists, grab the minimum z position and subtract this from the ptv_spine extent (the brain fields extend down to the most inferior part of the thyroid)
+                    //If it does not exist, add a 50 mm buffer to the field extent (rough estimate of most inferior position of thyroid)
+                    Structure thyroidStruct = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("thyroid"));
+                    if (thyroidStruct == null ||thyroidStruct.IsEmpty) numVMATIsos = (int)Math.Ceiling((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 + 50.0));
+                    else
+                    {
+                        Point3DCollection thyroidPts = thyroidStruct.MeshGeometry.Positions;
+                        numVMATIsos = (int)Math.Ceiling((thyroidPts.Min(p => p.Z) - pts.Min(p => p.Z)) / 400.0);
+                    }
+                    //MessageBox.Show(String.Format("{0}, {1}, {2}", pts.Max(p => p.Z) - pts.Min(p => p.Z), pts.Max(p => p.Z) - pts.Min(p => p.Z) - thyroidPts.Min(p => p.Z), (pts.Max(p => p.Z) - pts.Min(p => p.Z) - thyroidPts.Min(p => p.Z)) / 400.0));
+                    //one iso reserved for PTV_Brain
+                    numVMATIsos += 1;
+                }
+                else numVMATIsos = (int)Math.Ceiling(maxTargetLength / (400.0 - 20.0));
                 if (numVMATIsos > 3) numVMATIsos = 3;
 
                 //set isocenter names based on numIsos and numVMATIsos (reuse same naming convention as VMAT TBI for simplicity)
                 //plan Id, list of isocenter names for this plan
                 isoNames.Add(Tuple.Create(itr.Item1, new List<string>(new isoNameHelper().getIsoNames(numVMATIsos, numVMATIsos))));
             }
+
+            //foreach (Tuple<string,string,int,DoseValue,double> itr in prescriptions)
+            //{
+            //    //logic used to account for the initial CSI plan where we want the first isocenter centered in the brain and the remaining isos to be in the spine
+            //    //string targetID = itr.Item2;
+            //    //numVMATIsos = 0;
+            //    //if (targetID == "PTV_CSI")
+            //    //{
+            //    //    targetID = "PTV_Spine";
+            //    //    numVMATIsos = 1;
+            //    //}
+            //    //get the points collection for the target for each plan (used for calculating number of isocenters)
+            //    Point3DCollection pts = selectedSS.Structures.FirstOrDefault(x => x.Id == itr.Item2).MeshGeometry.Positions;
+
+            //    //For these cases the maximum number of allowed isocenters is 3. One isocenter is reserved for the brain and either one or two isocenters are used for the spine (depending on length).
+            //    numVMATIsos = (int)Math.Ceiling((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 - 20.0));
+            //    if (numVMATIsos > 3) numVMATIsos = 3;
+
+            //    //set isocenter names based on numIsos and numVMATIsos (reuse same naming convention as VMAT TBI for simplicity)
+            //    //plan Id, list of isocenter names for this plan
+            //    isoNames.Add(Tuple.Create(itr.Item1, new List<string>(new isoNameHelper().getIsoNames(numVMATIsos, numVMATIsos))));
+            //}
             
             return false;
         }
@@ -166,7 +234,7 @@ namespace VMATAutoPlanMT
                 }
                 else if(itr.Id.ToLower().Contains("spine"))
                 {
-                    tmp = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinalcord");
+                    tmp = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinalcord" || x.Id.ToLower() == "spinal_cord");
                     if (tmp != null && !tmp.IsEmpty)
                     {
                         if (itr.Id.ToLower().Contains("ctv"))
