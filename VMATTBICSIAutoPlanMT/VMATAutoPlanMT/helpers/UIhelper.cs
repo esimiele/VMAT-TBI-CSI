@@ -701,6 +701,8 @@ namespace VMATAutoPlanMT
                     sp.Margin = new Thickness(2);
 
                     Label iso = new Label();
+                    //11/1/22
+                    //interesting issue where the first character of the first plan Id is ignored and not printed on the place beams tab
                     iso.Content = String.Format("Isocenter {0} <{1}>:", (j + 1).ToString(), isoNames.ElementAt(i).Item2.ElementAt(j));
                     iso.HorizontalAlignment = HorizontalAlignment.Right;
                     iso.VerticalAlignment = VerticalAlignment.Top;

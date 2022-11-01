@@ -92,11 +92,14 @@ namespace VMATAutoPlanMT
             return false;
         }
 
-        public override List<Tuple<ExternalPlanSetup, List<VVector>>> getIsocenterPositions()
+        public override List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> getIsocenterPositions()
         {
             plan = plans.First();
-            List<Tuple<ExternalPlanSetup, List<VVector>>> allIsocenters = new List<Tuple<ExternalPlanSetup, List<VVector>>> { };
-            List<VVector> iso = new List<VVector> { };
+            //List<Tuple<ExternalPlanSetup, List<VVector>>> allIsocenters = new List<Tuple<ExternalPlanSetup, List<VVector>>> { };
+            List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> allIsocenters = new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
+            //List<VVector> iso = new List<VVector> { };
+            List<Tuple<VVector, string, int>> tmp = new List<Tuple<VVector, string, int>> { };
+
             Image image = selectedSS.Image;
             VVector userOrigin = image.UserOrigin;
             //if the user requested to add flash to the plan, be sure to grab the ptv_body_flash structure (i.e., the ptv_body structure created from the body with added flash). 
@@ -107,7 +110,6 @@ namespace VMATAutoPlanMT
             //matchline is present and not empty
             if (selectedSS.Structures.Where(x => x.Id.ToLower() == "matchline").Any() && !selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").IsEmpty)
             {
-
                 //5-11-2020 update EAS. isoSeparationSup is the isocenter separation for the VMAT isos and isoSeparationInf is the iso separation for the AP/PA isocenters
                 double isoSeparationSup = Math.Round(((target.MeshGeometry.Positions.Max(p => p.Z) - selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - 380.0) / (numVMATIsos - 1)) / 10.0f) * 10.0f;
                 double isoSeparationInf = Math.Round((selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - target.MeshGeometry.Positions.Min(p => p.Z) - 380.0) / 10.0f) * 10.0f;
@@ -137,13 +139,16 @@ namespace VMATAutoPlanMT
                     v = plan.StructureSet.Image.DicomToUser(v, plan);
                     v.z = Math.Round(v.z / 10.0f) * 10.0f;
                     v = plan.StructureSet.Image.UserToDicom(v, plan);
-                    iso.Add(v);
+                    //iso.Add(v);
+                    tmp.Add(new Tuple<VVector, string, int>(v, isoNames.ElementAt(i), numBeams.ElementAt(i)));
                 }
 
                 //6-10-2020 EAS, need to reverse order of list because it has to be descending from z location (i.e., sup to inf) for beam placement to work correctly
-                iso.Reverse();
+                //iso.Reverse();
+                tmp.Reverse();
                 //6-11-2020 EAS, this is used to account for any rounding of the isocenter position immediately superior to the matchline
-                double offset = iso.LastOrDefault().z - matchlineZ;
+                //double offset = iso.LastOrDefault().z - matchlineZ;
+                double offset = tmp.LastOrDefault().Item1.z - matchlineZ;
 
                 for (int i = 0; i < (numIsos - numVMATIsos); i++)
                 {
@@ -157,9 +162,11 @@ namespace VMATAutoPlanMT
                     v = plan.StructureSet.Image.DicomToUser(v, plan);
                     v.z = Math.Round(v.z / 10.0f) * 10.0f;
                     v = plan.StructureSet.Image.UserToDicom(v, plan);
-                    iso.Add(v);
+                    //iso.Add(v);
+                    tmp.Add(new Tuple<VVector, string, int>(v, isoNames.ElementAt(numVMATIsos + i), numBeams.ElementAt(numVMATIsos + i)));
                 }
-                allIsocenters.Add(Tuple.Create(plan, new List<VVector>(iso)));
+                //allIsocenters.Add(Tuple.Create(plan, new List<VVector>(iso)));
+                allIsocenters.Add(Tuple.Create(plan, new List<Tuple<VVector, string, int>>(tmp)));
             }
             else
             {
@@ -194,15 +201,17 @@ namespace VMATAutoPlanMT
                     v = plan.StructureSet.Image.DicomToUser(v, plan);
                     v.z = Math.Round(v.z / 10.0f) * 10.0f;
                     v = plan.StructureSet.Image.UserToDicom(v, plan);
-                    iso.Add(v);
+                    //iso.Add(v);
+                    tmp.Add(new Tuple<VVector, string, int>(v, isoNames.ElementAt(i), numBeams.ElementAt(i)));
                 }
-                allIsocenters.Add(Tuple.Create(plan, new List<VVector>(iso)));
+                //allIsocenters.Add(Tuple.Create(plan, new List<VVector>(iso)));
+                allIsocenters.Add(Tuple.Create(plan, new List<Tuple<VVector, string, int>>(tmp)));
             }
 
             //evaluate the distance between the edge of the beam and the max/min of the PTV_body contour. If it is < checkIsoPlacementLimit, then warn the user that they might be fully covering the ptv_body structure.
             //7-17-2020, checkIsoPlacementLimit = 5 mm
-            VVector firstIso = iso.First();
-            VVector lastIso = iso.Last();
+            VVector firstIso = tmp.First().Item1;
+            VVector lastIso = tmp.Last().Item1;
             if (!((firstIso.z + 200.0) - target.MeshGeometry.Positions.Max(p => p.Z) >= checkIsoPlacementLimit) ||
                 !(target.MeshGeometry.Positions.Min(p => p.Z) - (lastIso.z - 200.0) >= checkIsoPlacementLimit)) checkIsoPlacement = true;
 
@@ -217,7 +226,7 @@ namespace VMATAutoPlanMT
             return allIsocenters;
         }
 
-        public override void setBeams(Tuple<ExternalPlanSetup, List<VVector>> iso)
+        public override bool setBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
         {
             //DRR parameters (dummy parameters to generate DRRs for each field)
             DRRCalculationParameters DRR = new DRRCalculationParameters();
@@ -254,13 +263,13 @@ namespace VMATAutoPlanMT
                     //all even beams (e.g., 2, 4, etc.) will be CCW and all odd beams will be CW
                     if (count % 2 == 0)
                     {
-                        b = plan.AddArcBeam(ebmpArc, jp, coll, CCW[0], CCW[1], GantryDirection.CounterClockwise, 0, iso.Item2.ElementAt(i));
+                        b = plan.AddArcBeam(ebmpArc, jp, coll, CCW[0], CCW[1], GantryDirection.CounterClockwise, 0, iso.Item2.ElementAt(i).Item1);
                         if (j >= 2) beamName += String.Format("CCW {0}{1}", isoNames.ElementAt(i), 90);
                         else beamName += String.Format("CCW {0}{1}", isoNames.ElementAt(i), "");
                     }
                     else
                     {
-                        b = plan.AddArcBeam(ebmpArc, jp, coll, CW[0], CW[1], GantryDirection.Clockwise, 0, iso.Item2.ElementAt(i));
+                        b = plan.AddArcBeam(ebmpArc, jp, coll, CW[0], CW[1], GantryDirection.Clockwise, 0, iso.Item2.ElementAt(i).Item1);
                         if (j >= 2) beamName += String.Format("CW {0}{1}", isoNames.ElementAt(i), 90);
                         else beamName += String.Format("CW {0}{1}", isoNames.ElementAt(i), "");
                     }
@@ -286,7 +295,7 @@ namespace VMATAutoPlanMT
                 else target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_body");
 
                 //adjust x2 jaw (furthest from matchline) so that it covers edge of target volume
-                double x2 = iso.Item2.ElementAt(numVMATIsos).z - (target.MeshGeometry.Positions.Min(p => p.Z) - 20.0);
+                double x2 = iso.Item2.ElementAt(numVMATIsos).Item1.z - (target.MeshGeometry.Positions.Min(p => p.Z) - 20.0);
                 if (x2 > 200.0) x2 = 200.0;
                 else if (x2 < 10.0) x2 = 10.0;
 
@@ -298,12 +307,12 @@ namespace VMATAutoPlanMT
                     MLCpos[0, i] = (float)-200.0;
                     MLCpos[1, i] = (float)(x2);
                 }
-                Beam b = legs_planUpper.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(-200.0, -200.0, x2, 200.0), 90.0, 0.0, 0.0, iso.Item2.ElementAt(numVMATIsos));
+                Beam b = legs_planUpper.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(-200.0, -200.0, x2, 200.0), 90.0, 0.0, 0.0, iso.Item2.ElementAt(numVMATIsos).Item1);
                 b.Id = String.Format("{0} AP Upper Legs", ++count);
                 b.CreateOrReplaceDRR(DRR);
 
                 //PA field
-                b = legs_planUpper.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(-200.0, -200.0, x2, 200.0), 90.0, 180.0, 0.0, iso.Item2.ElementAt(numVMATIsos));
+                b = legs_planUpper.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(-200.0, -200.0, x2, 200.0), 90.0, 180.0, 0.0, iso.Item2.ElementAt(numVMATIsos).Item1);
                 b.Id = String.Format("{0} PA Upper Legs", ++count);
                 b.CreateOrReplaceDRR(DRR);
 
@@ -311,17 +320,17 @@ namespace VMATAutoPlanMT
                 {
                     VVector infIso = new VVector();
                     //the element at numVMATIsos in isoLocations vector is the first AP/PA isocenter
-                    infIso.x = iso.Item2.ElementAt(numVMATIsos).x;
-                    infIso.y = iso.Item2.ElementAt(numVMATIsos).y;
+                    infIso.x = iso.Item2.ElementAt(numVMATIsos).Item1.x;
+                    infIso.y = iso.Item2.ElementAt(numVMATIsos).Item1.y;
 
                     double x1 = -200.0;
                     //if the distance between the matchline and the inferior edge of the target is < 600 mm, set the beams in the second isocenter (inferior-most) to be half-beam blocks
                     if (selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - target.MeshGeometry.Positions.Min(p => p.Z) < 600.0)
                     {
-                        infIso.z = iso.Item2.ElementAt(numVMATIsos).z - 200.0;
+                        infIso.z = iso.Item2.ElementAt(numVMATIsos).Item1.z - 200.0;
                         x1 = 0.0;
                     }
-                    else infIso.z = iso.Item2.ElementAt(numVMATIsos).z - 390.0;
+                    else infIso.z = iso.Item2.ElementAt(numVMATIsos).Item1.z - 390.0;
                     //fit x1 jaw to extend of patient
                     x2 = infIso.z - (target.MeshGeometry.Positions.Min(p => p.Z) - 20.0);
                     if (x2 > 200.0) x2 = 200.0;
@@ -366,6 +375,7 @@ namespace VMATAutoPlanMT
                 }
             }
             MessageBox.Show("Beams placed successfully!\nPlease proceed to the optimization setup tab!");
+            return false;
         }
     }
 }

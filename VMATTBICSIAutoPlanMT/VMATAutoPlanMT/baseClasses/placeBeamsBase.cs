@@ -33,17 +33,18 @@ namespace VMATAutoPlanMT
 
         }
 
-        public virtual List<ExternalPlanSetup> generatePlan(string courseId, List<Tuple<string, string, int, DoseValue, double>> presc)
+        public virtual List<ExternalPlanSetup> generatePlans(string courseId, List<Tuple<string, string, int, DoseValue, double>> presc)
         {
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(presc);
             if (checkExistingCoursePlans(courseId)) return null;
             if (createCourseAndPlan()) return null;
-            List<Tuple<ExternalPlanSetup, List<VVector>>> isoLocations = getIsocenterPositions();
+            //plan, isocenter positions, isocenter names, number of beams per isocenter
+            List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> isoLocations = getIsocenterPositions();
             int isoCount = 0;
-            foreach(Tuple<ExternalPlanSetup,List<VVector>> itr in isoLocations)
+            foreach(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> itr in isoLocations)
             {
                 if (contourOverlap) contourFieldOverlap(itr, isoCount);
-                setBeams(itr);
+                if(setBeams(itr)) return null;
                 isoCount += itr.Item2.Count;
             }
             MessageBox.Show("Beams placed successfully!\nPlease proceed to the optimization setup tab!");
@@ -52,24 +53,12 @@ namespace VMATAutoPlanMT
             return plans;
         }
 
-        public virtual bool checkExistingCoursePlans(string courseId)
+        private bool checkExistingCoursePlans(string courseId)
         {
             //look for a course name VMAT TBI. If it does not exit, create it, otherwise load it into memory
-            if (!selectedSS.Patient.Courses.Where(x => x.Id == courseId).Any())
-            {
-                if (selectedSS.Patient.CanAddCourse())
-                {
-                    theCourse = selectedSS.Patient.AddCourse();
-                    theCourse.Id = courseId;
-                }
-                else
-                {
-                    MessageBox.Show("Error! \nCan't add a treatment course to the patient!");
-                    return true;
-                }
-            }
-            else theCourse = selectedSS.Patient.Courses.FirstOrDefault(x => x.Id == courseId);
-
+            if (selectedSS.Patient.Courses.Where(x => x.Id == courseId).Any()) theCourse = selectedSS.Patient.Courses.FirstOrDefault(x => x.Id == courseId);
+            else theCourse = createCourse(courseId);
+            if (theCourse == null) return true;
             if(checkExistingPlans()) return true;
             return false;
         }
@@ -95,9 +84,21 @@ namespace VMATAutoPlanMT
             return false;
         }
 
-        public virtual bool createCourseAndPlan()
+        private Course createCourse(string courseId)
         {
-            foreach(Tuple<string, string, int, DoseValue, double> itr in prescriptions)
+            Course tmpCourse = null;
+            if (selectedSS.Patient.CanAddCourse())
+            {
+                tmpCourse = selectedSS.Patient.AddCourse();
+                tmpCourse.Id = courseId;
+            }
+            else MessageBox.Show("Error! \nCan't add a treatment course to the patient!");
+            return tmpCourse;
+        }
+
+        private bool createCourseAndPlan()
+        {
+            foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
             {
                 ExternalPlanSetup thePlan = theCourse.AddExternalPlanSetup(selectedSS);
                 //100% dose prescribed in plan and plan ID is in the prescriptions
@@ -155,9 +156,9 @@ namespace VMATAutoPlanMT
             return false;
         }
 
-        //function used to cnotour the overlap between fields in adjacent isocenters for the VMAT Plan ONLY!
+        //function used to contour the overlap between fields in adjacent isocenters for the VMAT Plan ONLY!
         //this option is requested by the user by selecting the checkbox on the main UI on the beam placement tab
-        public virtual void contourFieldOverlap(Tuple<ExternalPlanSetup, List<VVector>> isoLocations, int isoCount)
+        private void contourFieldOverlap(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> isoLocations, int isoCount)
         {
             //only one isocenter. No adjacent isocenters requiring overlap contouring
             if (isoLocations.Item2.Count == 1) return;
@@ -176,9 +177,9 @@ namespace VMATAutoPlanMT
             for (int i = 1; i < isoLocations.Item2.Count; i++)
             {
                 //calculate the center position between adjacent isocenters. NOTE: this calculation works from superior to inferior!
-                double center = isoLocations.Item2.ElementAt(i - 1).z + (isoLocations.Item2.ElementAt(i).z - isoLocations.Item2.ElementAt(i - 1).z) / 2;
+                double center = isoLocations.Item2.ElementAt(i - 1).Item1.z + (isoLocations.Item2.ElementAt(i).Item1.z - isoLocations.Item2.ElementAt(i - 1).Item1.z) / 2;
                 //this is left as a double so I can cast it to an int in the second overlap item and use it in the calculation in the third overlap item
-                double numSlices = Math.Ceiling(400.0 + contourOverlapMargin - Math.Abs(isoLocations.Item2.ElementAt(i).z - isoLocations.Item2.ElementAt(i - 1).z));
+                double numSlices = Math.Ceiling(400.0 + contourOverlapMargin - Math.Abs(isoLocations.Item2.ElementAt(i).Item1.z - isoLocations.Item2.ElementAt(i - 1).Item1.z));
                 overlap.Add(new Tuple<double, int, int>(
                     center,
                     (int)(numSlices / zResolution),
@@ -221,14 +222,14 @@ namespace VMATAutoPlanMT
             }
         }
 
-        public virtual void setBeams(Tuple<ExternalPlanSetup, List<VVector>> isoLocations)
+        public virtual bool setBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> isoLocations)
         {
-
+            return false;
         }
 
-        public virtual List<Tuple<ExternalPlanSetup, List<VVector>>> getIsocenterPositions()
+        public virtual List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> getIsocenterPositions()
         {
-            return new List<Tuple<ExternalPlanSetup, List<VVector>>> { };
+            return new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
         }
     }
 }

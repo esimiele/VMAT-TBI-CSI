@@ -4,13 +4,15 @@ using System.Linq;
 using System.Windows;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
+using System.Windows.Media.Media3D;
 
 namespace VMATAutoPlanMT
 {
     class placeBeams_CSI : placeBeamsBase
     {
-        List<List<int>> numBeams;
-        public List<Tuple<string,List<string>>> isoNames;
+        //List<List<int>> numBeams;
+        List<Tuple<string, List<Tuple<string, int>>>> planIsoBeamInfo;
+        //public List<Tuple<string,List<string>>> isoNames;
         double isoSeparation = 0;
         //public ExternalPlanSetup plan = null;
         double[] collRot;
@@ -19,11 +21,10 @@ namespace VMATAutoPlanMT
         ExternalBeamMachineParameters ebmpArc;
         List<VRect<double>> jawPos;
 
-        public placeBeams_CSI(StructureSet ss, List<Tuple<string, List<string>>> i, List<List<int>> beams, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr)
+        public placeBeams_CSI(StructureSet ss, List<Tuple<string, List<Tuple<string, int>>>> planInfo, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr)
         {
             selectedSS = ss;
-            isoNames = new List<Tuple<string, List<string>>>(i);
-            numBeams = new List<List<int>>(beams);
+            planIsoBeamInfo = new List<Tuple<string, List<Tuple<string, int>>>>(planInfo);
             collRot = coll;
             jawPos = new List<VRect<double>>(jp);
             ebmpArc = new ExternalBeamMachineParameters(linac, energy, 600, "ARC", null);
@@ -35,11 +36,10 @@ namespace VMATAutoPlanMT
             MRrestart = mr;
         }
 
-        public placeBeams_CSI(StructureSet ss, List<Tuple<string, List<string>>> i, List<List<int>> beams, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, double overlapMargin)
+        public placeBeams_CSI(StructureSet ss, List<Tuple<string, List<Tuple<string, int>>>> planInfo, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, double overlapMargin)
         {
             selectedSS = ss;
-            isoNames = new List<Tuple<string, List<string>>>(i);
-            numBeams = new List<List<int>>(beams);
+            planIsoBeamInfo = new List<Tuple<string, List<Tuple<string, int>>>>(planInfo);
             collRot = coll;
             jawPos = new List<VRect<double>>(jp);
             ebmpArc = new ExternalBeamMachineParameters(linac, energy, 600, "ARC", null);
@@ -54,19 +54,28 @@ namespace VMATAutoPlanMT
             contourOverlapMargin = overlapMargin;
         }
 
-        public override List<Tuple<ExternalPlanSetup,List<VVector>>> getIsocenterPositions()
+        public override List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> getIsocenterPositions()
         {
-            List<Tuple<ExternalPlanSetup, List<VVector>>> allIsocenters = new List<Tuple<ExternalPlanSetup, List<VVector>>> { };
+            List <Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> allIsocenters = new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
             Image image = selectedSS.Image;
             VVector userOrigin = image.UserOrigin;
             int count = 0;
-
             foreach (ExternalPlanSetup itr in plans)
             {
-                Structure target_tmp = selectedSS.Structures.FirstOrDefault(x => x.Id == prescriptions.FirstOrDefault(y => y.Item1 == itr.Id).Item2);
-                if (target_tmp == null) return new List<Tuple<ExternalPlanSetup,List<VVector>>> { };
-                List<VVector> iso = new List<VVector> { };
-                int numIsos = numBeams.ElementAt(count).Count;
+                //grab the target in this plan with the greatest z-extent (plans can now have multiple targets assigned)
+                List<Tuple<string, string, int, DoseValue, double>> tmpList = prescriptions.Where(x => x.Item1 == itr.Id).ToList();
+                double targetExtent = 0.0;
+                Structure longestTargetInPlan = null;
+                foreach (Tuple<string, string, int, DoseValue, double> itr1 in tmpList)
+                {
+                    Structure tmpTargStruct = selectedSS.Structures.FirstOrDefault(x => x.Id == itr1.Item2);
+                    Point3DCollection pts = tmpTargStruct.MeshGeometry.Positions;
+                    double tmpDiff = pts.Max(p => p.Z) - pts.Min(p => p.Z);
+                    if (tmpDiff > targetExtent) { longestTargetInPlan = tmpTargStruct; targetExtent = tmpDiff; }
+                }
+                if (longestTargetInPlan == null) return new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
+                List<Tuple<VVector, string, int>> tmp = new List<Tuple<VVector, string, int>> { };
+                int numIsos = planIsoBeamInfo.ElementAt(count).Item2.Count;
 
                 //All VMAT portions of the plans will ONLY have 3 isocenters
                 //double isoSeparation = Math.Round(((target.MeshGeometry.Positions.Max(p => p.Z) - target.MeshGeometry.Positions.Min(p => p.Z) - 10.0*numIsos) / numIsos) / 10.0f) * 10.0f;
@@ -74,7 +83,7 @@ namespace VMATAutoPlanMT
                 //isoSeparation = Math.Round(((target.MeshGeometry.Positions.Max(p => p.Z) - target.MeshGeometry.Positions.Min(p => p.Z) - 30.0) / 3) / 10.0f) * 10.0f;
 
                 //however, the actual correct equation is given below:
-                isoSeparation = Math.Round(((target_tmp.MeshGeometry.Positions.Max(p => p.Z) - target_tmp.MeshGeometry.Positions.Min(p => p.Z) - 380.0) / (numIsos - 1)) / 10.0f) * 10.0f;
+                isoSeparation = Math.Round(((targetExtent - 380.0) / (numIsos - 1)) / 10.0f) * 10.0f;
 
                 //It is calculated by setting the most superior and inferior isocenters to be 19.0 cm from the target volume edge in the z-direction. The isocenter separtion is then calculated as half the distance between these two isocenters (sep = ((max-19cm)-(min+19cm)/2).
                 //Tested on 5-7-2020. When the correct equation is rounded, it gives the same answer as the original empirical equation above, however, the isocenters are better positioned in the target volume (i.e., more symmetric about the target volume). 
@@ -94,22 +103,23 @@ namespace VMATAutoPlanMT
                     v.x = userOrigin.x;
                     v.y = userOrigin.y;
                     //5-7-2020 isocenter positions for actual isocenter separation equation described above
-                    if (numIsos > 1) v.z = (target_tmp.MeshGeometry.Positions.Max(p => p.Z) - i * isoSeparation - 190.0);
-                    else v.z = target_tmp.CenterPoint.z;
+                    if (numIsos > 1) v.z = (longestTargetInPlan.MeshGeometry.Positions.Max(p => p.Z) - i * isoSeparation - 190.0);
+                    else v.z = longestTargetInPlan.CenterPoint.z;
                     //round z position to the nearest integer
                     v = itr.StructureSet.Image.DicomToUser(v, itr);
                     v.z = Math.Round(v.z / 10.0f) * 10.0f;
                     v = itr.StructureSet.Image.UserToDicom(v, itr);
-                    iso.Add(v);
+                    tmp.Add(new Tuple<VVector, string, int>(v, planIsoBeamInfo.ElementAt(count).Item2.ElementAt(i).Item1, planIsoBeamInfo.ElementAt(count).Item2.ElementAt(i).Item2));
                 }
 
                 //evaluate the distance between the edge of the beam and the max/min of the PTV_body contour. If it is < checkIsoPlacementLimit, then warn the user that they might be fully covering the ptv_body structure.
                 //7-17-2020, checkIsoPlacementLimit = 5 mm
-                VVector firstIso = iso.First();
-                VVector lastIso = iso.Last();
-                if (!((firstIso.z + 200.0) - target_tmp.MeshGeometry.Positions.Max(p => p.Z) >= checkIsoPlacementLimit) ||
-                    !(target_tmp.MeshGeometry.Positions.Min(p => p.Z) - (lastIso.z - 200.0) >= checkIsoPlacementLimit)) checkIsoPlacement = true;
-                allIsocenters.Add(Tuple.Create(itr,new List<VVector>(iso)));
+                VVector firstIso = tmp.First().Item1;
+                VVector lastIso = tmp.Last().Item1;
+                if (!((firstIso.z + 200.0) - longestTargetInPlan.MeshGeometry.Positions.Max(p => p.Z) >= checkIsoPlacementLimit) ||
+                    !(longestTargetInPlan.MeshGeometry.Positions.Min(p => p.Z) - (lastIso.z - 200.0) >= checkIsoPlacementLimit)) checkIsoPlacement = true;
+
+                allIsocenters.Add(Tuple.Create(itr, new List<Tuple<VVector, string, int>>(tmp)));
                 count++;
             }
             return allIsocenters;
@@ -207,8 +217,6 @@ namespace VMATAutoPlanMT
             //    }
             //}
 
-            
-
             //MessageBox.Show(String.Format("{0}, {1}, {2}, {3}, {4}, {5}",
             //    firstIso.z,
             //    lastIso.z,
@@ -220,51 +228,52 @@ namespace VMATAutoPlanMT
             //return iso;
         }
 
-        public override void setBeams(Tuple<ExternalPlanSetup, List<VVector>> iso)
+        public override bool setBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
         {
-            //
-            //
-            //
-            //THIS FUNCTION IS A MESS AND NEEDS TO BE FIXED (8-14-2022)
-            //
-            //
-            //
-
             //DRR parameters (dummy parameters to generate DRRs for each field)
             DRRCalculationParameters DRR = new DRRCalculationParameters();
             DRR.DRRSize = 500.0;
             DRR.FieldOutlines = true;
             DRR.StructureOutlines = true;
             DRR.SetLayerParameters(1, 1.0, 100.0, 1000.0);
-            int count = 0;
-            List<string> isoNameList = new List<string> { }; 
-            List<int> beamList = new List<int> { };
-            foreach (Tuple<string,List<string>> itr in isoNames)
-            {
-                //determine isocenter name list, number of beams per isocenter list, and target structure from matching the plan Ids in the isoNames list and iso list
-                if(itr.Item1 == iso.Item1.Id)
-                {
-                    isoNameList = new List<string>(itr.Item2);
-                    beamList = new List<int>(numBeams.ElementAt(count));
-                    //item 2 is target Id
-                    target = selectedSS.Structures.FirstOrDefault(x => x.Id == prescriptions.ElementAt(count).Item2);
-                    if (target.Id.ToLower().Contains("ptv_csi")) target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_brain"));
-                    break;
-                }
-                count++;
-            }
+            //int count = 0;
+            //List<string> isoNameList = new List<string> { }; 
+            //List<int> beamList = new List<int> { };
+            //foreach (Tuple<string,List<string>> itr in isoNames)
+            //{
+            //    //determine isocenter name list, number of beams per isocenter list, and target structure from matching the plan Ids in the isoNames list and iso list
+            //    if(itr.Item1 == iso.Item1.Id)
+            //    {
+            //        isoNameList = new List<string>(itr.Item2);
+            //        beamList = new List<int>(numBeams.ElementAt(count));
+            //        //item 2 is target Id
+            //        target = selectedSS.Structures.FirstOrDefault(x => x.Id == prescriptions.ElementAt(count).Item2);
+            //        if (target.Id.ToLower().Contains("ptv_csi")) target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_brain"));
+            //        break;
+            //    }
+            //    count++;
+            //}
+            List<Tuple<string, string, int, DoseValue, double>> tmp = prescriptions.Where(x => x.Item1 == iso.Item1.Id).ToList();
+            if(tmp.Where(x => x.Item2.ToLower().Contains("ptv_csi")).Any()) target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_brain"));
+            else target = selectedSS.Structures.FirstOrDefault(x => x.Id.Contains(tmp.First().Item2));
+
+            if (target == null || target.IsEmpty) { MessageBox.Show(String.Format("Error! Target not found or is not contoured in plan {0}! Exiting!", iso.Item1.Id)); return true; }
 
             //if (isoNameList == null) { MessageBox.Show(String.Format("Failed to set beams for plan: {0}! Exiting!", iso.Item1.Id)); return; }
 
             //place the beams for the VMAT plan
-            count = 0;
+            int count = 0;
             string beamName;
             VRect<double> jp;
             for (int i = 0; i < iso.Item2.Count; i++)
             {
                 if (target.Id.ToLower().Contains("ptv_brain") && i > 0) target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_spine"));
-                for (int j = 0; j < beamList.ElementAt(i); j++)
+                //add beams for each isocenter
+                for (int j = 0; j < iso.Item2.ElementAt(i).Item3; j++)
                 {
+                    //kind of messy, but used to increment the collimator rotation one element in the array so you don't end up in a situation where the single beam in this isocenter has the same collimator rotation as
+                    //the single beam in the previous isocenter
+                    if (i > 0 && iso.Item2.ElementAt(i).Item3 == 1 && iso.Item2.ElementAt(i - 1).Item3 == 1) j++;
                     jp = jawPos.ElementAt(j);
                     Beam b;
                     beamName = "";
@@ -273,24 +282,25 @@ namespace VMATAutoPlanMT
                     //all even beams (e.g., 2, 4, etc.) will be CCW and all odd beams will be CW
                     if (count % 2 == 0)
                     {
-                        b = iso.Item1.AddArcBeam(ebmpArc, jp, coll, CCW[0], CCW[1], GantryDirection.CounterClockwise, 0, iso.Item2.ElementAt(i));
-                        if (j >= 2) beamName += String.Format("CCW {0}{1}", isoNameList.ElementAt(i), 90);
-                        else beamName += String.Format("CCW {0}{1}", isoNameList.ElementAt(i), "");
+                        b = iso.Item1.AddArcBeam(ebmpArc, jp, coll, CCW[0], CCW[1], GantryDirection.CounterClockwise, 0, iso.Item2.ElementAt(i).Item1);
+                        if (j >= 2) beamName += String.Format("CCW {0}{1}", iso.Item2.ElementAt(i).Item2, 90);
+                        else beamName += String.Format("CCW {0}{1}", iso.Item2.ElementAt(i).Item2, "");
                     }
                     else
                     {
-                        b = iso.Item1.AddArcBeam(ebmpArc, jp, coll, CW[0], CW[1], GantryDirection.Clockwise, 0, iso.Item2.ElementAt(i));
-                        if (j >= 2) beamName += String.Format("CW {0}{1}", isoNameList.ElementAt(i), 90);
-                        else beamName += String.Format("CW {0}{1}", isoNameList.ElementAt(i), "");
+                        b = iso.Item1.AddArcBeam(ebmpArc, jp, coll, CW[0], CW[1], GantryDirection.Clockwise, 0, iso.Item2.ElementAt(i).Item1);
+                        if (j >= 2) beamName += String.Format("CW {0}{1}", iso.Item2.ElementAt(i).Item2, 90);
+                        else beamName += String.Format("CW {0}{1}", iso.Item2.ElementAt(i).Item2, "");
                     }
                     //auto fit collimator to target structure
                     //circular margin (in mm), target structure, use asymmetric x Jaws, use asymmetric y jaws, optimize collimator rotation
-                    b.FitCollimatorToStructure(new FitToStructureMargins(20.0), target, true, true, false);
+                    b.FitCollimatorToStructure(new FitToStructureMargins(30.0), target, true, true, false);
                     b.Id = beamName;
                     b.CreateOrReplaceDRR(DRR);
                     count++;
                 }
             }
+            return false;
 
             /*
             //add additional plan for ap/pa legs fields (all ap/pa isocenter fields will be contained within this plan)

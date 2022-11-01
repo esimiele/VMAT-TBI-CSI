@@ -520,6 +520,11 @@ namespace VMATAutoPlanMT
 
         private void set_targets_Click(object sender, RoutedEventArgs e)
         {
+            if(selectedSS == null)
+            {
+                MessageBox.Show("Please select a structure set before setting the targets!");
+                return;
+            }
             if (targets_sp.Children.Count == 0)
             {
                 MessageBox.Show("No targets present in list! Please add some targets to the list before setting the target structures!");
@@ -570,9 +575,18 @@ namespace VMATAutoPlanMT
                             planID = planID.Substring(0, 13);
                         }
                         //only add the current row to the structure sparing list if all the parameters were successful parsed
+                        if(!structure.ToLower().Contains("ctv_spine") && !structure.ToLower().Contains("ctv_brain") && !structure.ToLower().Contains("ptv_spine") && !structure.ToLower().Contains("ptv_brain") && !structure.ToLower().Contains("ptv_csi"))
+                        {
+                            //if the requested target does not have an id that contains ctv, ptv, brain, spine, or ptv_csi, check to make sure it actually exists in the structure set before proceeding
+                            Structure unknownStructure = selectedSS.Structures.FirstOrDefault(x => x.Id == structure);
+                            if(unknownStructure == null || unknownStructure.IsEmpty)
+                            {
+                                MessageBox.Show(String.Format("Error! Structure: {0} not found or is empty! Please remove and try again!", structure));
+                                return;
+                            }
+                        }
                         targets.Add(Tuple.Create(structure, tgtRx, planID));
                     }
-                    
                     firstCombo = true;
                     tgtRx = -1000.0;
                 }
@@ -835,15 +849,6 @@ namespace VMATAutoPlanMT
             //the number of isocenters will always be equal to the number of vmat isocenters for vmat csi
             isoNames = generate.isoNames;
 
-            //8-12-2022
-            //prescriptions retrieved from set targets tab
-            //if (double.TryParse(initDosePerFxTB.Text, out double dose_perFx) && int.TryParse(initNumFxTB.Text, out int numFractions)) prescriptions.Add(Tuple.Create(numFractions, new DoseValue(dose_perFx, DoseValue.DoseUnit.cGy)));
-            //else
-            //{
-            //    MessageBox.Show("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
-            //    prescriptions.Add(Tuple.Create(1, new DoseValue(0.1, DoseValue.DoseUnit.cGy)));
-            //}
-
             //populate the beams and optimization tabs
             populateBeamsTab();
             if (optParameters.Count() > 0) populateOptimizationTab();
@@ -869,8 +874,6 @@ namespace VMATAutoPlanMT
         {
             //default option to contour overlap between fields in adjacent isocenters and assign the resulting structures as targets
             contourOverlap_chkbox.IsChecked = contourOverlap;
-            //contourOverlapLabel.Visibility = Visibility.Visible;
-            //contourOverlapTB.Visibility = Visibility.Visible;
             contourOverlapTB.Text = contourFieldOverlapMargin;
 
             BEAMS_SP.Children.Clear();
@@ -929,10 +932,7 @@ namespace VMATAutoPlanMT
                             MessageBox.Show(String.Format("Error! \nNumber of beams entered in iso {0} is > 4!", isoNames.ElementAt(count)));
                             return;
                         }
-                        else
-                        {
-                            numBeams_temp.Add(beamTMP);
-                        }
+                        else numBeams_temp.Add(beamTMP);
                         count++;
                     }
                     numElementsPerRow++;
@@ -946,6 +946,16 @@ namespace VMATAutoPlanMT
                 numElementsPerRow = 0;
             }
             numBeams.Add(new List<int>(numBeams_temp));
+
+            List<Tuple<string, List<Tuple<string, int>>>> planIsoBeamInfo = new List<Tuple<string, List<Tuple<string, int>>>> { };
+            count = 0;
+            foreach(Tuple<string,List<string>> itr in isoNames)
+            {
+                List<Tuple<string, int>> isoNameBeams = new List<Tuple<string, int>> { };
+                for(int i = 0; i < itr.Item2.Count; i++) isoNameBeams.Add(new Tuple<string, int>(itr.Item2.ElementAt(i), numBeams.ElementAt(count).ElementAt(i)));
+                planIsoBeamInfo.Add(new Tuple<string, List<Tuple<string, int>>>(itr.Item1, new List<Tuple<string, int>>(isoNameBeams)));
+                count++;
+            }
 
             /*
             //AP/PA stuff (THIS NEEDS TO GO AFTER THE ABOVE CHECKS!). Ask the user if they want to split the AP/PA isocenters into two plans if there are two AP/PA isocenters
@@ -978,11 +988,11 @@ namespace VMATAutoPlanMT
                 //convert from mm to cm
                 contourOverlapMargin *= 10.0;
                 //overloaded constructor for the placeBeams class
-                place = new placeBeams_CSI(selectedSS, isoNames, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, contourOverlapMargin);
+                place = new placeBeams_CSI(selectedSS, planIsoBeamInfo, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, contourOverlapMargin);
             }
-            else place = new placeBeams_CSI(selectedSS, isoNames, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel);
+            else place = new placeBeams_CSI(selectedSS, planIsoBeamInfo, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel);
 
-            VMATplans = new List<ExternalPlanSetup>(place.generatePlan("VMAT CSI", prescriptions));
+            VMATplans = new List<ExternalPlanSetup>(place.generatePlans("VMAT CSI", prescriptions));
             if (!VMATplans.Any()) return;
 
             //if the user elected to contour the overlap between fields in adjacent isocenters, get this list of structures from the placeBeams class and copy them to the jnxs vector
@@ -995,19 +1005,26 @@ namespace VMATAutoPlanMT
         //stuff related to optimization setup tab
         private void populateOptimizationTab()
         {
+            return;
             List<Tuple<string, string, double, double, int>> tmp = new List<Tuple<string, string, double, double, int>> { };
-            List<Tuple<string, string, double, double, int>> defaultList = new List<Tuple<string, string, double, double, int>> { };
+            List<List<Tuple<string, string, double, double, int>>> tmpList = new List<List<Tuple<string, string, double, double, int>>> { };
+            List<List<Tuple<string, string, double, double, int>>> defaultListList = new List<List<Tuple<string, string, double, double, int>>> { };
 
             //non-meyloabalative regime
             //if (noBoost_chkbox.IsChecked.Value) tmp = optConstBoost;
             ////meylo-abalative regime
             //else if (noBoost_chkbox.IsChecked.Value) tmp = optConstNoBoost;
             //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose
+            autoPlanTemplate selectedTemplate = templateList.SelectedItem as autoPlanTemplate;
+            if(selectedTemplate == null) return;
             if (prescriptions != null)
             {
+                if(selectedTemplate.init_constraints.Any()) tmpList.Add(selectedTemplate.init_constraints);
+                if(selectedTemplate.bst_constraints.Any()) tmpList.Add(selectedTemplate.bst_constraints);
+
                // double RxDose = prescriptions.Item2.Dose * prescriptions.Item1;
-                double baseDose = 1.0;
-                List<Tuple<string, string, double, double, int>> dummy = new List<Tuple<string, string, double, double, int>> { };
+                //double baseDose = 1.0;
+                //List<Tuple<string, string, double, double, int>> dummy = new List<Tuple<string, string, double, double, int>> { };
                 //use optimization objects of the closer of the two default regiments (6-18-2021)
                 //if (Math.Pow(RxDose - (nonmyeloNumFx * nonmyeloDosePerFx), 2) <= Math.Pow(RxDose - (reduceDoseNumFx * reduceDoseDosePerFx), 2))
                 //{
@@ -1030,61 +1047,66 @@ namespace VMATAutoPlanMT
             if (optParameters.Any())
             {
                 //there are items in the optParameters vector, indicating the TSgeneration was performed. Use the values in the OptParameters vector.
-                foreach (Tuple<string, string, double, double, int> opt in tmp)
+                foreach(List<Tuple<string, string, double, double, int>> itr in tmpList)
                 {
-                    //always add PTV objectives to optimization objectives list
-                    if (opt.Item1.Contains("PTV")) defaultList.Add(opt);
-                    //only add template optimization objectives for each structure to default list if that structure is present in the selected structure set and contoured
-                    else if (optParameters.Where(x => x.Item1.ToLower().Contains(opt.Item1.ToLower())).Any())
+                    List<Tuple<string, string, double, double, int>> defaultList = new List<Tuple<string, string, double, double, int>> { };
+                    foreach (Tuple<string, string, double, double, int> opt in itr)
                     {
-                        //12-22-2020 coded added to account for the situation where the structure selected for sparing had to be converted to a low resolution structure
-                        if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()) != null && !selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()).IsEmpty) defaultList.Add(Tuple.Create(optParameters.FirstOrDefault(x => x.Item1.ToLower() == (opt.Item1 + "_lowRes").ToLower()).Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
-                        else if (!selectedSS.Structures.First(x => x.Id.ToLower() == opt.Item1.ToLower()).IsEmpty) defaultList.Add(Tuple.Create(optParameters.FirstOrDefault(x => x.Item1.ToLower() == opt.Item1.ToLower()).Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
-                    }
-                }
-            }
-            else
-            {
-                //No items in the optParameters vector, indicating the user just wants to set/reset the optimization parameters. 
-                //In this case, just search through the structure set to see if any of the contoured structure IDs match the structures in the optimization parameter templates
-                if (selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ptv")).Any())
-                {
-                    foreach (Tuple<string, string, double, double, int> opt in tmp)
-                    {
+                        //always add PTV objectives to optimization objectives list
                         if (opt.Item1.Contains("PTV")) defaultList.Add(opt);
-                        else if (selectedSS.Structures.Where(x => x.Id.ToLower().Contains(opt.Item1.ToLower())).Any())
+                        //only add template optimization objectives for each structure to default list if that structure is present in the selected structure set and contoured
+                        else if (optParameters.Where(x => x.Item1.ToLower().Contains(opt.Item1.ToLower())).Any())
                         {
-                            //12-22-2020 coded added to account for the situation where the structure selected for sparing had to be previously converted to a low resolution structure using this script
-                            if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()) != null && !selectedSS.Structures.First(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()).IsEmpty) defaultList.Add(Tuple.Create(selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()).Id, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
-                            else if (!selectedSS.Structures.First(x => x.Id.ToLower() == opt.Item1.ToLower()).IsEmpty) defaultList.Add(Tuple.Create(selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == opt.Item1.ToLower()).Id, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
+                            //12-22-2020 coded added to account for the situation where the structure selected for sparing had to be converted to a low resolution structure
+                            if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()) != null && !selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()).IsEmpty) defaultList.Add(Tuple.Create(optParameters.FirstOrDefault(x => x.Item1.ToLower() == (opt.Item1 + "_lowRes").ToLower()).Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
+                            else if (!selectedSS.Structures.First(x => x.Id.ToLower() == opt.Item1.ToLower()).IsEmpty) defaultList.Add(Tuple.Create(optParameters.FirstOrDefault(x => x.Item1.ToLower() == opt.Item1.ToLower()).Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
                         }
                     }
-                }
-                else
-                {
-                    MessageBox.Show("Warning! No PTV structures in the selected structure set! Add a PTV structure and try again!");
-                    return;
+                    defaultListList.Add(new List<Tuple<string, string, double, double, int>>(defaultList));
                 }
             }
+            //else
+            //{
+            //    //No items in the optParameters vector, indicating the user just wants to set/reset the optimization parameters. 
+            //    //In this case, just search through the structure set to see if any of the contoured structure IDs match the structures in the optimization parameter templates
+            //    if (selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ptv")).Any())
+            //    {
+            //        foreach (Tuple<string, string, double, double, int> opt in tmp)
+            //        {
+            //            if (opt.Item1.Contains("PTV")) defaultList.Add(opt);
+            //            else if (selectedSS.Structures.Where(x => x.Id.ToLower().Contains(opt.Item1.ToLower())).Any())
+            //            {
+            //                //12-22-2020 coded added to account for the situation where the structure selected for sparing had to be previously converted to a low resolution structure using this script
+            //                if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()) != null && !selectedSS.Structures.First(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()).IsEmpty) defaultList.Add(Tuple.Create(selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()).Id, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
+            //                else if (!selectedSS.Structures.First(x => x.Id.ToLower() == opt.Item1.ToLower()).IsEmpty) defaultList.Add(Tuple.Create(selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == opt.Item1.ToLower()).Id, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
+            //            }
+            //        }
+            //    }
+            //    else
+            //    {
+            //        MessageBox.Show("Warning! No PTV structures in the selected structure set! Add a PTV structure and try again!");
+            //        return;
+            //    }
+            //}
 
             //check if the user requested to contour the overlap between fields in adjacent isocenters and also check if there are any structures in the junction structure stack (jnxs)
-            if (contourOverlap_chkbox.IsChecked.Value || jnxs.Any())
-            {
-                //we want to insert the optimization constraints for these junction structure right after the ptv constraints, so find the last index of the target ptv structure and insert
-                //the junction structure constraints directly after the target structure constraints
-                int index = defaultList.FindLastIndex(x => x.Item1.ToLower().Contains("ptv"));
-                foreach (Structure s in jnxs)
-                {
-                    //per Nataliya's instructions, add both a lower and upper constraint to the junction volumes. Make the constraints match those of the ptv target
-                   // defaultList.Insert(++index, new Tuple<string, string, double, double, int>(s.Id, "Lower", prescriptions.Item2.Dose * prescriptions.Item1, 100.0, 100));
-                   // defaultList.Insert(++index, new Tuple<string, string, double, double, int>(s.Id, "Upper", prescriptions.Item2.Dose * prescriptions.Item1 * 1.01, 0.0, 100));
-                }
-            }
+            //if (contourOverlap_chkbox.IsChecked.Value || jnxs.Any())
+            //{
+            //    //we want to insert the optimization constraints for these junction structure right after the ptv constraints, so find the last index of the target ptv structure and insert
+            //    //the junction structure constraints directly after the target structure constraints
+            //    int index = defaultList.FindLastIndex(x => x.Item1.ToLower().Contains("ptv"));
+            //    foreach (Structure s in jnxs)
+            //    {
+            //        //per Nataliya's instructions, add both a lower and upper constraint to the junction volumes. Make the constraints match those of the ptv target
+            //        defaultList.Insert(++index, new Tuple<string, string, double, double, int>(s.Id, "Lower", prescriptions.Item2.Dose * prescriptions.Item1, 100.0, 100));
+            //        defaultList.Insert(++index, new Tuple<string, string, double, double, int>(s.Id, "Upper", prescriptions.Item2.Dose * prescriptions.Item1 * 1.01, 0.0, 100));
+            //    }
+            //}
 
             //clear the current list of optimization objectives
             clear_optimization_parameter_list();
             //add the default list of optimization objectives to the displayed list of optimization objectives
-            add_opt_volumes(defaultList);
+           // add_opt_volumes(defaultList);
         }
 
         private void scanSS_Click(object sender, RoutedEventArgs e)
@@ -1693,12 +1715,9 @@ namespace VMATAutoPlanMT
             if (autoSave) app.SaveModifications();
             else if (isModified)
             {
-                confirmUI CUI = new confirmUI();
-                CUI.message.Text = "Save work to database?";
-                CUI.confirmBTN.Text = "YES";
-                CUI.cancelBTN.Text = "No";
-                CUI.ShowDialog();
-                if (CUI.confirm) app.SaveModifications();
+                helpers.SaveDialog SD = new helpers.SaveDialog();
+                SD.ShowDialog();
+                if (SD.save) app.SaveModifications();
             }
             if (app != null)
             {

@@ -74,6 +74,12 @@
     <Compile Include="baseClasses\generateTSbase.cs" />
     <Compile Include="baseClasses\planPrepBase.cs" />
     <Compile Include="ESAPIworker.cs" />
+    <Compile Include="helpers\SaveDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="helpers\SaveDialog.Designer.cs">
+      <DependentUpon>SaveDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="helpers\selectItem.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -152,6 +158,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="helpers\enterMissingInfo.resx">
       <DependentUpon>enterMissingInfo.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="helpers\SaveDialog.resx">
+      <DependentUpon>SaveDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="helpers\selectOption.resx">
       <DependentUpon>selectOption.cs</DependentUpon>

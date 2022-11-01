@@ -98,9 +98,9 @@ namespace VMATAutoPlanMT
 
         public bool calculateNumIsos()
         {
-            //revise to get the number of unique plans list, for each unique plan, find the target with the greatest z-extent and determine the number of isocenters based off that. If the target
-            //ID is PTV_CSI, calculate the number of isocenters based on PTV_spine and add one iso for the brain
-            //planId, target list
+            //For these cases the maximum number of allowed isocenters is 3. One isocenter is reserved for the brain and either one or two isocenters are used for the spine (depending on length).
+            //revised to get the number of unique plans list, for each unique plan, find the target with the greatest z-extent and determine the number of isocenters based off that target. 
+            //plan Id, list of targets assigned to that plan
             List<Tuple<string, List<string>>> planIdTargets = new List<Tuple<string, List<string>>> { };
             string tmpPlanId = prescriptions.First().Item1;
             List<string> targs = new List<string> { };
@@ -118,6 +118,7 @@ namespace VMATAutoPlanMT
 
             foreach(Tuple<string,List<string>> itr in planIdTargets)
             {
+                //determine for each plan which target has the greatest z-extent
                 double maxTargetLength = 0.0;
                 string longestTargetInPlan = "";
                 foreach (string s in itr.Item2)
@@ -133,10 +134,12 @@ namespace VMATAutoPlanMT
                     if (diff > maxTargetLength) { longestTargetInPlan = s; maxTargetLength = diff; }
                 }
 
-                //For these cases the maximum number of allowed isocenters is 3. One isocenter is reserved for the brain and either one or two isocenters are used for the spine (depending on length).
+                //If the target ID is PTV_CSI, calculate the number of isocenters based on PTV_spine and add one iso for the brain
+                //planId, target list
                 if (longestTargetInPlan == "PTV_CSI")
                 {
                     //special rules for initial plan, which should have a target named PTV_CSI
+                    //determine the number of isocenters required to treat PTV_Spine
                     Structure spineTarget = selectedSS.Structures.FirstOrDefault(x => x.Id == "PTV_Spine");
                     if (spineTarget == null || spineTarget.IsEmpty)
                     {
@@ -145,12 +148,12 @@ namespace VMATAutoPlanMT
                     }
                     Point3DCollection pts = spineTarget.MeshGeometry.Positions;
 
-                    //Grab the thyroid structure. If it exists, grab the minimum z position and subtract this from the ptv_spine extent (the brain fields extend down to the most inferior part of the thyroid)
-                    //If it does not exist, add a 50 mm buffer to the field extent (rough estimate of most inferior position of thyroid)
+                    //Grab the thyroid structure, if it does not exist, add a 50 mm buffer to the field extent (rough estimate of most inferior position of thyroid)
                     Structure thyroidStruct = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("thyroid"));
-                    if (thyroidStruct == null ||thyroidStruct.IsEmpty) numVMATIsos = (int)Math.Ceiling((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 + 50.0));
+                    if (thyroidStruct == null || thyroidStruct.IsEmpty) numVMATIsos = (int)Math.Ceiling((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 + 50.0));
                     else
                     {
+                        //If it exists, grab the minimum z position and subtract this from the ptv_spine extent (the brain fields extend down to the most inferior part of the thyroid)
                         Point3DCollection thyroidPts = thyroidStruct.MeshGeometry.Positions;
                         numVMATIsos = (int)Math.Ceiling((thyroidPts.Min(p => p.Z) - pts.Min(p => p.Z)) / 400.0);
                     }
@@ -165,28 +168,6 @@ namespace VMATAutoPlanMT
                 //plan Id, list of isocenter names for this plan
                 isoNames.Add(Tuple.Create(itr.Item1, new List<string>(new isoNameHelper().getIsoNames(numVMATIsos, numVMATIsos))));
             }
-
-            //foreach (Tuple<string,string,int,DoseValue,double> itr in prescriptions)
-            //{
-            //    //logic used to account for the initial CSI plan where we want the first isocenter centered in the brain and the remaining isos to be in the spine
-            //    //string targetID = itr.Item2;
-            //    //numVMATIsos = 0;
-            //    //if (targetID == "PTV_CSI")
-            //    //{
-            //    //    targetID = "PTV_Spine";
-            //    //    numVMATIsos = 1;
-            //    //}
-            //    //get the points collection for the target for each plan (used for calculating number of isocenters)
-            //    Point3DCollection pts = selectedSS.Structures.FirstOrDefault(x => x.Id == itr.Item2).MeshGeometry.Positions;
-
-            //    //For these cases the maximum number of allowed isocenters is 3. One isocenter is reserved for the brain and either one or two isocenters are used for the spine (depending on length).
-            //    numVMATIsos = (int)Math.Ceiling((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 - 20.0));
-            //    if (numVMATIsos > 3) numVMATIsos = 3;
-
-            //    //set isocenter names based on numIsos and numVMATIsos (reuse same naming convention as VMAT TBI for simplicity)
-            //    //plan Id, list of isocenter names for this plan
-            //    isoNames.Add(Tuple.Create(itr.Item1, new List<string>(new isoNameHelper().getIsoNames(numVMATIsos, numVMATIsos))));
-            //}
             
             return false;
         }
@@ -269,6 +250,7 @@ namespace VMATAutoPlanMT
             Structure spineTarget = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_spine"));
             combinedTarget.SegmentVolume = brainTarget.Margin(0.0);
             combinedTarget.SegmentVolume = combinedTarget.Or(spineTarget.Margin(0.0));
+            //crop PTV structure from body-3mm
             return false;
         }
 

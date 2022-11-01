@@ -36,7 +36,6 @@ namespace VMATAutoPlanMT.VMAT_CSI
         public autoPlanTemplate(string name)
         {
             templateName = name;
-
         }
     }
 }
