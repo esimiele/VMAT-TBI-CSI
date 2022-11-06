@@ -1065,6 +1065,8 @@ namespace VMATAutoPlanMT
                     defaultListList.Add(new List<Tuple<string, string, double, double, int>>(defaultList));
                 }
             }
+
+            foreach (List<Tuple<string, string, double, double, int>> itr in defaultListList) add_opt_volumes(itr);
             //else
             //{
             //    //No items in the optParameters vector, indicating the user just wants to set/reset the optimization parameters. 
