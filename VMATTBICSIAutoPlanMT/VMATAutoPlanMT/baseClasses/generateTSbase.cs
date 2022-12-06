@@ -158,7 +158,7 @@ namespace VMATAutoPlanMT
             {
                 selectedSS.AddStructure(dicomType, structName);
                 addedStructures.Add(structName);
-                optParameters.Add(Tuple.Create(structName, "Mean Dose < Rx Dose"));
+                optParameters.Add(Tuple.Create(structName, ""));
             }
             else MessageBox.Show(String.Format("Can't add {0} to the structure set!", structName));
         }

@@ -392,9 +392,9 @@ namespace VMATAutoPlanMT
             foreach (Structure itr in LStructs)
             {
                 Structure RStruct = RStructs.FirstOrDefault(x => x.Id.Substring(0, x.Id.Length - 2) == itr.Id.Substring(0, itr.Id.Length - 2));
-                if (RStruct != null && selectedSS.Structures.FirstOrDefault(x => x.Id == itr.Id.Substring(0, itr.Id.Length - 2) && !x.IsEmpty) == null)
+                string newName = addProperEndingToName(itr.Id.Substring(0, itr.Id.Length - 2).ToLower());
+                if (RStruct != null && selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == newName && !x.IsEmpty) == null)
                 {
-                    string newName = addProperEndingToName(itr.Id.Substring(0, itr.Id.Length - 2).ToLower());
                     if(selectedSS.Structures.FirstOrDefault(x => x.Id == newName) == null) structuresToUnion.Add(new Tuple<Structure, Structure>(itr, RStruct));
                 }
             }
@@ -415,7 +415,7 @@ namespace VMATAutoPlanMT
             string newName = addProperEndingToName(itr.Item1.Id.Substring(0, itr.Item1.Id.Length - 2).ToLower());
             try
             {
-                Structure existStructure = selectedSS.Structures.FirstOrDefault(x => x.Id == newName);
+                Structure existStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == newName);
                 //a structure already exists in the structure set with the intended name
                 if (existStructure != null) newStructure = existStructure;
                 else newStructure = selectedSS.AddStructure("CONTROL", newName);
@@ -728,6 +728,27 @@ namespace VMATAutoPlanMT
             return theSPList;
         }
 
+        public StackPanel AddPlanIdtoOptList(StackPanel theSP, string id)
+        {
+            StackPanel sp = new StackPanel();
+            sp.Height = 30;
+            sp.Width = theSP.Width;
+            sp.Orientation = Orientation.Horizontal;
+            sp.HorizontalAlignment = HorizontalAlignment.Center;
+            sp.Margin = new Thickness(5, 0, 5, 5);
+
+            Label strName = new Label();
+            strName.Content = String.Format("Plan Id: {0}", id);
+            strName.HorizontalAlignment = HorizontalAlignment.Center;
+            strName.VerticalAlignment = VerticalAlignment.Top;
+            strName.Width = theSP.Width;
+            strName.FontSize = 14;
+            strName.FontWeight = FontWeights.Bold;
+
+            sp.Children.Add(strName);
+            return sp;
+        }
+
         public StackPanel getOptHeader(StackPanel theSP)
         {
             StackPanel sp = new StackPanel();
@@ -877,16 +898,17 @@ namespace VMATAutoPlanMT
             return sp;
         }
 
-        public List<Tuple<string, string, double, double, int>> parseOptConstraints(StackPanel sp)
+        public List<Tuple<string,List<Tuple<string, string, double, double, int>>>> parseOptConstraints(StackPanel sp)
         {
             if (sp.Children.Count == 0)
             {
-                System.Windows.Forms.MessageBox.Show("No optimization parameters present to assign to VMAT TBI plan!");
-                return new List<Tuple<string, string, double, double, int>>();
+                System.Windows.Forms.MessageBox.Show("No optimization parameters present to assign to plans!");
+                return new List<Tuple<string, List<Tuple<string, string, double, double, int>>>>();
             }
 
             //get constraints
             List<Tuple<string, string, double, double, int>> optParametersList = new List<Tuple<string, string, double, double, int>> { };
+            List<Tuple<string,List<Tuple<string, string, double, double, int>>>> optParametersListList = new List<Tuple<string, List<Tuple<string, string, double, double, int>>>> { };
             string structure = "";
             string constraintType = "";
             double dose = -1.0;
@@ -894,49 +916,65 @@ namespace VMATAutoPlanMT
             int priority = -1;
             int txtbxNum = 1;
             bool firstCombo = true;
-            bool headerObj = true;
+            //bool headerObj = true;
+            int numElementsPerRow = 0;
+            string planId = "";
+            object copyObj = null;
             foreach (object obj in sp.Children)
             {
-                //skip over header row
-                if (!headerObj)
+                ////skip over header row
+                //if (!headerObj)
+                //{
+                foreach (object obj1 in ((StackPanel)obj).Children)
                 {
-                    foreach (object obj1 in ((StackPanel)obj).Children)
+                    if (obj1.GetType() == typeof(ComboBox))
                     {
-                        if (obj1.GetType() == typeof(ComboBox))
+                        if (firstCombo)
                         {
-                            if (firstCombo)
-                            {
-                                //first combobox is the structure
-                                structure = (obj1 as ComboBox).SelectedItem.ToString();
-                                firstCombo = false;
-                            }
-                            //second combobox is the constraint type
-                            else constraintType = (obj1 as ComboBox).SelectedItem.ToString();
+                            //first combobox is the structure
+                            structure = (obj1 as ComboBox).SelectedItem.ToString();
+                            firstCombo = false;
                         }
-                        else if (obj1.GetType() == typeof(TextBox))
-                        {
-                            if (!string.IsNullOrWhiteSpace((obj1 as TextBox).Text))
-                            {
-                                //first text box is the volume percentage
-                                if (txtbxNum == 1) double.TryParse((obj1 as TextBox).Text, out vol);
-                                //second text box is the dose constraint
-                                else if (txtbxNum == 2) double.TryParse((obj1 as TextBox).Text, out dose);
-                                //third text box is the priority
-                                else int.TryParse((obj1 as TextBox).Text, out priority);
-                            }
-                            txtbxNum++;
-                        }
+                        //second combobox is the constraint type
+                        else constraintType = (obj1 as ComboBox).SelectedItem.ToString();
                     }
+                    else if (obj1.GetType() == typeof(TextBox))
+                    {
+                        if (!string.IsNullOrWhiteSpace((obj1 as TextBox).Text))
+                        {
+                            //first text box is the volume percentage
+                            if (txtbxNum == 1) double.TryParse((obj1 as TextBox).Text, out vol);
+                            //second text box is the dose constraint
+                            else if (txtbxNum == 2) double.TryParse((obj1 as TextBox).Text, out dose);
+                            //third text box is the priority
+                            else int.TryParse((obj1 as TextBox).Text, out priority);
+                        }
+                        txtbxNum++;
+                    }
+                    else if (obj1.GetType() == typeof(Label)) copyObj = obj1;
+                    numElementsPerRow++;
+                }
+                if (numElementsPerRow == 1)
+                {
+                    if (optParametersList.Any())
+                    {
+                        optParametersListList.Add(new Tuple<string, List<Tuple<string, string, double, double, int>>>(planId, new List<Tuple<string, string, double, double, int>>(optParametersList)));
+                        optParametersList = new List<Tuple<string, string, double, double, int>> { };
+                    }
+                    planId = (copyObj as Label).Content.ToString().Substring((copyObj as Label).Content.ToString().IndexOf(":") + 2, (copyObj as Label).Content.ToString().Length - (copyObj as Label).Content.ToString().IndexOf(":") - 2);
+                }
+                else if (numElementsPerRow != 5)
+                {
                     //do some checks to ensure the integrity of the data
                     if (structure == "--select--" || constraintType == "--select--")
                     {
                         System.Windows.Forms.MessageBox.Show("Error! \nStructure or Sparing Type not selected! \nSelect an option and try again");
-                        return new List<Tuple<string, string, double, double, int>>();
+                        return new List<Tuple<string, List<Tuple<string, string, double, double, int>>>>();
                     }
                     else if (dose == -1.0 || vol == -1.0 || priority == -1.0)
                     {
                         System.Windows.Forms.MessageBox.Show("Error! \nDose, volume, or priority values are invalid! \nEnter new values and try again");
-                        return new List<Tuple<string, string, double, double, int>>();
+                        return new List<Tuple<string, List<Tuple<string, string, double, double, int>>>>();
                     }
                     //if the row of data passes the above checks, add it the optimization parameter list
                     else optParametersList.Add(Tuple.Create(structure, constraintType, dose, vol, priority));
@@ -947,9 +985,12 @@ namespace VMATAutoPlanMT
                     vol = -1.0;
                     priority = -1;
                 }
-                else headerObj = false;
+                numElementsPerRow = 0;
+            //}
+            //else headerObj = false;
             }
-            return optParametersList;
+            optParametersListList.Add(new Tuple<string, List<Tuple<string, string, double, double, int>>>(planId, new List<Tuple<string, string, double, double, int>>(optParametersList)));
+            return optParametersListList;
         }
 
         public void assignOptConstraints(List<Tuple<string, string, double, double, int>> parameters, ExternalPlanSetup VMATplan, bool useJawTracking, double NTOpriority)

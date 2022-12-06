@@ -128,7 +128,7 @@ namespace VMATAutoPlanMT
                 thePlan.SetCalculationModel(CalculationType.PhotonVolumeDose, calculationModel);
                 thePlan.SetCalculationModel(CalculationType.PhotonVMATOptimization, optimizationModel);
 
-                //Dictionary<string, string> d = plan.GetCalculationOptions(plan.GetCalculationModel(CalculationType.PhotonVMATOptimization));
+                //Dictionary<string, string> d = thePlan.GetCalculationOptions(thePlan.GetCalculationModel(CalculationType.PhotonVMATOptimization));
                 //string m = "";
                 //foreach (KeyValuePair<string, string> t in d) m += String.Format("{0}, {1}", t.Key, t.Value) + System.Environment.NewLine;
                 //MessageBox.Show(m);

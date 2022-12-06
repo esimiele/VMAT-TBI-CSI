@@ -911,7 +911,8 @@ namespace VMATAutoPlanMT
         private void setOptConst_Click(object sender, RoutedEventArgs e)
         {
             UIhelper helper = new UIhelper();
-            List<Tuple<string, string, double, double, int>> optParametersList = helper.parseOptConstraints(opt_parameters);
+            //12/5/2022 super janky, but works for now. Needed to accomodate multiple plans for VMAT CSI. Will fix later
+            List<Tuple<string, string, double, double, int>> optParametersList = helper.parseOptConstraints(opt_parameters).First().Item2;
             if (!optParametersList.Any()) return;
             if (VMATplan == null)
             {

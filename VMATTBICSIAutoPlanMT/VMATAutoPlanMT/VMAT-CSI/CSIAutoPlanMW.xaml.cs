@@ -845,13 +845,12 @@ namespace VMATAutoPlanMT
                 structureSpareList = generate.spareStructList;
                 add_sp_volumes(structureSpareList);
             }
-            if (generate.optParameters.Count() > 0) optParameters = generate.optParameters;
             //the number of isocenters will always be equal to the number of vmat isocenters for vmat csi
             isoNames = generate.isoNames;
 
             //populate the beams and optimization tabs
             populateBeamsTab();
-            if (optParameters.Count() > 0) populateOptimizationTab();
+            populateOptimizationTab();
             isModified = true;
         }
 
@@ -1005,7 +1004,6 @@ namespace VMATAutoPlanMT
         //stuff related to optimization setup tab
         private void populateOptimizationTab()
         {
-            return;
             List<Tuple<string, string, double, double, int>> tmp = new List<Tuple<string, string, double, double, int>> { };
             List<List<Tuple<string, string, double, double, int>>> tmpList = new List<List<Tuple<string, string, double, double, int>>> { };
             List<List<Tuple<string, string, double, double, int>>> defaultListList = new List<List<Tuple<string, string, double, double, int>>> { };
@@ -1016,13 +1014,13 @@ namespace VMATAutoPlanMT
             //else if (noBoost_chkbox.IsChecked.Value) tmp = optConstNoBoost;
             //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose
             autoPlanTemplate selectedTemplate = templateList.SelectedItem as autoPlanTemplate;
-            if(selectedTemplate == null) return;
+            if (selectedTemplate == null) { MessageBox.Show("no template selected!"); return; }
             if (prescriptions != null)
             {
-                if(selectedTemplate.init_constraints.Any()) tmpList.Add(selectedTemplate.init_constraints);
+                if (selectedTemplate.init_constraints.Any()) tmpList.Add(selectedTemplate.init_constraints);
                 if(selectedTemplate.bst_constraints.Any()) tmpList.Add(selectedTemplate.bst_constraints);
 
-               // double RxDose = prescriptions.Item2.Dose * prescriptions.Item1;
+                // double RxDose = prescriptions.Item2.Dose * prescriptions.Item1;
                 //double baseDose = 1.0;
                 //List<Tuple<string, string, double, double, int>> dummy = new List<Tuple<string, string, double, double, int>> { };
                 //use optimization objects of the closer of the two default regiments (6-18-2021)
@@ -1036,7 +1034,7 @@ namespace VMATAutoPlanMT
                 //    dummy = optConstNoBoost;
                 //    baseDose = reduceDoseDosePerFx * reduceDoseNumFx;
                 //}
-              //  foreach (Tuple<string, string, double, double, int> opt in dummy) tmp.Add(Tuple.Create(opt.Item1, opt.Item2, opt.Item3 * (RxDose / baseDose), opt.Item4, opt.Item5));
+                //  foreach (Tuple<string, string, double, double, int> opt in dummy) tmp.Add(Tuple.Create(opt.Item1, opt.Item2, opt.Item3 * (RxDose / baseDose), opt.Item4, opt.Item5));
             }
             else
             {
@@ -1044,29 +1042,22 @@ namespace VMATAutoPlanMT
                 return;
             }
 
-            if (optParameters.Any())
+            foreach (List<Tuple<string, string, double, double, int>> itr in tmpList)
             {
-                //there are items in the optParameters vector, indicating the TSgeneration was performed. Use the values in the OptParameters vector.
-                foreach(List<Tuple<string, string, double, double, int>> itr in tmpList)
+                List<Tuple<string, string, double, double, int>> defaultList = new List<Tuple<string, string, double, double, int>> { };
+                foreach (Tuple<string, string, double, double, int> opt in itr)
                 {
-                    List<Tuple<string, string, double, double, int>> defaultList = new List<Tuple<string, string, double, double, int>> { };
-                    foreach (Tuple<string, string, double, double, int> opt in itr)
-                    {
-                        //always add PTV objectives to optimization objectives list
-                        if (opt.Item1.Contains("PTV")) defaultList.Add(opt);
-                        //only add template optimization objectives for each structure to default list if that structure is present in the selected structure set and contoured
-                        else if (optParameters.Where(x => x.Item1.ToLower().Contains(opt.Item1.ToLower())).Any())
-                        {
-                            //12-22-2020 coded added to account for the situation where the structure selected for sparing had to be converted to a low resolution structure
-                            if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()) != null && !selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()).IsEmpty) defaultList.Add(Tuple.Create(optParameters.FirstOrDefault(x => x.Item1.ToLower() == (opt.Item1 + "_lowRes").ToLower()).Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
-                            else if (!selectedSS.Structures.First(x => x.Id.ToLower() == opt.Item1.ToLower()).IsEmpty) defaultList.Add(Tuple.Create(optParameters.FirstOrDefault(x => x.Item1.ToLower() == opt.Item1.ToLower()).Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
-                        }
-                    }
-                    defaultListList.Add(new List<Tuple<string, string, double, double, int>>(defaultList));
+                    //always add PTV objectives to optimization objectives list
+                    if (opt.Item1.Contains("PTV")) defaultList.Add(opt);
+                    //only add template optimization objectives for each structure to default list if that structure is present in the selected structure set and contoured
+                    //12-22-2020 coded added to account for the situation where the structure selected for sparing had to be converted to a low resolution structure
+                    else if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()) != null && !selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()).IsEmpty) defaultList.Add(Tuple.Create(selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()).Id, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
+                    else if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == opt.Item1.ToLower()) != null && !selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == opt.Item1.ToLower()).IsEmpty) defaultList.Add(opt);
                 }
+                defaultListList.Add(new List<Tuple<string, string, double, double, int>>(defaultList));
             }
-
-            foreach (List<Tuple<string, string, double, double, int>> itr in defaultListList) add_opt_volumes(itr);
+            int count = 0;
+            foreach (List<Tuple<string, string, double, double, int>> itr in defaultListList) add_opt_volumes(itr, prescriptions.ElementAt(count++).Item1);
             //else
             //{
             //    //No items in the optParameters vector, indicating the user just wants to set/reset the optimization parameters. 
@@ -1106,7 +1097,7 @@ namespace VMATAutoPlanMT
             //}
 
             //clear the current list of optimization objectives
-            clear_optimization_parameter_list();
+           // clear_optimization_parameter_list();
             //add the default list of optimization objectives to the displayed list of optimization objectives
            // add_opt_volumes(defaultList);
         }
@@ -1128,8 +1119,20 @@ namespace VMATAutoPlanMT
         private void setOptConst_Click(object sender, RoutedEventArgs e)
         {
             UIhelper helper = new UIhelper();
-            List<Tuple<string, string, double, double, int>> optParametersList = helper.parseOptConstraints(opt_parameters);
-            if (!optParametersList.Any()) return;
+            List<Tuple<string,List<Tuple<string, string, double, double, int>>>> optParametersListList = helper.parseOptConstraints(opt_parameters);
+            if (!optParametersListList.Any()) return;
+            foreach(Tuple<string,List<Tuple<string,string,double,double,int>>> itr in optParametersListList)
+            {
+                ExternalPlanSetup plan = VMATplans.FirstOrDefault(x => x.Id == itr.Item1);
+                if(plan != null)
+                {
+                    if(plan.OptimizationSetup.Objectives.Count() > 0)
+                    {
+                        foreach (OptimizationObjective o in plan.OptimizationSetup.Objectives) plan.OptimizationSetup.RemoveObjective(o);
+                    }
+                    helper.assignOptConstraints(itr.Item2, plan, true, 0.0);
+                }
+            }
             /*
             if (VMATplan == null)
             {
@@ -1169,7 +1172,7 @@ namespace VMATAutoPlanMT
             //else
             //{
             string message = "Optimization objectives have been successfully set!" + Environment.NewLine + Environment.NewLine + "Please review the generated structures, placed isocenters, placed beams, and optimization parameters!";
-            if (optParametersList.Where(x => x.Item1.ToLower().Contains("_lowres")).Any()) message += "\n\nBE SURE TO VERIFY THE ACCURACY OF THE GENERATED LOW-RESOLUTION CONTOURS!";
+            //if (optParametersList.Where(x => x.Item1.ToLower().Contains("_lowres")).Any()) message += "\n\nBE SURE TO VERIFY THE ACCURACY OF THE GENERATED LOW-RESOLUTION CONTOURS!";
             //if (numIsos != 0 && numIsos != numVMATIsos)
             //{
             //    //VMAT only TBI plan was created with the script in this instance info or the user wants to only set the optimization constraints
@@ -1177,14 +1180,14 @@ namespace VMATAutoPlanMT
             //}
             MessageBox.Show(message);
             //}
-            autoSave = true;
+            //autoSave = true;
             isModified = true;
         }
 
         private void add_constraint_Click(object sender, RoutedEventArgs e)
         {
-            add_opt_volumes(new List<Tuple<string, string, double, double, int>> { Tuple.Create("--select--", "--select--", 0.0, 0.0, 0) });
-            optParamScroller.ScrollToBottom();
+            //add_opt_volumes(new List<Tuple<string, string, double, double, int>> { Tuple.Create("--select--", "--select--", 0.0, 0.0, 0) });
+            //optParamScroller.ScrollToBottom();
         }
 
         private void add_opt_header()
@@ -1193,11 +1196,12 @@ namespace VMATAutoPlanMT
             firstOptStruct = false;
         }
 
-        private void add_opt_volumes(List<Tuple<string, string, double, double, int>> defaultList)
+        private void add_opt_volumes(List<Tuple<string, string, double, double, int>> defaultList, string planId)
         {
             //if (selectedSS == null) { MessageBox.Show("Error! The structure set has not been assigned! Choose a structure set and try again!"); return; }
-            if (firstOptStruct) add_opt_header();
             UIhelper helper = new UIhelper();
+            opt_parameters.Children.Add(helper.AddPlanIdtoOptList(opt_parameters, planId));
+            add_opt_header();
             for (int i = 0; i < defaultList.Count; i++)
             {
                 clearOptBtnCounter++;

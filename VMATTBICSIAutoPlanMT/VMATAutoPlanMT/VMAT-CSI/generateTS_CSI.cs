@@ -183,6 +183,7 @@ namespace VMATAutoPlanMT
                 {
                     addedStructures.Add(itr.Item2);
                     addedTargets.Add(selectedSS.AddStructure(itr.Item1, itr.Item2));
+                    optParameters.Add(new Tuple<string,string>(itr.Item1, itr.Item2));
                 }
                 else
                 {
@@ -263,7 +264,7 @@ namespace VMATAutoPlanMT
                 if (itr.Item2 == "Crop from target") foreach (Tuple<string, string> itr1 in TS_structures.Where(x => x.Item2.ToLower().Contains(itr.Item1.ToLower()))) AddTSStructures(itr1);
             }
             //add ring structures to the stack
-            foreach (Tuple<string, string> itr in TS_structures.Where(x => x.Item2.ToLower().Contains("ts_ring"))) AddTSStructures(itr);
+            foreach (Tuple<string, string> itr in TS_structures.Where(x => !x.Item2.ToLower().Contains("ctv") && !x.Item2.ToLower().Contains("ptv"))) AddTSStructures(itr);
 
             //now contour the various structures
             foreach (string itr in addedStructures)
@@ -305,15 +306,20 @@ namespace VMATAutoPlanMT
                 {
                     Structure tmp1 = null;
                     double margin = 0.0;
-                    if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains(itr.ToLower()) && x.Id.ToLower().Contains("_low")) == null) tmp1 = selectedSS.Structures.First(x => x.Id.ToLower().Contains(itr.ToLower()));
-                    else tmp1 = selectedSS.Structures.First(x => x.Id.ToLower().Contains(itr.ToLower()) && x.Id.ToLower().Contains("_low"));
-                    //all structures in TS_structures and scleroStructures are inner margins, which is why the below code works.
                     int pos1 = itr.IndexOf("-");
                     int pos2 = itr.IndexOf("cm");
-                    if (pos1 != -1 && pos2 != -1) double.TryParse(itr.Substring(pos1, pos2 - pos1), out margin);
+                    if (pos1 != -1 && pos2 != -1)
+                    {
+                        string originalStructure = itr.Substring(0, pos1);
+                        double.TryParse(itr.Substring(pos1, pos2 - pos1), out margin);
 
-                    //convert from cm to mm
-                    tmp.SegmentVolume = tmp1.Margin(margin * 10);
+                        if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains(originalStructure.ToLower()) && x.Id.ToLower().Contains("_low")) == null) tmp1 = selectedSS.Structures.First(x => x.Id.ToLower().Contains(originalStructure.ToLower()));
+                        else tmp1 = selectedSS.Structures.First(x => x.Id.ToLower().Contains(originalStructure.ToLower()) && x.Id.ToLower().Contains("_low"));
+                        //all structures in TS_structures and scleroStructures are inner margins, which is why the below code works.
+
+                        //convert from cm to mm
+                        tmp.SegmentVolume = tmp1.Margin(margin * 10);
+                    }
                 }
                 else if (itr.ToLower() == "ptv_csi")
                 {
