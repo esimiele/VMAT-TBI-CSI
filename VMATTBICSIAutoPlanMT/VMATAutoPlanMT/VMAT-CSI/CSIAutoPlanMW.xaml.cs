@@ -61,6 +61,8 @@ namespace VMATAutoPlanMT
         string documentationPath = @"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\documentation\";
         //location where CT images should be exported
         string imgExportPath = @"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\exportedImages\";
+        //image export format
+        string imgExportFormat = "png";
         //treatment units and associated photon beam energies
         List<string> linacs = new List<string> { "LA16", "LA17" };
         List<string> beamEnergies = new List<string> { "6X"};
@@ -91,11 +93,9 @@ namespace VMATAutoPlanMT
         StructureSet selectedSS = null;
         private bool firstTargetStruct = true;
         private bool firstSpareStruct = true;
-        private bool firstOptStruct = true;
         public int clearTargetBtnCounter = 0;
         public int clearSpareBtnCounter = 0;
         public int clearOptBtnCounter = 0;
-        List<Tuple<string, string>> optParameters = new List<Tuple<string, string>> { };
         List<ExternalPlanSetup> VMATplans = new List<ExternalPlanSetup> { };
         //plan Id, list of isocenter names for this plan
         public List<Tuple<string,List<string>>> isoNames = new List<Tuple<string, List<string>>> { };
@@ -183,7 +183,9 @@ namespace VMATAutoPlanMT
             if (configFile != "") configTB.Text += String.Format(" Configuration file: {0}", configFile) + System.Environment.NewLine + System.Environment.NewLine;
             else configTB.Text += String.Format(" Configuration file: none") + System.Environment.NewLine + System.Environment.NewLine;
             configTB.Text += String.Format(" Documentation path: {0}", documentationPath) + System.Environment.NewLine + System.Environment.NewLine;
+            configTB.Text += String.Format(" Image export path: {0}", imgExportPath) + System.Environment.NewLine + System.Environment.NewLine;
             configTB.Text += String.Format(" Default parameters:") + System.Environment.NewLine;
+            configTB.Text += String.Format(" Image export format: {0}", imgExportFormat) + System.Environment.NewLine;
             configTB.Text += String.Format(" Contour field ovelap: {0}", contourOverlap) + System.Environment.NewLine;
             configTB.Text += String.Format(" Contour field overlap margin: {0} cm", contourFieldOverlapMargin) + System.Environment.NewLine;
             configTB.Text += String.Format(" Available linacs:") + System.Environment.NewLine;
@@ -305,7 +307,8 @@ namespace VMATAutoPlanMT
             if (!string.IsNullOrWhiteSpace(selectedCTID))
             {
                 VMS.TPS.Common.Model.API.Image theImage = pi.StructureSets.FirstOrDefault(x => x.Image.Id == selectedCTID).Image;
-                if (helper.imageExport(theImage, imgExportPath, pi.Id)) return;
+                helpers.CTImageExport exporter = new helpers.CTImageExport(theImage, imgExportPath, pi.Id, imgExportFormat);
+                if (exporter.exportImage()) return;
                 MessageBox.Show(String.Format("{0} has been exported successfully!", theImage.Id));
             }
             else MessageBox.Show("No imaged selected for export!");
@@ -1193,7 +1196,6 @@ namespace VMATAutoPlanMT
         private void add_opt_header()
         {
             opt_parameters.Children.Add(new UIhelper().getOptHeader(structures_sp));
-            firstOptStruct = false;
         }
 
         private void add_opt_volumes(List<Tuple<string, string, double, double, int>> defaultList, string planId)
@@ -1222,7 +1224,6 @@ namespace VMATAutoPlanMT
         private void clear_optimization_parameter_list()
         {
             opt_parameters.Children.Clear();
-            firstOptStruct = true;
             clearOptBtnCounter = 0;
         }
 
@@ -1494,7 +1495,7 @@ namespace VMATAutoPlanMT
                                                 if (documentationPath.LastIndexOf("\\") != documentationPath.Length - 1) documentationPath += "\\";
                                             }
                                         }
-                                        else if(parameter == "img export location")
+                                        else if (parameter == "img export location")
                                         {
                                             if (Directory.Exists(value))
                                             {
@@ -1532,6 +1533,7 @@ namespace VMATAutoPlanMT
                                             c.Add(double.Parse(line.Substring(0, line.IndexOf("}"))));
                                             for (int i = 0; i < c.Count(); i++) { if (i < 5) collRot[i] = c.ElementAt(i); }
                                         }
+                                        else if (parameter == "img export format") { if (value == "dcm" || value == "png") imgExportFormat = value; else MessageBox.Show("Only png and dcm image formats are supported for export!"); }
                                         else if (parameter == "use GPU for dose calculation") useGPUdose = value;
                                         else if (parameter == "use GPU for optimization") useGPUoptimization = value;
                                         else if (parameter == "MR level restart") MRrestartLevel = value;
