@@ -147,7 +147,7 @@ namespace VMATAutoPlanMT
                 if (pi != null)
                 {
                     //SSID is combobox defined in UI.xaml
-                    foreach (StructureSet s in pi.StructureSets) SSID.Items.Add(s.Id);
+                    foreach (StructureSet s in pi.StructureSets.OrderByDescending(x => x.HistoryDateTime)) SSID.Items.Add(s.Id);
                     //SSID default is the current structure set in the context
                     if (!string.IsNullOrEmpty(ss)) { selectedSS = pi.StructureSets.FirstOrDefault(x => x.Id == ss); SSID.Text = selectedSS.Id; }
                     else MessageBox.Show("Warning! No structure set in context! Please select a structure set at the top of the GUI!");
@@ -1005,51 +1005,59 @@ namespace VMATAutoPlanMT
         }
 
         //stuff related to optimization setup tab
-        private void populateOptimizationTab()
+        private void populateOptimizationTab(List<List<Tuple<string, string, double, double, int>>> tmpList = null)
         {
-            List<Tuple<string, string, double, double, int>> tmp = new List<Tuple<string, string, double, double, int>> { };
-            List<List<Tuple<string, string, double, double, int>>> tmpList = new List<List<Tuple<string, string, double, double, int>>> { };
             List<List<Tuple<string, string, double, double, int>>> defaultListList = new List<List<Tuple<string, string, double, double, int>>> { };
-
-            //non-meyloabalative regime
-            //if (noBoost_chkbox.IsChecked.Value) tmp = optConstBoost;
-            ////meylo-abalative regime
-            //else if (noBoost_chkbox.IsChecked.Value) tmp = optConstNoBoost;
-            //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose
-            autoPlanTemplate selectedTemplate = templateList.SelectedItem as autoPlanTemplate;
-            if (selectedTemplate == null) { MessageBox.Show("no template selected!"); return; }
-            if (prescriptions != null)
+            if(tmpList == null)
             {
-                if (selectedTemplate.init_constraints.Any()) tmpList.Add(selectedTemplate.init_constraints);
-                if(selectedTemplate.bst_constraints.Any()) tmpList.Add(selectedTemplate.bst_constraints);
+                //tmplist is empty
+                tmpList = new List<List<Tuple<string, string, double, double, int>>> { };
+                //non-meyloabalative regime
+                //if (noBoost_chkbox.IsChecked.Value) tmp = optConstBoost;
+                ////meylo-abalative regime
+                //else if (noBoost_chkbox.IsChecked.Value) tmp = optConstNoBoost;
+                //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose
+                autoPlanTemplate selectedTemplate = templateList.SelectedItem as autoPlanTemplate;
+                if (selectedTemplate == null) { MessageBox.Show("no template selected!"); return; }
+                if (prescriptions != null)
+                {
+                    if (selectedTemplate.init_constraints.Any()) tmpList.Add(selectedTemplate.init_constraints);
+                    if (selectedTemplate.bst_constraints.Any()) tmpList.Add(selectedTemplate.bst_constraints);
 
-                // double RxDose = prescriptions.Item2.Dose * prescriptions.Item1;
-                //double baseDose = 1.0;
-                //List<Tuple<string, string, double, double, int>> dummy = new List<Tuple<string, string, double, double, int>> { };
-                //use optimization objects of the closer of the two default regiments (6-18-2021)
-                //if (Math.Pow(RxDose - (nonmyeloNumFx * nonmyeloDosePerFx), 2) <= Math.Pow(RxDose - (reduceDoseNumFx * reduceDoseDosePerFx), 2))
-                //{
-                //    dummy = optConstBoost;
-                //    baseDose = nonmyeloDosePerFx * nonmyeloNumFx;
-                //}
-                //else
-                //{
-                //    dummy = optConstNoBoost;
-                //    baseDose = reduceDoseDosePerFx * reduceDoseNumFx;
-                //}
-                //  foreach (Tuple<string, string, double, double, int> opt in dummy) tmp.Add(Tuple.Create(opt.Item1, opt.Item2, opt.Item3 * (RxDose / baseDose), opt.Item4, opt.Item5));
+                    // double RxDose = prescriptions.Item2.Dose * prescriptions.Item1;
+                    //double baseDose = 1.0;
+                    //List<Tuple<string, string, double, double, int>> dummy = new List<Tuple<string, string, double, double, int>> { };
+                    //use optimization objects of the closer of the two default regiments (6-18-2021)
+                    //if (Math.Pow(RxDose - (nonmyeloNumFx * nonmyeloDosePerFx), 2) <= Math.Pow(RxDose - (reduceDoseNumFx * reduceDoseDosePerFx), 2))
+                    //{
+                    //    dummy = optConstBoost;
+                    //    baseDose = nonmyeloDosePerFx * nonmyeloNumFx;
+                    //}
+                    //else
+                    //{
+                    //    dummy = optConstNoBoost;
+                    //    baseDose = reduceDoseDosePerFx * reduceDoseNumFx;
+                    //}
+                    //  foreach (Tuple<string, string, double, double, int> opt in dummy) tmp.Add(Tuple.Create(opt.Item1, opt.Item2, opt.Item3 * (RxDose / baseDose), opt.Item4, opt.Item5));
+                }
+                else
+                {
+                    MessageBox.Show("Error: No template treatment regiment selected AND entered Rx dose is NOT valid! \nYou must enter the optimization constraints manually!");
+                    return;
+                }
             }
             else
             {
-                MessageBox.Show("Error: No template treatment regiment selected AND entered Rx dose is NOT valid! \nYou must enter the optimization constraints manually!");
-                return;
+                //tmpList already has stuff in it
             }
+            
 
             foreach (List<Tuple<string, string, double, double, int>> itr in tmpList)
             {
                 List<Tuple<string, string, double, double, int>> defaultList = new List<Tuple<string, string, double, double, int>> { };
                 foreach (Tuple<string, string, double, double, int> opt in itr)
                 {
+                    if (opt.Item1.Contains("--select--")) defaultList.Add(opt);
                     //always add PTV objectives to optimization objectives list
                     if (opt.Item1.Contains("PTV")) defaultList.Add(opt);
                     //only add template optimization objectives for each structure to default list if that structure is present in the selected structure set and contoured
@@ -1115,7 +1123,7 @@ namespace VMATAutoPlanMT
             //  //  prescriptions = Tuple.Create(1, new DoseValue(0.1, DoseValue.DoseUnit.cGy));
             //}
             //if (selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ts_jnx")).Any()) jnxs = selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ts_jnx")).ToList();
-
+            clear_optimization_parameter_list();
             populateOptimizationTab();
         }
 
@@ -1189,8 +1197,70 @@ namespace VMATAutoPlanMT
 
         private void add_constraint_Click(object sender, RoutedEventArgs e)
         {
-            //add_opt_volumes(new List<Tuple<string, string, double, double, int>> { Tuple.Create("--select--", "--select--", 0.0, 0.0, 0) });
             //optParamScroller.ScrollToBottom();
+            if (!prescriptions.Any()) return;
+            ExternalPlanSetup thePlan = null;
+            if (!VMATplans.Any()) return;
+            if (VMATplans.Count > 0)
+            {
+                selectItem SUI = new selectItem();
+                SUI.title.Text = "Please selct a plan to add a constraint!";
+                foreach (ExternalPlanSetup itr in VMATplans) SUI.itemCombo.Items.Add(itr.Id);
+                SUI.itemCombo.Items.Add("Both");
+                SUI.itemCombo.SelectedIndex = 0;
+                SUI.ShowDialog();
+                if (SUI.confirm) thePlan = VMATplans.FirstOrDefault(x => x.Id == SUI.itemCombo.SelectedItem.ToString());
+                else return;
+                if (thePlan == null) { MessageBox.Show("Plan not found! Exiting!"); return; }
+            }
+            else thePlan = VMATplans.First();
+            int index = prescriptions.IndexOf(prescriptions.FirstOrDefault(x => x.Item1 == thePlan.Id));
+            if(index != -1)
+            {
+                List<List<Tuple<string, string, double, double, int>>> tmpList = new List<List<Tuple<string, string, double, double, int>>> { };
+                List<Tuple<string, string, double, double, int>> tmp = new List<Tuple<string, string, double, double, int>> { };
+                if (opt_parameters.Children.Count > 0)
+                {
+                    //read list of current objectives
+                    UIhelper helper = new UIhelper();
+                    List<Tuple<string, List<Tuple<string, string, double, double, int>>>> optParametersListList = helper.parseOptConstraints(opt_parameters, false);
+                    foreach (Tuple<string, List<Tuple<string, string, double, double, int>>> itr in optParametersListList)
+                    {
+                        if (itr.Item1 == thePlan.Id)
+                        {
+                            tmp = new List<Tuple<string, string, double, double, int>>(itr.Item2);
+                            tmp.Add(Tuple.Create("--select--", "--select--", 0.0, 0.0, 0));
+                            tmpList.Add(tmp);
+                        }
+                        else tmpList.Add(itr.Item2);
+                    }
+                }
+                else
+                {
+                    autoPlanTemplate selectedTemplate = templateList.SelectedItem as autoPlanTemplate;
+                    if(selectedTemplate != null)
+                    {
+                        if(index == 0)
+                        {
+                            if (selectedTemplate.init_constraints.Any()) tmp = new List<Tuple<string,string,double,double,int>>(selectedTemplate.init_constraints);
+                            tmp.Add(Tuple.Create("--select--", "--select--", 0.0, 0.0, 0));
+                            tmpList.Add(tmp);
+                            if (selectedTemplate.bst_constraints.Any()) tmpList.Add(selectedTemplate.bst_constraints);
+                        }
+                        else
+                        {
+                            if (selectedTemplate.init_constraints.Any()) tmpList.Add(selectedTemplate.init_constraints);
+                            else tmpList.Add(new List<Tuple<string, string, double, double, int>> { Tuple.Create("--select--", "--select--", 0.0, 0.0, 0) });
+
+                            if (selectedTemplate.bst_constraints.Any()) tmp = new List<Tuple<string, string, double, double, int>>(selectedTemplate.bst_constraints);
+                            tmp.Add(Tuple.Create("--select--", "--select--", 0.0, 0.0, 0));
+                            tmpList.Add(tmp);
+                        }
+                    }
+                }
+                clear_optimization_parameter_list();
+                populateOptimizationTab(tmpList);
+            }
         }
 
         private void add_opt_header()

@@ -738,7 +738,7 @@ namespace VMATAutoPlanMT
             return sp;
         }
 
-        public List<Tuple<string,List<Tuple<string, string, double, double, int>>>> parseOptConstraints(StackPanel sp)
+        public List<Tuple<string,List<Tuple<string, string, double, double, int>>>> parseOptConstraints(StackPanel sp, bool checkInputIntegrity = true)
         {
             if (sp.Children.Count == 0)
             {
@@ -806,12 +806,12 @@ namespace VMATAutoPlanMT
                 else if (numElementsPerRow != 5)
                 {
                     //do some checks to ensure the integrity of the data
-                    if (structure == "--select--" || constraintType == "--select--")
+                    if (checkInputIntegrity && (structure == "--select--" || constraintType == "--select--"))
                     {
                         System.Windows.Forms.MessageBox.Show("Error! \nStructure or Sparing Type not selected! \nSelect an option and try again");
                         return new List<Tuple<string, List<Tuple<string, string, double, double, int>>>>();
                     }
-                    else if (dose == -1.0 || vol == -1.0 || priority == -1.0)
+                    else if (checkInputIntegrity && (dose == -1.0 || vol == -1.0 || priority == -1.0))
                     {
                         System.Windows.Forms.MessageBox.Show("Error! \nDose, volume, or priority values are invalid! \nEnter new values and try again");
                         return new List<Tuple<string, List<Tuple<string, string, double, double, int>>>>();
