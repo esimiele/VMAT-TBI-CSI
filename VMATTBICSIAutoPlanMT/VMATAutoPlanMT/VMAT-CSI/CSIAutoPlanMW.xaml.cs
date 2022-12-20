@@ -92,8 +92,10 @@ namespace VMATAutoPlanMT
         public Patient pi = null;
         StructureSet selectedSS = null;
         private bool firstTargetStruct = true;
+        private bool firstTargetTemplateStruct = true;
         private bool firstSpareStruct = true;
         public int clearTargetBtnCounter = 0;
+        public int clearTargetTemplateBtnCounter = 0;
         public int clearSpareBtnCounter = 0;
         public int clearOptBtnCounter = 0;
         List<ExternalPlanSetup> VMATplans = new List<ExternalPlanSetup> { };
@@ -158,6 +160,8 @@ namespace VMATAutoPlanMT
 
             PlanTemplates = new ObservableCollection<autoPlanTemplate>() { new autoPlanTemplate("--select--") };
             DataContext = this;
+            templateBuildOptionCB.Items.Add("Existing template");
+            templateBuildOptionCB.Items.Add("Current parameters");
             //load script configuration and display the settings
             if (configurationFile != "") loadConfigurationSettings(configurationFile);
             displayConfigurationParameters();
@@ -317,8 +321,21 @@ namespace VMATAutoPlanMT
         //stuff related to Set Targets tab
         private void addTarget_Click(object sender, RoutedEventArgs e)
         {
-            add_target_volumes(new List<Tuple<string, double, string>> { Tuple.Create("--select--", 0.0, "--select--") });
-            targetsScroller.ScrollToBottom();
+            Button btn = (Button)sender;
+            ScrollViewer theScroller;
+            StackPanel theSP;
+            if (btn.Name == "addTargetTemplateBtn")
+            {
+                theScroller = targetTemplateScroller;
+                theSP = targetTemplate_sp;
+            }
+            else
+            {
+                theScroller = targetsScroller;
+                theSP = targets_sp;
+            }
+            add_target_volumes(new List<Tuple<string, double, string>> { Tuple.Create("--select--", 0.0, "--select--") }, theSP);
+            theScroller.ScrollToBottom();
         }
 
         private void addTargetDefaults_Click(object sender, RoutedEventArgs e)
@@ -326,7 +343,7 @@ namespace VMATAutoPlanMT
             List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>> { Tuple.Create("--select--", 0.0, "--select--") };
             if((templateList.SelectedItem as autoPlanTemplate) != null) targetList = new List<Tuple<string, double, string>>((templateList.SelectedItem as autoPlanTemplate).targets);
             clear_targets_list();
-            add_target_volumes(targetList);
+            add_target_volumes(targetList, targets_sp);
             targetsScroller.ScrollToBottom();
         }
 
@@ -343,8 +360,21 @@ namespace VMATAutoPlanMT
                 if (!double.TryParse(itr.Id.Substring(itr.Id.IndexOf("_") + 1, itr.Id.Length - (itr.Id.IndexOf("_") + 1)), out tgtRx)) tgtRx = 0.1;
                 targetList.Add(new Tuple<string, double, string>(structureID, tgtRx, "_VMAT CSI"));
             }
-            add_target_volumes(targetList);
-            targetsScroller.ScrollToBottom();
+            Button btn = (Button)sender;
+            ScrollViewer theScroller;
+            StackPanel theSP;
+            if (btn.Name == "addTargetTemplateBtn")
+            {
+                theScroller = targetTemplateScroller;
+                theSP = targetTemplate_sp;
+            }
+            else
+            {
+                theScroller = targetsScroller;
+                theSP = targets_sp;
+            }
+            add_target_volumes(targetList, theSP);
+            theScroller.ScrollToBottom();
         }
 
         private void clearTargetBtn_click(object sender, RoutedEventArgs e)
@@ -353,7 +383,10 @@ namespace VMATAutoPlanMT
             Button btn = (Button)sender;
             int i = 0;
             int k = 0;
-            foreach (object obj in targets_sp.Children)
+            StackPanel theSP;
+            if (btn.Name.Contains("Template")) theSP = targetTemplate_sp;
+            else theSP = targets_sp;
+            foreach (object obj in theSP.Children)
             {
                 foreach (object obj1 in ((StackPanel)obj).Children)
                 {
@@ -364,26 +397,34 @@ namespace VMATAutoPlanMT
             }
 
             //clear entire list if there are only two entries (header + 1 real entry)
-            if (targets_sp.Children.Count < 3) clear_targets_list();
-            else targets_sp.Children.RemoveAt(k);
+            if (theSP.Children.Count < 3) clear_targets_list(btn);
+            else theSP.Children.RemoveAt(k);
         }
 
-        private void clear_targetList_click(object sender, RoutedEventArgs e) { clear_targets_list(); }
+        private void clear_targetList_click(object sender, RoutedEventArgs e) { clear_targets_list((Button)sender); }
 
-        private void clear_targets_list()
+        private void clear_targets_list(Button btn = null)
         {
-            firstTargetStruct = true;
-            targets_sp.Children.Clear();
-            clearTargetBtnCounter = 0;
+            if(btn == null || btn.Name == "clear_target_list" || !btn.Name.Contains("Template"))
+            {
+                firstTargetStruct = true;
+                targets_sp.Children.Clear();
+                clearTargetBtnCounter = 0;
+            }
+            else
+            {
+                firstTargetTemplateStruct = true;
+                targetTemplate_sp.Children.Clear();
+                clearTargetTemplateBtnCounter = 0;
+            }
         }
 
-        private void targetUI_cb_change(object sender, EventArgs e, bool isTargetStructure)
+        private void targetUI_cb_change(StackPanel theSP, object sender, EventArgs e, bool isTargetStructure)
         {
-            //not the most elegent code, but it works. Basically, it finds the combobox where the selection was changed and increments one additional child to get the add margin text box. Then it can change
-            //the visibility of this textbox based on the sparing type selected for this structure
+            //not the most elegent code, but it works. Basically, it finds the combobox where the selection was changed and asks the user to enter the id of the plan or the target id
             ComboBox c = (ComboBox)sender;
             if (c.SelectedItem.ToString() != "--Add New--") return;
-            foreach (object obj in targets_sp.Children)
+            foreach (object obj in theSP.Children)
             {
                 UIElementCollection row = ((StackPanel)obj).Children;
                 foreach (object obj1 in row)
@@ -408,15 +449,30 @@ namespace VMATAutoPlanMT
             }
         }
 
-        private void add_target_volumes(List<Tuple<string,double,string>> defaultList)
+        private void add_target_volumes(List<Tuple<string,double,string>> defaultList, StackPanel theSP)
         {
-            if (firstTargetStruct) add_target_header();
+            bool firstStruct;
+            int counter;
+            string clearBtnNamePrefix;
+            if (theSP.Name == "targets_sp")
+            {
+                firstStruct = firstTargetStruct;
+                counter = clearTargetBtnCounter;
+                clearBtnNamePrefix = "clearTargetBtn";
+            }
+            else
+            {
+                firstStruct = firstTargetTemplateStruct;
+                counter = clearTargetTemplateBtnCounter;
+                clearBtnNamePrefix = "clearTargetTemplateBtn";
+            }
+            if (firstStruct) add_target_header(theSP);
             List<string> planIDs = new List<string> { };
             foreach (Tuple<string, double, string> itr in defaultList) planIDs.Add(itr.Item3);
             planIDs.Add("--Add New--");
             foreach(Tuple<string, double, string> itr in defaultList)
             {
-                clearTargetBtnCounter++;
+                counter++;
 
                 StackPanel sp = new StackPanel();
                 sp.Height = 30;
@@ -436,7 +492,7 @@ namespace VMATAutoPlanMT
                 str_cb.Items.Add(itr.Item1);
                 str_cb.Items.Add("--Add New--");
                 str_cb.SelectedIndex = 0;
-                str_cb.SelectionChanged += delegate(object sender, SelectionChangedEventArgs e) { targetUI_cb_change(sender, e, true); };
+                str_cb.SelectionChanged += delegate(object sender, SelectionChangedEventArgs e) { targetUI_cb_change(theSP, sender, e, true); };
                 sp.Children.Add(str_cb);
 
                 TextBox RxDose_tb = new TextBox();
@@ -462,12 +518,12 @@ namespace VMATAutoPlanMT
                 //string[] types = new string[] { itr.Item3, "--Add New--" };
                 foreach (string p in planIDs) planId_cb.Items.Add(p);
                 planId_cb.Text = itr.Item3;
-                planId_cb.SelectionChanged += delegate (object sender, SelectionChangedEventArgs e) { targetUI_cb_change(sender, e, false); };
+                planId_cb.SelectionChanged += delegate (object sender, SelectionChangedEventArgs e) { targetUI_cb_change(theSP, sender, e, false); };
                 //planId_cb.SelectionChanged += new SelectionChangedEventHandler(type_cb_change);
                 sp.Children.Add(planId_cb);
 
                 Button clearStructBtn = new Button();
-                clearStructBtn.Name = "clearTargetBtn" + clearTargetBtnCounter;
+                clearStructBtn.Name = clearBtnNamePrefix + counter;
                 clearStructBtn.Content = "Clear";
                 clearStructBtn.Click += new RoutedEventHandler(this.clearTargetBtn_click);
                 clearStructBtn.Width = 50;
@@ -477,11 +533,11 @@ namespace VMATAutoPlanMT
                 clearStructBtn.Margin = new Thickness(10, 5, 0, 0);
                 sp.Children.Add(clearStructBtn);
 
-                targets_sp.Children.Add(sp);
+                theSP.Children.Add(sp);
             }
         }
 
-        private void add_target_header()
+        private void add_target_header(StackPanel theSP)
         {
             StackPanel sp = new StackPanel();
             sp.Height = 30;
@@ -516,9 +572,10 @@ namespace VMATAutoPlanMT
             sp.Children.Add(strName);
             sp.Children.Add(spareType);
             sp.Children.Add(marginLabel);
-            targets_sp.Children.Add(sp);
+            theSP.Children.Add(sp);
 
-            firstTargetStruct = false;
+            if (theSP.Name == "targets_sp") firstTargetStruct = false;
+            else firstTargetTemplateStruct = false;
         }
 
         private void set_targets_Click(object sender, RoutedEventArgs e)
@@ -561,13 +618,13 @@ namespace VMATAutoPlanMT
                     }
                     if (structure == "--select--" || planID == "--select--")
                     {
-                        MessageBox.Show("Error! \nStructure or Sparing Type not selected! \nSelect an option and try again");
+                        MessageBox.Show("Error! \nStructure or plan not selected! \nSelect an option and try again");
                         return;
                     }
                     //margin will not be assigned from the default value (-1000) if the input is empty, a whitespace, or NaN
                     else if (tgtRx == -1000.0)
                     {
-                        MessageBox.Show("Error! \nEntered margin value is invalid! \nEnter a new margin and try again");
+                        MessageBox.Show("Error! \nEntered Rx value is invalid! \nEnter a new Rx and try again");
                         return;
                     }
                     else
@@ -1012,10 +1069,6 @@ namespace VMATAutoPlanMT
             {
                 //tmplist is empty
                 tmpList = new List<List<Tuple<string, string, double, double, int>>> { };
-                //non-meyloabalative regime
-                //if (noBoost_chkbox.IsChecked.Value) tmp = optConstBoost;
-                ////meylo-abalative regime
-                //else if (noBoost_chkbox.IsChecked.Value) tmp = optConstNoBoost;
                 //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose
                 autoPlanTemplate selectedTemplate = templateList.SelectedItem as autoPlanTemplate;
                 if (selectedTemplate == null) { MessageBox.Show("no template selected!"); return; }
@@ -1360,6 +1413,12 @@ namespace VMATAutoPlanMT
             else if (int.TryParse(initNumFxTB.Text, out int newNumFx) && double.TryParse(initDosePerFxTB.Text, out double newDoseFx))
             {
                 initRxTB.Text = (newNumFx * newDoseFx).ToString();
+                autoPlanTemplate selectedTemplate = templateList.SelectedItem as autoPlanTemplate;
+                if (selectedTemplate != null)
+                {
+                    //verify that the entered dose/fx and num fx agree with those stored in the template, otherwise unselect the template
+                    if (newNumFx != selectedTemplate.initialRxNumFx || newDoseFx != selectedTemplate.initialRxDosePerFx) templateList.UnselectAll();
+                }
             }
         }
 
@@ -1391,6 +1450,12 @@ namespace VMATAutoPlanMT
             else if (int.TryParse(boostNumFxTB.Text, out int newNumFx) && double.TryParse(boostDosePerFxTB.Text, out double newDoseFx))
             {
                 boostRxTB.Text = (newNumFx * newDoseFx).ToString();
+                autoPlanTemplate selectedTemplate = templateList.SelectedItem as autoPlanTemplate;
+                if (selectedTemplate != null)
+                {
+                    //verify that the entered dose/fx and num fx agree with those stored in the template, otherwise unselect the template
+                    if (newNumFx != selectedTemplate.boostRxNumFx || newDoseFx != selectedTemplate.boostRxDosePerFx) templateList.UnselectAll();
+                }
             }
         }
 
