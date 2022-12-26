@@ -160,6 +160,7 @@ namespace VMATAutoPlanMT
 
             PlanTemplates = new ObservableCollection<autoPlanTemplate>() { new autoPlanTemplate("--select--") };
             DataContext = this;
+            templateBuildOptionCB.Items.Add("");
             templateBuildOptionCB.Items.Add("Existing template");
             templateBuildOptionCB.Items.Add("Current parameters");
             //load script configuration and display the settings
@@ -1459,6 +1460,82 @@ namespace VMATAutoPlanMT
             }
         }
 
+        private void templateDosePerFx_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            TextBox dosePerFxTB = sender as TextBox;
+            TextBox numFxTB, planRxTB;
+            if (dosePerFxTB.Name.Contains("Bst"))
+            {
+                numFxTB = templateBstPlanNumFxTB;
+                planRxTB = templateBstPlanRxTB;
+            }
+            else
+            {
+                numFxTB = templateInitPlanNumFxTB;
+                planRxTB = templateInitPlanRxTB;
+            }
+            if (!double.TryParse(dosePerFxTB.Text, out double newDoseFx)) planRxTB.Text = "";
+            else if (newDoseFx <= 0)
+            {
+                MessageBox.Show("Error! The dose per fraction must be a number and non-negative!");
+                planRxTB.Text = "";
+            }
+            else resetTemplateRxDose(dosePerFxTB, numFxTB, planRxTB);
+        }
+
+        private void templateNumFx_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            TextBox numFxTB = sender as TextBox;
+            TextBox dosePerFxTB, planRxTB;
+            if (numFxTB.Name.Contains("Bst"))
+            {
+                dosePerFxTB = templateBstPlanDosePerFxTB;
+                planRxTB = templateBstPlanRxTB;
+            }
+            else
+            {
+                dosePerFxTB = templateInitPlanDosePerFxTB;
+                planRxTB = templateInitPlanRxTB;
+            }
+            if (!int.TryParse(numFxTB.Text, out int newNumFx)) planRxTB.Text = "";
+            else if (newNumFx < 1)
+            {
+                MessageBox.Show("Error! The number of fractions must be an integer and greater than 0!");
+                planRxTB.Text = "";
+            }
+            else resetTemplateRxDose(dosePerFxTB, numFxTB, planRxTB);
+        }
+
+        private void resetTemplateRxDose(TextBox dosePerFxTB, TextBox numFxTB, TextBox RxTB)
+        {
+            if (int.TryParse(numFxTB.Text, out int newNumFx) && double.TryParse(dosePerFxTB.Text, out double newDoseFx)) RxTB.Text = (newNumFx * newDoseFx).ToString();
+        }
+
+        private void templateBuildOptionCB_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            MessageBox.Show("Working on it!");
+            //12/26/2022
+            //need to implement TS Structures, Optimization Constraints, functionality
+
+            if (templateBuildOptionCB.SelectedItem.ToString().ToLower() == "existing template")
+            {
+                autoPlanTemplate theTemplate = null;
+                selectItem SUI = new selectItem();
+                SUI.title.Text = "Please select and existing template!";
+                foreach (autoPlanTemplate itr in PlanTemplates) SUI.itemCombo.Items.Add(itr.templateName);
+                SUI.itemCombo.SelectedIndex = 0;
+                SUI.ShowDialog();
+                if (SUI.confirm) theTemplate = PlanTemplates.FirstOrDefault(x => x.templateName == SUI.itemCombo.SelectedItem.ToString());
+                else return;
+                if (theTemplate == null) { MessageBox.Show("Template not found! Exiting!"); return; }
+
+                //add targets
+                List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>>(theTemplate.targets);
+                clear_targets_list();
+                add_target_volumes(targetList, targetTemplate_sp);
+            }
+        }
+
         //methods related to plan preparation
         private void generateShiftNote_Click(object sender, RoutedEventArgs e)
         {
@@ -1915,5 +1992,7 @@ namespace VMATAutoPlanMT
         {
             SizeToContent = SizeToContent.WidthAndHeight;
         }
+
+
     }
 }

@@ -245,9 +245,9 @@
                             <StackPanel HorizontalAlignment="Center" Margin="0">
                                 <Label Content="Structures to Spare" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
                                 <Grid Height="25" Width ="560" HorizontalAlignment="Center" Margin="0,5,0,0">
-                                    <Button x:Name="add_str" Content="Add Structure" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_str_click"/>
-                                    <Button x:Name="addSpareDefaultsBtn" Content="Add Defaults" Width="100" HorizontalAlignment="Center" VerticalAlignment="Top" Click="add_spareDefaults_click"/>
-                                    <Button Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_spareList_click"/>
+                                    <Button x:Name="addSpareStructureBtn" Content="Add Structure" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_str_click"/>
+                                    <Button x:Name="addSpareStructureDefaultsBtn" Content="Add Defaults" Width="100" HorizontalAlignment="Center" VerticalAlignment="Top" Click="add_spareDefaults_click"/>
+                                    <Button x:Name="clearSpareStructuresBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_spareList_click"/>
                                 </Grid>
                                 <ScrollViewer x:Name="spareStructScroller" Height="365" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                     <StackPanel Name="structures_sp" Margin="5">
@@ -322,26 +322,26 @@
                             <TabItem Header="Name and Rx" BorderThickness="1,1,1,0">
                                 <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                                         <StackPanel>
-                                        <Grid Width="320" Height="30" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,20,135,0">
+                                        <Grid Width="320" Height="30" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,30,135,0">
                                             <Label Content="Build template from:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,190,0"></Label>
-                                            <ComboBox x:Name="templateBuildOptionCB" Width="150" Height="24" HorizontalAlignment="Right" Margin="0,0,35,0"></ComboBox>
+                                            <ComboBox x:Name="templateBuildOptionCB" Width="150" Height="24" HorizontalAlignment="Right" Margin="0,0,35,0" SelectionChanged="templateBuildOptionCB_SelectionChanged"></ComboBox>
                                         </Grid>
-                                        <Grid Width="300" Height="30" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,20,135,0">
+                                        <Grid Width="300" Height="30" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,50,135,0">
                                                 <Label Content="Template Name:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,190,0"></Label>
                                                 <TextBox x:Name="templateNameTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="150" Height="20" Margin="0,5,35,0" TextChanged="initDosePerFx_TextChanged"></TextBox>
                                             </Grid>
                                             <Grid  Width="350" Height="120" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,30,0,0" Visibility="Visible">
                                                 <Label Content="Base plan" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,93,0" ></Label>
                                                 <Label Content="Boost plan" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,5,0" ></Label>
-                                                <TextBox TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,29,0,0" TextChanged="BoostDosePerFx_TextChanged"></TextBox>
-                                                <TextBox TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,59,0,0" TextChanged="BoostNumFx_TextChanged"></TextBox>
-                                                <TextBox TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,89,0,0" IsReadOnly="True"></TextBox>
+                                                <TextBox x:Name="templateBstPlanDosePerFxTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,29,0,0" TextChanged="templateDosePerFx_TextChanged"></TextBox>
+                                                <TextBox x:Name="templateBstPlanNumFxTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,59,0,0" TextChanged="templateNumFx_TextChanged"></TextBox>
+                                                <TextBox x:Name="templateBstPlanRxTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,89,0,0" IsReadOnly="True"></TextBox>
                                                 <Label Content="Dose per fraction (cGy/fraction):" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,25,164,0"></Label>
                                                 <Label Content="Number of fractions:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,55,164,0"></Label>
                                                 <Label Content="Rx dose (cGy):" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,85,164,0"></Label>
-                                                <TextBox TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,29,86,0" TextChanged="initDosePerFx_TextChanged"></TextBox>
-                                                <TextBox TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,59,86,0" TextChanged="initNumFx_TextChanged"></TextBox>
-                                                <TextBox TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,89,86,0" IsReadOnly="True"></TextBox>
+                                                <TextBox x:Name="templateInitPlanDosePerFxTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,29,86,0" TextChanged="templateDosePerFx_TextChanged"></TextBox>
+                                                <TextBox x:Name="templateInitPlanNumFxTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,59,86,0" TextChanged="templateNumFx_TextChanged"></TextBox>
+                                                <TextBox x:Name="templateInitPlanRxTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,89,86,0" IsReadOnly="True"></TextBox>
                                             </Grid>
                                         </StackPanel>
                                 </Border>
@@ -367,9 +367,8 @@
                                     <StackPanel HorizontalAlignment="Center" Margin="0">
                                         <Label Content="Structures to Spare" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
                                         <Grid Height="25" Width ="560" HorizontalAlignment="Center" Margin="0,5,0,0">
-                                            <Button Content="Add Structure" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_str_click"/>
-                                            <Button Content="Add Defaults" Width="100" HorizontalAlignment="Center" VerticalAlignment="Top" Click="add_spareDefaults_click"/>
-                                            <Button Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_spareList_click"/>
+                                            <Button x:Name="templateAddSpareStructureBtn" Content="Add Structure" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_str_click"/>
+                                            <Button x:Name="templateClearSpareStructuresBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_spareList_click"/>
                                         </Grid>
                                         <ScrollViewer Height="365" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                             <StackPanel Margin="5">
