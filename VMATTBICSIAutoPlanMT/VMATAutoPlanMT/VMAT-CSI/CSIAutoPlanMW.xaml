@@ -370,8 +370,8 @@
                                             <Button x:Name="templateAddSpareStructureBtn" Content="Add Structure" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_str_click"/>
                                             <Button x:Name="templateClearSpareStructuresBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_spareList_click"/>
                                         </Grid>
-                                        <ScrollViewer Height="365" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
-                                            <StackPanel Margin="5">
+                                        <ScrollViewer x:Name="templateSpareStructScroller" Height="365" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                            <StackPanel x:Name="templateStructures_sp" Margin="5">
                                             </StackPanel>
                                         </ScrollViewer>
                                         <Button Content="Generate Tuning Structures" FontWeight="Bold" Width="180" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,7,0,0" Click="generateStruct"></Button>

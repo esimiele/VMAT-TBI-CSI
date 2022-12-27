@@ -94,9 +94,11 @@ namespace VMATAutoPlanMT
         private bool firstTargetStruct = true;
         private bool firstTargetTemplateStruct = true;
         private bool firstSpareStruct = true;
+        private bool firstTemplateSpareStruct = true;
         public int clearTargetBtnCounter = 0;
         public int clearTargetTemplateBtnCounter = 0;
         public int clearSpareBtnCounter = 0;
+        public int clearTemplateSpareBtnCounter = 0;
         public int clearOptBtnCounter = 0;
         List<ExternalPlanSetup> VMATplans = new List<ExternalPlanSetup> { };
         //plan Id, list of isocenter names for this plan
@@ -745,40 +747,70 @@ namespace VMATAutoPlanMT
         //add structure to spare to the list
         private void add_str_click(object sender, RoutedEventArgs e)
         {
-            if (checkStructuresToUnion) checkLRStructures();
+            Button theBtn = sender as Button;
+            ScrollViewer theScroller;
+            StackPanel theSP;
+            if(theBtn.Name.Contains("template"))
+            {
+                theScroller = templateSpareStructScroller;
+                theSP = templateStructures_sp;
+            }
+            else
+            {
+                if (checkStructuresToUnion) checkLRStructures();
+                theScroller = spareStructScroller;
+                theSP = structures_sp;
+            }
             //populate the comboboxes
-            add_sp_volumes(new List<Tuple<string, string, double>> { Tuple.Create("--select--", "--select--", 0.0) });
-            spareStructScroller.ScrollToBottom();
+            add_sp_volumes(new List<Tuple<string, string, double>> { Tuple.Create("--select--", "--select--", 0.0) }, theSP);
+            theScroller.ScrollToBottom();
         }
 
         //add the header to the structure sparing list (basically just add some labels to make it look nice)
-        private void add_sp_header()
+        private void add_sp_header(StackPanel theSP)
         {
-            structures_sp.Children.Add(new UIhelper().getSpareStructHeader(structures_sp));
+            theSP.Children.Add(new UIhelper().getSpareStructHeader(theSP));
 
             //bool to indicate that the header has been added
-            firstSpareStruct = false;
+            if (theSP.Name.Contains("template")) firstTemplateSpareStruct = false;
+            else firstSpareStruct = false;
         }
 
         //populate the structure sparing list. This method is called whether the add structure or add defaults buttons are hit (because a vector containing the list of structures is passed as an argument to this method)
-        private void add_sp_volumes(List<Tuple<string, string, double>> defaultList)
+        private void add_sp_volumes(List<Tuple<string, string, double>> defaultList, StackPanel theSP)
         {
-            if (firstSpareStruct) add_sp_header();
+            if (selectedSS == null) { MessageBox.Show("Error! Please select a Structure Set before add sparing volumes!"); return; }
+            bool firstStruct;
+            int counter;
+            string clearBtnNamePrefix;
+            if (theSP.Name.Contains("template"))
+            {
+                firstStruct = firstTemplateSpareStruct;
+                counter = clearTemplateSpareBtnCounter;
+                clearBtnNamePrefix = "templateClearSpareStructBtn";
+            }
+            else
+            {
+                firstStruct = firstSpareStruct;
+                counter = clearSpareBtnCounter;
+                clearBtnNamePrefix = "clearSpareStructBtn";
+            }
+            if (firstStruct) add_sp_header(theSP);
             UIhelper helper = new UIhelper();
             for (int i = 0; i < defaultList.Count; i++)
             {
                 clearSpareBtnCounter++;
-                structures_sp.Children.Add(helper.addSpareStructVolume(structures_sp, selectedSS, defaultList[i], clearSpareBtnCounter, new SelectionChangedEventHandler(type_cb_change), new RoutedEventHandler(this.clearStructBtn_click)));
+                theSP.Children.Add(helper.addSpareStructVolume(theSP, selectedSS, defaultList[i], clearBtnNamePrefix, counter, (delegate (object sender, SelectionChangedEventArgs e) { type_cb_change(theSP, sender, e); }), new RoutedEventHandler(this.clearStructBtn_click)));
             }
         }
 
-        private void type_cb_change(object sender, EventArgs e)
+        private void type_cb_change(StackPanel theSP, object sender, EventArgs e)
         {
             //not the most elegent code, but it works. Basically, it finds the combobox where the selection was changed and increments one additional child to get the add margin text box. Then it can change
             //the visibility of this textbox based on the sparing type selected for this structure
             ComboBox c = (ComboBox)sender;
             bool row = false;
-            foreach (object obj in structures_sp.Children)
+            foreach (object obj in theSP.Children)
             {
                 foreach (object obj1 in ((StackPanel)obj).Children)
                 {
@@ -795,12 +827,12 @@ namespace VMATAutoPlanMT
         }
 
         //method to clear and individual row in the structure sparing list (i.e., remove a single structure)
-        private void clearStructBtn_click(object sender, EventArgs e) { if (new UIhelper().clearRow(sender, structures_sp)) clear_spare_list(); }
+        private void clearStructBtn_click(object sender, EventArgs e) { if (new UIhelper().clearRow(sender, (sender as Button).Name.Contains("template") ? templateStructures_sp : structures_sp)) clear_spare_list((sender as Button).Name.Contains("template") ? templateClearSpareStructuresBtn : clearSpareStructuresBtn); }
 
         private void SSID_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             //clear sparing structure list
-            clear_spare_list();
+            clear_spare_list(clearSpareStructuresBtn);
 
             //clear optimization structure list
             clear_optimization_parameter_list();
@@ -842,8 +874,8 @@ namespace VMATAutoPlanMT
                 else defaultList.Add(Tuple.Create(selectedSS.Structures.First(x => x.Id.ToLower() == itr.Item1.ToLower()).Id, itr.Item2, itr.Item3));
             }
 
-            clear_spare_list();
-            add_sp_volumes(defaultList);
+            clear_spare_list(clearSpareStructuresBtn);
+            add_sp_volumes(defaultList, structures_sp);
             if (missCount > 0) MessageBox.Show(missOutput);
             if (emptyCount > 0) MessageBox.Show(emptyOutput);
         }
@@ -860,13 +892,22 @@ namespace VMATAutoPlanMT
         }
 
         //wipe the displayed list of sparing structures
-        private void clear_spareList_click(object sender, RoutedEventArgs e) { clear_spare_list(); }
+        private void clear_spareList_click(object sender, RoutedEventArgs e) { clear_spare_list((sender as Button)); }
 
-        private void clear_spare_list()
+        private void clear_spare_list(Button theBtn)
         {
-            firstSpareStruct = true;
-            structures_sp.Children.Clear();
-            clearSpareBtnCounter = 0;
+            if(theBtn.Name.Contains("template"))
+            {
+                firstTemplateSpareStruct = true;
+                templateStructures_sp.Children.Clear();
+                clearTemplateSpareBtnCounter = 0;
+            }
+            else
+            {
+                firstSpareStruct = true;
+                structures_sp.Children.Clear();
+                clearSpareBtnCounter = 0;
+            }
         }
 
         private void generateStruct(object sender, RoutedEventArgs e)
@@ -901,10 +942,10 @@ namespace VMATAutoPlanMT
             //structure sparing list needs to be updated with the new low resolution structures.
             if (generate.updateSparingList)
             {
-                clear_spare_list();
+                clear_spare_list(clearSpareStructuresBtn);
                 //update the structure sparing list in this class and update the structure sparing list displayed to the user in TS Generation tab
                 structureSpareList = generate.spareStructList;
-                add_sp_volumes(structureSpareList);
+                add_sp_volumes(structureSpareList, structures_sp);
             }
             //the number of isocenters will always be equal to the number of vmat isocenters for vmat csi
             isoNames = generate.isoNames;
@@ -1103,6 +1144,7 @@ namespace VMATAutoPlanMT
             else
             {
                 //tmpList already has stuff in it
+                //need to get existing list and augment/add/or ignore to it
             }
             
 
@@ -1529,10 +1571,27 @@ namespace VMATAutoPlanMT
                 else return;
                 if (theTemplate == null) { MessageBox.Show("Template not found! Exiting!"); return; }
 
+                //set name
+                templateNameTB.Text = theTemplate.templateName + "_1";
+
+                //setRx
+                templateInitPlanDosePerFxTB.Text = theTemplate.initialRxDosePerFx.ToString();
+                templateInitPlanNumFxTB.Text = theTemplate.initialRxNumFx.ToString();
+                if(theTemplate.boostRxDosePerFx > 0.1)
+                {
+                    templateBstPlanDosePerFxTB.Text = theTemplate.boostRxDosePerFx.ToString();
+                    templateBstPlanNumFxTB.Text = theTemplate.boostRxNumFx.ToString();
+                }
+
                 //add targets
                 List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>>(theTemplate.targets);
                 clear_targets_list();
                 add_target_volumes(targetList, targetTemplate_sp);
+
+                //add default sparing structures
+                clear_spare_list(templateClearSpareStructuresBtn);
+                if(theTemplate.spareStructures.Any()) add_sp_volumes(theTemplate.spareStructures, templateStructures_sp);
+
             }
         }
 

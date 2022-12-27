@@ -447,7 +447,7 @@ namespace VMATAutoPlanMT
             for (int i = 0; i < defaultList.Count; i++)
             {
                 clearSpareBtnCounter++;
-                structures_sp.Children.Add(helper.addSpareStructVolume(structures_sp, selectedSS, defaultList[i], clearSpareBtnCounter, new SelectionChangedEventHandler(type_cb_change), new RoutedEventHandler(this.clearStructBtn_click)));
+                structures_sp.Children.Add(helper.addSpareStructVolume(structures_sp, selectedSS, defaultList[i], "clearSpareStructBtn", clearSpareBtnCounter, new SelectionChangedEventHandler(type_cb_change), new RoutedEventHandler(this.clearStructBtn_click)));
             }
         }
 
