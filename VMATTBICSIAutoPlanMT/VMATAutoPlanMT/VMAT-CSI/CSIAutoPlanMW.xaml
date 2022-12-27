@@ -229,7 +229,7 @@
                                 <Grid Height="25" Width ="560" HorizontalAlignment="Center" Margin="0,5,0,0">
                                     <Button x:Name="add_target" Content="Add Target" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="addTarget_Click"/>
                                     <Button x:Name="addDefaultsTargetsBtn" Content="Add defaults" Width="120" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,315,0" Click="addTargetDefaults_Click"/>
-                                    <Button x:Name="scanSSandAddTargetsBtn" Content="Scan SS and Add Targets" Width="180" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,115,0"/>
+                                    <Button x:Name="scanSSandAddTargetsBtn" Content="Scan SS and Add Targets" Width="180" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,115,0" Click="scanSSAndAddTargets_Click"/>
                                     <Button x:Name="clear_target_list" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_targetList_click"/>
                                 </Grid>
                                 <ScrollViewer x:Name="targetsScroller" Height="365" Width="550" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
@@ -351,9 +351,9 @@
                                     <StackPanel>
                                         <Label Content="Specify Targets" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"/>
                                         <Grid Height="25" Width ="560" HorizontalAlignment="Center" Margin="0,5,0,0">
-                                            <Button x:Name="addTargetTemplateBtn" Content="Add Target" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="addTarget_Click"/>
-                                            <Button Content="Scan SS and Add Targets" Width="180" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"/>
-                                            <Button x:Name="clear_targetTemplate_list" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_targetList_click"/>
+                                            <Button x:Name="templateAddTargetBtn" Content="Add Target" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="addTarget_Click"/>
+                                            <Button x:Name="templateScanSSTargetBtn" Content="Scan SS and Add Targets" Width="180" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" Click="scanSSAndAddTargets_Click"/>
+                                            <Button x:Name="templateClearTargetList" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_targetList_click"/>
                                         </Grid>
                                         <ScrollViewer x:Name="targetTemplateScroller" Height="365" Width="550" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                             <StackPanel x:Name="targetTemplate_sp" Margin="5">
@@ -383,12 +383,12 @@
                                     <StackPanel HorizontalAlignment="Center" Margin="0">
                                         <Label Content="Optimization Parameters" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"></Label>
                                         <Grid Height="25" Width ="560" HorizontalAlignment="Center" Margin="0,5,0,0">
-                                            <Button Content="Add Constraint" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_constraint_Click"/>
-                                            <Button Content="Scan RTSTRUCT and Add Constraints" Width="210" HorizontalAlignment="Center" VerticalAlignment="Top" Click="scanSS_Click"/>
-                                            <Button Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_optParams_Click"/>
+                                            <Button x:Name="templateAddOptConstraintBtn" Content="Add Constraint" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_constraint_Click"/>
+                                            <Button Content="Scan RTSTRUCT and Add Constraints" Width="210" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                                            <Button x:Name="templateClearOptConstraintsBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_optParams_Click"/>
                                         </Grid>
-                                        <ScrollViewer Height="357" Width="585" Margin="0,10,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
-                                            <StackPanel Margin="5"></StackPanel>
+                                        <ScrollViewer x:Name="templateOptParamScroller" Height="357" Width="585" Margin="0,10,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                            <StackPanel x:Name="templateOptParams_sp" Margin="5"></StackPanel>
                                         </ScrollViewer>
                                         <Button Content="Set Optimization Constraints" FontWeight="Bold" Width="170" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,10,0,0" Click="setOptConst_Click"></Button>
                                     </StackPanel>

@@ -983,7 +983,7 @@ namespace VMATAutoPlanMT
             for (int i = 0; i < defaultList.Count; i++)
             {
                 clearOptBtnCounter++;
-                opt_parameters.Children.Add(helper.addOptVolume(opt_parameters, selectedSS, defaultList[i], clearOptBtnCounter, new RoutedEventHandler(this.clearOptStructBtn_click)));
+                opt_parameters.Children.Add(helper.addOptVolume(opt_parameters, selectedSS, defaultList[i], "clearOptStructBtn", clearOptBtnCounter, new RoutedEventHandler(this.clearOptStructBtn_click)));
             }
         }
 

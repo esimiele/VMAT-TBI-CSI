@@ -645,7 +645,7 @@ namespace VMATAutoPlanMT
             return sp;
         }
 
-        public StackPanel addOptVolume(StackPanel theSP, StructureSet selectedSS, Tuple<string, string, double, double, int> listItem, int clearOptBtnCounter, RoutedEventHandler e)
+        public StackPanel addOptVolume(StackPanel theSP, StructureSet selectedSS, Tuple<string, string, double, double, int> listItem, string clearBtnNamePrefix, int clearOptBtnCounter, RoutedEventHandler e)
         {
             StackPanel sp = new StackPanel();
             sp.Height = 30;
@@ -725,7 +725,7 @@ namespace VMATAutoPlanMT
             sp.Children.Add(priority_tb);
 
             Button clearOptStructBtn = new Button();
-            clearOptStructBtn.Name = "clearOptStructBtn" + clearOptBtnCounter;
+            clearOptStructBtn.Name = clearBtnNamePrefix + clearOptBtnCounter;
             clearOptStructBtn.Content = "Clear";
             clearOptStructBtn.Width = 50;
             clearOptStructBtn.Height = sp.Height - 5;
