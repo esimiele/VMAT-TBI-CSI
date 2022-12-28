@@ -971,7 +971,7 @@ namespace VMATAutoPlanMT
 
         private void add_opt_header()
         {
-            opt_parameters.Children.Add(new UIhelper().getOptHeader(structures_sp));
+            opt_parameters.Children.Add(new UIhelper().getOptHeader(structures_sp.Width));
             firstOptStruct = false;
         }
 

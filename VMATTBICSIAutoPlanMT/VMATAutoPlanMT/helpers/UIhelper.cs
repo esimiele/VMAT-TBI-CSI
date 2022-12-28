@@ -119,7 +119,7 @@ namespace VMATAutoPlanMT
             sp.Height = 30;
             sp.Width = theSP.Width;
             sp.Orientation = Orientation.Horizontal;
-            sp.Margin = new Thickness(5, 0, 5, 5);
+            sp.Margin = new Thickness(40, 0, 5, 5);
 
             Label strName = new Label();
             strName.Content = "Structure Name";
@@ -158,7 +158,7 @@ namespace VMATAutoPlanMT
             sp.Height = 30;
             sp.Width = theSP.Width;
             sp.Orientation = Orientation.Horizontal;
-            sp.Margin = new Thickness(10, 0, 5, 5);
+            sp.Margin = new Thickness(40, 0, 5, 5);
 
             ComboBox str_cb = new ComboBox();
             str_cb.Name = "str_cb";
@@ -575,7 +575,7 @@ namespace VMATAutoPlanMT
             sp.Width = theSP.Width;
             sp.Orientation = Orientation.Horizontal;
             sp.HorizontalAlignment = HorizontalAlignment.Center;
-            sp.Margin = new Thickness(5, 0, 5, 5);
+            sp.Margin = new Thickness(15, 0, 5, 5);
 
             Label strName = new Label();
             strName.Content = String.Format("Plan Id: {0}", id);
@@ -589,13 +589,13 @@ namespace VMATAutoPlanMT
             return sp;
         }
 
-        public StackPanel getOptHeader(StackPanel theSP)
+        public StackPanel getOptHeader(double theWidth)
         {
             StackPanel sp = new StackPanel();
             sp.Height = 30;
-            sp.Width = theSP.Width;
+            sp.Width = theWidth;
             sp.Orientation = Orientation.Horizontal;
-            sp.Margin = new Thickness(5, 0, 5, 5);
+            sp.Margin = new Thickness(30, 0, 5, 5);
 
             Label strName = new Label();
             strName.Content = "Structure";
@@ -645,13 +645,13 @@ namespace VMATAutoPlanMT
             return sp;
         }
 
-        public StackPanel addOptVolume(StackPanel theSP, StructureSet selectedSS, Tuple<string, string, double, double, int> listItem, string clearBtnNamePrefix, int clearOptBtnCounter, RoutedEventHandler e)
+        public StackPanel addOptVolume(StackPanel theSP, StructureSet selectedSS, Tuple<string, string, double, double, int> listItem, string clearBtnNamePrefix, int clearOptBtnCounter, RoutedEventHandler e, bool addStructureEvenIfNotInSS = false)
         {
             StackPanel sp = new StackPanel();
             sp.Height = 30;
             sp.Width = theSP.Width;
             sp.Orientation = Orientation.Horizontal;
-            sp.Margin = new Thickness(5);
+            sp.Margin = new Thickness(30,5,5,5);
 
             ComboBox opt_str_cb = new ComboBox();
             opt_str_cb.Name = "opt_str_cb";
@@ -672,7 +672,12 @@ namespace VMATAutoPlanMT
                 if (s.Id.ToLower() == listItem.Item1.ToLower()) index = j;
                 j++;
             }
-            opt_str_cb.SelectedIndex = index;
+            if(addStructureEvenIfNotInSS && selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == listItem.Item1.ToLower()) == null)
+            {
+                opt_str_cb.Items.Add(listItem.Item1);
+                opt_str_cb.SelectedIndex = opt_str_cb.Items.Count - 1;
+            }
+            else opt_str_cb.SelectedIndex = index;
             opt_str_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
             sp.Children.Add(opt_str_cb);
 
@@ -762,9 +767,6 @@ namespace VMATAutoPlanMT
             object copyObj = null;
             foreach (object obj in sp.Children)
             {
-                ////skip over header row
-                //if (!headerObj)
-                //{
                 foreach (object obj1 in ((StackPanel)obj).Children)
                 {
                     if (obj1.GetType() == typeof(ComboBox))
@@ -826,8 +828,6 @@ namespace VMATAutoPlanMT
                     priority = -1;
                 }
                 numElementsPerRow = 0;
-            //}
-            //else headerObj = false;
             }
             optParametersListList.Add(new Tuple<string, List<Tuple<string, string, double, double, int>>>(planId, new List<Tuple<string, string, double, double, int>>(optParametersList)));
             return optParametersListList;
