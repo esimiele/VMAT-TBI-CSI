@@ -170,6 +170,7 @@
     <Compile Include="helpers\enterMissingInfo.Designer.cs">
       <DependentUpon>enterMissingInfo.cs</DependentUpon>
     </Compile>
+    <Compile Include="helpers\templateBuilder.cs" />
     <Compile Include="helpers\UIhelper.cs" />
     <Compile Include="Launcher\launchVMATTBICSIautoPlan.cs" />
     <Compile Include="VMAT-CSI\autoPlanTemplate.cs" />

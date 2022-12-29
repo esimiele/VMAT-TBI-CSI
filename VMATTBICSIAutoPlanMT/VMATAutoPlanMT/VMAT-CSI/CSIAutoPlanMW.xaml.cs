@@ -115,6 +115,8 @@ namespace VMATAutoPlanMT
         bool checkStructuresToUnion = true;
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
         public ObservableCollection<autoPlanTemplate> PlanTemplates { get; set; }
+        //temporary variable to add new templates to the list
+        autoPlanTemplate prospectiveTemplate = null;
         //ProcessStartInfo optLoopProcess;
 
         public CSIAutoPlanMW(List<string> args)
@@ -1656,6 +1658,50 @@ namespace VMATAutoPlanMT
                 //assumes only two plan ids in template targets
                 planIds.Add(targetList.First().Item3);
                 planIds.Add(targetList.Last().Item3);
+                populateOptimizationTab(templateOptParams_sp, tmpList, false, planIds);
+            }
+            else if(templateBuildOptionCB.SelectedItem.ToString().ToLower() == "current parameters")
+            {
+                //add targets (checked first to ensure the user has actually input some parameters into the UI before trying to make a template based on the current settings)
+                List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>>(parseTargets(targets_sp).OrderBy(x => x.Item2));
+                if (!targetList.Any()) { MessageBox.Show("Error! Enter parameters into the UI before trying to use them to make a new plan template!"); return; }
+                clear_targets_list(templateClearTargetList);
+                add_target_volumes(targetList, targetTemplate_sp);
+
+                //set name
+                templateNameTB.Text = "--new template--";
+
+                //setRx
+                templateInitPlanDosePerFxTB.Text = initDosePerFxTB.Text;
+                templateInitPlanNumFxTB.Text = initNumFxTB.Text;
+                if (!string.IsNullOrEmpty(boostDosePerFxTB.Text))
+                {
+                    templateBstPlanDosePerFxTB.Text = boostDosePerFxTB.Text;
+                    templateBstPlanNumFxTB.Text = boostNumFxTB.Text;
+                }
+
+                autoPlanTemplate selectedTemplate = templateList.SelectedItem as autoPlanTemplate;
+                //add default TS structures
+                clearTemplateTSList();
+                if(selectedTemplate != null) add_templateTS_volumes(selectedTemplate.TS_structures);
+
+                //add default sparing structures
+                UIhelper helper = new UIhelper();
+                clear_spare_list(templateClearSpareStructuresBtn);
+                List<Tuple<string, string, double>> spareStructs = new List<Tuple<string, string, double>>(helper.parseSpareStructList(structures_sp));
+                if (spareStructs.Any()) add_sp_volumes(spareStructs, templateStructures_sp);
+
+                //add optimization constraints
+                List<List<Tuple<string, string, double, double, int>>> tmpList = new List<List<Tuple<string, string, double, double, int>>> { };
+                List<Tuple<string, List<Tuple<string, string, double, double, int>>>> optParametersListList = helper.parseOptConstraints(opt_parameters);
+                foreach (Tuple<string, List<Tuple<string, string, double, double, int>>> itr in optParametersListList) tmpList.Add(itr.Item2);
+
+                //sort targets based on cumulative Rx
+                targetList.Sort(delegate (Tuple<string, double, string> x, Tuple<string, double, string> y) { return x.Item2.CompareTo(y.Item2); });
+                List<string> planIds = new List<string> { };
+                //assumes only two plan ids in template targets
+                planIds.Add(targetList.First().Item3);
+                planIds.Add(targetList.Last().Item3);
 
                 populateOptimizationTab(templateOptParams_sp, tmpList, false, planIds);
             }
@@ -1680,154 +1726,20 @@ namespace VMATAutoPlanMT
             templateTSScroller.ScrollToBottom();
         }
 
-        private StackPanel addTemplateTSHeader(StackPanel theSP)
-        {
-            StackPanel sp = new StackPanel();
-            sp.Height = 30;
-            sp.Width = 300;
-            sp.Orientation = Orientation.Horizontal;
-            sp.HorizontalAlignment = HorizontalAlignment.Center;
-            sp.Margin = new Thickness(5, 0, 5, 5);
-
-            Label dcmType = new Label();
-            dcmType.Content = "DICOM Type";
-            dcmType.HorizontalAlignment = HorizontalAlignment.Center;
-            dcmType.VerticalAlignment = VerticalAlignment.Top;
-            dcmType.Width = 150;
-            dcmType.FontSize = 14;
-            dcmType.Margin = new Thickness(5, 0, 0, 0);
-
-            Label strName = new Label();
-            strName.Content = "Structure Name";
-            strName.HorizontalAlignment = HorizontalAlignment.Center;
-            strName.VerticalAlignment = VerticalAlignment.Top;
-            strName.Width = 150;
-            strName.FontSize = 14;
-            strName.Margin = new Thickness(20, 0, 0, 0);
-
-            sp.Children.Add(dcmType);
-            sp.Children.Add(strName);
-
-            return sp;
-        }
-
         private void add_templateTS_volumes(List<Tuple<string, string>> defaultList)
         {
             if (selectedSS == null) { MessageBox.Show("Error! Please select a Structure Set before add sparing volumes!"); return; }
-            if (templateTS_sp.Children.Count == 0) templateTS_sp.Children.Add(addTemplateTSHeader(templateTS_sp));
+            helpers.templateBuilder builder = new helpers.templateBuilder();
+            if (templateTS_sp.Children.Count == 0) templateTS_sp.Children.Add(builder.addTemplateTSHeader(templateTS_sp));
             int counter = 0;
             UIhelper helper = new UIhelper();
             for (int i = 0; i < defaultList.Count; i++)
             {
                 counter++;
-                templateTS_sp.Children.Add(addTemplateTSVolume(templateTS_sp, defaultList[i], "templateClearTSStructuresBtn", counter, new RoutedEventHandler(this.clearTSStructureBtn))) ;
+                templateTS_sp.Children.Add(builder.addTemplateTSVolume(templateTS_sp, selectedSS, defaultList[i], "templateClearTSStructuresBtn", counter, new RoutedEventHandler(this.clearTSStructureBtn))) ;
             }
         }
-
-        private StackPanel addTemplateTSVolume(StackPanel theSP, Tuple<string,string> listItem, string clearBtnPrefix, int clearBtnCounter, RoutedEventHandler clearEvtHndl)
-        {
-            StackPanel sp = new StackPanel();
-            sp.Height = 30;
-            sp.Width = theSP.Width;
-            sp.Orientation = Orientation.Horizontal;
-            sp.HorizontalAlignment = HorizontalAlignment.Center;
-            sp.Margin = new Thickness(5, 0, 5, 5);
-
-            ComboBox type_cb = new ComboBox();
-            type_cb.Name = "type_cb";
-            type_cb.Width = 150;
-            type_cb.Height = sp.Height - 5;
-            type_cb.HorizontalAlignment = HorizontalAlignment.Left;
-            type_cb.VerticalAlignment = VerticalAlignment.Top;
-            type_cb.Margin = new Thickness(45, 5, 0, 0);
-            type_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
-            string[] types = new string[] { "--select--", "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", "ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", "DOSE_REGION" };
-            foreach (string s in types) type_cb.Items.Add(s);
-            type_cb.Text = listItem.Item1;
-            sp.Children.Add(type_cb);
-
-            ComboBox str_cb = new ComboBox();
-            str_cb.Name = "str_cb";
-            str_cb.Width = 150;
-            str_cb.Height = sp.Height - 5;
-            str_cb.HorizontalAlignment = HorizontalAlignment.Left;
-            str_cb.VerticalAlignment = VerticalAlignment.Top;
-            str_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
-            str_cb.Margin = new Thickness(50, 5, 0, 0);
-
-            str_cb.Items.Add("--select--");
-            //this code is used to fix the issue where the structure exists in the structure set, but doesn't populate as the default option in the combo box.
-            int index = 0;
-            //j is initially 1 because we already added "--select--" to the combo box
-            int j = 1;
-            foreach (Structure s in selectedSS.Structures)
-            {
-                str_cb.Items.Add(s.Id);
-                if (s.Id.ToLower() == listItem.Item2.ToLower()) index = j;
-                j++;
-            }
-            if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == listItem.Item2.ToLower()) == null)
-            {
-                str_cb.Items.Add(listItem.Item2);
-                str_cb.SelectedIndex = str_cb.Items.Count - 1;
-            }
-            else str_cb.SelectedIndex = index;
-            sp.Children.Add(str_cb);
-
-            Button clearStructBtn = new Button();
-            clearStructBtn.Name = clearBtnPrefix + clearSpareBtnCounter;
-            clearStructBtn.Content = "Clear";
-            clearStructBtn.Click += clearEvtHndl;
-            clearStructBtn.Width = 50;
-            clearStructBtn.Height = sp.Height - 5;
-            clearStructBtn.HorizontalAlignment = HorizontalAlignment.Left;
-            clearStructBtn.VerticalAlignment = VerticalAlignment.Top;
-            clearStructBtn.Margin = new Thickness(20, 5, 0, 0);
-            sp.Children.Add(clearStructBtn);
-
-            return sp;
-        }
-
-        public List<Tuple<string, string>> parseTSStructureList()
-        {
-            List<Tuple<string, string>> TSStructureList = new List<Tuple<string, string>> { };
-            string dcmType = "";
-            string structure = "";
-            bool firstCombo = true;
-            bool headerObj = true;
-            foreach (object obj in templateTS_sp.Children)
-            {
-                //skip over the header row
-                if (!headerObj)
-                {
-                    foreach (object obj1 in ((StackPanel)obj).Children)
-                    {
-                        if (obj1.GetType() == typeof(ComboBox))
-                        {
-                            //first combo box is the structure and the second is the sparing type
-                            if (firstCombo)
-                            {
-                                dcmType = (obj1 as ComboBox).SelectedItem.ToString();
-                                firstCombo = false;
-                            }
-                            else structure = (obj1 as ComboBox).SelectedItem.ToString();
-                        }
-                    }
-                    if (dcmType == "--select--" || structure == "--select--")
-                    {
-                        MessageBox.Show("Error! \nStructure or DICOM Type not selected! \nSelect an option and try again");
-                        return new List<Tuple<string, string>> { };
-                    }
-                    //only add the current row to the structure sparing list if all the parameters were successful parsed
-                    else TSStructureList.Add(Tuple.Create(dcmType, structure));
-                    firstCombo = true;
-                }
-                else headerObj = false;
-            }
-
-            return TSStructureList;
-        }
-
+        
         private void clearTSStructureBtn(object sender, RoutedEventArgs e)
         {
             if (new UIhelper().clearRow(sender, templateTS_sp)) clearTemplateTSList();
@@ -1845,7 +1757,8 @@ namespace VMATAutoPlanMT
 
         private void generateTemplatePreview_Click(object sender, RoutedEventArgs e)
         {
-            autoPlanTemplate prospectiveTemplate = new autoPlanTemplate();
+            if (selectedSS == null) { MessageBox.Show("Error! Please select a Structure Set before add sparing volumes!"); return; }
+            prospectiveTemplate = new autoPlanTemplate();
             prospectiveTemplate.templateName = templateNameTB.Text;
 
             if (!double.TryParse(templateInitPlanDosePerFxTB.Text, out prospectiveTemplate.initialRxDosePerFx)) {MessageBox.Show("Error! Initial plan dose per fx not parsed successfully! Fix and try again!"); return; }
@@ -1854,69 +1767,46 @@ namespace VMATAutoPlanMT
             if (!int.TryParse(templateBstPlanNumFxTB.Text, out prospectiveTemplate.boostRxNumFx)) {MessageBox.Show("Error! Initial plan dose per fx not parsed successfully! Fix and try again!"); return; }
 
             UIhelper helper = new UIhelper();
+            helpers.templateBuilder builder = new helpers.templateBuilder();
             prospectiveTemplate.targets = new List<Tuple<string, double, string>>(parseTargets(targetTemplate_sp).OrderBy(x => x.Item2));
-            prospectiveTemplate.TS_structures = new List<Tuple<string, string>>(parseTSStructureList());
+            prospectiveTemplate.TS_structures = new List<Tuple<string, string>>(builder.parseTSStructureList(templateTS_sp));
             prospectiveTemplate.spareStructures = new List<Tuple<string,string,double>>(helper.parseSpareStructList(templateStructures_sp));
             List<Tuple<string, List<Tuple<string, string, double, double, int>>>> templateOptParametersListList = helper.parseOptConstraints(templateOptParams_sp);
             prospectiveTemplate.init_constraints = new List<Tuple<string, string, double, double, int>>(templateOptParametersListList.First().Item2);
             prospectiveTemplate.bst_constraints = new List<Tuple<string, string, double, double, int>>(templateOptParametersListList.Last().Item2);
 
-
-            templatePreviewTB.Text = "";
-            templatePreviewTB.Text += String.Format(" {0}", DateTime.Now.ToString()) + System.Environment.NewLine;
-
-            templatePreviewTB.Text += String.Format(" Template ID: {0}", prospectiveTemplate.templateName) + System.Environment.NewLine;
-            templatePreviewTB.Text += String.Format(" Initial Dose per fraction: {0} cGy", prospectiveTemplate.initialRxDosePerFx) + System.Environment.NewLine;
-            templatePreviewTB.Text += String.Format(" Initial number of fractions: {0}", prospectiveTemplate.initialRxNumFx) + System.Environment.NewLine;
-            templatePreviewTB.Text += String.Format(" Boost Dose per fraction: {0} cGy", prospectiveTemplate.boostRxDosePerFx) + System.Environment.NewLine;
-            templatePreviewTB.Text += String.Format(" Boost number of fractions: {0}", prospectiveTemplate.boostRxNumFx) + System.Environment.NewLine;
-
-            if (prospectiveTemplate.targets.Any())
-            {
-                templatePreviewTB.Text += String.Format(" {0} targets:", prospectiveTemplate.templateName) + System.Environment.NewLine;
-                templatePreviewTB.Text += String.Format("  {0, -15} | {1, -8} | {2, -14} |", "structure Id", "Rx (cGy)", "Plan Id") + System.Environment.NewLine;
-                foreach (Tuple<string, double, string> tgt in prospectiveTemplate.targets) templatePreviewTB.Text += String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |" + System.Environment.NewLine, tgt.Item1, tgt.Item2, tgt.Item3);
-                templatePreviewTB.Text += System.Environment.NewLine;
-            }
-            else templatePreviewTB.Text += String.Format(" No targets set for template: {0}", prospectiveTemplate.templateName) + System.Environment.NewLine + System.Environment.NewLine;
-
-            if (prospectiveTemplate.TS_structures.Any())
-            {
-                templatePreviewTB.Text += String.Format(" {0} additional tuning structures:", prospectiveTemplate.templateName) + System.Environment.NewLine;
-                templatePreviewTB.Text += String.Format("  {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + System.Environment.NewLine;
-                foreach (Tuple<string, string> ts in prospectiveTemplate.TS_structures) templatePreviewTB.Text += String.Format("  {0, -10} | {1, -15} |" + System.Environment.NewLine, ts.Item1, ts.Item2);
-                templatePreviewTB.Text += System.Environment.NewLine;
-            }
-            else templatePreviewTB.Text += String.Format(" No additional tuning structures for template: {0}", prospectiveTemplate.templateName) + System.Environment.NewLine + System.Environment.NewLine;
-
-            if (prospectiveTemplate.spareStructures.Any())
-            {
-                templatePreviewTB.Text += String.Format(" {0} additional sparing structures:", prospectiveTemplate.templateName) + System.Environment.NewLine;
-                templatePreviewTB.Text += String.Format("  {0, -15} | {1, -19} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + System.Environment.NewLine;
-                foreach (Tuple<string, string, double> spare in prospectiveTemplate.spareStructures) templatePreviewTB.Text += String.Format("  {0, -15} | {1, -19} | {2,-11:N1} |" + System.Environment.NewLine, spare.Item1, spare.Item2, spare.Item3);
-                templatePreviewTB.Text += System.Environment.NewLine;
-            }
-            else templatePreviewTB.Text += String.Format(" No additional sparing structures for template: {0}", prospectiveTemplate.templateName) + System.Environment.NewLine + System.Environment.NewLine;
-
-            if (prospectiveTemplate.init_constraints.Any())
-            {
-                templatePreviewTB.Text += String.Format(" {0} template initial plan optimization parameters:", prospectiveTemplate.templateName) + System.Environment.NewLine;
-                templatePreviewTB.Text += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + System.Environment.NewLine;
-                foreach (Tuple<string, string, double, double, int> opt in prospectiveTemplate.init_constraints) templatePreviewTB.Text += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
-                templatePreviewTB.Text += System.Environment.NewLine;
-            }
-            else templatePreviewTB.Text += String.Format(" No iniital plan optimization constraints for template: {0}", prospectiveTemplate.templateName) + System.Environment.NewLine + System.Environment.NewLine;
-
-            if (prospectiveTemplate.bst_constraints.Any())
-            {
-                templatePreviewTB.Text += String.Format(" {0} template boost plan optimization parameters:", prospectiveTemplate.templateName) + System.Environment.NewLine;
-                templatePreviewTB.Text += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + System.Environment.NewLine;
-                foreach (Tuple<string, string, double, double, int> opt in prospectiveTemplate.bst_constraints) templatePreviewTB.Text += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
-            }
-            else templatePreviewTB.Text += String.Format(" No boost plan optimization constraints for template: {0}", prospectiveTemplate.templateName) + System.Environment.NewLine + System.Environment.NewLine;
-
-            templatePreviewTB.Text += "-----------------------------------------------------------------------------" + System.Environment.NewLine;
+            templatePreviewTB.Text = builder.generateTemplatePreviewText(prospectiveTemplate);
             templatePreviewScroller.ScrollToTop();
+        }
+
+        private void serializeNewTemplate_Click(object sender, RoutedEventArgs e)
+        {
+            if (selectedSS == null) { MessageBox.Show("Error! Please select a Structure Set before add sparing volumes!"); return; }
+            if (prospectiveTemplate == null) { MessageBox.Show("Error! Please preview the requested template before building!"); return; }
+            string fileName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\CSI_" + prospectiveTemplate.templateName + ".ini";
+            if (File.Exists(fileName))
+            {
+                confirmUI CUI = new confirmUI();
+                CUI.message.Text = "Warning! The requested template file already exists! Overwrite?";
+                CUI.confirmBTN.Text = "Yes";
+                CUI.cancelBTN.Text = "No";
+                CUI.ShowDialog();
+                if (!CUI.confirm) return;
+                if(PlanTemplates.FirstOrDefault(x => x.templateName == prospectiveTemplate.templateName) != null)
+                {
+                    int index = PlanTemplates.IndexOf(PlanTemplates.FirstOrDefault(x => x.templateName == prospectiveTemplate.templateName));
+                    PlanTemplates.RemoveAt(index);
+                }
+            }
+
+            helpers.templateBuilder builder = new helpers.templateBuilder();
+            File.WriteAllText(fileName, builder.generateSerializedTemplate(prospectiveTemplate));
+            PlanTemplates.Add(prospectiveTemplate);
+            displayConfigurationParameters();
+            templateList.ScrollIntoView(prospectiveTemplate);
+
+            templatePreviewTB.Text += String.Format("New template written to: {0}", fileName) + Environment.NewLine;
+            templatePreviewScroller.ScrollToBottom();
         }
 
         //methods related to plan preparation
