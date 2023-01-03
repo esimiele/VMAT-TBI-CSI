@@ -227,9 +227,9 @@
                             <StackPanel HorizontalAlignment="Center" Margin="0">
                                 <Label Content="Specify Targets" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"/>
                                 <Grid Height="25" Width ="560" HorizontalAlignment="Center" Margin="0,5,0,0">
-                                    <Button x:Name="add_target" Content="Add Target" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="addTarget_Click"/>
+                                    <Button x:Name="add_target" Content="Create Target" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="addTarget_Click"/>
                                     <Button x:Name="addDefaultsTargetsBtn" Content="Add defaults" Width="120" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,315,0" Click="addTargetDefaults_Click"/>
-                                    <Button x:Name="scanSSandAddTargetsBtn" Content="Scan SS and Add Targets" Width="180" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,115,0" Click="scanSSAndAddTargets_Click"/>
+                                    <Button x:Name="scanSSandAddTargetsBtn" Content="Scan SS and Create Targets" Width="180" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,115,0" Click="scanSSAndAddTargets_Click"/>
                                     <Button x:Name="clear_target_list" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_targetList_click"/>
                                 </Grid>
                                 <ScrollViewer x:Name="targetsScroller" Height="365" Width="550" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">

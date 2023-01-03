@@ -356,7 +356,7 @@ namespace VMATAutoPlanMT
         private void scanSSAndAddTargets_Click(object sender, RoutedEventArgs e)
         {
             if (selectedSS == null) { MessageBox.Show("Error! The structure set has not been assigned! Choose a structure set and try again!"); return; }
-            List<Structure> tgt = selectedSS.Structures.Where(x => x.Id.Contains("PTV")).ToList();
+            List<Structure> tgt = selectedSS.Structures.Where(x => x.Id.Contains("PTV") && !x.Id.ToLower().Contains("ts_")).ToList();
             if (!tgt.Any()) return;
             List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>> { };
             string structureID;
@@ -1256,6 +1256,7 @@ namespace VMATAutoPlanMT
             UIhelper helper = new UIhelper();
             List<Tuple<string,List<Tuple<string, string, double, double, int>>>> optParametersListList = helper.parseOptConstraints(opt_parameters);
             if (!optParametersListList.Any()) return;
+            bool constraintsAssigned = false;
             foreach(Tuple<string,List<Tuple<string,string,double,double,int>>> itr in optParametersListList)
             {
                 ExternalPlanSetup plan = VMATplans.FirstOrDefault(x => x.Id == itr.Item1);
@@ -1266,7 +1267,14 @@ namespace VMATAutoPlanMT
                         foreach (OptimizationObjective o in plan.OptimizationSetup.Objectives) plan.OptimizationSetup.RemoveObjective(o);
                     }
                     helper.assignOptConstraints(itr.Item2, plan, true, 0.0);
+                    constraintsAssigned = true;
                 }
+            }
+            if(constraintsAssigned)
+            {
+                string message = "Optimization objectives have been successfully set!" + Environment.NewLine + Environment.NewLine + "Please review the generated structures, placed isocenters, placed beams, and optimization parameters!";
+                MessageBox.Show(message);
+                isModified = true;
             }
             /*
             if (VMATplan == null)
@@ -1306,17 +1314,14 @@ namespace VMATAutoPlanMT
             //}
             //else
             //{
-            string message = "Optimization objectives have been successfully set!" + Environment.NewLine + Environment.NewLine + "Please review the generated structures, placed isocenters, placed beams, and optimization parameters!";
             //if (optParametersList.Where(x => x.Item1.ToLower().Contains("_lowres")).Any()) message += "\n\nBE SURE TO VERIFY THE ACCURACY OF THE GENERATED LOW-RESOLUTION CONTOURS!";
             //if (numIsos != 0 && numIsos != numVMATIsos)
             //{
             //    //VMAT only TBI plan was created with the script in this instance info or the user wants to only set the optimization constraints
             //    message += "\n\nFor the AP/PA Legs plan, be sure to change the orientation from head-first supine to feet-first supine!";
             //}
-            MessageBox.Show(message);
             //}
             //autoSave = true;
-            isModified = true;
         }
 
         private void add_constraint_Click(object sender, RoutedEventArgs e)

@@ -8,35 +8,44 @@ namespace VMATAutoPlanMT
 {
     class isoNameHelper
     {
-        public List<string> getIsoNames(int numVMATIsos, int numIsos)
+        public List<string> getIsoNames(int numVMATIsos, int numIsos, bool isCSI = false)
         {
             List<string> isoNames = new List<string> { };
 
-            isoNames.Add("Head");
-            if(numVMATIsos > 1 || numIsos > 1)
+            if(!isCSI)
             {
-                if (numIsos > numVMATIsos)
+                isoNames.Add("Head");
+                if (numVMATIsos > 1 || numIsos > 1)
                 {
-                    if (numVMATIsos == 2) isoNames.Add("Pelvis");
+                    if (numIsos > numVMATIsos)
+                    {
+                        if (numVMATIsos == 2) isoNames.Add("Pelvis");
+                        else
+                        {
+                            isoNames.Add("Chest");
+                            if (numVMATIsos == 3) isoNames.Add("Pelvis");
+                            else if (numVMATIsos == 4) { isoNames.Add("Abdomen"); isoNames.Add("Pelvis"); }
+                        }
+                        isoNames.Add("AP / PA upper legs");
+                        if (numIsos == numVMATIsos + 2) isoNames.Add("AP / PA lower legs");
+                    }
                     else
                     {
-                        isoNames.Add("Chest");
-                        if (numVMATIsos == 3) isoNames.Add("Pelvis");
-                        else if (numVMATIsos == 4) { isoNames.Add("Abdomen"); isoNames.Add("Pelvis"); }
-                    }
-                    isoNames.Add("AP / PA upper legs");
-                    if (numIsos == numVMATIsos + 2) isoNames.Add("AP / PA lower legs");
-                }
-                else
-                {
-                    if (numVMATIsos == 2) isoNames.Add("Pelvis");
-                    else
-                    {
-                        isoNames.Add("Chest");
-                        if (numVMATIsos == 3) isoNames.Add("Legs");
-                        else if (numVMATIsos == 4) { isoNames.Add("Pelvis"); isoNames.Add("Legs"); }
+                        if (numVMATIsos == 2) isoNames.Add("Pelvis");
+                        else
+                        {
+                            isoNames.Add("Chest");
+                            if (numVMATIsos == 3) isoNames.Add("Legs");
+                            else if (numVMATIsos == 4) { isoNames.Add("Pelvis"); isoNames.Add("Legs"); }
+                        }
                     }
                 }
+            }
+            else
+            {
+                isoNames.Add("Brain");
+                if (numVMATIsos > 2) isoNames.Add("UpSpine");
+                isoNames.Add("LowSpine");
             }
             return isoNames;
         }

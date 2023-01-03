@@ -193,14 +193,15 @@ namespace VMATAutoPlanMT
             string mrn = "";
             string ss = "";
             string configurationFile = "";
+            if (args.Count == 1) configurationFile = args.ElementAt(0);
+            else
+            {
+                mrn = args.ElementAt(0);
+                ss = args.ElementAt(1);
+                configurationFile = args.ElementAt(2);
+            }
             if (app != null)
             {
-                for (int i = 0; i < args.Count; i++)
-                {
-                    if (i == 0) mrn = args.ElementAt(i);
-                    if (i == 1) ss = args.ElementAt(i);
-                    if (i == 2) configurationFile = args.ElementAt(i);
-                }
                 if (string.IsNullOrEmpty(mrn) || string.IsNullOrWhiteSpace(mrn))
                 {
                     //missing patient MRN. Need to ask user for it
