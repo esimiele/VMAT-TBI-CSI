@@ -240,10 +240,10 @@
                             </StackPanel>
                         </Border>
                     </TabItem>
-                    <TabItem Header="TS Generation" BorderThickness="0,1,1,0">
+                    <TabItem Header="TS Manipulation" BorderThickness="0,1,1,0">
                         <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                             <StackPanel HorizontalAlignment="Center" Margin="0">
-                                <Label Content="Structures to Spare" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
+                                <Label Content="Structure Manipulation" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
                                 <Grid Height="25" Width ="560" HorizontalAlignment="Center" Margin="0,5,0,0">
                                     <Button x:Name="addSpareStructureBtn" Content="Add Structure" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_str_click"/>
                                     <Button x:Name="addSpareStructureDefaultsBtn" Content="Add Defaults" Width="100" HorizontalAlignment="Center" VerticalAlignment="Top" Click="add_spareDefaults_click"/>
@@ -362,11 +362,11 @@
                                     </StackPanel>
                                 </Border>
                             </TabItem>
-                            <TabItem Header="TS Structures" BorderThickness="0,1,1,0">
+                            <TabItem Header="TS Generation" BorderThickness="0,1,1,0">
                                 <StackPanel HorizontalAlignment="Center" Margin="0">
                                     <Grid Width="580" HorizontalAlignment="Center" Margin="0,5,0,5">
                                         <Label Content="Tuning Structures" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
-                                        <Button Content="TS vs Spare Structures?" Width="140" Height="24" HorizontalAlignment="Right" Click="TsVsSpareStructureInfo_Click"/>
+                                        <Button Content="?" Width="20" Height="24" HorizontalAlignment="Right" Click="TsGenerateVsManipulateInfo_Click"/>
                                     </Grid>
                                     <Grid Height="25" Width ="400" HorizontalAlignment="Center" Margin="0,5,0,0">
                                         <Button Content="Add TS" Width="80" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_templateTS_Click"/>
@@ -378,12 +378,12 @@
                                     </ScrollViewer>
                                 </StackPanel>
                             </TabItem>
-                            <TabItem Header="Spare Structures" BorderThickness="0,1,1,0">
+                            <TabItem Header="TS Manipulation" BorderThickness="0,1,1,0">
                                 <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                                     <StackPanel HorizontalAlignment="Center" Margin="0">
                                         <Grid Width="580" HorizontalAlignment="Center" Margin="0,5,0,5">
-                                            <Label Content="Structures to Spare" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
-                                            <Button Content="TS vs Spare Structures?" Width="140" Height="24" HorizontalAlignment="Right" Click="TsVsSpareStructureInfo_Click"/>
+                                            <Label Content="Structures Manipulation" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
+                                            <Button Content="TS vs Spare Structures?" Width="140" Height="24" HorizontalAlignment="Right" Click="TsGenerateVsManipulateInfo_Click"/>
                                         </Grid>
                                         <Grid Height="25" Width ="560" HorizontalAlignment="Center" Margin="0,5,0,0">
                                             <Button x:Name="templateAddSpareStructureBtn" Content="Add Structure" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_str_click"/>

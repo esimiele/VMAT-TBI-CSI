@@ -150,17 +150,19 @@ namespace VMATAutoPlanMT
             return dataList;
         }
 
-        public virtual void AddTSStructures(Tuple<string, string> itr1)
+        public virtual Structure AddTSStructures(Tuple<string, string> itr1)
         {
+            Structure addedStructure = null;
             string dicomType = itr1.Item1;
             string structName = itr1.Item2;
             if (selectedSS.CanAddStructure(dicomType, structName))
             {
-                selectedSS.AddStructure(dicomType, structName);
+                addedStructure = selectedSS.AddStructure(dicomType, structName);
                 addedStructures.Add(structName);
                 optParameters.Add(Tuple.Create(structName, ""));
             }
             else MessageBox.Show(String.Format("Can't add {0} to the structure set!", structName));
+            return addedStructure;
         }
     }
 }

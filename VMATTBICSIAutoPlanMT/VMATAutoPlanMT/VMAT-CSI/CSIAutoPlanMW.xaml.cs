@@ -346,8 +346,15 @@ namespace VMATAutoPlanMT
 
         private void addTargetDefaults_Click(object sender, RoutedEventArgs e)
         {
-            List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>> { Tuple.Create("--select--", 0.0, "--select--") };
-            if((templateList.SelectedItem as autoPlanTemplate) != null) targetList = new List<Tuple<string, double, string>>((templateList.SelectedItem as autoPlanTemplate).targets);
+            if (selectedSS == null) { MessageBox.Show("Error! The structure set has not been assigned! Choose a structure set and try again!"); return; }
+            List<Tuple<string, double, string>> tmpList = new List<Tuple<string, double, string>> { Tuple.Create("--select--", 0.0, "--select--") };
+            List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>> { };
+            if ((templateList.SelectedItem as autoPlanTemplate) != null)
+            {
+                tmpList = new List<Tuple<string, double, string>>((templateList.SelectedItem as autoPlanTemplate).targets);
+                foreach (Tuple<string, double, string> itr in tmpList) if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.Item1.ToLower()) != null || itr.Item1.ToLower() == "ptv_csi") targetList.Add(itr);
+            }
+            else targetList = new List<Tuple<string, double, string>>(tmpList);
             clear_targets_list();
             add_target_volumes(targetList, targets_sp);
             targetsScroller.ScrollToBottom();
@@ -829,7 +836,7 @@ namespace VMATAutoPlanMT
                     //the btn has a unique tag to it, so we can just loop through all children in the structures_sp children list and find which button is equivalent to our button
                     if (row)
                     {
-                        if (c.SelectedItem.ToString() != "Mean Dose < Rx Dose" && c.SelectedItem.ToString() != "Crop from target") (obj1 as TextBox).Visibility = Visibility.Hidden;
+                        if (c.SelectedItem.ToString() != "Mean Dose < Rx Dose" && c.SelectedItem.ToString() != "Crop from target" && c.SelectedItem.ToString() != "Crop from Body") (obj1 as TextBox).Visibility = Visibility.Hidden;
                         else (obj1 as TextBox).Visibility = Visibility.Visible;
                         return;
                     }
@@ -1712,13 +1719,13 @@ namespace VMATAutoPlanMT
             }
         }
 
-        private void TsVsSpareStructureInfo_Click(object sender, RoutedEventArgs e)
+        private void TsGenerateVsManipulateInfo_Click(object sender, RoutedEventArgs e)
         {
-            string message = "What's the difference between TS structures and Sparing structures?" + Environment.NewLine;
-            message += String.Format("TS structures are structures the user wishes to add to the structure set. These include rings and substructures. E.g.,") + Environment.NewLine;
+            string message = "What's the difference between TS structure generation vs manipulation?" + Environment.NewLine;
+            message += String.Format("TS structure generation involves adding structures to the structure set to shape the dose distribution. These include rings and substructures. E.g.,") + Environment.NewLine;
             message += String.Format("TS_ring900  -->  ring structure around the targets using a nominal dose level of 900 cGy to determine fallofff") + Environment.NewLine;
             message += String.Format("Kidneys-1cm  -->  substructure for the Kidneys volume where the Kidneys are contracted by 1 cm") + Environment.NewLine + Environment.NewLine;
-            message += String.Format("Spare or sparing structures are structures that require manipulation to the structure itself or to the target structures. E.g.,") + Environment.NewLine;
+            message += String.Format("TS structure manipulation involves manipulating/modifying the structure itself or target structures. E.g.,") + Environment.NewLine;
             message += String.Format("(Ovaries, Crop from target, 1.5cm)  -->  modify the target structure such that the ovaries structure is cropped from the target with a 1.5 cm margin") + Environment.NewLine;
             message += String.Format("(Brainstem, Contour overlap, 0.0 cm)  -->  Identify the overlapping regions between the brainstem and target structure(s) and contour them as new structures") + Environment.NewLine + Environment.NewLine;
             MessageBox.Show(message);

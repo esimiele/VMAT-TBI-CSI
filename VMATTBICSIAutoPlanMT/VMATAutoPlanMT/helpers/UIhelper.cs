@@ -191,7 +191,7 @@ namespace VMATAutoPlanMT
             type_cb.VerticalAlignment = VerticalAlignment.Top;
             type_cb.Margin = new Thickness(5, 5, 0, 0);
             type_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
-            string[] types = new string[] { "--select--", "Crop from target", "Contour overlap", "Mean Dose < Rx Dose", "Dmax ~ Rx Dose" };
+            string[] types = new string[] { "--select--", "Crop from target", "Contour overlap", "Crop from Body", "Mean Dose < Rx Dose", "Dmax ~ Rx Dose" };
             foreach (string s in types) type_cb.Items.Add(s);
             type_cb.Text = listItem.Item2;
             type_cb.SelectionChanged += typeChngHndl;
@@ -207,7 +207,7 @@ namespace VMATAutoPlanMT
             addMargin.VerticalContentAlignment = VerticalAlignment.Center;
             addMargin.Margin = new Thickness(5, 5, 0, 0);
             addMargin.Text = Convert.ToString(listItem.Item3);
-            if (listItem.Item2 != "Mean Dose < Rx Dose" && listItem.Item2 != "Crop from target") addMargin.Visibility = Visibility.Hidden;
+            if (listItem.Item2 != "Mean Dose < Rx Dose" && listItem.Item2 != "Crop from target" && listItem.Item2 != "Crop from Body") addMargin.Visibility = Visibility.Hidden;
             sp.Children.Add(addMargin);
 
             Button clearStructBtn = new Button();
