@@ -62,7 +62,7 @@ namespace VMATAutoPlanMT
             List<Tuple<string, string, double>> highResSpareList = new List<Tuple<string, string, double>> { };
             foreach (Tuple<string, string, double> itr in spareStructList)
             {
-                if (itr.Item2 == "Crop from target")
+                if (itr.Item2 == "Crop target from structure")
                 {
                     if (selectedSS.Structures.First(x => x.Id == itr.Item1).IsEmpty)
                     {
@@ -260,6 +260,7 @@ namespace VMATAutoPlanMT
 
         private bool cropStructureFromBody(Structure theStructure, double margin)
         {
+            //margin is in cm
             Structure body = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "body");
             if (body != null)
             {
@@ -270,6 +271,30 @@ namespace VMATAutoPlanMT
             return false;
         }
 
+        private bool cropTargetFromStructure(Structure target, Structure normal, double margin)
+        {
+            //margin is in cm
+            if (target != null && normal != null)
+            {
+                if (margin >= -5.0 && margin <= 5.0) target.SegmentVolume = target.Sub(normal.Margin(margin * 10));
+                else { MessageBox.Show("Cropping margin MUST be within +/- 5.0 cm!"); return true; }
+            }
+            else { MessageBox.Show("Error either target or normal structures are missing! Can't crop target from normal structure!"); return true; }
+            return false;
+        }
+
+        private bool contourOverlap(Structure target, Structure normal, double margin)
+        {
+            //margin is in cm
+            if (target != null && normal != null)
+            {
+                if (margin >= -5.0 && margin <= 5.0) normal.SegmentVolume = target.And(normal.Margin(margin * 10));
+                else { MessageBox.Show("Added margin MUST be within +/- 5.0 cm!"); return true; }
+            }
+            else { MessageBox.Show("Error either target or normal structures are missing! Can't contour overlap between target and normal structure!"); return true; }
+            return false;
+        }
+
         public override bool createTSStructures()
         {
             //determine if any TS structures need to be added to the selected structure set
@@ -277,7 +302,7 @@ namespace VMATAutoPlanMT
             //{
             //    //optParameters.Add(Tuple.Create(itr.Item1, itr.Item2));
             //    //this is here to add
-            //    if (itr.Item2 == "Crop from target") foreach (Tuple<string, string> itr1 in TS_structures.Where(x => x.Item2.ToLower().Contains(itr.Item1.ToLower()))) AddTSStructures(itr1);
+            //    if (itr.Item2 == "Crop target from structure") foreach (Tuple<string, string> itr1 in TS_structures.Where(x => x.Item2.ToLower().Contains(itr.Item1.ToLower()))) AddTSStructures(itr1);
             //}
             //get all TS structures that do not contain 'ctv' or 'ptv' in the title
             foreach (Tuple<string, string> itr in TS_structures.Where(x => !x.Item2.ToLower().Contains("ctv") && !x.Item2.ToLower().Contains("ptv")))
@@ -349,42 +374,57 @@ namespace VMATAutoPlanMT
         private bool performTSStructureManipulation()
         {
             //there are items in the sparing list requiring structure manipulation
-            List<Tuple<string, string, double>> tmpSpareLst = spareStructList.Where(x => x.Item2.Contains("Crop from target") || x.Item2.Contains("Contour")).ToList();
+            List<Tuple<string, string, double>> tmpSpareLst = spareStructList.Where(x => x.Item2.Contains("Crop target from structure") || x.Item2.Contains("Contour")).ToList();
             if(tmpSpareLst.Any())
             {
                 foreach(Tuple<string, double, string> itr in targets)
                 {
-                    Structure addedTSTarget = AddTSStructures(new Tuple<string,string>("CONTROL", String.Format("ts_{0}", itr.Item1)));
+                    //create a new TS target for optimization and copy the original target structure onto the new TS structure
+                    Structure addedTSTarget = AddTSStructures(new Tuple<string,string>("CONTROL", String.Format("ts_{0}", itr.Item1).Substring(0,15)));
+                    addedTSTarget.SegmentVolume = selectedSS.Structures.FirstOrDefault(x => x.Id == itr.Item1).Margin(0.0);
                     foreach (Tuple<string, string, double> itr1 in spareStructList)
                     {
-                        if(itr1.Item2.Contains("Crop"))
+                        Structure theStructure = selectedSS.Structures.FirstOrDefault(x => x.Id == itr1.Item1);
+                        if (itr1.Item2.Contains("Crop"))
                         {
                             if(itr1.Item2.Contains("Body"))
                             {
-                                //Structure body = s
+                                //crop from body
+                                cropStructureFromBody(theStructure, itr1.Item3);
                             }
+                            else
+                            {
+                                //crop target from structure
+                                cropTargetFromStructure(addedTSTarget, theStructure, itr1.Item3);
+                            }
+                        }
+                        else if(itr1.Item2.Contains("Contour"))
+                        {
+                            Structure addedTSNormal = AddTSStructures(new Tuple<string, string>("CONTROL", String.Format("ts_{0}_overlap", itr.Item1).Substring(0,15)));
+                            Structure originalNormal = selectedSS.Structures.FirstOrDefault(x => x.Id == itr1.Item1);
+                            addedTSNormal.SegmentVolume = originalNormal.Margin(0.0);
+                            contourOverlap(addedTSTarget, addedTSNormal, itr1.Item3);
+                            Structure tmp = selectedSS.AddStructure("CONTROL", "dummy");
+                            tmp.SegmentVolume = addedTSNormal.Margin(0.0);
+                            tmp.Sub(originalNormal.Margin(0.0));
+                            if (tmp.IsEmpty) selectedSS.RemoveStructure(addedTSNormal);
+                            selectedSS.RemoveStructure(tmp);
                         }
                         //if (itr1.Item1.ToLower() == "ptv_csi")
                         //{
                         //    //subtract all the structures the user wants to spare from PTV_CSI
                         //    foreach (Tuple<string, string, double> spare in spareStructList)
                         //    {
-                        //        if (spare.Item2 == "Crop from target")
+                        //        if (spare.Item2 == "Crop target from structure")
                         //        {
                         //            Structure tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == spare.Item1.ToLower());
                         //            tmp.SegmentVolume = tmp.Sub(tmp1.Margin((spare.Item3) * 10));
                         //        }
                         //    }
                         //}
-                        //else if (itr1.Item1.ToLower() == "ts_ptv_csi")
-                        //{
-                        //    //copy the ptv_csi contour onto the TS_ptv_csi contour
-                        //    Structure tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "ptv_csi");
-                        //    tmp.SegmentVolume = tmp1.Margin(0.0);
-                        //}
                         ////optParameters.Add(Tuple.Create(itr.Item1, itr.Item2));
                         ////this is here to add
-                        //if (itr1.Item2 == "Crop from target") foreach (Tuple<string, string> itr1 in TS_structures.Where(x => x.Item2.ToLower().Contains(itr.Item1.ToLower()))) AddTSStructures(itr1);
+                        //if (itr1.Item2 == "Crop target from structure") foreach (Tuple<string, string> itr1 in TS_structures.Where(x => x.Item2.ToLower().Contains(itr.Item1.ToLower()))) AddTSStructures(itr1);
                     }
                 }
             }

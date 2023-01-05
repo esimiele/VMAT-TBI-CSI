@@ -836,7 +836,7 @@ namespace VMATAutoPlanMT
                     //the btn has a unique tag to it, so we can just loop through all children in the structures_sp children list and find which button is equivalent to our button
                     if (row)
                     {
-                        if (c.SelectedItem.ToString() != "Mean Dose < Rx Dose" && c.SelectedItem.ToString() != "Crop from target" && c.SelectedItem.ToString() != "Crop from Body") (obj1 as TextBox).Visibility = Visibility.Hidden;
+                        if (c.SelectedItem.ToString() != "Mean Dose < Rx Dose" && c.SelectedItem.ToString() != "Crop target from structure" && c.SelectedItem.ToString() != "Crop from Body") (obj1 as TextBox).Visibility = Visibility.Hidden;
                         else (obj1 as TextBox).Visibility = Visibility.Visible;
                         return;
                     }
@@ -1726,7 +1726,7 @@ namespace VMATAutoPlanMT
             message += String.Format("TS_ring900  -->  ring structure around the targets using a nominal dose level of 900 cGy to determine fallofff") + Environment.NewLine;
             message += String.Format("Kidneys-1cm  -->  substructure for the Kidneys volume where the Kidneys are contracted by 1 cm") + Environment.NewLine + Environment.NewLine;
             message += String.Format("TS structure manipulation involves manipulating/modifying the structure itself or target structures. E.g.,") + Environment.NewLine;
-            message += String.Format("(Ovaries, Crop from target, 1.5cm)  -->  modify the target structure such that the ovaries structure is cropped from the target with a 1.5 cm margin") + Environment.NewLine;
+            message += String.Format("(Ovaries, Crop target from structure, 1.5cm)  -->  modify the target structure such that the ovaries structure is cropped from the target with a 1.5 cm margin") + Environment.NewLine;
             message += String.Format("(Brainstem, Contour overlap, 0.0 cm)  -->  Identify the overlapping regions between the brainstem and target structure(s) and contour them as new structures") + Environment.NewLine + Environment.NewLine;
             MessageBox.Show(message);
         }
