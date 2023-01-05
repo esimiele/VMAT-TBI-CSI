@@ -253,7 +253,7 @@
                                     <StackPanel Name="structures_sp" Margin="5">
                                     </StackPanel>
                                 </ScrollViewer>
-                                <Button Content="Generate Tuning Structures" FontWeight="Bold" Width="180" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,7,0,0" Click="generateStruct"></Button>
+                                <Button Content="Perform TS Generation &amp; Manipulation" FontWeight="Bold" Width="240" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,7,0,0" Click="generateStruct"></Button>
                             </StackPanel>
                         </Border>
                     </TabItem>
@@ -382,8 +382,8 @@
                                 <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                                     <StackPanel HorizontalAlignment="Center" Margin="0">
                                         <Grid Width="580" HorizontalAlignment="Center" Margin="0,5,0,5">
-                                            <Label Content="Structures Manipulation" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
-                                            <Button Content="TS vs Spare Structures?" Width="140" Height="24" HorizontalAlignment="Right" Click="TsGenerateVsManipulateInfo_Click"/>
+                                            <Label Content="Structure Manipulation" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
+                                            <Button Content="?" Width="20" Height="24" HorizontalAlignment="Right" Click="TsGenerateVsManipulateInfo_Click"/>
                                         </Grid>
                                         <Grid Height="25" Width ="560" HorizontalAlignment="Center" Margin="0,5,0,0">
                                             <Button x:Name="templateAddSpareStructureBtn" Content="Add Structure" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_str_click"/>

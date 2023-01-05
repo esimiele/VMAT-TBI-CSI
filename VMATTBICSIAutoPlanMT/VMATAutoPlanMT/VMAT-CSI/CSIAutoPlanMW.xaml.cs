@@ -49,9 +49,9 @@ namespace VMATAutoPlanMT
 
         List<Tuple<string, string, double>> defaultSpareStruct = new List<Tuple<string, string, double>>
         {
-            new Tuple<string, string, double>("Lungs", "Mean Dose < Rx Dose", 0.3),
-            new Tuple<string, string, double>("Kidneys", "Mean Dose < Rx Dose", 0.0),
-            new Tuple<string, string, double>("Bowel", "Dmax ~ Rx Dose", 0.0)
+            //new Tuple<string, string, double>("Lungs", "Mean Dose < Rx Dose", 0.3),
+            //new Tuple<string, string, double>("Kidneys", "Mean Dose < Rx Dose", 0.0),
+            //new Tuple<string, string, double>("Bowel", "Dmax ~ Rx Dose", 0.0)
         };
 
         //option to contour overlap between VMAT fields in adjacent isocenters and default margin for contouring the overlap
@@ -868,6 +868,7 @@ namespace VMATAutoPlanMT
             List<Tuple<string, string, double>> templateSpareList = new List<Tuple<string, string, double>>(defaultSpareStruct);
             //add the case-specific sparing structures to the temporary list
             if (templateList.SelectedItem != null) templateSpareList = new List<Tuple<string, string, double>>(addTemplateSpecificSpareStructures((templateList.SelectedItem as autoPlanTemplate).spareStructures, templateSpareList));
+            if (!templateSpareList.Any()) { MessageBox.Show("No default structures to add!");  return; }
 
             string missOutput = "";
             string emptyOutput = "";
@@ -932,11 +933,11 @@ namespace VMATAutoPlanMT
         private void generateStruct(object sender, RoutedEventArgs e)
         {
             //check that there are actually structures to spare in the sparing list
-            if (structures_sp.Children.Count == 0)
-            {
-                MessageBox.Show("No structures present to generate tuning structures!");
-                return;
-            }
+            //if (structures_sp.Children.Count == 0)
+            //{
+            //    MessageBox.Show("No structures present to generate tuning structures!");
+            //    return;
+            //}
 
             if(!targets.Any())
             {
@@ -945,7 +946,7 @@ namespace VMATAutoPlanMT
             }
 
             List<Tuple<string, string, double>> structureSpareList = new UIhelper().parseSpareStructList(structures_sp);
-            if (!structureSpareList.Any()) return;
+            //if (!structureSpareList.Any()) return;
 
             TS_structures = new List<Tuple<string, string>> (defaultTS_structures);
             if(templateList.SelectedItem != null) foreach (Tuple<string, string> itr in ((autoPlanTemplate)templateList.SelectedItem).TS_structures) TS_structures.Add(itr);
@@ -1067,6 +1068,7 @@ namespace VMATAutoPlanMT
             }
             numBeams.Add(new List<int>(numBeams_temp));
 
+            //now that we have a list of plans each with a list of isocenter names, we want to make a new list of plans each with a list of tuples of isocenter names and beams per isocenter
             List<Tuple<string, List<Tuple<string, int>>>> planIsoBeamInfo = new List<Tuple<string, List<Tuple<string, int>>>> { };
             count = 0;
             foreach(Tuple<string,List<string>> itr in isoNames)
@@ -1618,8 +1620,6 @@ namespace VMATAutoPlanMT
 
         private void templateBuildOptionCB_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            //12/26/2022
-            //need to implement Optimization Constraints, functionality
             if (selectedSS == null) { MessageBox.Show("Error! The structure set has not been assigned! Choose a structure set and try again!"); return; }
             if (templateBuildOptionCB.SelectedItem.ToString().ToLower() == "existing template")
             {
@@ -1723,7 +1723,7 @@ namespace VMATAutoPlanMT
         {
             string message = "What's the difference between TS structure generation vs manipulation?" + Environment.NewLine;
             message += String.Format("TS structure generation involves adding structures to the structure set to shape the dose distribution. These include rings and substructures. E.g.,") + Environment.NewLine;
-            message += String.Format("TS_ring900  -->  ring structure around the targets using a nominal dose level of 900 cGy to determine fallofff") + Environment.NewLine;
+            message += String.Format("TS_ring900  -->  ring structure around the targets using a nominal dose level of 900 cGy to determine fall-off") + Environment.NewLine;
             message += String.Format("Kidneys-1cm  -->  substructure for the Kidneys volume where the Kidneys are contracted by 1 cm") + Environment.NewLine + Environment.NewLine;
             message += String.Format("TS structure manipulation involves manipulating/modifying the structure itself or target structures. E.g.,") + Environment.NewLine;
             message += String.Format("(Ovaries, Crop target from structure, 1.5cm)  -->  modify the target structure such that the ovaries structure is cropped from the target with a 1.5 cm margin") + Environment.NewLine;

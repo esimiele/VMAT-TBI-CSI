@@ -165,9 +165,9 @@ namespace VMATAutoPlanMT
                 else numVMATIsos = (int)Math.Ceiling(maxTargetLength / (400.0 - 20.0));
                 if (numVMATIsos > 3) numVMATIsos = 3;
 
-                //set isocenter names based on numIsos and numVMATIsos (reuse same naming convention as VMAT TBI for simplicity)
+                //set isocenter names based on numIsos and numVMATIsos (be sure to pass 'true' for the third argument to indicate that this is a CSI plan(s))
                 //plan Id, list of isocenter names for this plan
-                isoNames.Add(Tuple.Create(itr.Item1, new List<string>(new isoNameHelper().getIsoNames(numVMATIsos, numVMATIsos))));
+                isoNames.Add(Tuple.Create(itr.Item1, new List<string>(new isoNameHelper().getIsoNames(numVMATIsos, numVMATIsos, true))));
             }
             
             return false;
@@ -254,7 +254,7 @@ namespace VMATAutoPlanMT
             combinedTarget.SegmentVolume = combinedTarget.Or(spineTarget.Margin(0.0));
 
             //1/3/2022, crop PTV structure from body by 5mm
-            cropStructureFromBody(combinedTarget, -5.0);
+            cropStructureFromBody(combinedTarget, -0.5);
             return false;
         }
 
@@ -314,31 +314,33 @@ namespace VMATAutoPlanMT
             //now contour the various structures
             foreach (string itr in addedStructures)
             {
-                Structure tmp = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.ToLower());
+                MessageBox.Show(String.Format("create TS: {0}", itr));
+                Structure addedStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.ToLower());
                 if (itr.ToLower().Contains("ts_ring"))
                 {
                     if (double.TryParse(itr.Substring(7, itr.Length - 7), out double ringDose))
                     {
                         foreach (Tuple<string, double, string> itr1 in targets)
                         {
-                            Structure tmp1 = selectedSS.Structures.FirstOrDefault(x => x.Id == itr1.Item1);
-                            if (tmp1 != null)
+                            Structure targetStructure = selectedSS.Structures.FirstOrDefault(x => x.Id == itr1.Item1);
+                            if (targetStructure != null)
                             {
                                 //margin in mm. 
-                                double margin = (itr1.Item2 - ringDose) / 150.0;
+                                double margin = ((itr1.Item2 - ringDose) / itr1.Item2) * 30.0;
                                 if (margin > 0.0)
                                 {
-                                    //method to create ring of 1.0 cm thickness
-                                    //first create structure that is a copy of the target structure with an outer margin of (Rx - ring dose / 150 cGy/mm) + 10 mm.
-                                    //This uses a loose rule of thumb of 150.0 cGy/mm compared to the rule of thumb Nataliya provided of 200.0 cGy/mm for standard VMAT plans
-                                    tmp.SegmentVolume = tmp1.Margin(margin + 10.0);
-                                    //next, add a dummy structure that is a copy of the target structure with an outer margin of (Rx - ring dose / 2 Gy/mm)
+                                    //method to create ring of 2.0 cm thickness
+                                    //first create structure that is a copy of the target structure with an outer margin of ((Rx - ring dose / Rx) * 30 mm) + 20 mm.
+                                    //1/5/2023, nataliya stated the 50% Rx ring should be 1.5 cm from the target and have a thickness of 2 cm. Redefined the margin formula to equal 15 mm whenever (Rx - ring dose) / Rx = 0.5
+                                    addedStructure.SegmentVolume = targetStructure.Margin(margin + 20.0 > 50.0 ? 50.0 : margin + 20.0);
+                                    //next, add a dummy structure that is a copy of the target structure with an outer margin of ((Rx - ring dose / Rx) * 30 mm)
                                     if (selectedSS.Structures.Where(x => x.Id.ToLower() == "dummy").Any()) selectedSS.RemoveStructure(selectedSS.Structures.First(x => x.Id.ToLower() == "dummy"));
                                     Structure dummy = selectedSS.AddStructure("CONTROL", "Dummy");
-                                    dummy.SegmentVolume = tmp1.Margin(margin);
+                                    dummy.SegmentVolume = targetStructure.Margin(margin);
                                     //now, contour the ring as the original ring minus the dummy structure
-                                    tmp.SegmentVolume = tmp.Sub(dummy.Margin(0.0));
-                                    tmp.SegmentVolume = tmp.And(selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "body"));
+                                    addedStructure.SegmentVolume = addedStructure.Sub(dummy.Margin(0.0));
+                                    //keep only the parts of the ring that are inside the body!
+                                    cropStructureFromBody(addedStructure, 0.0);
                                     //remove the dummy structure
                                     selectedSS.RemoveStructure(dummy);
                                 }
@@ -350,20 +352,21 @@ namespace VMATAutoPlanMT
                 else if (!(itr.ToLower().Contains("ptv")))
                 {
                     //sub structures
-                    Structure tmp1 = null;
+                    Structure originalStructure = null;
                     double margin = 0.0;
                     int pos1 = itr.IndexOf("-");
                     int pos2 = itr.IndexOf("cm");
                     if (pos1 != -1 && pos2 != -1)
                     {
-                        string originalStructure = itr.Substring(0, pos1);
+                        string originalStructureId = itr.Substring(0, pos1);
                         double.TryParse(itr.Substring(pos1, pos2 - pos1), out margin);
 
-                        if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains(originalStructure.ToLower()) && x.Id.ToLower().Contains("_low")) == null) tmp1 = selectedSS.Structures.First(x => x.Id.ToLower().Contains(originalStructure.ToLower()));
-                        else tmp1 = selectedSS.Structures.First(x => x.Id.ToLower().Contains(originalStructure.ToLower()) && x.Id.ToLower().Contains("_low"));
+                        if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains(originalStructureId.ToLower()) && x.Id.ToLower().Contains("_low")) == null) originalStructure = selectedSS.Structures.First(x => x.Id.ToLower().Contains(originalStructureId.ToLower()));
+                        else originalStructure = selectedSS.Structures.First(x => x.Id.ToLower().Contains(originalStructureId.ToLower()) && x.Id.ToLower().Contains("_low"));
 
                         //convert from cm to mm
-                        tmp.SegmentVolume = tmp1.Margin(margin * 10);
+                        addedStructure.SegmentVolume = originalStructure.Margin(margin * 10);
+                        if (addedStructure.IsEmpty) selectedSS.RemoveStructure(addedStructure);
                     }
                 }
                 
@@ -380,10 +383,12 @@ namespace VMATAutoPlanMT
                 foreach(Tuple<string, double, string> itr in targets)
                 {
                     //create a new TS target for optimization and copy the original target structure onto the new TS structure
-                    Structure addedTSTarget = AddTSStructures(new Tuple<string,string>("CONTROL", String.Format("ts_{0}", itr.Item1).Substring(0,15)));
+                    string newName = String.Format("ts_{0}", itr.Item1);
+                    Structure addedTSTarget = AddTSStructures(new Tuple<string,string>("CONTROL", newName.Length > 16 ? newName.Substring(0,15) : newName));
                     addedTSTarget.SegmentVolume = selectedSS.Structures.FirstOrDefault(x => x.Id == itr.Item1).Margin(0.0);
                     foreach (Tuple<string, string, double> itr1 in spareStructList)
                     {
+                        MessageBox.Show(String.Format("manipulate TS: {0}", itr1.Item1));
                         Structure theStructure = selectedSS.Structures.FirstOrDefault(x => x.Id == itr1.Item1);
                         if (itr1.Item2.Contains("Crop"))
                         {
@@ -400,7 +405,8 @@ namespace VMATAutoPlanMT
                         }
                         else if(itr1.Item2.Contains("Contour"))
                         {
-                            Structure addedTSNormal = AddTSStructures(new Tuple<string, string>("CONTROL", String.Format("ts_{0}_overlap", itr.Item1).Substring(0,15)));
+                            newName = String.Format("ts_{0}_overlap", itr.Item1);
+                            Structure addedTSNormal = AddTSStructures(new Tuple<string, string>("CONTROL", newName.Length > 16 ? newName.Substring(0, 15) : newName));
                             Structure originalNormal = selectedSS.Structures.FirstOrDefault(x => x.Id == itr1.Item1);
                             addedTSNormal.SegmentVolume = originalNormal.Margin(0.0);
                             contourOverlap(addedTSTarget, addedTSNormal, itr1.Item3);

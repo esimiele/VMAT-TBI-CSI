@@ -75,7 +75,7 @@ namespace VMATAutoPlanMT
                 }
                 if (longestTargetInPlan == null) return new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
                 List<Tuple<VVector, string, int>> tmp = new List<Tuple<VVector, string, int>> { };
-                int numIsos = planIsoBeamInfo.ElementAt(count).Item2.Count;
+                int numIsos = planIsoBeamInfo.FirstOrDefault(x => x.Item1 == itr.Id).Item2.Count;
 
                 //All VMAT portions of the plans will ONLY have 3 isocenters
                 //double isoSeparation = Math.Round(((target.MeshGeometry.Positions.Max(p => p.Z) - target.MeshGeometry.Positions.Min(p => p.Z) - 10.0*numIsos) / numIsos) / 10.0f) * 10.0f;
@@ -101,15 +101,23 @@ namespace VMATAutoPlanMT
                 {
                     VVector v = new VVector();
                     v.x = userOrigin.x;
-                    v.y = userOrigin.y;
-                    //5-7-2020 isocenter positions for actual isocenter separation equation described above
-                    if (numIsos > 1) v.z = (longestTargetInPlan.MeshGeometry.Positions.Max(p => p.Z) - i * isoSeparation - 190.0);
-                    else v.z = longestTargetInPlan.CenterPoint.z;
+                    if (longestTargetInPlan.Id.ToLower() == "ptv_csi")
+                    {
+                        Structure ptvSpine = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_spine");
+                        v.y = ptvSpine.MeshGeometry.Positions.Min(p => p.Y);
+                        v.z = (longestTargetInPlan.MeshGeometry.Positions.Max(p => p.Z) - i * isoSeparation - 190.0);
+                    }
+                    else
+                    {
+                        v.y = userOrigin.y;
+                        //5-7-2020 isocenter positions for actual isocenter separation equation described above
+                        v.z = longestTargetInPlan.CenterPoint.z;
+                    }
                     //round z position to the nearest integer
                     v = itr.StructureSet.Image.DicomToUser(v, itr);
                     v.z = Math.Round(v.z / 10.0f) * 10.0f;
                     v = itr.StructureSet.Image.UserToDicom(v, itr);
-                    tmp.Add(new Tuple<VVector, string, int>(v, planIsoBeamInfo.ElementAt(count).Item2.ElementAt(i).Item1, planIsoBeamInfo.ElementAt(count).Item2.ElementAt(i).Item2));
+                    tmp.Add(new Tuple<VVector, string, int>(v, planIsoBeamInfo.FirstOrDefault(x => x.Item1 == itr.Id).Item2.ElementAt(i).Item1, planIsoBeamInfo.FirstOrDefault(x => x.Item1 == itr.Id).Item2.ElementAt(i).Item2));
                 }
 
                 //evaluate the distance between the edge of the beam and the max/min of the PTV_body contour. If it is < checkIsoPlacementLimit, then warn the user that they might be fully covering the ptv_body structure.
