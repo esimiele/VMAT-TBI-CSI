@@ -141,9 +141,12 @@ namespace VMATAutoPlanMT
                     //missing patient MRN. Need to ask user for it
                     enterMissingInfo e = new enterMissingInfo("Missing patient Id!\nPlease enter it below and hit Confirm!", "MRN:");
                     e.ShowDialog();
-                    if (!e.confirm) { this.Close(); return; }
-                    try { if (app != null) pi = app.OpenPatientById(e.value.Text); }
-                    catch (Exception except) { MessageBox.Show(string.Format("Error! Could not open patient because: {0}! Please try again!", except.Message)); pi = null; }
+                    if (e.confirm)
+                    {
+                        try { if (app != null) pi = app.OpenPatientById(e.value.Text); }
+                        catch (Exception except) { MessageBox.Show(string.Format("Error! Could not open patient because: {0}! Please try again!", except.Message)); pi = null; }
+                    }
+                    else { this.Close(); return; }
                 }
                 else pi = app.OpenPatientById(mrn);
 

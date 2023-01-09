@@ -261,4 +261,9 @@ copy "$(ProjectDir)_configuration\*" "$(ProjectDir)$(OutDir)\configuration"
 copy "$(ProjectDir)_planTemplates\CSI\*" "$(ProjectDir)$(OutDir)\templates"
 copy "$(ProjectDir)_planTemplates\TBI\*" "$(ProjectDir)$(OutDir)\templates"</PostBuildEvent>
   </PropertyGroup>
+  <PropertyGroup>
+    <PreBuildEvent>if NOT EXIST "$(ProjectDir)$(OutDir)\configuration\" (
+mkdir "$(ProjectDir)$(OutDir)\configuration\"
+)</PreBuildEvent>
+  </PropertyGroup>
 </Project>

@@ -349,9 +349,10 @@ namespace VMATAutoPlanMT
                     }
                     else MessageBox.Show(String.Format("Could not parse ring dose for {0}! Skipping!", itr));
                 }
+                else if (itr.ToLower().Contains("armsavoid")) createArmsAvoid(addedStructure);
                 else if (!(itr.ToLower().Contains("ptv")))
                 {
-                    //sub structures
+                    //all other sub structures
                     Structure originalStructure = null;
                     double margin = 0.0;
                     int pos1 = itr.IndexOf("-");
@@ -372,6 +373,106 @@ namespace VMATAutoPlanMT
                 
             }
             return false;
+        }
+
+        private bool createArmsAvoid(Structure armsAvoid)
+        {
+            //generate arms avoid structures
+            //need lungs, body, and ptv spine structures
+            Structure lungs = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "lungs");
+            Structure body = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "body");
+            MeshGeometry3D mesh = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_spine").MeshGeometry;
+            //get most inferior slice of ptv_spine (mesgeometry.bounds.z indicates the most inferior part of a structure)
+            int startSlice = (int)((mesh.Bounds.Z - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes);
+            //only go to the most superior part of the lungs for contouring the arms
+            int stopSlice = (int)((lungs.MeshGeometry.Positions.Max(p => p.Z) - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes) + 1;
+
+            //initialize variables
+            double xMax = 0;
+            double xMin = 0;
+            double yMax = 0;
+            double yMin = 0;
+            VVector[][] bodyPts;
+            //generate two dummy structures (L and R)
+            if (selectedSS.Structures.Where(x => x.Id.ToLower() == "dummyboxl").Any()) selectedSS.RemoveStructure(selectedSS.Structures.First(x => x.Id.ToLower() == "dummyboxl"));
+            Structure dummyBoxL = selectedSS.AddStructure("CONTROL", "DummyBoxL");
+            if (selectedSS.Structures.Where(x => x.Id.ToLower() == "dummyboxr").Any()) selectedSS.RemoveStructure(selectedSS.Structures.First(x => x.Id.ToLower() == "dummyboxr"));
+            Structure dummyBoxR = selectedSS.AddStructure("CONTROL", "DummyBoxR");
+            //use the center point of the lungs as the y axis anchor
+            double yCenter = lungs.CenterPoint.y;
+            //extend box in y direction +/- 20 cm
+            yMax = yCenter + 200.0;
+            yMin = yCenter - 200.0;
+
+            //set box width in lateral direction
+            double boxXWidth = 50.0;
+            //empty vectors to hold points for left and right dummy boxes for each slice
+            VVector[] ptsL = new[] { new VVector() };
+            VVector[] ptsR = new[] { new VVector() };
+            for (int slice = startSlice; slice < stopSlice; slice++)
+            {
+                //get body contour points
+                bodyPts = body.GetContoursOnImagePlane(slice);
+                xMax = -500000000000.0;
+                xMin = 500000000000.0;
+                //find min and max x positions for the body on this slice (so we can adapt the box positions for each slice)
+                for (int i = 0; i < bodyPts.GetLength(0); i++)
+                {
+                    if (bodyPts[i].Max(p => p.x) > xMax) xMax = bodyPts[i].Max(p => p.x);
+                    if (bodyPts[i].Min(p => p.x) < xMin) xMin = bodyPts[i].Min(p => p.x);
+                }
+
+                //box with contour points located at (x,y), (x,0), (x,-y), (0,-y), (-x,-y), (-x,0), (-x, y), (0,y)
+                ptsL = new[] {
+                                    new VVector(xMax, yMax, 0),
+                                    new VVector(xMax, 0, 0),
+                                    new VVector(xMax, yMin, 0),
+                                    new VVector(0, yMin, 0),
+                                    new VVector(xMax-boxXWidth, yMin, 0),
+                                    new VVector(xMax-boxXWidth, 0, 0),
+                                    new VVector(xMax-boxXWidth, yMax, 0),
+                                    new VVector(0, yMax, 0)};
+
+                ptsR = new[] {
+                                    new VVector(xMin + boxXWidth, yMax, 0),
+                                    new VVector(xMin + boxXWidth, 0, 0),
+                                    new VVector(xMin + boxXWidth, yMin, 0),
+                                    new VVector(0, yMin, 0),
+                                    new VVector(xMin, yMin, 0),
+                                    new VVector(xMin, 0, 0),
+                                    new VVector(xMin, yMax, 0),
+                                    new VVector(0, yMax, 0)};
+
+                //add contours on this slice
+                dummyBoxL.AddContourOnImagePlane(ptsL, slice);
+                dummyBoxR.AddContourOnImagePlane(ptsR, slice);
+            }
+
+            //extend the arms avoid structure superiorly by x number of slices
+            //for (int slice = stop; slice < stop + 10; slice++)
+            //{
+            //    dummyBoxL.AddContourOnImagePlane(ptsL, slice);
+            //    dummyBoxR.AddContourOnImagePlane(ptsR, slice);
+            //}
+
+            //now contour the arms avoid structure as the union of the left and right dummy boxes
+            armsAvoid.SegmentVolume = dummyBoxL.Margin(0.0);
+            armsAvoid.SegmentVolume = armsAvoid.Or(dummyBoxR.Margin(0.0));
+            cropStructureFromBody(armsAvoid, 0.0);
+
+            selectedSS.RemoveStructure(dummyBoxR);
+            selectedSS.RemoveStructure(dummyBoxL);
+
+            return false;
+        }
+
+        private void generateDummyBox(Structure lungs, Structure body, int start, int stop)
+        {
+            
+
+
+
+            //for (int slice = startSlice; slice < stopSlice; slice++) dummyBoxL.AddContourOnImagePlane(pts, slice);
         }
 
         private bool performTSStructureManipulation()
