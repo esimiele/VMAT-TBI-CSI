@@ -40,7 +40,8 @@ namespace VMATTBI_optLoop
             optParams = param;
 
             plan = p;
-            id = plan.Course.Patient.Id;
+            //id = plan.Course.Patient.Id;
+            id = "$testing";
             numOptimizations = numOpt;
 
             //log file path
@@ -210,7 +211,12 @@ namespace VMATTBI_optLoop
             }
 
             //ensure the ptv structures are NOT null
-            if (plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_body") == null || plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_vmat") == null)
+            //if (plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_body") == null || plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_vmat") == null)
+            //{
+            //    MessageBox.Show("Error! Target structure(s) not found!");
+            //    return true;
+            //}
+            if (plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_csi") == null)
             {
                 MessageBox.Show("Error! Target structure(s) not found!");
                 return true;
@@ -539,7 +545,8 @@ namespace VMATTBI_optLoop
             //now create new cooler and heating structures
             Structure target = null;
             if (plan.OptimizationSetup.Objectives.Where(x => x.StructureId.ToLower() == "ts_ptv_flash").Any()) target = plan.StructureSet.Structures.First(x => x.Id.ToLower() == "ts_ptv_flash");
-            else target = plan.StructureSet.Structures.First(x => x.Id.ToLower() == "ts_ptv_vmat");
+            //else target = plan.StructureSet.Structures.First(x => x.Id.ToLower() == "ts_ptv_vmat");
+            else target = plan.StructureSet.Structures.First(x => x.Id.ToLower() == "ts_ptv_csi");
             foreach (Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>> itr in requestedTSstructures)
             {
                 bool addTSstruct = true;
@@ -664,7 +671,8 @@ namespace VMATTBI_optLoop
             //how to normalize a plan in the ESAPI workspace:
             //reference: https://github.com/VarianAPIs/Varian-Code-Samples/blob/master/webinars%20%26%20workshops/Research%20Symposium%202015/Eclipse%20Scripting%20API/Projects/AutomatedPlanningDemo/PlanGeneration.cs
             Structure target;
-            if (!useFlash) target = plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_vmat");
+            //if (!useFlash) target = plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_vmat");
+            if (!useFlash) target = plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_csi");
             else target = plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_flash");
             plan.PlanNormalizationValue = 100.0;
             //absolute dose

@@ -54,6 +54,7 @@ namespace VMATTBI_optLoop
 
         public progressWindow(ESAPIworker e, optimizationLoop o)
         {
+
             InitializeComponent();
 
             //flags to let the code know if the user wants to stop the optimization loop, is the optimization loop finished, and can the progress window close
@@ -109,7 +110,11 @@ namespace VMATTBI_optLoop
             dt.Start();
 
             //start the optimization loop
-            doStuff();
+            try
+            {
+                doStuff();
+            }
+            catch (Exception except) { System.Windows.MessageBox.Show(except.Message); }
         }
 
         private void Abort_Click(object sender, RoutedEventArgs e)
@@ -435,7 +440,8 @@ namespace VMATTBI_optLoop
                     //print useful info about target coverage and global dmax
                     Structure target;
                     if (d.useFlash) target = e.diffPlanOpt.First(x => x.Item1.Id.ToLower() == "ts_ptv_flash").Item1;
-                    else target = e.diffPlanOpt.First(x => x.Item1.Id.ToLower() == "ts_ptv_vmat").Item1;
+                    //else target = e.diffPlanOpt.First(x => x.Item1.Id.ToLower() == "ts_ptv_vmat").Item1;
+                    else target = e.diffPlanOpt.First(x => x.Item1.Id.ToLower() == "ts_ptv_csi").Item1;
                     string message = " Additional plan infomation: " + System.Environment.NewLine +
                                      String.Format(" Plan global Dmax = {0:0.0}%", 100 * (d.plan.Dose.DoseMax3D.Dose / d.plan.TotalDose.Dose)) + System.Environment.NewLine +
                                      String.Format(" {0} Dmax = {1:0.0}%", target.Id, d.plan.GetDoseAtVolume(target, 0.0, VolumePresentation.Relative, DoseValuePresentation.Relative).Dose) + System.Environment.NewLine +
@@ -538,7 +544,8 @@ namespace VMATTBI_optLoop
                     //print useful info about target coverage and global dmax
                     Structure target;
                     if (d.useFlash) target = d.plan.StructureSet.Structures.First(x => x.Id.ToLower() == "ts_ptv_flash");
-                    else target = d.plan.StructureSet.Structures.First(x => x.Id.ToLower() == "ts_ptv_vmat");
+                    //else target = d.plan.StructureSet.Structures.First(x => x.Id.ToLower() == "ts_ptv_vmat");
+                    else target = d.plan.StructureSet.Structures.First(x => x.Id.ToLower() == "ts_ptv_csi");
                     string message = " Final plan infomation: " + System.Environment.NewLine +
                                     String.Format(" Plan global Dmax = {0:0.0}%", 100 * (d.plan.Dose.DoseMax3D.Dose / d.plan.TotalDose.Dose)) + System.Environment.NewLine +
                                     String.Format(" {0} Dmax = {1:0.0}%", target.Id, d.plan.GetDoseAtVolume(target, 0.0, VolumePresentation.Relative, DoseValuePresentation.Relative).Dose) + System.Environment.NewLine +
@@ -646,7 +653,8 @@ namespace VMATTBI_optLoop
             //print useful info about target coverage and global dmax
             Structure target;
             if (useFlash) target = plan.StructureSet.Structures.First(x => x.Id.ToLower() == "ts_ptv_flash");
-            else target = plan.StructureSet.Structures.First(x => x.Id.ToLower() == "ts_ptv_vmat");
+            //else target = plan.StructureSet.Structures.First(x => x.Id.ToLower() == "ts_ptv_vmat");
+            else target = plan.StructureSet.Structures.First(x => x.Id.ToLower() == "ts_ptv_csi");
             message = " Additional plan infomation: " + System.Environment.NewLine +
                                 String.Format(" Plan global Dmax = {0:0.0}%", 100 * (plan.Dose.DoseMax3D.Dose / plan.TotalDose.Dose)) + System.Environment.NewLine +
                                 String.Format(" {0} Dmax = {1:0.0}%", target.Id, plan.GetDoseAtVolume(target, 0.0, VolumePresentation.Relative, DoseValuePresentation.Relative).Dose) + System.Environment.NewLine +

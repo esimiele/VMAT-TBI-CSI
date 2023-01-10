@@ -77,44 +77,63 @@ namespace VMATAutoPlanMT
                 List<Tuple<VVector, string, int>> tmp = new List<Tuple<VVector, string, int>> { };
                 int numIsos = planIsoBeamInfo.FirstOrDefault(x => x.Item1 == itr.Id).Item2.Count;
 
+                double spineYMin = 0.0;
+                double spineZMax = 0.0;
+                double spineZMin = 0.0;
+                double brainZCenter = 0.0;
+                if (longestTargetInPlan.Id.ToLower() == "ptv_csi")
+                {
+                    Structure ptvSpine = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_spine");
+                    Structure ptvBrain = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_brain");
+                    //Place field isocenters in y-direction at 2/3 the max 
+                    spineYMin = (ptvSpine.MeshGeometry.Positions.Min(p => p.Y) * 0.8);
+                    spineZMax = ptvSpine.MeshGeometry.Positions.Max(p => p.Z);
+                    spineZMin = ptvSpine.MeshGeometry.Positions.Min(p => p.Z);
+                    brainZCenter = ptvBrain.CenterPoint.z;
+                    targetExtent = brainZCenter - ptvSpine.MeshGeometry.Positions.Min(p => p.Z);
+                }
+
                 //All VMAT portions of the plans will ONLY have 3 isocenters
                 //double isoSeparation = Math.Round(((target.MeshGeometry.Positions.Max(p => p.Z) - target.MeshGeometry.Positions.Min(p => p.Z) - 10.0*numIsos) / numIsos) / 10.0f) * 10.0f;
                 //5-7-202 The equation below was determined assuming each VMAT plan would always use 3 isos. In addition, the -30.0 was empirically determined by comparing the calculated isocenter separations to those that were used in the clinical plans
                 //isoSeparation = Math.Round(((target.MeshGeometry.Positions.Max(p => p.Z) - target.MeshGeometry.Positions.Min(p => p.Z) - 30.0) / 3) / 10.0f) * 10.0f;
 
-                //however, the actual correct equation is given below:
-                isoSeparation = Math.Round(((targetExtent - 380.0) / (numIsos - 1)) / 10.0f) * 10.0f;
+                //however, the actual correct equation is given below (VMAT TBI):
+                //isoSeparation = Math.Round(((targetExtent - 380.0) / (numIsos - 1)) / 10.0f) * 10.0f;
+                isoSeparation = 190.0;
 
                 //It is calculated by setting the most superior and inferior isocenters to be 19.0 cm from the target volume edge in the z-direction. The isocenter separtion is then calculated as half the distance between these two isocenters (sep = ((max-19cm)-(min+19cm)/2).
                 //Tested on 5-7-2020. When the correct equation is rounded, it gives the same answer as the original empirical equation above, however, the isocenters are better positioned in the target volume (i.e., more symmetric about the target volume). 
                 //The ratio of the actual to empirical iso separation equations can be expressed as r=(3/(numVMATIsos-1))((x-380)/(x-30)) where x = (max-min). The ratio is within +/-5% for max-min values (i.e., patient heights) between 99.0 cm (i.e., 3.25 feet) and 116.0 cm
 
-                if (isoSeparation > 380.0)
-                {
-                    var CUI = new confirmUI();
-                    CUI.message.Text = "Calculated isocenter separation > 38.0 cm, which reduces the overlap between adjacent fields!" + Environment.NewLine + Environment.NewLine + "Truncate isocenter separation to 38.0 cm?!";
-                    CUI.ShowDialog();
-                    if (CUI.confirm) isoSeparation = 380.0;
-                }
-
+                //if (isoSeparation > 380.0)
+                //{
+                //    var CUI = new confirmUI();
+                //    CUI.message.Text = "Calculated isocenter separation > 38.0 cm, which reduces the overlap between adjacent fields!" + Environment.NewLine + Environment.NewLine + "Truncate isocenter separation to 38.0 cm?!";
+                //    CUI.ShowDialog();
+                //    if (CUI.confirm) isoSeparation = 380.0;
+                //}
+                
                 for (int i = 0; i < numIsos; i++)
                 {
                     VVector v = new VVector();
                     v.x = userOrigin.x;
                     if (longestTargetInPlan.Id.ToLower() == "ptv_csi")
                     {
-                        Structure ptvSpine = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_spine");
-                        v.y = ptvSpine.MeshGeometry.Positions.Min(p => p.Y);
-                        v.z = (longestTargetInPlan.MeshGeometry.Positions.Max(p => p.Z) - i * isoSeparation - 190.0);
+                        v.y = spineYMin;
+                        if (i == 0) v.z = brainZCenter;
+                        //else v.z = (brainZCenter - i * isoSeparation);
+                        else v.z = (spineZMin + (numIsos - i) * isoSeparation);
                     }
                     else
                     {
                         v.y = userOrigin.y;
-                        //5-7-2020 isocenter positions for actual isocenter separation equation described above
+                        //assumes one isocenter if the target is not ptv_csi
                         v.z = longestTargetInPlan.CenterPoint.z;
                     }
                     //round z position to the nearest integer
                     v = itr.StructureSet.Image.DicomToUser(v, itr);
+                    v.y = Math.Round(v.y / 10.0f) * 10.0f;
                     v.z = Math.Round(v.z / 10.0f) * 10.0f;
                     v = itr.StructureSet.Image.UserToDicom(v, itr);
                     tmp.Add(new Tuple<VVector, string, int>(v, planIsoBeamInfo.FirstOrDefault(x => x.Item1 == itr.Id).Item2.ElementAt(i).Item1, planIsoBeamInfo.FirstOrDefault(x => x.Item1 == itr.Id).Item2.ElementAt(i).Item2));

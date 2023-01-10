@@ -118,7 +118,8 @@ namespace VMATTBI_optLoop
                 if (i == 0) patmrn = args[i];
                 if (i == 1) configurationFile = args[i];
             }
-            if (args.Length == 0) configurationFile = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_TBI_config.ini";
+            //if (args.Length == 0) configurationFile = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_TBI_config.ini";
+            if (args.Length == 0) configurationFile = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\configuration\\CSI_plugin_config.ini";
 
             if (File.Exists(configurationFile)) { if (!loadConfigurationSettings(configurationFile)) displayConfigurationParameters(); }
             else MessageBox.Show("No configuration file found! Loading default settings!");
@@ -211,14 +212,16 @@ namespace VMATTBI_optLoop
                 app.ClosePatient();
                 pi = app.OpenPatientById(pat_mrn);
                 //grab instances of the course and VMAT tbi plans that were created using the binary plug in script. This is explicitly here to let the user know if there is a problem with the course OR plan
-                Course c = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat tbi");
+                //Course c = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat tbi");
+                Course c = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat csi");
                 if (c == null)
                 {
                     MessageBox.Show("No course named VMAT TBI!");
                     return;
                 }
 
-                ExternalPlanSetup plan = c.ExternalPlanSetups.FirstOrDefault(x => x.Id.ToLower() == "_vmat tbi");
+                //ExternalPlanSetup plan = c.ExternalPlanSetups.FirstOrDefault(x => x.Id.ToLower() == "_vmat tbi");
+                ExternalPlanSetup plan = c.ExternalPlanSetups.FirstOrDefault(x => x.Id.ToLower() == "csi-init");
                 if (plan == null)
                 {
                     MessageBox.Show("No plan named _VMAT TBI!");
@@ -313,7 +316,7 @@ namespace VMATTBI_optLoop
             }
             //get an instnace of the VMAT TBI plan
             ExternalPlanSetup plan = getPlan();
-            if (plan == null) return;
+            if (plan == null) { MessageBox.Show("No plan or course found!"); return; }
 
             if(!double.TryParse(targetNormTB.Text, out double planNorm))
             {
@@ -409,8 +412,9 @@ namespace VMATTBI_optLoop
             {
                 if(obj.Item1 == "<targetId>")
                 {
-                    if(useFlash) planObj.Add(Tuple.Create("TS_PTV_FLASH", obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
-                    else planObj.Add(Tuple.Create("TS_PTV_VMAT", obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
+                    //if(useFlash) planObj.Add(Tuple.Create("TS_PTV_FLASH", obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
+                    //else planObj.Add(Tuple.Create("TS_PTV_VMAT", obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
+                    planObj.Add(Tuple.Create("TS_PTV_CSI", obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
                 }
                 else planObj.Add(Tuple.Create(obj.Item1, obj.Item2, obj.Item3, obj.Item4, obj.Item5));
             }
@@ -431,10 +435,12 @@ namespace VMATTBI_optLoop
         {
             //grab an instance of the VMAT TBI plan. Return null if it isn't found
             if (pi == null) return null;
-            Course c = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat tbi");
+            //Course c = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat tbi");
+            Course c = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat csi");
             if (c == null) return null;
 
-            ExternalPlanSetup plan = c.ExternalPlanSetups.FirstOrDefault(x => x.Id.ToLower() == "_vmat tbi");
+            //ExternalPlanSetup plan = c.ExternalPlanSetups.FirstOrDefault(x => x.Id.ToLower() == "_vmat tbi");
+            ExternalPlanSetup plan = c.ExternalPlanSetups.FirstOrDefault(x => x.Id.ToLower() == "csi-init");
             if (plan == null) return null;
             return plan;
         }
