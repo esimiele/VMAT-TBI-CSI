@@ -249,12 +249,13 @@
                                             <Label Content="Tuning Structures" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
                                             <Button Content="?" Width="20" Height="24" HorizontalAlignment="Right" Click="TsGenerateVsManipulateInfo_Click"/>
                                         </Grid>
-                                        <Grid Height="25" Width ="400" HorizontalAlignment="Center" Margin="0,5,0,0">
-                                            <Button Content="Add TS" Width="80" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_templateTS_Click"/>
-                                            <Button Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_templateTS_Click"/>
+                                        <Grid Height="25" Width ="560" HorizontalAlignment="Center" Margin="0,5,0,0">
+                                            <Button x:Name="addTSBtn" Content="Add TS" Width="80" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_TS_Click"/>
+                                            <Button x:Name="addTSDefaultsBtn" Content="Add Defaults" Width="120" HorizontalAlignment="Center" VerticalAlignment="Top" Click="add_TSDefaults_Click"/>
+                                            <Button x:Name="clearTSListBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_TS_Click"/>
                                         </Grid>
-                                        <ScrollViewer Height="350" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
-                                            <StackPanel Margin="5">
+                                        <ScrollViewer x:Name="TSScroller" Height="350" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                            <StackPanel x:Name="TS_sp" Margin="5">
                                             </StackPanel>
                                         </ScrollViewer>
                                     </StackPanel>
@@ -393,8 +394,8 @@
                                         <Button Content="?" Width="20" Height="24" HorizontalAlignment="Right" Click="TsGenerateVsManipulateInfo_Click"/>
                                     </Grid>
                                     <Grid Height="25" Width ="400" HorizontalAlignment="Center" Margin="0,5,0,0">
-                                        <Button Content="Add TS" Width="80" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_templateTS_Click"/>
-                                        <Button Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_templateTS_Click"/>
+                                        <Button x:Name="templateAddTSBtn" Content="Add TS" Width="80" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_TS_Click"/>
+                                        <Button x:Name="templateClearTSListBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_TS_Click"/>
                                     </Grid>
                                     <ScrollViewer x:Name="templateTSScroller" Height="350" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                         <StackPanel x:Name="templateTS_sp" Margin="5">

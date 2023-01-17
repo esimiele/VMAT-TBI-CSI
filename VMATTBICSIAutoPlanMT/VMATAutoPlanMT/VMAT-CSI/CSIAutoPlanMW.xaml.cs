@@ -233,10 +233,14 @@ namespace VMATAutoPlanMT
             foreach (Tuple<string, string> ts in defaultTS_structures) configTB.Text += String.Format("  {0, -10} | {1, -15} |" + System.Environment.NewLine, ts.Item1, ts.Item2);
             configTB.Text += System.Environment.NewLine;
 
-            configTB.Text += String.Format(" Default sparing structures:") + System.Environment.NewLine;
-            configTB.Text += String.Format("  {0, -15} | {1, -26} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + System.Environment.NewLine;
-            foreach (Tuple<string, string, double> spare in defaultSpareStruct) configTB.Text += String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |" + System.Environment.NewLine, spare.Item1, spare.Item2, spare.Item3);
-            configTB.Text += System.Environment.NewLine;
+            if(defaultSpareStruct.Any())
+            {
+                configTB.Text += String.Format(" Default sparing structures:") + System.Environment.NewLine;
+                configTB.Text += String.Format("  {0, -15} | {1, -26} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + System.Environment.NewLine;
+                foreach (Tuple<string, string, double> spare in defaultSpareStruct) configTB.Text += String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |" + System.Environment.NewLine, spare.Item1, spare.Item2, spare.Item3);
+                configTB.Text += System.Environment.NewLine;
+            }
+            else configTB.Text += String.Format(" No default sparing structures to list") + System.Environment.NewLine + System.Environment.NewLine;
 
             foreach(autoPlanTemplate itr in PlanTemplates.Where(x => x.templateName != "--select--"))
             {
@@ -1460,7 +1464,6 @@ namespace VMATAutoPlanMT
             else clearOptBtnCounter = 0;
         }
 
-        //stuff related to template builder
         private void templates_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             autoPlanTemplate selectedTemplate = templateList.SelectedItem as autoPlanTemplate;
@@ -1654,8 +1657,8 @@ namespace VMATAutoPlanMT
                 add_target_volumes(targetList, targetTemplate_sp);
 
                 //add default TS structures
-                clearTemplateTSList();
-                if (theTemplate.TS_structures.Any()) add_templateTS_volumes(theTemplate.TS_structures);
+                clearTemplateTSList(templateTS_sp);
+                if (theTemplate.TS_structures.Any()) add_TS_volumes(theTemplate.TS_structures, templateTS_sp);
 
                 //add default sparing structures
                 clear_spare_list(templateClearSpareStructuresBtn);
@@ -1697,8 +1700,8 @@ namespace VMATAutoPlanMT
 
                 autoPlanTemplate selectedTemplate = templateList.SelectedItem as autoPlanTemplate;
                 //add default TS structures
-                clearTemplateTSList();
-                if(selectedTemplate != null) add_templateTS_volumes(selectedTemplate.TS_structures);
+                clearTemplateTSList(templateTS_sp);
+                if(selectedTemplate != null) add_TS_volumes(selectedTemplate.TS_structures, templateTS_sp);
 
                 //add default sparing structures
                 UIhelper helper = new UIhelper();
@@ -1734,40 +1737,87 @@ namespace VMATAutoPlanMT
             MessageBox.Show(message);
         }
 
-        private void add_templateTS_Click(object sender, RoutedEventArgs e)
+        private void add_TS_Click(object sender, RoutedEventArgs e)
         {
             //populate the comboboxes
-            add_templateTS_volumes(new List<Tuple<string, string>> { Tuple.Create("--select--", "--select--") });
-            templateTSScroller.ScrollToBottom();
+            Button theBtn = (Button)sender;
+            ScrollViewer theScroller;
+            StackPanel theSP;
+            if(theBtn.Name.Contains("template"))
+            {
+                theScroller = templateTSScroller;
+                theSP = templateTS_sp;
+            }
+            else
+            {
+                theScroller = TSScroller;
+                theSP = TS_sp;
+            }
+            add_TS_volumes(new List<Tuple<string, string>> { Tuple.Create("--select--", "--select--") }, theSP);
+            theScroller.ScrollToBottom();
         }
 
-        private void add_templateTS_volumes(List<Tuple<string, string>> defaultList)
+        private void add_TSDefaults_Click(object sender, RoutedEventArgs e)
+        {
+            autoPlanTemplate selectedTemplate = templateList.SelectedItem as autoPlanTemplate;
+            if (selectedTemplate == null) return;
+            //populate the comboboxes
+            add_TS_volumes(selectedTemplate.TS_structures, TS_sp);
+            TSScroller.ScrollToBottom();
+        }
+
+        private void add_TS_volumes(List<Tuple<string, string>> defaultList, StackPanel theSP)
         {
             if (selectedSS == null) { MessageBox.Show("Error! Please select a Structure Set before adding sparing volumes!"); return; }
             helpers.templateBuilder builder = new helpers.templateBuilder();
-            if (templateTS_sp.Children.Count == 0) templateTS_sp.Children.Add(builder.addTemplateTSHeader(templateTS_sp));
+            if (theSP.Children.Count == 0) theSP.Children.Add(builder.addTemplateTSHeader(theSP));
             int counter = 0;
             UIhelper helper = new UIhelper();
+            string clearBtnName = "ClearTSStructuresBtn";
+            if (theSP.Name.Contains("template"))
+            {
+                clearBtnName = "template" + clearBtnName;
+            }
             for (int i = 0; i < defaultList.Count; i++)
             {
                 counter++;
-                templateTS_sp.Children.Add(builder.addTemplateTSVolume(templateTS_sp, selectedSS, defaultList[i], "templateClearTSStructuresBtn", counter, new RoutedEventHandler(this.clearTSStructureBtn))) ;
+                theSP.Children.Add(builder.addTemplateTSVolume(theSP, selectedSS, defaultList[i], clearBtnName, counter, new RoutedEventHandler(this.clearTSStructureBtn))) ;
             }
         }
         
         private void clearTSStructureBtn(object sender, RoutedEventArgs e)
         {
-            if (new UIhelper().clearRow(sender, templateTS_sp)) clearTemplateTSList();
+            Button theBtn = (Button)sender;
+            StackPanel theSP;
+            if (theBtn.Name.Contains("template"))
+            {
+                theSP = templateTS_sp;
+            }
+            else
+            {
+                theSP = TS_sp;
+            }
+            if (new UIhelper().clearRow(sender, theSP)) clearTemplateTSList(theSP);
         }
 
-        private void clear_templateTS_Click(object sender, RoutedEventArgs e)
+        private void clear_TS_Click(object sender, RoutedEventArgs e)
         {
-            clearTemplateTSList();
+            Button theBtn = (Button)sender;
+            StackPanel theSP;
+            if(theBtn.Name.Contains("template"))
+            {
+                theSP = templateTS_sp;
+            }
+            else
+            {
+                theSP = TS_sp;
+            }
+            clearTemplateTSList(theSP);
         }
 
-        private void clearTemplateTSList()
+        private void clearTemplateTSList(StackPanel theSP)
         {
-            templateTS_sp.Children.Clear();
+            theSP.Children.Clear();
         }
 
         private void generateTemplatePreview_Click(object sender, RoutedEventArgs e)
