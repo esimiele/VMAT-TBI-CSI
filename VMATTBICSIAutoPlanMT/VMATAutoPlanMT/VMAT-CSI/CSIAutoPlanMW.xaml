@@ -240,22 +240,46 @@
                             </StackPanel>
                         </Border>
                     </TabItem>
-                    <TabItem Header="TS Manipulation" BorderThickness="0,1,1,0">
-                        <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
-                            <StackPanel HorizontalAlignment="Center" Margin="0">
-                                <Label Content="Structure Manipulation" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
-                                <Grid Height="25" Width ="560" HorizontalAlignment="Center" Margin="0,5,0,0">
-                                    <Button x:Name="addSpareStructureBtn" Content="Add Structure" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_str_click"/>
-                                    <Button x:Name="addSpareStructureDefaultsBtn" Content="Add Defaults" Width="100" HorizontalAlignment="Center" VerticalAlignment="Top" Click="add_spareDefaults_click"/>
-                                    <Button x:Name="clearSpareStructuresBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_spareList_click"/>
-                                </Grid>
-                                <ScrollViewer x:Name="spareStructScroller" Height="365" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
-                                    <StackPanel Name="structures_sp" Margin="5">
+                    <TabItem Header="Structure Tuning" BorderThickness="0,1,1,0">
+                        <TabControl Background="DarkGray">
+                            <TabItem Header="Tuning Structure Generation" Width="294" BorderThickness="1,1,1,0">
+                                <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
+                                    <StackPanel HorizontalAlignment="Center" Margin="0">
+                                        <Grid Width="580" HorizontalAlignment="Center" Margin="0,5,0,5">
+                                            <Label Content="Tuning Structures" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
+                                            <Button Content="?" Width="20" Height="24" HorizontalAlignment="Right" Click="TsGenerateVsManipulateInfo_Click"/>
+                                        </Grid>
+                                        <Grid Height="25" Width ="400" HorizontalAlignment="Center" Margin="0,5,0,0">
+                                            <Button Content="Add TS" Width="80" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_templateTS_Click"/>
+                                            <Button Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_templateTS_Click"/>
+                                        </Grid>
+                                        <ScrollViewer Height="350" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                            <StackPanel Margin="5">
+                                            </StackPanel>
+                                        </ScrollViewer>
                                     </StackPanel>
-                                </ScrollViewer>
-                                <Button Content="Perform TS Generation &amp; Manipulation" FontWeight="Bold" Width="240" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,7,0,0" Click="generateStruct"></Button>
-                            </StackPanel>
-                        </Border>
+                                </Border>
+                            </TabItem>
+                            <TabItem Header="Tuning Structure Manipulation" Width="294" BorderThickness="0,1,1,0">
+                                <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
+                                    <StackPanel HorizontalAlignment="Center" Margin="0">
+                                        <Label Content="Structure Manipulation" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
+                                        <Grid Height="25" Width ="560" HorizontalAlignment="Center" Margin="0,5,0,0">
+                                            <Button x:Name="addSpareStructureBtn" Content="Add Structure" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_str_click"/>
+                                            <Button x:Name="addSpareStructureDefaultsBtn" Content="Add Defaults" Width="100" HorizontalAlignment="Center" VerticalAlignment="Top" Click="add_spareDefaults_click"/>
+                                            <Button x:Name="clearSpareStructuresBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_spareList_click"/>
+                                        </Grid>
+                                        <ScrollViewer x:Name="spareStructScroller" Height="330" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                            <StackPanel Name="structures_sp" Margin="5">
+                                            </StackPanel>
+                                        </ScrollViewer>
+                                        <Button Content="Perform TS Generation &amp; Manipulation" FontWeight="Bold" Width="240" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,7,0,0" Click="generateStruct"></Button>
+                                    </StackPanel>
+                                </Border>
+                            </TabItem>
+                            
+                        </TabControl>
+                        
                     </TabItem>
                     <TabItem Header="Beam Placement" BorderThickness="0,1,1,0">
                         <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">

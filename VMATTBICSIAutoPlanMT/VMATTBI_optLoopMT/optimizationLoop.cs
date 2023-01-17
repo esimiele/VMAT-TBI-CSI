@@ -40,8 +40,7 @@ namespace VMATTBI_optLoop
             optParams = param;
 
             plan = p;
-            //id = plan.Course.Patient.Id;
-            id = "$testing";
+            id = plan.Course.Patient.Id;
             numOptimizations = numOpt;
 
             //log file path

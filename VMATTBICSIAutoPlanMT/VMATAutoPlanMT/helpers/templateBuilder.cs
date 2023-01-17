@@ -20,7 +20,7 @@ namespace VMATAutoPlanMT.helpers
         {
             StackPanel sp = new StackPanel();
             sp.Height = 30;
-            sp.Width = 300;
+            sp.Width = theSP.Width;
             sp.Orientation = Orientation.Horizontal;
             sp.HorizontalAlignment = HorizontalAlignment.Center;
             sp.Margin = new Thickness(5, 0, 5, 5);
@@ -29,7 +29,7 @@ namespace VMATAutoPlanMT.helpers
             dcmType.Content = "DICOM Type";
             dcmType.HorizontalAlignment = HorizontalAlignment.Center;
             dcmType.VerticalAlignment = VerticalAlignment.Top;
-            dcmType.Width = 150;
+            dcmType.Width = 115;
             dcmType.FontSize = 14;
             dcmType.Margin = new Thickness(5, 0, 0, 0);
 
@@ -39,7 +39,7 @@ namespace VMATAutoPlanMT.helpers
             strName.VerticalAlignment = VerticalAlignment.Top;
             strName.Width = 150;
             strName.FontSize = 14;
-            strName.Margin = new Thickness(20, 0, 0, 0);
+            strName.Margin = new Thickness(80, 0, 0, 0);
 
             sp.Children.Add(dcmType);
             sp.Children.Add(strName);
@@ -78,7 +78,7 @@ namespace VMATAutoPlanMT.helpers
             str_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
             str_cb.Margin = new Thickness(50, 5, 0, 0);
 
-            str_cb.Items.Add("--select--");
+            if(listItem.Item2 != "--select--") str_cb.Items.Add("--select--");
             //this code is used to fix the issue where the structure exists in the structure set, but doesn't populate as the default option in the combo box.
             int index = 0;
             //j is initially 1 because we already added "--select--" to the combo box

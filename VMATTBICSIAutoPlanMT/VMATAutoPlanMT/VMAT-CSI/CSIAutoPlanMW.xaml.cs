@@ -234,8 +234,8 @@ namespace VMATAutoPlanMT
             configTB.Text += System.Environment.NewLine;
 
             configTB.Text += String.Format(" Default sparing structures:") + System.Environment.NewLine;
-            configTB.Text += String.Format("  {0, -15} | {1, -19} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + System.Environment.NewLine;
-            foreach (Tuple<string, string, double> spare in defaultSpareStruct) configTB.Text += String.Format("  {0, -15} | {1, -19} | {2,-11:N1} |" + System.Environment.NewLine, spare.Item1, spare.Item2, spare.Item3);
+            configTB.Text += String.Format("  {0, -15} | {1, -26} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + System.Environment.NewLine;
+            foreach (Tuple<string, string, double> spare in defaultSpareStruct) configTB.Text += String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |" + System.Environment.NewLine, spare.Item1, spare.Item2, spare.Item3);
             configTB.Text += System.Environment.NewLine;
 
             foreach(autoPlanTemplate itr in PlanTemplates.Where(x => x.templateName != "--select--"))
@@ -269,8 +269,8 @@ namespace VMATAutoPlanMT
                 if (itr.spareStructures.Any())
                 {
                     configTB.Text += String.Format(" {0} additional sparing structures:", itr.templateName) + System.Environment.NewLine;
-                    configTB.Text += String.Format("  {0, -15} | {1, -19} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + System.Environment.NewLine;
-                    foreach (Tuple<string, string, double> spare in itr.spareStructures) configTB.Text += String.Format("  {0, -15} | {1, -19} | {2,-11:N1} |" + System.Environment.NewLine, spare.Item1, spare.Item2, spare.Item3);
+                    configTB.Text += String.Format("  {0, -15} | {1, -26} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + System.Environment.NewLine;
+                    foreach (Tuple<string, string, double> spare in itr.spareStructures) configTB.Text += String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |" + System.Environment.NewLine, spare.Item1, spare.Item2, spare.Item3);
                     configTB.Text += System.Environment.NewLine;
                 }
                 else configTB.Text += String.Format(" No additional sparing structures for template: {0}", itr.templateName) + System.Environment.NewLine + System.Environment.NewLine;
@@ -1743,7 +1743,7 @@ namespace VMATAutoPlanMT
 
         private void add_templateTS_volumes(List<Tuple<string, string>> defaultList)
         {
-            if (selectedSS == null) { MessageBox.Show("Error! Please select a Structure Set before add sparing volumes!"); return; }
+            if (selectedSS == null) { MessageBox.Show("Error! Please select a Structure Set before adding sparing volumes!"); return; }
             helpers.templateBuilder builder = new helpers.templateBuilder();
             if (templateTS_sp.Children.Count == 0) templateTS_sp.Children.Add(builder.addTemplateTSHeader(templateTS_sp));
             int counter = 0;

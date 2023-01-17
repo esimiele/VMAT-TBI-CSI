@@ -13,10 +13,10 @@
                 <ImageBrush ImageSource="/Images/StanfordMedicine1.png"  Stretch="Uniform" AlignmentY="Top" Opacity="0.5">
                     <ImageBrush.Transform>
                         <TransformGroup>
-                            <ScaleTransform ScaleX="1." ScaleY="1"/>
+                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
                             <SkewTransform/>
                             <RotateTransform/>
-                            <TranslateTransform Y="0" X="0"/>
+                            <TranslateTransform Y="20" X="30"/>
                         </TransformGroup>
                     </ImageBrush.Transform>
                 </ImageBrush>
