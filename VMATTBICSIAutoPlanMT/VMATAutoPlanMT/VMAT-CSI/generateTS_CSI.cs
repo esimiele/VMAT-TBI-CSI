@@ -477,7 +477,7 @@ namespace VMATAutoPlanMT
                 foreach(Tuple<string, double, string> itr in targets)
                 {
                     //create a new TS target for optimization and copy the original target structure onto the new TS structure
-                    string newName = String.Format("ts_{0}", itr.Item1);
+                    string newName = String.Format("TS_{0}", itr.Item1);
                     Structure addedTSTarget = AddTSStructures(new Tuple<string,string>("CONTROL", newName.Length > 16 ? newName.Substring(0,15) : newName));
                     addedTSTarget.SegmentVolume = selectedSS.Structures.FirstOrDefault(x => x.Id == itr.Item1).Margin(0.0);
                     foreach (Tuple<string, string, double> itr1 in spareStructList)

@@ -47,7 +47,7 @@ namespace VMATAutoPlanMT.helpers
             return sp;
         }
 
-        public StackPanel addTemplateTSVolume(StackPanel theSP, StructureSet selectedSS, Tuple<string, string> listItem, string clearBtnPrefix, int clearBtnCounter, RoutedEventHandler clearEvtHndl)
+        public StackPanel addTSVolume(StackPanel theSP, StructureSet selectedSS, Tuple<string, string> listItem, string clearBtnPrefix, int clearBtnCounter, RoutedEventHandler clearEvtHndl)
         {
             StackPanel sp = new StackPanel();
             sp.Height = 30;
@@ -89,6 +89,7 @@ namespace VMATAutoPlanMT.helpers
                 if (s.Id.ToLower() == listItem.Item2.ToLower()) index = j;
                 j++;
             }
+            //if the structure does not exist in the structure set, add the requested structure id to the combobox option and set the selected index to the last item
             if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == listItem.Item2.ToLower()) == null)
             {
                 str_cb.Items.Add(listItem.Item2);

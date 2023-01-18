@@ -654,8 +654,8 @@ namespace VMATAutoPlanMT
             //sort the prescription list by the cumulative rx dose
             prescriptions.Sort(delegate (Tuple<string, string, int, DoseValue, double> x, Tuple<string, string, int, DoseValue, double> y) { return x.Item5.CompareTo(y.Item5); });
 
-            MessageBox.Show("Targets set successfully!");
-            string msg = "Prescriptions:" + Environment.NewLine;
+            string msg = "Targets set successfully!" + Environment.NewLine + Environment.NewLine;
+            msg += "Prescriptions:" + Environment.NewLine;
             foreach(Tuple<string,string, int, DoseValue, double> itr in prescriptions) msg += String.Format("{0}, {1}, {2}, {3}, {4}", itr.Item1, itr.Item2, itr.Item3, itr.Item4.Dose, itr.Item5) + Environment.NewLine;
             MessageBox.Show(msg);
         }
@@ -1197,15 +1197,17 @@ namespace VMATAutoPlanMT
             }
 
             int count = 0;
-
             if (planIds == null)
             {
                 //12/27/2022 this line needs to be fixed as it assumes prescriptions is arranged such that each entry in the list contains a unique plan ID
-                foreach (List<Tuple<string, string, double, double, int>> itr in defaultListList) add_opt_volumes(itr, prescriptions.ElementAt(count++).Item1, theSP);
+                //1/18/2023 super ugly, but it works. A simple check is performed to ensure that we won't exceed the number of prescriptions in the loop
+                //an issue for the following line is that boost constraints might end up being added to the initial plan (if there are two prescriptions for the initial plan)
+                //need to implement function to get unique plan Id's sorted by Rx
+                foreach (List<Tuple<string, string, double, double, int>> itr in defaultListList) if ((planIds.Count - 1) >= count) add_opt_volumes(itr, prescriptions.ElementAt(count++).Item1, theSP);
             }
             else
             {
-                foreach (List<Tuple<string, string, double, double, int>> itr in defaultListList) add_opt_volumes(itr, planIds.ElementAt(count++), theSP);
+                foreach (List<Tuple<string, string, double, double, int>> itr in defaultListList) if((planIds.Count - 1) >= count) add_opt_volumes(itr, planIds.ElementAt(count++), theSP);
             }
 
             //else
@@ -1262,12 +1264,20 @@ namespace VMATAutoPlanMT
             //  //  prescriptions = Tuple.Create(1, new DoseValue(0.1, DoseValue.DoseUnit.cGy));
             //}
             //if (selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ts_jnx")).Any()) jnxs = selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ts_jnx")).ToList();
-            if(prescriptions.Any())
+            if (prescriptions.Any())
             {
                 clear_optimization_parameter_list(opt_parameters);
                 populateOptimizationTab(opt_parameters);
             }
-            else MessageBox.Show("Error: Prescription(s) are NOT valid! \nYou must specify the prescription(s) and place beams before adding optimization constraints!");
+            else
+            {
+                Course course = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat csi");
+                if(course == null) MessageBox.Show("Error: No VMAT CSI course found! \nYou must create a plan before scanning the structure set to add optimization constraints!");
+                List<ExternalPlanSetup> thePlans = course.ExternalPlanSetups.OrderByDescending(x => x.TotalDose).ToList();
+                List<string> planIds = new List<string> { };
+                foreach (ExternalPlanSetup itr in thePlans) planIds.Add(itr.Id);
+                populateOptimizationTab(opt_parameters, null, true, planIds);
+            }
         }
 
         private void setOptConst_Click(object sender, RoutedEventArgs e)
@@ -1276,18 +1286,29 @@ namespace VMATAutoPlanMT
             List<Tuple<string,List<Tuple<string, string, double, double, int>>>> optParametersListList = helper.parseOptConstraints(opt_parameters);
             if (!optParametersListList.Any()) return;
             bool constraintsAssigned = false;
-            foreach(Tuple<string,List<Tuple<string,string,double,double,int>>> itr in optParametersListList)
+            Course theCourse = null;
+            if(!VMATplans.Any())
             {
-                ExternalPlanSetup plan = VMATplans.FirstOrDefault(x => x.Id == itr.Item1);
-                if(plan != null)
+                theCourse = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat csi");
+                pi.BeginModifications();
+            }
+            foreach (Tuple<string,List<Tuple<string,string,double,double,int>>> itr in optParametersListList)
+            {
+                ExternalPlanSetup plan = null;
+                
+                //additional check if the plan was not found in the list of VMATplans
+                if(theCourse != null) plan = theCourse.ExternalPlanSetups.FirstOrDefault(x => x.Id == itr.Item1);
+                else plan = VMATplans.FirstOrDefault(x => x.Id == itr.Item1);
+                if (plan != null)
                 {
-                    if(plan.OptimizationSetup.Objectives.Count() > 0)
+                    if (plan.OptimizationSetup.Objectives.Count() > 0)
                     {
                         foreach (OptimizationObjective o in plan.OptimizationSetup.Objectives) plan.OptimizationSetup.RemoveObjective(o);
                     }
                     helper.assignOptConstraints(itr.Item2, plan, true, 0.0);
                     constraintsAssigned = true;
                 }
+                else MessageBox.Show(String.Format("_{0} not found!", itr.Item1));
             }
             if(constraintsAssigned)
             {
@@ -1786,7 +1807,7 @@ namespace VMATAutoPlanMT
             for (int i = 0; i < defaultList.Count; i++)
             {
                 counter++;
-                theSP.Children.Add(builder.addTemplateTSVolume(theSP, selectedSS, defaultList[i], clearBtnName, counter, new RoutedEventHandler(this.clearTSStructureBtn))) ;
+                theSP.Children.Add(builder.addTSVolume(theSP, selectedSS, defaultList[i], clearBtnName, counter, new RoutedEventHandler(this.clearTSStructureBtn))) ;
             }
         }
         
