@@ -955,8 +955,11 @@ namespace VMATAutoPlanMT
             List<Tuple<string, string, double>> structureSpareList = new UIhelper().parseSpareStructList(structures_sp);
             //if (!structureSpareList.Any()) return;
 
-            TS_structures = new List<Tuple<string, string>> (defaultTS_structures);
-            if(templateList.SelectedItem != null) foreach (Tuple<string, string> itr in ((autoPlanTemplate)templateList.SelectedItem).TS_structures) TS_structures.Add(itr);
+            //TS_structures = new List<Tuple<string, string>> (defaultTS_structures);
+            //if(templateList.SelectedItem != null) foreach (Tuple<string, string> itr in ((autoPlanTemplate)templateList.SelectedItem).TS_structures) TS_structures.Add(itr);
+            //UIhelper helper = new UIhelper();
+            helpers.templateBuilder builder = new helpers.templateBuilder();
+            TS_structures = new List<Tuple<string, string>>(builder.parseTSStructureList(TS_sp));
 
             //create an instance of the generateTS class, passing the structure sparing list vector, the selected structure set, and if this is the scleroderma trial treatment regiment
             //The scleroderma trial contouring/margins are specific to the trial, so this trial needs to be handled separately from the generic VMAT treatment type
@@ -1701,7 +1704,8 @@ namespace VMATAutoPlanMT
                 autoPlanTemplate selectedTemplate = templateList.SelectedItem as autoPlanTemplate;
                 //add default TS structures
                 clearTemplateTSList(templateTS_sp);
-                if(selectedTemplate != null) add_TS_volumes(selectedTemplate.TS_structures, templateTS_sp);
+                helpers.templateBuilder builder = new helpers.templateBuilder();
+                if (selectedTemplate != null) add_TS_volumes(builder.parseTSStructureList(TS_sp), templateTS_sp);
 
                 //add default sparing structures
                 UIhelper helper = new UIhelper();
@@ -1759,10 +1763,11 @@ namespace VMATAutoPlanMT
 
         private void add_TSDefaults_Click(object sender, RoutedEventArgs e)
         {
+            List<Tuple<string,string>> tmp = new List<Tuple<string, string>>(defaultTS_structures);
             autoPlanTemplate selectedTemplate = templateList.SelectedItem as autoPlanTemplate;
-            if (selectedTemplate == null) return;
+            if (templateList.SelectedItem != null) foreach (Tuple<string, string> itr in ((autoPlanTemplate)templateList.SelectedItem).TS_structures) tmp.Add(itr);
             //populate the comboboxes
-            add_TS_volumes(selectedTemplate.TS_structures, TS_sp);
+            add_TS_volumes(tmp, TS_sp);
             TSScroller.ScrollToBottom();
         }
 
@@ -1828,8 +1833,8 @@ namespace VMATAutoPlanMT
 
             if (!double.TryParse(templateInitPlanDosePerFxTB.Text, out prospectiveTemplate.initialRxDosePerFx)) {MessageBox.Show("Error! Initial plan dose per fx not parsed successfully! Fix and try again!"); return; }
             if (!int.TryParse(templateInitPlanNumFxTB.Text, out prospectiveTemplate.initialRxNumFx)) {MessageBox.Show("Error! Initial plan dose per fx not parsed successfully! Fix and try again!"); return; }
-            if (!double.TryParse(templateBstPlanDosePerFxTB.Text, out prospectiveTemplate.boostRxDosePerFx)) { MessageBox.Show("Error! Initial plan dose per fx not parsed successfully! Fix and try again!"); return; }
-            if (!int.TryParse(templateBstPlanNumFxTB.Text, out prospectiveTemplate.boostRxNumFx)) {MessageBox.Show("Error! Initial plan dose per fx not parsed successfully! Fix and try again!"); return; }
+            if (!double.TryParse(templateBstPlanDosePerFxTB.Text, out prospectiveTemplate.boostRxDosePerFx)) { MessageBox.Show("Error! Boost plan dose per fx not parsed successfully! Fix and try again!"); return; }
+            if (!int.TryParse(templateBstPlanNumFxTB.Text, out prospectiveTemplate.boostRxNumFx)) {MessageBox.Show("Error! Boost plan dose per fx not parsed successfully! Fix and try again!"); return; }
 
             UIhelper helper = new UIhelper();
             helpers.templateBuilder builder = new helpers.templateBuilder();

@@ -387,39 +387,43 @@
                                     </StackPanel>
                                 </Border>
                             </TabItem>
-                            <TabItem Header="TS Generation" BorderThickness="0,1,1,0">
-                                <StackPanel HorizontalAlignment="Center" Margin="0">
-                                    <Grid Width="580" HorizontalAlignment="Center" Margin="0,5,0,5">
-                                        <Label Content="Tuning Structures" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
-                                        <Button Content="?" Width="20" Height="24" HorizontalAlignment="Right" Click="TsGenerateVsManipulateInfo_Click"/>
-                                    </Grid>
-                                    <Grid Height="25" Width ="400" HorizontalAlignment="Center" Margin="0,5,0,0">
-                                        <Button x:Name="templateAddTSBtn" Content="Add TS" Width="80" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_TS_Click"/>
-                                        <Button x:Name="templateClearTSListBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_TS_Click"/>
-                                    </Grid>
-                                    <ScrollViewer x:Name="templateTSScroller" Height="350" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
-                                        <StackPanel x:Name="templateTS_sp" Margin="5">
+                            <TabItem Header="Structure Tuning" BorderThickness="0,1,1,0">
+                                <TabControl Background="DarkGray">
+                                    <TabItem Header="TS Generation" Width="290" BorderThickness="1,1,1,0">
+                                        <StackPanel HorizontalAlignment="Center" Margin="0">
+                                            <Grid Width="580" HorizontalAlignment="Center" Margin="0,5,0,5">
+                                                <Label Content="Tuning Structures" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
+                                                <Button Content="?" Width="20" Height="24" HorizontalAlignment="Right" Click="TsGenerateVsManipulateInfo_Click"/>
+                                            </Grid>
+                                            <Grid Height="25" Width ="400" HorizontalAlignment="Center" Margin="0,5,0,0">
+                                                <Button x:Name="templateAddTSBtn" Content="Add TS" Width="80" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_TS_Click"/>
+                                                <Button x:Name="templateClearTSListBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_TS_Click"/>
+                                            </Grid>
+                                            <ScrollViewer x:Name="templateTSScroller" Height="310" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                                <StackPanel x:Name="templateTS_sp" Margin="5">
+                                                </StackPanel>
+                                            </ScrollViewer>
                                         </StackPanel>
-                                    </ScrollViewer>
-                                </StackPanel>
-                            </TabItem>
-                            <TabItem Header="TS Manipulation" BorderThickness="0,1,1,0">
-                                <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
-                                    <StackPanel HorizontalAlignment="Center" Margin="0">
-                                        <Grid Width="580" HorizontalAlignment="Center" Margin="0,5,0,5">
-                                            <Label Content="Structure Manipulation" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
-                                            <Button Content="?" Width="20" Height="24" HorizontalAlignment="Right" Click="TsGenerateVsManipulateInfo_Click"/>
-                                        </Grid>
-                                        <Grid Height="25" Width ="560" HorizontalAlignment="Center" Margin="0,5,0,0">
-                                            <Button x:Name="templateAddSpareStructureBtn" Content="Add Structure" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_str_click"/>
-                                            <Button x:Name="templateClearSpareStructuresBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_spareList_click"/>
-                                        </Grid>
-                                        <ScrollViewer x:Name="templateSpareStructScroller" Height="350" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
-                                            <StackPanel x:Name="templateStructures_sp" Margin="5">
+                                    </TabItem>
+                                    <TabItem Header="TS Manipulation" Width="290" BorderThickness="0,1,1,0">
+                                        <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
+                                            <StackPanel HorizontalAlignment="Center" Margin="0">
+                                                <Grid Width="580" HorizontalAlignment="Center" Margin="0,5,0,5">
+                                                    <Label Content="Structure Manipulation" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
+                                                    <Button Content="?" Width="20" Height="24" HorizontalAlignment="Right" Click="TsGenerateVsManipulateInfo_Click"/>
+                                                </Grid>
+                                                <Grid Height="25" Width ="560" HorizontalAlignment="Center" Margin="0,5,0,0">
+                                                    <Button x:Name="templateAddSpareStructureBtn" Content="Add Structure" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_str_click"/>
+                                                    <Button x:Name="templateClearSpareStructuresBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_spareList_click"/>
+                                                </Grid>
+                                                <ScrollViewer x:Name="templateSpareStructScroller" Height="310" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                                    <StackPanel x:Name="templateStructures_sp" Margin="5">
+                                                    </StackPanel>
+                                                </ScrollViewer>
                                             </StackPanel>
-                                        </ScrollViewer>
-                                    </StackPanel>
-                                </Border>
+                                        </Border>
+                                    </TabItem>
+                                </TabControl>
                             </TabItem>
                             <TabItem Header="Optimization Constraints" BorderThickness="0,1,1,0">
                                 <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">

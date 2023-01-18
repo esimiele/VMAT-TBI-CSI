@@ -468,21 +468,12 @@ namespace VMATAutoPlanMT
             return false;
         }
 
-        private void generateDummyBox(Structure lungs, Structure body, int start, int stop)
-        {
-            
-
-
-
-            //for (int slice = startSlice; slice < stopSlice; slice++) dummyBoxL.AddContourOnImagePlane(pts, slice);
-        }
-
         private bool performTSStructureManipulation()
         {
             //there are items in the sparing list requiring structure manipulation
             List<Tuple<string, string, double>> tmpSpareLst = spareStructList.Where(x => x.Item2.Contains("Crop target from structure") || x.Item2.Contains("Contour")).ToList();
-            if(tmpSpareLst.Any())
-            {
+            //if(tmpSpareLst.Any())
+            //{
                 foreach(Tuple<string, double, string> itr in targets)
                 {
                     //create a new TS target for optimization and copy the original target structure onto the new TS structure
@@ -536,8 +527,8 @@ namespace VMATAutoPlanMT
                         //if (itr1.Item2 == "Crop target from structure") foreach (Tuple<string, string> itr1 in TS_structures.Where(x => x.Item2.ToLower().Contains(itr.Item1.ToLower()))) AddTSStructures(itr1);
                     }
                 }
-            }
-            Structure tsTarget = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_csi");
+           // }
+           // Structure tsTarget = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_csi");
             
             
             return false;
