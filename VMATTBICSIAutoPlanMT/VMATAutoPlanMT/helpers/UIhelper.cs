@@ -6,7 +6,7 @@ using VMS.TPS.Common.Model.Types;
 using System.Windows.Controls;
 using System.Windows;
 
-namespace VMATAutoPlanMT
+namespace VMATAutoPlanMT.helpers
 {
     public class UIhelper
     {
@@ -30,87 +30,6 @@ namespace VMATAutoPlanMT
             if (sp.Children.Count < 3) { return true; }
             else sp.Children.RemoveAt(k);
             return false;
-        }
-
-        public StackPanel getCTImageSets(StackPanel theSP, VMS.TPS.Common.Model.API.Image theImage, bool isFirst)
-        {
-            StackPanel sp = new StackPanel();
-            sp.Height = 30;
-            sp.Width = theSP.Width;
-            sp.Orientation = Orientation.Horizontal;
-            sp.Margin = new Thickness(25, 0, 5, 5);
-
-            TextBox SID_TB = new TextBox();
-            SID_TB.Text = theImage.Series.Id;
-            SID_TB.HorizontalAlignment = HorizontalAlignment.Center;
-            SID_TB.VerticalAlignment = VerticalAlignment.Center;
-            SID_TB.Width = 80;
-            SID_TB.FontSize = 14;
-            SID_TB.Margin = new Thickness(0);
-
-            TextBox CTID_TB = new TextBox();
-            CTID_TB.Text = theImage.Id;
-            CTID_TB.Name = "theTB";
-            CTID_TB.HorizontalAlignment = HorizontalAlignment.Center;
-            CTID_TB.VerticalAlignment = VerticalAlignment.Center;
-            CTID_TB.Width = 160;
-            CTID_TB.FontSize = 14;
-            CTID_TB.Margin = new Thickness(25,0,0,0);
-
-            TextBox numImg_TB = new TextBox();
-            numImg_TB.Text = theImage.ZSize.ToString();
-            numImg_TB.HorizontalAlignment = HorizontalAlignment.Center;
-            numImg_TB.VerticalAlignment = VerticalAlignment.Center;
-            numImg_TB.Width = 40;
-            numImg_TB.FontSize = 14;
-            numImg_TB.HorizontalContentAlignment = HorizontalAlignment.Center;
-            numImg_TB.Margin = new Thickness(25,0,0,0);
-
-            TextBox creation_TB = new TextBox();
-            creation_TB.Text = theImage.HistoryDateTime.ToString("MM/dd/yyyy");
-            creation_TB.HorizontalAlignment = HorizontalAlignment.Center;
-            creation_TB.VerticalAlignment = VerticalAlignment.Center;
-            creation_TB.Width = 90;
-            creation_TB.FontSize = 14;
-            creation_TB.HorizontalContentAlignment = HorizontalAlignment.Center;
-            creation_TB.Margin = new Thickness(25,0,0,0);
-
-            CheckBox select_CB = new CheckBox();
-            select_CB.Margin = new Thickness(30, 5, 0, 0);
-            if (isFirst) select_CB.IsChecked = true;
-
-            sp.Children.Add(SID_TB);
-            sp.Children.Add(CTID_TB);
-            sp.Children.Add(numImg_TB);
-            sp.Children.Add(creation_TB);
-            sp.Children.Add(select_CB);
-
-            return sp;
-        }
-
-        public string parseSelectedCTImage(StackPanel theSP)
-        {
-            string theImage = "";
-            foreach (object obj in theSP.Children)
-            {
-                //skip over the header row
-                foreach (object obj1 in ((StackPanel)obj).Children)
-                {
-                    if (obj1.GetType() == typeof(TextBox))
-                    {
-                        if((obj1 as TextBox).Name == "theTB")
-                        {
-                            theImage = (obj1 as TextBox).Text;
-                        }
-                    }
-                    else if(obj1.GetType() == typeof(CheckBox))
-                    {
-                        if ((obj1 as CheckBox).IsChecked.Value) return theImage;
-                    }
-                }
-            }
-
-            return theImage;
         }
 
         public StackPanel getSpareStructHeader(StackPanel theSP)

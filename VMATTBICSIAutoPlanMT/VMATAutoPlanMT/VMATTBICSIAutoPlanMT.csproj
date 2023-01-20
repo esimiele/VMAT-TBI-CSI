@@ -130,6 +130,7 @@
     <Compile Include="baseClasses\planPrepBase.cs" />
     <Compile Include="ESAPIworker.cs" />
     <Compile Include="helpers\CTImageExport.cs" />
+    <Compile Include="helpers\ExportCTUIHelper.cs" />
     <Compile Include="helpers\SaveDialog.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -146,7 +147,11 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="VMAT-CSI\CSIAutoPlanMW.xaml">
+    <Page Include="helpers\Window1.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="VMAT_CSI\CSIAutoPlanMW.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -170,13 +175,17 @@
     <Compile Include="helpers\enterMissingInfo.Designer.cs">
       <DependentUpon>enterMissingInfo.cs</DependentUpon>
     </Compile>
+    <Compile Include="helpers\TargetsUIHelper.cs" />
     <Compile Include="helpers\templateBuilder.cs" />
     <Compile Include="helpers\UIhelper.cs" />
+    <Compile Include="helpers\Window1.xaml.cs">
+      <DependentUpon>Window1.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Launcher\launchVMATTBICSIautoPlan.cs" />
-    <Compile Include="VMAT-CSI\autoPlanTemplate.cs" />
-    <Compile Include="VMAT-CSI\generateTS_CSI.cs" />
-    <Compile Include="VMAT-CSI\placeBeams_CSI.cs" />
-    <Compile Include="VMAT-CSI\planPrep_CSI.cs" />
+    <Compile Include="VMAT_CSI\autoPlanTemplate.cs" />
+    <Compile Include="VMAT_CSI\generateTS_CSI.cs" />
+    <Compile Include="VMAT_CSI\placeBeams_CSI.cs" />
+    <Compile Include="VMAT_CSI\planPrep_CSI.cs" />
     <Compile Include="VMAT-TBI\generateTS_TBI.cs" />
     <Compile Include="helpers\selectOption.cs">
       <SubType>Form</SubType>
@@ -186,7 +195,7 @@
     </Compile>
     <Compile Include="helpers\isoNameHelper.cs" />
     <Compile Include="baseClasses\placeBeamsBase.cs" />
-    <Compile Include="VMAT-CSI\CSIAutoPlanMW.xaml.cs">
+    <Compile Include="VMAT_CSI\CSIAutoPlanMW.xaml.cs">
       <DependentUpon>CSIAutoPlanMW.xaml</DependentUpon>
     </Compile>
     <Compile Include="VMAT-TBI\TBIAutoPlanMW.xaml.cs">
@@ -234,7 +243,7 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
-    <None Include="_configuration\CSI_plugin_config.ini" />
+    <None Include="_configuration\VMAT_CSI_config.ini" />
     <None Include="_configuration\VMAT_TBI_config.ini" />
     <None Include="_planTemplates\CSI\CSI_mediumRisk.ini" />
     <None Include="_planTemplates\CSI\CSI_reduceDose.ini" />

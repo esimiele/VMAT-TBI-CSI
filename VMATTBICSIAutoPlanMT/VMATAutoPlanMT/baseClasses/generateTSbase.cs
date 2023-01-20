@@ -8,7 +8,7 @@ using VMS.TPS.Common.Model.Types;
 using System.Windows.Forms;
 using System.Windows.Media.Media3D;
 
-namespace VMATAutoPlanMT
+namespace VMATAutoPlanMT.baseClasses
 {
     public class generateTSbase
     {
