@@ -1203,7 +1203,7 @@ namespace VMATAutoPlanMT
                 //1/18/2023 super ugly, but it works. A simple check is performed to ensure that we won't exceed the number of prescriptions in the loop
                 //an issue for the following line is that boost constraints might end up being added to the initial plan (if there are two prescriptions for the initial plan)
                 //need to implement function to get unique plan Id's sorted by Rx
-                foreach (List<Tuple<string, string, double, double, int>> itr in defaultListList) if ((planIds.Count - 1) >= count) add_opt_volumes(itr, prescriptions.ElementAt(count++).Item1, theSP);
+                foreach (List<Tuple<string, string, double, double, int>> itr in defaultListList) add_opt_volumes(itr, prescriptions.ElementAt(count++).Item1, theSP);
             }
             else
             {
