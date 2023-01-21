@@ -372,11 +372,13 @@ namespace VMATAutoPlanMT.VMAT_CSI
             }
         }
 
-        private void targetUI_cb_change(StackPanel theSP, object sender, EventArgs e, bool isTargetStructure)
+        private void targetUI_cb_change(StackPanel theSP, object sender, EventArgs e)
         {
             //not the most elegent code, but it works. Basically, it finds the combobox where the selection was changed and asks the user to enter the id of the plan or the target id
             ComboBox c = (ComboBox)sender;
             if (c.SelectedItem.ToString() != "--Add New--") return;
+            bool isTargetStructure = true;
+            if (c.Name != "str_cb") isTargetStructure = true;
             foreach (object obj in theSP.Children)
             {
                 UIElementCollection row = ((StackPanel)obj).Children;
@@ -420,113 +422,20 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 clearBtnNamePrefix = "templateClearTargetBtn";
             }
             if (firstStruct) add_target_header(theSP);
+            TargetsUIHelper helper = new TargetsUIHelper();
             List<string> planIDs = new List<string> { };
             foreach (Tuple<string, double, string> itr in defaultList) planIDs.Add(itr.Item3);
             planIDs.Add("--Add New--");
-            foreach(Tuple<string, double, string> itr in defaultList)
+            foreach(Tuple<string,double,string> itr in defaultList)
             {
                 counter++;
-
-                StackPanel sp = new StackPanel();
-                sp.Height = 30;
-                sp.Width = targets_sp.Width;
-                sp.Orientation = Orientation.Horizontal;
-                sp.Margin = new Thickness(25, 0, 5, 5);
-
-                ComboBox str_cb = new ComboBox();
-                str_cb.Name = "str_cb";
-                str_cb.Width = 150;
-                str_cb.Height = sp.Height - 5;
-                str_cb.HorizontalAlignment = HorizontalAlignment.Left;
-                str_cb.VerticalAlignment = VerticalAlignment.Top;
-                str_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
-                str_cb.Margin = new Thickness(5, 5, 0, 0);
-
-                str_cb.Items.Add(itr.Item1);
-                str_cb.Items.Add("--Add New--");
-                str_cb.SelectedIndex = 0;
-                str_cb.SelectionChanged += delegate(object sender, SelectionChangedEventArgs e) { targetUI_cb_change(theSP, sender, e, true); };
-                sp.Children.Add(str_cb);
-
-                TextBox RxDose_tb = new TextBox();
-                RxDose_tb.Name = "RxDose_tb";
-                RxDose_tb.Width = 120;
-                RxDose_tb.Height = sp.Height - 5;
-                RxDose_tb.HorizontalAlignment = HorizontalAlignment.Left;
-                RxDose_tb.VerticalAlignment = VerticalAlignment.Top;
-                RxDose_tb.TextAlignment = TextAlignment.Center;
-                RxDose_tb.VerticalContentAlignment = VerticalAlignment.Center;
-                RxDose_tb.Margin = new Thickness(5, 5, 0, 0);
-                RxDose_tb.Text = itr.Item2.ToString();
-                sp.Children.Add(RxDose_tb);
-
-                ComboBox planId_cb = new ComboBox();
-                planId_cb.Name = "planId_cb";
-                planId_cb.Width = 150;
-                planId_cb.Height = sp.Height - 5;
-                planId_cb.HorizontalAlignment = HorizontalAlignment.Left;
-                planId_cb.VerticalAlignment = VerticalAlignment.Top;
-                planId_cb.Margin = new Thickness(5, 5, 0, 0);
-                planId_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
-                //string[] types = new string[] { itr.Item3, "--Add New--" };
-                foreach (string p in planIDs) planId_cb.Items.Add(p);
-                planId_cb.Text = itr.Item3;
-                planId_cb.SelectionChanged += delegate (object sender, SelectionChangedEventArgs e) { targetUI_cb_change(theSP, sender, e, false); };
-                //planId_cb.SelectionChanged += new SelectionChangedEventHandler(type_cb_change);
-                sp.Children.Add(planId_cb);
-
-                Button clearStructBtn = new Button();
-                clearStructBtn.Name = clearBtnNamePrefix + counter;
-                clearStructBtn.Content = "Clear";
-                clearStructBtn.Click += new RoutedEventHandler(this.clearTargetBtn_click);
-                clearStructBtn.Width = 50;
-                clearStructBtn.Height = sp.Height - 5;
-                clearStructBtn.HorizontalAlignment = HorizontalAlignment.Left;
-                clearStructBtn.VerticalAlignment = VerticalAlignment.Top;
-                clearStructBtn.Margin = new Thickness(10, 5, 0, 0);
-                sp.Children.Add(clearStructBtn);
-
-                theSP.Children.Add(sp);
+                theSP.Children.Add(helper.add_target_volumes(theSP.Width, itr, clearBtnNamePrefix, counter, planIDs, (delegate (object sender, SelectionChangedEventArgs e) { targetUI_cb_change(theSP, sender, e); }), new RoutedEventHandler(this.clearTargetBtn_click)));
             }
         }
 
         private void add_target_header(StackPanel theSP)
         {
-            StackPanel sp = new StackPanel();
-            sp.Height = 30;
-            sp.Width = targets_sp.Width;
-            sp.Orientation = Orientation.Horizontal;
-            sp.Margin = new Thickness(25, 0, 5, 5);
-
-            Label strName = new Label();
-            strName.Content = "Target Id";
-            strName.HorizontalAlignment = HorizontalAlignment.Center;
-            strName.VerticalAlignment = VerticalAlignment.Top;
-            strName.Width = 100;
-            strName.FontSize = 14;
-            strName.Margin = new Thickness(45, 0, 0, 0);
-
-            Label spareType = new Label();
-            spareType.Content = "Prescription (cGy)";
-            spareType.HorizontalAlignment = HorizontalAlignment.Center;
-            spareType.VerticalAlignment = VerticalAlignment.Top;
-            spareType.Width = 130;
-            spareType.FontSize = 14;
-            spareType.Margin = new Thickness(20, 0, 0, 0);
-
-            Label marginLabel = new Label();
-            marginLabel.Content = "Plan Id";
-            marginLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            marginLabel.VerticalAlignment = VerticalAlignment.Top;
-            marginLabel.Width = 150;
-            marginLabel.FontSize = 14;
-            marginLabel.Margin = new Thickness(30, 0, 0, 0);
-
-            sp.Children.Add(strName);
-            sp.Children.Add(spareType);
-            sp.Children.Add(marginLabel);
-            theSP.Children.Add(sp);
-
+            theSP.Children.Add(new TargetsUIHelper().get_target_header(theSP.Width));
             if (theSP.Name == "targets_sp") firstTargetStruct = false;
             else firstTargetTemplateStruct = false;
         }
@@ -754,10 +663,10 @@ namespace VMATAutoPlanMT.VMAT_CSI
             }
             if (firstStruct) add_sp_header(theSP);
             UIhelper helper = new UIhelper();
-            for (int i = 0; i < defaultList.Count; i++)
+            foreach(Tuple<string,string,double> itr in defaultList)
             {
                 counter++;
-                theSP.Children.Add(helper.addSpareStructVolume(theSP, selectedSS, defaultList[i], clearBtnNamePrefix, counter, (delegate (object sender, SelectionChangedEventArgs e) { type_cb_change(theSP, sender, e); }), new RoutedEventHandler(this.clearStructBtn_click)));
+                theSP.Children.Add(helper.addSpareStructVolume(theSP, selectedSS, itr, clearBtnNamePrefix, counter, (delegate (object sender, SelectionChangedEventArgs e) { type_cb_change(theSP, sender, e); }), new RoutedEventHandler(this.clearStructBtn_click)));
             }
         }
 
