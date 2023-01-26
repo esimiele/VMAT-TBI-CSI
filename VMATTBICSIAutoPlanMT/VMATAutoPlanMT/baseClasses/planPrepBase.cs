@@ -4,8 +4,9 @@ using System.Linq;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Forms;
+using VMATAutoPlanMT.Prompts;
 
-namespace VMATAutoPlanMT
+namespace VMATAutoPlanMT.baseClasses
 {
     internal class planPrepBase
     {

@@ -7,6 +7,7 @@ using System.Windows;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATAutoPlanMT.baseClasses;
+using VMATAutoPlanMT.Prompts;
 
 namespace VMATAutoPlanMT.VMAT_CSI
 {

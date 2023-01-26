@@ -3,6 +3,7 @@ using System.Linq;
 using System.Windows;
 using System.IO;
 using System.Reflection;
+using VMATAutoPlanMT.Prompts;
 
 namespace VMATAutoPlanMT
 {

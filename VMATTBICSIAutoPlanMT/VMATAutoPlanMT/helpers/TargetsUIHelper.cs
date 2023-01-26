@@ -42,7 +42,7 @@ namespace VMATAutoPlanMT.helpers
             return targetList;
         }
 
-        public int clearTarget(StackPanel theSP, Button btn)
+        public bool clearTarget(StackPanel theSP, Button btn)
         {
             //same deal as the clear sparing structure button (clearStructBtn_click)
             int i = 0;
@@ -56,7 +56,9 @@ namespace VMATAutoPlanMT.helpers
                 if (k > 0) break;
                 i++;
             }
-            return k;
+            if (theSP.Children.Count < 3) { return true; }
+            else theSP.Children.RemoveAt(k);
+            return false;
         }
 
         public StackPanel get_target_header(double width)

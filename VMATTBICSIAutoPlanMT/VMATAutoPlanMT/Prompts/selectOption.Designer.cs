@@ -1,5 +1,5 @@
 ﻿
-namespace VMATAutoPlanMT
+namespace VMATAutoPlanMT.Prompts
 {
     partial class selectOption
     {

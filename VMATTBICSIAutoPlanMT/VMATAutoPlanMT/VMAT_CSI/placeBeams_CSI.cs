@@ -6,6 +6,7 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Media.Media3D;
 using VMATAutoPlanMT.baseClasses;
+using VMATAutoPlanMT.Prompts;
 
 namespace VMATAutoPlanMT.VMAT_CSI
 {

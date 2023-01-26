@@ -6,6 +6,8 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Media.Media3D;
 using VMATAutoPlanMT.baseClasses;
+using VMATAutoPlanMT.helpers;
+using VMATAutoPlanMT.Prompts;
 
 namespace VMATAutoPlanMT.VMAT_CSI
 {
@@ -36,6 +38,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         {
             isoNames.Clear();
             if (preliminaryChecks()) return true;
+            if (UnionLRStructures()) return true;
             if (RemoveOldTSStructures(TS_structures)) return true;
             if (createTargetStructures()) return true;
             if (createTSStructures()) return true;
@@ -95,6 +98,34 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 //inform the main UI class that the UI needs to be updated
                 updateSparingList = true;
             }
+            return false;
+        }
+
+        public bool UnionLRStructures()
+        {
+            int numUnioned = 0;
+            StructureTuningUIHelper helper = new StructureTuningUIHelper();
+            List<Tuple<Structure, Structure, string>> structuresToUnion = helper.checkStructuresToUnion(selectedSS);
+            string msg = "Structures unioned:" + Environment.NewLine;
+            if (structuresToUnion.Any())
+            {
+                foreach (Tuple<Structure, Structure, string> itr in structuresToUnion) msg += String.Format("{0}, {1}", itr.Item1.Id, itr.Item2.Id) + Environment.NewLine;
+                //msg += Environment.NewLine + "Continue?";
+                //confirmUI CUI = new confirmUI();
+                //CUI.message.Text = msg;
+                //CUI.message.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+                //CUI.ShowDialog();
+                //if (CUI.confirm) UnionStructures(structuresToUnion, helper);
+                foreach (Tuple<Structure, Structure, string> itr in structuresToUnion)
+                {
+                    if (!helper.unionLRStructures(itr, selectedSS)) numUnioned++;
+                    else return true;
+                }
+                msg += Environment.NewLine;
+                msg += "Please review the contours after saving!";
+            }
+
+            if (numUnioned > 0) MessageBox.Show(msg);
             return false;
         }
 
