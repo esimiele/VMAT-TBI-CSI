@@ -9,9 +9,9 @@ using VMS.TPS.Common.Model.Types;
 using VMATAutoPlanMT.baseClasses;
 using VMATAutoPlanMT.Prompts;
 
-namespace VMATAutoPlanMT
+namespace VMATAutoPlanMT.VMAT_CSI
 {
-    class planPrep_TBI : planPrepBase
+    class planPrep_CSI : planPrepBase
     {
         //common variables
         IEnumerable<ExternalPlanSetup> appaPlan;
@@ -19,7 +19,7 @@ namespace VMATAutoPlanMT
         List<List<Beam>> appaBeamsPerIso = new List<List<Beam>> { };
         bool legsSeparated = false;
 
-        public planPrep_TBI(ExternalPlanSetup vmat, IEnumerable<ExternalPlanSetup> appa)
+        public planPrep_CSI(ExternalPlanSetup vmat, IEnumerable<ExternalPlanSetup> appa)
         {
             //copy arguments into local variables
             vmatPlan = vmat;
@@ -33,7 +33,7 @@ namespace VMATAutoPlanMT
             //loop through each beam in the vmat plan, grab the isocenter position of the beam. Compare the z position of each isocenter to the list of z positions in the vector. 
             //If no match is found, this is a new isocenter. Add it to the stack. If it is not unique, this beam belongs to an existing isocenter group --> ignore it
             //also grab instances of each beam in each isocenter and save them (used for separating the plans later)
-            List<ExternalPlanSetup> plans = new List<ExternalPlanSetup> (appaPlan);
+            List<ExternalPlanSetup> plans = new List<ExternalPlanSetup>(appaPlan);
             plans.Add(vmatPlan);
             if (checkBeamNameFormatting(plans)) return true;
 

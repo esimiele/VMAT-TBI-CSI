@@ -9,13 +9,8 @@ using VMATAutoPlanMT;
 
 namespace VMATAutoPlanMT.helpers
 {
-    class templateBuilder
+    class TemplateBuilder
     {
-        public templateBuilder()
-        {
-
-        }
-
         public StackPanel addTemplateTSHeader(StackPanel theSP)
         {
             StackPanel sp = new StackPanel();

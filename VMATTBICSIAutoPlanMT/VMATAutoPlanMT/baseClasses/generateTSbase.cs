@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Forms;
 using System.Windows.Media.Media3D;
 
-namespace VMATAutoPlanMT
+namespace VMATAutoPlanMT.baseClasses
 {
     public class generateTSbase
     {

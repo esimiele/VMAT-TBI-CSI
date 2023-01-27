@@ -9,6 +9,8 @@ using System.IO;
 using Microsoft.Win32;
 using System.Threading;
 using System.Windows.Threading;
+using VMATAutoPlanMT.baseClasses;
+using VMATAutoPlanMT.Prompts;
 
 namespace VMATAutoPlanMT
 {

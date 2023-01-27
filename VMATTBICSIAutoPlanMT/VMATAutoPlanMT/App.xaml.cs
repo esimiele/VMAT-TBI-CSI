@@ -3,6 +3,7 @@ using System.Linq;
 using System.Windows;
 using System.IO;
 using System.Reflection;
+using VMATAutoPlanMT.Prompts;
 
 namespace VMATAutoPlanMT
 {
@@ -27,8 +28,8 @@ namespace VMATAutoPlanMT
             }
             else if (SO.isVMATCSI) 
             { 
-                theArguments.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\CSI_plugin_config.ini"); 
-                mw = new CSIAutoPlanMW(theArguments); 
+                theArguments.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_CSI_config.ini"); 
+                mw = new VMAT_CSI.CSIAutoPlanMW(theArguments);
             } 
             else return;
             mw.Show();

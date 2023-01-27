@@ -10,6 +10,8 @@ using System.Diagnostics;
 using Microsoft.Win32;
 using System.Windows.Threading;
 using System.Threading;
+using VMATAutoPlanMT.helpers;
+using VMATAutoPlanMT.Prompts;
 
 namespace VMATAutoPlanMT
 {
@@ -434,7 +436,7 @@ namespace VMATAutoPlanMT
         //add the header to the structure sparing list (basically just add some labels to make it look nice)
         private void add_sp_header()
         {
-            structures_sp.Children.Add(new UIhelper().getSpareStructHeader(structures_sp));
+            structures_sp.Children.Add(new StructureTuningUIHelper().getSpareStructHeader(structures_sp));
 
             //bool to indicate that the header has been added
             firstSpareStruct = false;
@@ -444,11 +446,11 @@ namespace VMATAutoPlanMT
         private void add_sp_volumes(StructureSet selectedSS, List<Tuple<string, string, double>> defaultList)
         {
             if (firstSpareStruct) add_sp_header();
-            UIhelper helper = new UIhelper();
+            StructureTuningUIHelper helper = new StructureTuningUIHelper();
             for (int i = 0; i < defaultList.Count; i++)
             {
                 clearSpareBtnCounter++;
-                structures_sp.Children.Add(helper.addSpareStructVolume(structures_sp, selectedSS, defaultList[i], "clearSpareStructBtn", clearSpareBtnCounter, new SelectionChangedEventHandler(type_cb_change), new RoutedEventHandler(this.clearStructBtn_click)));
+                structures_sp.Children.Add(helper.addSpareStructVolume(structures_sp, selectedSS.Structures.Select(x => x.Id).ToList(), defaultList[i], "clearSpareStructBtn", clearSpareBtnCounter, new SelectionChangedEventHandler(type_cb_change), new RoutedEventHandler(this.clearStructBtn_click)));
             }
         }
 
@@ -475,7 +477,7 @@ namespace VMATAutoPlanMT
         }
 
         //method to clear and individual row in the structure sparing list (i.e., remove a single structure)
-        private void clearStructBtn_click(object sender, EventArgs e) { if (new UIhelper().clearRow(sender, structures_sp)) clear_spare_list(); }
+        private void clearStructBtn_click(object sender, EventArgs e) { if (new GeneralUIhelper().clearRow(sender, structures_sp)) clear_spare_list(); }
 
         private void SSID_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -600,7 +602,7 @@ namespace VMATAutoPlanMT
                 return;
             }
 
-            List<Tuple<string, string, double>> structureSpareList = new UIhelper().parseSpareStructList(structures_sp);
+            List<Tuple<string, string, double>> structureSpareList = new StructureTuningUIHelper().parseSpareStructList(structures_sp);
             if (!structureSpareList.Any()) return;
 
             //create an instance of the generateTS class, passing the structure sparing list vector, the selected structure set, and if this is the scleroderma trial treatment regiment
@@ -670,7 +672,7 @@ namespace VMATAutoPlanMT
 
             ////subtract a beam from the first isocenter (head) if the user is NOT interested in sparing the brain
             if (!optParameters.Where(x => x.Item1.ToLower().Contains("brain")).Any()) beamsPerIso[0]--;
-            List<StackPanel> SPList = new UIhelper().populateBeamsTabHelper(structures_sp, linacs, beamEnergies, isoNames, beamsPerIso, numIsos, numVMATIsos);
+            List<StackPanel> SPList = new BeamPlacementUIHelper().populateBeamsTabHelper(structures_sp, linacs, beamEnergies, isoNames, beamsPerIso, numIsos, numVMATIsos);
             if (!SPList.Any()) return;
             foreach (StackPanel s in SPList) BEAMS_SP.Children.Add(s);
             ////subtract a beam from the second isocenter (chest/abdomen area) if the user is NOT interested in sparing the kidneys
@@ -911,7 +913,7 @@ namespace VMATAutoPlanMT
 
         private void setOptConst_Click(object sender, RoutedEventArgs e)
         {
-            UIhelper helper = new UIhelper();
+            OptimizationSetupUIHelper helper = new OptimizationSetupUIHelper();
             //12/5/2022 super janky, but works for now. Needed to accomodate multiple plans for VMAT CSI. Will fix later
             List<Tuple<string, string, double, double, int>> optParametersList = helper.parseOptConstraints(opt_parameters).First().Item2;
             if (!optParametersList.Any()) return;
@@ -933,7 +935,7 @@ namespace VMATAutoPlanMT
                 foreach (OptimizationObjective o in VMATplan.OptimizationSetup.Objectives) VMATplan.OptimizationSetup.RemoveObjective(o);
             }
             //optimization parameter list, the plan object, enable jaw tracking?, Auto NTO priority
-            helper.assignOptConstraints(optParametersList, VMATplan, true, 0.0);
+            helper.AssignOptConstraints(optParametersList, VMATplan, true, 0.0);
 
             //confirmUI CUI = new confirmUI();
             //CUI.message.Text = "Optimization objectives have been successfully set!" + Environment.NewLine + Environment.NewLine + "Save changes and launch optimization loop?";
@@ -972,7 +974,7 @@ namespace VMATAutoPlanMT
 
         private void add_opt_header()
         {
-            opt_parameters.Children.Add(new UIhelper().getOptHeader(structures_sp.Width));
+            opt_parameters.Children.Add(new OptimizationSetupUIHelper().getOptHeader(structures_sp.Width));
             firstOptStruct = false;
         }
 
@@ -980,7 +982,7 @@ namespace VMATAutoPlanMT
         {
             //if (selectedSS == null) { MessageBox.Show("Error! The structure set has not been assigned! Choose a structure set and try again!"); return; }
             if (firstOptStruct) add_opt_header();
-            UIhelper helper = new UIhelper();
+            OptimizationSetupUIHelper helper = new OptimizationSetupUIHelper();
             for (int i = 0; i < defaultList.Count; i++)
             {
                 clearOptBtnCounter++;
@@ -995,7 +997,7 @@ namespace VMATAutoPlanMT
 
         private void clearOptStructBtn_click(object sender, EventArgs e)
         {
-            if (new UIhelper().clearRow(sender, opt_parameters)) clear_optimization_parameter_list();
+            if (new GeneralUIhelper().clearRow(sender, opt_parameters)) clear_optimization_parameter_list();
         }
 
         private void clear_optimization_parameter_list()
