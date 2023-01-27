@@ -112,7 +112,7 @@ namespace VMATTBI_optLoop
                 if (i == 1) configurationFile = args[i];
             }
             //if (args.Length == 0) configurationFile = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_TBI_config.ini";
-            if (args.Length == 0) configurationFile = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\configuration\\CSI_plugin_config.ini";
+            if (args.Length == 0) configurationFile = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_CSI_config.ini";
 
             if (File.Exists(configurationFile)) { if (!loadConfigurationSettings(configurationFile)) displayConfigurationParameters(); }
             else MessageBox.Show("No configuration file found! Loading default settings!");

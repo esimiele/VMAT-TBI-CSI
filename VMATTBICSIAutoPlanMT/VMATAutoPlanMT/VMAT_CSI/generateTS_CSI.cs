@@ -492,7 +492,8 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //now contour the arms avoid structure as the union of the left and right dummy boxes
             armsAvoid.SegmentVolume = dummyBoxL.Margin(0.0);
             armsAvoid.SegmentVolume = armsAvoid.Or(dummyBoxR.Margin(0.0));
-            cropStructureFromBody(armsAvoid, 0.0);
+            //contour the arms as the overlap between the current armsAvoid structure and the body with a 5mm outer margin
+            cropStructureFromBody(armsAvoid, 0.5);
 
             selectedSS.RemoveStructure(dummyBoxR);
             selectedSS.RemoveStructure(dummyBoxL);
@@ -510,7 +511,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 {
                     //create a new TS target for optimization and copy the original target structure onto the new TS structure
                     string newName = String.Format("TS_{0}", itr.Item1);
-                    Structure addedTSTarget = AddTSStructures(new Tuple<string,string>("CONTROL", newName.Length > 16 ? newName.Substring(0,15) : newName));
+                    Structure addedTSTarget = AddTSStructures(new Tuple<string,string>("CONTROL", newName.Length > 16 ? newName.Substring(0,16) : newName));
                     addedTSTarget.SegmentVolume = selectedSS.Structures.FirstOrDefault(x => x.Id == itr.Item1).Margin(0.0);
                     foreach (Tuple<string, string, double> itr1 in spareStructList)
                     {
@@ -532,7 +533,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                         else if(itr1.Item2.Contains("Contour"))
                         {
                             newName = String.Format("ts_{0}_overlap", itr.Item1);
-                            Structure addedTSNormal = AddTSStructures(new Tuple<string, string>("CONTROL", newName.Length > 16 ? newName.Substring(0, 15) : newName));
+                            Structure addedTSNormal = AddTSStructures(new Tuple<string, string>("CONTROL", newName.Length > 16 ? newName.Substring(0, 16) : newName));
                             Structure originalNormal = selectedSS.Structures.FirstOrDefault(x => x.Id == itr1.Item1);
                             addedTSNormal.SegmentVolume = originalNormal.Margin(0.0);
                             contourOverlap(addedTSTarget, addedTSNormal, itr1.Item3);
