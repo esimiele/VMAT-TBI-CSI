@@ -510,7 +510,7 @@ namespace VMATTBI_optLoop
 
                     //do NOT adjust ptv dose constraints, only priorities (the ptv structures are going to have the highest relative cost of all the structures due to the difficulty in covering the entire PTV with 100% of the dose and keeing dMax < 5%)
                     //If we starting adjusting the dose for these constraints, they would quickly escalate out of control, therefore, only adjust their priorities by a small amount
-                    if (!itr.Item1.Id.ToLower().Contains("ptv") && (relative_cost >= threshold))
+                    if (!itr.Item1.Id.ToLower().Contains("ptv") && !itr.Item1.Id.ToLower().Contains("ts_ring") && (relative_cost >= threshold))
                     {
                         //OAR objective is greater than threshold, adjust dose. Evaluate difference between current actual dose and current optimization parameter setting. Adjust new objective dose by dose difference weighted by the relative cost
                         //=> don't push the dose too low, otherwise the constraints won't make sense. Currently, the lowest dose limit is 10% of the Rx dose (set by adjusting lowDoseLimit)
@@ -524,7 +524,7 @@ namespace VMATTBI_optLoop
                         //increase OAR objective priority by 100 times the relative cost of this objective
                         //increase PTV objective by 10 times the relative cost (need to have a much lower scaling factor, otherwise it will increase too rapidly)
                         double increase = 100 * relative_cost;
-                        if (itr.Item1.Id.ToLower().Contains("ptv")) increase /= 10;
+                        if (itr.Item1.Id.ToLower().Contains("ptv") || itr.Item1.Id.ToLower().Contains("ts_ring")) increase /= 10;
                         newPriority += (int)Math.Ceiling(increase);
                     }
                 }
