@@ -102,7 +102,7 @@ ClientBin/
 *.lref
 *.pdb
 *.exe
-
+*.exe.config
 
 
 # RIA/Silverlight projects

@@ -1,18 +1,17 @@
 ﻿using System.Reflection;
-using System.Resources;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Windows;
+using VMS.TPS.Common.Model.API;
 
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("VMATTBI_optLoopMT")]
+[assembly: AssemblyTitle("VMATTBICSI_optLoopMT")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Accenture")]
-[assembly: AssemblyProduct("VMATTBI_optLoopMT")]
-[assembly: AssemblyCopyright("Copyright © Accenture 2020")]
+[assembly: AssemblyProduct("VMATTBICSI_optLoopMT")]
+[assembly: AssemblyCopyright("Copyright © Accenture 2023")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -50,6 +49,9 @@ using System.Windows;
 //
 // You can specify all the values or you can default the Build and Revision Numbers
 // by using the '*' as shown below:
-// [assembly: AssemblyVersion("1.0.*")]
-//[assembly: AssemblyVersion("1.0.0.0")]
-//[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.0.*")]
+[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyInformationalVersion("1.0")]
+
+// TODO: Uncomment the following line if the script requires write access.
+[assembly: ESAPIScript(IsWriteable = true)]
