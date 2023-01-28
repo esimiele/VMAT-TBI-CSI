@@ -80,7 +80,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             if (isUOriginInside(ss)) return true;
 
             //verify brain and spine structures are present
-            if(ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "brain") == null || ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinalcord" || x.Id.ToLower() == "spinal_cord") == null)
+            if (ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "brain") == null || ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinalcord" || x.Id.ToLower() == "spinal_cord") == null)
             {
                 MessageBox.Show("Missing brain and/or spine structures! Please add and try again!");
                 return true;
@@ -435,7 +435,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             return false;
         }
 
-        private bool createArmsAvoid(Structure armsAvoid)
+        public bool createArmsAvoid(Structure armsAvoid)
         {
             //generate arms avoid structures
             //need lungs, body, and ptv spine structures

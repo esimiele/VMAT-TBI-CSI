@@ -5,6 +5,7 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Forms;
 using System.Windows.Media.Media3D;
+using System.Windows.Threading;
 
 namespace VMATAutoPlanMT.baseClasses
 {
