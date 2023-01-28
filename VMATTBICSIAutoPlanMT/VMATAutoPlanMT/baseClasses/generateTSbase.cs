@@ -25,22 +25,22 @@ namespace VMATAutoPlanMT.baseClasses
         public virtual bool generateStructures()
         {
             isoNames.Clear();
-            if (preliminaryChecks()) return true;
+            //if (preliminaryChecks(selectedSS, )) return true;
             if (createTSStructures()) return true;
             if (useFlash) if (createFlash()) return true;
             MessageBox.Show("Structures generated successfully!\nPlease proceed to the beam placement tab!");
             return false;
         }
 
-        public virtual bool preliminaryChecks()
+        public virtual bool preliminaryChecks(StructureSet ss, List<Tuple<string, string, double>> list)
         {
             //specific to each case (TBI or CSI)
             return false;
         }
 
-        public bool isUOriginInside()
+        public bool isUOriginInside(StructureSet ss)
         {
-            if (!selectedSS.Image.HasUserOrigin || !(selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").IsPointInsideSegment(selectedSS.Image.UserOrigin)))
+            if (!ss.Image.HasUserOrigin || !(ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").IsPointInsideSegment(ss.Image.UserOrigin)))
             {
                 MessageBox.Show("Did you forget to set the user origin? \nUser origin is NOT inside body contour! \nPlease fix and try again!");
                 return true;
@@ -60,7 +60,7 @@ namespace VMATAutoPlanMT.baseClasses
             return false;
         }
 
-        public virtual bool RemoveOldTSStructures(List<Tuple<string, string>> structures)
+        public virtual bool RemoveOldTSStructures(List<Tuple<string, string>> structures, StructureSet selectedSS = null)
         {
             //remove existing TS structures if they exist and re-add them to the structure list
             foreach (Tuple<string, string> itr in structures)

@@ -8,6 +8,9 @@ using System.Windows.Media.Media3D;
 using VMATAutoPlanMT.baseClasses;
 using VMATAutoPlanMT.helpers;
 using VMATAutoPlanMT.Prompts;
+using VMATAutoPlanMT.MTProgressInfo;
+using System.Windows.Threading;
+using System.Threading;
 
 namespace VMATAutoPlanMT.VMAT_CSI
 {
@@ -34,27 +37,50 @@ namespace VMATAutoPlanMT.VMAT_CSI
             selectedSS = ss;
         }
 
+        private void RunOnNewThread(Action a)
+        {
+            Thread t = new Thread(() => a());
+            t.SetApartmentState(ApartmentState.STA);
+            t.IsBackground = true;
+            t.Start();
+        }
+
         public override bool generateStructures()
         {
+            ESAPIworker.dataContainer d = new ESAPIworker.dataContainer();
+            d.construct(TS_structures, spareStructList, targets, prescriptions, selectedSS);
+            ESAPIworker slave = new ESAPIworker(d);
+            //create a new frame (multithreading jargon)
+            DispatcherFrame frame = new DispatcherFrame();
+            RunOnNewThread(() =>
+            {
+                //pass the progress window the newly created thread and this instance of the optimizationLoop class.
+                generateTSProgress pw = new generateTSProgress(slave, this);
+                pw.ShowDialog();
+
+                //tell the code to hold until the progress window closes.
+                frame.Continue = false;
+            });
+            Dispatcher.PushFrame(frame);
             isoNames.Clear();
-            if (preliminaryChecks()) return true;
-            if (UnionLRStructures()) return true;
-            if (RemoveOldTSStructures(TS_structures)) return true;
-            if (createTargetStructures()) return true;
-            if (createTSStructures()) return true;
-            if (performTSStructureManipulation()) return true;
-            if (calculateNumIsos()) return true;
-            MessageBox.Show("Structures generated successfully!\nPlease proceed to the beam placement tab!");
+            //if (preliminaryChecks()) return true;
+            //if (UnionLRStructures()) return true;
+            //if (RemoveOldTSStructures(TS_structures)) return true;
+            //if (createTargetStructures()) return true;
+            //if (createTSStructures()) return true;
+            //if (performTSStructureManipulation()) return true;
+            //if (calculateNumIsos()) return true;
+            //MessageBox.Show("Structures generated successfully!\nPlease proceed to the beam placement tab!");
             return false;
         }
 
-        public override bool preliminaryChecks()
+        public override bool preliminaryChecks(StructureSet ss, List<Tuple<string, string, double>> list)
         {
             //check if user origin was set
-            if (isUOriginInside()) return true;
+            if (isUOriginInside(ss)) return true;
 
             //verify brain and spine structures are present
-            if(selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "brain") == null || selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinalcord" || x.Id.ToLower() == "spinal_cord") == null)
+            if(ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "brain") == null || ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinalcord" || x.Id.ToLower() == "spinal_cord") == null)
             {
                 MessageBox.Show("Missing brain and/or spine structures! Please add and try again!");
                 return true;
@@ -64,18 +90,18 @@ namespace VMATAutoPlanMT.VMAT_CSI
             string output = "The following structures are high-resolution:" + System.Environment.NewLine;
             List<Structure> highResStructList = new List<Structure> { };
             List<Tuple<string, string, double>> highResSpareList = new List<Tuple<string, string, double>> { };
-            foreach (Tuple<string, string, double> itr in spareStructList)
+            foreach (Tuple<string, string, double> itr in list)
             {
                 if (itr.Item2 == "Crop target from structure")
                 {
-                    if (selectedSS.Structures.First(x => x.Id == itr.Item1).IsEmpty)
+                    if (ss.Structures.First(x => x.Id == itr.Item1).IsEmpty)
                     {
                         MessageBox.Show(String.Format("Error! \nThe selected structure that will be subtracted from PTV_Body and TS_PTV_VMAT is empty! \nContour the structure and try again."));
                         return true;
                     }
-                    else if (selectedSS.Structures.First(x => x.Id == itr.Item1).IsHighResolution)
+                    else if (ss.Structures.First(x => x.Id == itr.Item1).IsHighResolution)
                     {
-                        highResStructList.Add(selectedSS.Structures.First(x => x.Id == itr.Item1));
+                        highResStructList.Add(ss.Structures.First(x => x.Id == itr.Item1));
                         highResSpareList.Add(itr);
                         output += String.Format("{0}", itr.Item1) + System.Environment.NewLine;
                     }
@@ -92,11 +118,11 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 CUI.ShowDialog();
                 if (!CUI.confirm) return true;
 
-                List<Tuple<string, string, double>> newData = convertHighToLowRes(highResStructList, highResSpareList, spareStructList);
+                List<Tuple<string, string, double>> newData = convertHighToLowRes(highResStructList, highResSpareList, list);
                 if (!newData.Any()) return true;
-                spareStructList = new List<Tuple<string, string, double>>(newData);
+                list = new List<Tuple<string, string, double>>(newData);
                 //inform the main UI class that the UI needs to be updated
-                updateSparingList = true;
+                //updateSparingList = true;
             }
             return false;
         }
@@ -292,7 +318,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             return false;
         }
 
-        private bool cropStructureFromBody(Structure theStructure, double margin)
+        public bool cropStructureFromBody(Structure theStructure, double margin)
         {
             //margin is in cm
             Structure body = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "body");

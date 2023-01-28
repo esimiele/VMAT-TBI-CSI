@@ -55,10 +55,10 @@ namespace VMATAutoPlanMT
             flashMargin = fM;
         }
 
-        public override bool preliminaryChecks()
+        public override bool preliminaryChecks(StructureSet selectedSS, List<Tuple<string, string, double>> list)
         {
             //check if user origin was set
-            if (isUOriginInside()) return true;
+            if (isUOriginInside(selectedSS)) return true;
 
             //get the points collection for the Body (used for calculating number of isocenters)
             Point3DCollection pts = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").MeshGeometry.Positions;

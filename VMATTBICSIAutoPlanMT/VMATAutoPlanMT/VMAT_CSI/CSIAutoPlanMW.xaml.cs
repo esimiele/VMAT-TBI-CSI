@@ -2047,47 +2047,47 @@ namespace VMATAutoPlanMT.VMAT_CSI
             }
         }
 
-        private void autorun_Click(object sender, RoutedEventArgs e)
-        {
-            if (string.IsNullOrEmpty(initRxTB.Text)) { MessageBox.Show("Error! Please select a template regimen or enter the dose per fx and number of fx!"); return; }
+        //private void autorun_Click(object sender, RoutedEventArgs e)
+        //{
+        //    if (string.IsNullOrEmpty(initRxTB.Text)) { MessageBox.Show("Error! Please select a template regimen or enter the dose per fx and number of fx!"); return; }
 
-            //copy the sparing structures in the defaultSpareStruct list to a temporary vector
-            //List<Tuple<string, string, double>> templateList = new List<Tuple<string, string, double>>(defaultSpareStruct);
-            //add the case-specific sparing structures to the temporary list
-            //if (noBoost_chkbox.IsChecked.Value) templateList = new List<Tuple<string, string, double>>(addCaseSpecificSpareStructures(nonmyeloSpareStruct, templateList));
-            //else if (noBoost_chkbox.IsChecked.Value) templateList = new List<Tuple<string, string, double>>(addCaseSpecificSpareStructures(myeloSpareStruct, templateList));
+        //    //copy the sparing structures in the defaultSpareStruct list to a temporary vector
+        //    //List<Tuple<string, string, double>> templateList = new List<Tuple<string, string, double>>(defaultSpareStruct);
+        //    //add the case-specific sparing structures to the temporary list
+        //    //if (noBoost_chkbox.IsChecked.Value) templateList = new List<Tuple<string, string, double>>(addCaseSpecificSpareStructures(nonmyeloSpareStruct, templateList));
+        //    //else if (noBoost_chkbox.IsChecked.Value) templateList = new List<Tuple<string, string, double>>(addCaseSpecificSpareStructures(myeloSpareStruct, templateList));
 
-            autoRunData a = new autoRunData();
-           // a.construct(TS_structures, scleroStructures, templateList, selectedSS, 0.0, boost_chkbox.IsChecked.Value, useFlash, flashStructure, 0.0, app);
-            //create a new thread and pass it the data structure created above (it will copy this information to its local thread memory)
-            ESAPIworker slave = new ESAPIworker(a);
-            //create a new frame (multithreading jargon)
-            DispatcherFrame frame = new DispatcherFrame();
-            //start the optimization
-            //open a new window to run on the newly created thread called "slave"
-            //for definition of the syntax used below, google "statement lambda c#"
-            RunOnNewThread(() =>
-            {
-                //pass the progress window the newly created thread and this instance of the optimizationLoop class.
-                AutorunProgress arpw = new AutorunProgress(slave);
-                arpw.ShowDialog();
+        //    autoRunData a = new autoRunData();
+        //   // a.construct(TS_structures, scleroStructures, templateList, selectedSS, 0.0, boost_chkbox.IsChecked.Value, useFlash, flashStructure, 0.0, app);
+        //    //create a new thread and pass it the data structure created above (it will copy this information to its local thread memory)
+        //    ESAPIworker slave = new ESAPIworker(a);
+        //    //create a new frame (multithreading jargon)
+        //    DispatcherFrame frame = new DispatcherFrame();
+        //    //start the optimization
+        //    //open a new window to run on the newly created thread called "slave"
+        //    //for definition of the syntax used below, google "statement lambda c#"
+        //    RunOnNewThread(() =>
+        //    {
+        //        //pass the progress window the newly created thread and this instance of the optimizationLoop class.
+        //        AutorunProgress arpw = new AutorunProgress(slave);
+        //        arpw.ShowDialog();
 
-                //tell the code to hold until the progress window closes.
-                frame.Continue = false;
-            });
+        //        //tell the code to hold until the progress window closes.
+        //        frame.Continue = false;
+        //    });
 
-            Dispatcher.PushFrame(frame);
-            //addDefaultsBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        }
+        //    Dispatcher.PushFrame(frame);
+        //    //addDefaultsBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        //}
 
-        //method to create the new thread, set the apartment state, set the new thread to be a background thread, and execute the action supplied to this method
-        private void RunOnNewThread(Action a)
-        {
-            Thread t = new Thread(() => a());
-            t.SetApartmentState(ApartmentState.STA);
-            t.IsBackground = true;
-            t.Start();
-        }
+        ////method to create the new thread, set the apartment state, set the new thread to be a background thread, and execute the action supplied to this method
+        //private void RunOnNewThread(Action a)
+        //{
+        //    Thread t = new Thread(() => a());
+        //    t.SetApartmentState(ApartmentState.STA);
+        //    t.IsBackground = true;
+        //    t.Start();
+        //}
 
         private void MainWindow_SizeChanged(object sender, RoutedEventArgs e)
         {
