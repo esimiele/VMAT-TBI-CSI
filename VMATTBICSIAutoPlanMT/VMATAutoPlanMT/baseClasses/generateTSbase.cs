@@ -5,11 +5,11 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Forms;
 using System.Windows.Media.Media3D;
-using System.Windows.Threading;
+
 
 namespace VMATAutoPlanMT.baseClasses
 {
-    public class generateTSbase
+    public class generateTSbase : MTbase
     {
         public StructureSet selectedSS;
         public List<string> addedStructures = new List<string> { };
@@ -17,11 +17,27 @@ namespace VMATAutoPlanMT.baseClasses
         public bool useFlash = false;
         //plan Id, list of isocenter names for this plan
         public List<Tuple<string,List<string>>> isoNames = new List<Tuple<string, List<string>>> { };
+        
 
         public generateTSbase()
         {
 
         }
+
+        public virtual bool PerformStructureGeneration()
+        {
+            return false;
+        }
+
+
+
+        public void UpdateUILabel(string message) { dispatch.BeginInvoke((Action)(() => { pw.UpdateLabel(message); })); }
+
+        public void ProvideUIUpdate(int percentComplete, string message) { dispatch.BeginInvoke((Action)(() => { pw.provideUpdate(percentComplete, message); })); }
+
+        public void ProvideUIUpdate(int percentComplete) { dispatch.BeginInvoke((Action)(() => { pw.provideUpdate(percentComplete); })); }
+
+        public void ProvideUIUpdate(string message) { dispatch.BeginInvoke((Action)(() => { pw.provideUpdate(message); })); }
 
         public virtual bool generateStructures()
         {
@@ -33,7 +49,7 @@ namespace VMATAutoPlanMT.baseClasses
             return false;
         }
 
-        public virtual bool preliminaryChecks(StructureSet ss, List<Tuple<string, string, double>> list)
+        public virtual bool preliminaryChecks()
         {
             //specific to each case (TBI or CSI)
             return false;
@@ -61,44 +77,66 @@ namespace VMATAutoPlanMT.baseClasses
             return false;
         }
 
-        public virtual bool RemoveOldTSStructures(List<Tuple<string, string>> structures, StructureSet selectedSS = null)
+        public virtual bool RemoveOldTSStructures(List<Tuple<string,string>> structures)
         {
+            UpdateUILabel("Remove Prior Tuning Structures: ");
+            ProvideUIUpdate(0, "Removing prior tuning structures");
             //remove existing TS structures if they exist and re-add them to the structure list
+            int calcItems = structures.Count;
+            int counter = 0;
             foreach (Tuple<string, string> itr in structures)
             {
                 Structure tmp = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.Item2.ToLower());
-
                 //structure is present in selected structure set
                 if (tmp != null)
                 {
                     //check to see if the dicom type is "none"
                     if (!(tmp.DicomType == ""))
                     {
-                        if (selectedSS.CanRemoveStructure(tmp)) selectedSS.RemoveStructure(tmp);
+                        if (selectedSS.CanRemoveStructure(tmp))
+                        {
+                            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Removing: {0}", itr.Item2));
+                            selectedSS.RemoveStructure(tmp);
+                        }
                         else
                         {
-                            MessageBox.Show(String.Format("Error! \n{0} can't be removed from the structure set!", tmp.Id));
+                            ProvideUIUpdate(0, String.Format("Error! {0} can't be removed from the structure set!", itr.Item2));
+                            //MessageBox.Show(String.Format("Error! \n{0} can't be removed from the structure set!", tmp.Id));
                             return true;
                         }
 
                         if (!selectedSS.CanAddStructure(itr.Item1, itr.Item2))
                         {
-                            MessageBox.Show(String.Format("Error! \n{0} can't be added to the structure set!", itr.Item2));
+                            ProvideUIUpdate(0, String.Format("Error! {0} can't be added the structure set!", itr.Item2));
+                            //MessageBox.Show(String.Format("Error! \n{0} can't be added to the structure set!", itr.Item2));
                             return true;
                         }
                     }
                     else
                     {
-                        MessageBox.Show(String.Format("Error! \n{0} is of DICOM type 'None'! \nESAPI can't operate on DICOM type 'None'", itr.Item2));
+                        ProvideUIUpdate(0, String.Format("{0} is of DICOM type 'None'! ESAPI can't operate on DICOM type 'None'", itr.Item2));
+                        //MessageBox.Show(String.Format("Error! \n{0} is of DICOM type 'None'! \nESAPI can't operate on DICOM type 'None'", itr.Item2));
                         return true;
                     }
                 }
             }
 
+            ProvideUIUpdate(0, "Removing remaining tuning structures");
             //4-15-2022 
             //remove ALL tuning structures from any previous runs (structure id starts with 'TS_'). Be sure to exclude any requested TS structures from the config file as we just added them!
             List<Structure> tsStructs = selectedSS.Structures.Where(x => x.Id.ToLower().Substring(0, 3) == "ts_").ToList();
-            foreach (Structure itr in tsStructs) if (!structures.Where(x => x.Item2.ToLower() == itr.Id.ToLower()).Any() && selectedSS.CanRemoveStructure(itr)) selectedSS.RemoveStructure(itr);
+            //calcItems = tsStructs.Count;
+            counter = 0;
+            foreach (Structure itr in tsStructs)
+            {
+                if (!structures.Where(x => x.Item2.ToLower() == itr.Id.ToLower()).Any() && selectedSS.CanRemoveStructure(itr))
+                {
+                    string id = itr.Id;
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Removing: {0}", id));
+                    selectedSS.RemoveStructure(itr);
+                }
+            }
+            ProvideUIUpdate(100, String.Format("Prior tuning structures successfully removed!"));
 
             return false;
         }

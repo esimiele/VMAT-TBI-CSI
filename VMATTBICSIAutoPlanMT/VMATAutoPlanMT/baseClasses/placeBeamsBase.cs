@@ -9,7 +9,7 @@ using VMATAutoPlanMT.Prompts;
 
 namespace VMATAutoPlanMT.baseClasses
 {
-    class placeBeamsBase
+    class placeBeamsBase : MTbase
     {
         public bool contourOverlap = false;
         public bool checkIsoPlacement = false;

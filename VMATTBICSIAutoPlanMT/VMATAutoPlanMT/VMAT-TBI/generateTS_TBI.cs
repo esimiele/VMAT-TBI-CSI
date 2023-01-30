@@ -21,7 +21,7 @@ namespace VMATAutoPlanMT
         //DICOM types
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
-        List<Tuple<string, string>> TS_structures;
+        public List<Tuple<string, string>> TS_structures;
         List<Tuple<string, string>> scleroStructures;
         public int numIsos;
         public int numVMATIsos;
@@ -55,7 +55,7 @@ namespace VMATAutoPlanMT
             flashMargin = fM;
         }
 
-        public override bool preliminaryChecks(StructureSet selectedSS, List<Tuple<string, string, double>> list)
+        public override bool preliminaryChecks()
         {
             //check if user origin was set
             if (isUOriginInside(selectedSS)) return true;

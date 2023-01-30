@@ -122,6 +122,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="baseClasses\MTBase.cs" />
     <Compile Include="baseClasses\generateTSbase.cs" />
     <Compile Include="baseClasses\planPrepBase.cs" />
     <Compile Include="helpers\BeamPlacementUIHelper.cs" />
@@ -129,8 +130,8 @@
     <Compile Include="helpers\ExportCTUIHelper.cs" />
     <Compile Include="helpers\OptimizationSetupUIHelper.cs" />
     <Compile Include="MTProgressInfo\ESAPIworker.cs" />
-    <Compile Include="MTProgressInfo\generateTSProgress.xaml.cs">
-      <DependentUpon>generateTSProgress.xaml</DependentUpon>
+    <Compile Include="MTProgressInfo\MTProgress.xaml.cs">
+      <DependentUpon>MTProgress.xaml</DependentUpon>
     </Compile>
     <Compile Include="Prompts\SaveDialog.cs">
       <SubType>Form</SubType>
@@ -148,7 +149,7 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="MTProgressInfo\generateTSProgress.xaml">
+    <Page Include="MTProgressInfo\MTProgress.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

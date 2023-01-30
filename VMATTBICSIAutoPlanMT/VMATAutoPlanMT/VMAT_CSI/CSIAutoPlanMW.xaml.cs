@@ -789,6 +789,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             }
             //the number of isocenters will always be equal to the number of vmat isocenters for vmat csi
             isoNames = generate.isoNames;
+            MessageBox.Show(isoNames.Count.ToString());
 
             //populate the beams and optimization tabs
             PopulateBeamsTab();

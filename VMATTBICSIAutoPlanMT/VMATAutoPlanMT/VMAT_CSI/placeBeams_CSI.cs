@@ -102,7 +102,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
                 //however, the actual correct equation is given below (VMAT TBI):
                 //isoSeparation = Math.Round(((targetExtent - 380.0) / (numIsos - 1)) / 10.0f) * 10.0f;
-                isoSeparation = 190.0;
+                isoSeparation = 380.0;
 
                 //It is calculated by setting the most superior and inferior isocenters to be 19.0 cm from the target volume edge in the z-direction. The isocenter separtion is then calculated as half the distance between these two isocenters (sep = ((max-19cm)-(min+19cm)/2).
                 //Tested on 5-7-2020. When the correct equation is rounded, it gives the same answer as the original empirical equation above, however, the isocenters are better positioned in the target volume (i.e., more symmetric about the target volume). 
@@ -125,7 +125,14 @@ namespace VMATAutoPlanMT.VMAT_CSI
                         v.y = spineYMin;
                         if (i == 0) v.z = brainZCenter;
                         //else v.z = (brainZCenter - i * isoSeparation);
-                        else v.z = (spineZMin + (numIsos - i) * isoSeparation);
+                        else
+                        {
+                            v.z = (spineZMin + (numIsos - i - 1) * isoSeparation + 180.0);
+                            if(i == 1)
+                            {
+                                if (v.z + 200.0 > tmp.ElementAt(0).Item1.z) v.z = tmp.ElementAt(0).Item1.z - 200.0;
+                            }
+                        }
                     }
                     else
                     {
@@ -323,7 +330,8 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     }
                     //auto fit collimator to target structure
                     //circular margin (in mm), target structure, use asymmetric x Jaws, use asymmetric y jaws, optimize collimator rotation
-                    b.FitCollimatorToStructure(new FitToStructureMargins(30.0), target, true, true, false);
+                    if(target.Id.ToLower().Contains("ptv_brain")) b.FitCollimatorToStructure(new FitToStructureMargins(30.0, 40.0, 30.0, 30.0), target, true, true, false);
+                    else b.FitCollimatorToStructure(new FitToStructureMargins(30.0), target, true, true, false);
                     b.Id = beamName;
                     b.CreateOrReplaceDRR(DRR);
                     count++;
