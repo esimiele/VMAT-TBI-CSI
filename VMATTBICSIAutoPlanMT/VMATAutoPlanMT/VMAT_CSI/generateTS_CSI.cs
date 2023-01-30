@@ -37,13 +37,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             selectedSS = ss;
         }
 
-        private void RunOnNewThread(Action a)
-        {
-            Thread t = new Thread(() => a());
-            t.SetApartmentState(ApartmentState.STA);
-            t.IsBackground = true;
-            t.Start();
-        }
+        
 
         public override bool generateStructures()
         {
@@ -52,7 +46,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             ESAPIworker slave = new ESAPIworker(d);
             //create a new frame (multithreading jargon)
             DispatcherFrame frame = new DispatcherFrame();
-            RunOnNewThread(() =>
+            slave.RunOnNewThread(() =>
             {
                 //pass the progress window the newly created thread and this instance of the optimizationLoop class.
                 generateTSProgress pw = new generateTSProgress(slave, this);
@@ -86,44 +80,44 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 return true;
             }
 
-            //check if selected structures are empty or of high-resolution (i.e., no operations can be performed on high-resolution structures)
-            string output = "The following structures are high-resolution:" + System.Environment.NewLine;
-            List<Structure> highResStructList = new List<Structure> { };
-            List<Tuple<string, string, double>> highResSpareList = new List<Tuple<string, string, double>> { };
-            foreach (Tuple<string, string, double> itr in list)
-            {
-                if (itr.Item2 == "Crop target from structure")
-                {
-                    if (ss.Structures.First(x => x.Id == itr.Item1).IsEmpty)
-                    {
-                        MessageBox.Show(String.Format("Error! \nThe selected structure that will be subtracted from PTV_Body and TS_PTV_VMAT is empty! \nContour the structure and try again."));
-                        return true;
-                    }
-                    else if (ss.Structures.First(x => x.Id == itr.Item1).IsHighResolution)
-                    {
-                        highResStructList.Add(ss.Structures.First(x => x.Id == itr.Item1));
-                        highResSpareList.Add(itr);
-                        output += String.Format("{0}", itr.Item1) + System.Environment.NewLine;
-                    }
-                }
-            }
-            //if there are high resolution structures, they will need to be converted to default resolution.
-            if (highResStructList.Count() > 0)
-            {
-                //ask user if they are ok with converting the relevant high resolution structures to default resolution
-                output += "They must be converted to default resolution before proceeding!";
-                confirmUI CUI = new confirmUI();
-                CUI.message.Text = output + Environment.NewLine + Environment.NewLine + "Continue?!";
-                CUI.message.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-                CUI.ShowDialog();
-                if (!CUI.confirm) return true;
+            ////check if selected structures are empty or of high-resolution (i.e., no operations can be performed on high-resolution structures)
+            //string output = "The following structures are high-resolution:" + System.Environment.NewLine;
+            //List<Structure> highResStructList = new List<Structure> { };
+            //List<Tuple<string, string, double>> highResSpareList = new List<Tuple<string, string, double>> { };
+            //foreach (Tuple<string, string, double> itr in list)
+            //{
+            //    if (itr.Item2 == "Crop target from structure")
+            //    {
+            //        if (ss.Structures.First(x => x.Id == itr.Item1).IsEmpty)
+            //        {
+            //            MessageBox.Show(String.Format("Error! \nThe selected structure that will be subtracted from PTV_Body and TS_PTV_VMAT is empty! \nContour the structure and try again."));
+            //            return true;
+            //        }
+            //        else if (ss.Structures.First(x => x.Id == itr.Item1).IsHighResolution)
+            //        {
+            //            highResStructList.Add(ss.Structures.First(x => x.Id == itr.Item1));
+            //            highResSpareList.Add(itr);
+            //            output += String.Format("{0}", itr.Item1) + System.Environment.NewLine;
+            //        }
+            //    }
+            //}
+            ////if there are high resolution structures, they will need to be converted to default resolution.
+            //if (highResStructList.Count() > 0)
+            //{
+            //    //ask user if they are ok with converting the relevant high resolution structures to default resolution
+            //    output += "They must be converted to default resolution before proceeding!";
+            //    confirmUI CUI = new confirmUI();
+            //    CUI.message.Text = output + Environment.NewLine + Environment.NewLine + "Continue?!";
+            //    CUI.message.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            //    CUI.ShowDialog();
+            //    if (!CUI.confirm) return true;
 
-                List<Tuple<string, string, double>> newData = convertHighToLowRes(highResStructList, highResSpareList, list);
-                if (!newData.Any()) return true;
-                list = new List<Tuple<string, string, double>>(newData);
-                //inform the main UI class that the UI needs to be updated
-                //updateSparingList = true;
-            }
+            //    List<Tuple<string, string, double>> newData = convertHighToLowRes(highResStructList, highResSpareList, list);
+            //    if (!newData.Any()) return true;
+            //    list = new List<Tuple<string, string, double>>(newData);
+            //    //inform the main UI class that the UI needs to be updated
+            //    //updateSparingList = true;
+            //}
             return false;
         }
 
@@ -331,7 +325,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             return false;
         }
 
-        private bool cropTargetFromStructure(Structure target, Structure normal, double margin)
+        public bool cropTargetFromStructure(Structure target, Structure normal, double margin)
         {
             //margin is in cm
             if (target != null && normal != null)
@@ -343,7 +337,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             return false;
         }
 
-        private bool contourOverlap(Structure target, Structure normal, double margin)
+        public bool contourOverlap(Structure target, Structure normal, double margin)
         {
             //margin is in cm
             if (target != null && normal != null)

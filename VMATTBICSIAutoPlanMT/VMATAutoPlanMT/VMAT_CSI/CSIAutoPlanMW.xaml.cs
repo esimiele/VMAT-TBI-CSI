@@ -14,6 +14,8 @@ using System.Collections.ObjectModel;
 using System.Reflection;
 using VMATAutoPlanMT.helpers;
 using VMATAutoPlanMT.Prompts;
+using System.Threading.Tasks;
+
 
 namespace VMATAutoPlanMT.VMAT_CSI
 {
@@ -773,6 +775,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             generateTS_CSI generate = new generateTS_CSI(TS_structures, structureSpareList, targets, prescriptions, selectedSS);
             pi.BeginModifications();
             if (generate.generateStructures()) return;
+
             //does the structure sparing list need to be updated? This occurs when structures the user elected to spare with option of 'Mean Dose < Rx Dose' are high resolution. Since Eclipse can't perform
             //boolean operations on structures of two different resolutions, code was added to the generateTS class to automatically convert these structures to low resolution with the name of
             // '<original structure Id>_lowRes'. When these structures are converted to low resolution, the updateSparingList flag in the generateTS class is set to true to tell this class that the 

@@ -1,17 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Threading;
-using System.Windows.Media.Media3D;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
+using System.Threading;
 
 namespace VMATAutoPlanMT.MTProgressInfo
 {
     public class ESAPIworker
     {
+        public void RunOnNewThread(Action a)
+        {
+            Thread t = new Thread(() => a());
+            t.SetApartmentState(ApartmentState.STA);
+            t.IsBackground = true;
+            t.Start();
+        }
+
         //data structure to hold all this crap
         public struct dataContainer
         {
