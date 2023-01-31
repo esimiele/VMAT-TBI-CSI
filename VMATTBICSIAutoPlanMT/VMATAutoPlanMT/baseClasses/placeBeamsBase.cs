@@ -6,6 +6,10 @@ using VMS.TPS.Common.Model.Types;
 using System.Windows.Forms;
 using System.Windows.Media.Media3D;
 using VMATAutoPlanMT.Prompts;
+using System.Windows.Threading;
+using VMATAutoPlanMT.MTProgressInfo;
+using System.Diagnostics;
+using System.Reflection;
 
 namespace VMATAutoPlanMT.baseClasses
 {
@@ -15,6 +19,7 @@ namespace VMATAutoPlanMT.baseClasses
         public bool checkIsoPlacement = false;
         public List<ExternalPlanSetup> plans = new List<ExternalPlanSetup> { };
         public double checkIsoPlacementLimit = 5.0;
+        public string courseId;
         public Course theCourse;
         public StructureSet selectedSS;
         //plan ID, target Id, numFx, dosePerFx, cumulative dose
@@ -34,11 +39,38 @@ namespace VMATAutoPlanMT.baseClasses
 
         }
 
-        public virtual List<ExternalPlanSetup> generatePlans(string courseId, List<Tuple<string, string, int, DoseValue, double>> presc)
+        public virtual bool Initialize(string cId, List<Tuple<string, string, int, DoseValue, double>> presc)
         {
+            courseId = cId;
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(presc);
+            return false;
+        }
+
+        public virtual bool Execute()
+        {
+            ESAPIworker.dataContainer d = new ESAPIworker.dataContainer();
+            d.construct();
+            ESAPIworker slave = new ESAPIworker(d);
+            //create a new frame (multithreading jargon)
+            DispatcherFrame frame = new DispatcherFrame();
+            slave.RunOnNewThread(() =>
+            {
+                //pass the progress window the newly created thread and this instance of the optimizationLoop class.
+                MTProgress pw = new MTProgress();
+                pw.setCallerClass(slave, this);
+                pw.ShowDialog();
+
+                //tell the code to hold until the progress window closes.
+                frame.Continue = false;
+            });
+            Dispatcher.PushFrame(frame);
+            return false;
+        }
+
+        public virtual List<ExternalPlanSetup> GeneratePlanList()
+        {
             if (checkExistingCoursePlans(courseId)) return null;
-            if (createCourseAndPlan()) return null;
+            if (createPlans()) return null;
             //plan, isocenter positions, isocenter names, number of beams per isocenter
             List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> isoLocations = getIsocenterPositions();
             int isoCount = 0;
@@ -56,31 +88,57 @@ namespace VMATAutoPlanMT.baseClasses
 
         private bool checkExistingCoursePlans(string courseId)
         {
+            UpdateUILabel("Check course: ");
+            int calcItems = 1;
+            int counter = 0;
+            ProvideUIUpdate(0, String.Format("Checking for existing course {0}", courseId));
             //look for a course name VMAT TBI. If it does not exit, create it, otherwise load it into memory
-            if (selectedSS.Patient.Courses.Where(x => x.Id == courseId).Any()) theCourse = selectedSS.Patient.Courses.FirstOrDefault(x => x.Id == courseId);
-            else theCourse = createCourse(courseId);
-            if (theCourse == null) return true;
-            if(checkExistingPlans()) return true;
+            if (selectedSS.Patient.Courses.Where(x => x.Id == courseId).Any())
+            {
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Course {0} found!", courseId));
+                theCourse = selectedSS.Patient.Courses.FirstOrDefault(x => x.Id == courseId);
+            }
+            else
+            {
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Course {0} does not exist. Creating now!", courseId));
+                theCourse = createCourse(courseId);
+            }
+            if (theCourse == null)
+            {
+                ProvideUIUpdate(0, String.Format("Course creation or assignment failed! Exiting!"));
+                return true;
+            }
+            ProvideUIUpdate(String.Format("Course {0} retrieved!", courseId));
+            if (checkExistingPlans()) return true;
             return false;
         }
 
         public virtual bool checkExistingPlans()
         {
-            string msg = "";
+            UpdateUILabel("Check for existing plans: ");
+            //string msg = "";
             int numExistingPlans = 0;
+            int calcItems = prescriptions.Count;
+            int counter = 0;
             foreach(Tuple<string, string, int, DoseValue, double> itr in prescriptions)
             {
                 if (theCourse.ExternalPlanSetups.Where(x => x.Id == itr.Item1).Any())
                 {
-                    msg += itr.Item1 + Environment.NewLine;
+                    //msg += itr.Item1 + Environment.NewLine;
                     numExistingPlans++;
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Plan {0} EXISTS in course {1}", itr.Item1, courseId));
                 }
+                else ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Plan {0} does not exist in course {1}", itr.Item1, courseId));
             }
             if(numExistingPlans > 0)
             {
-                MessageBox.Show(String.Format("The following plans already exist in course '{0}': {1}\nESAPI can't remove plans in the clinical environment! \nPlease manually remove this plan and try again.", theCourse, msg));
+                ProvideUIUpdate(0, String.Format("One or more plans exist in course {0}", courseId));
+                ProvideUIUpdate(String.Format("ESAPI can't remove plans in the clinical environment!"));
+                ProvideUIUpdate(String.Format("Please manually remove this plan and try again."));
+                //MessageBox.Show(String.Format("The following plans already exist in course '{0}': {1}\nESAPI can't remove plans in the clinical environment! \nPlease manually remove this plan and try again.", theCourse, msg));
                 return true;
             }
+            else ProvideUIUpdate(100, String.Format("No plans currently exist in course {0} that !", courseId));
 
             return false;
         }
@@ -93,19 +151,33 @@ namespace VMATAutoPlanMT.baseClasses
                 tmpCourse = selectedSS.Patient.AddCourse();
                 tmpCourse.Id = courseId;
             }
-            else MessageBox.Show("Error! \nCan't add a treatment course to the patient!");
+            else
+            {
+                ProvideUIUpdate(String.Format("Error! Can't add a treatment course to the patient!"));
+                //MessageBox.Show("Error! \nCan't add a treatment course to the patient!");
+            }
             return tmpCourse;
         }
 
-        private bool createCourseAndPlan()
+        private bool createPlans()
         {
+            UpdateUILabel("Creating plans: ");
+            
             foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
             {
+                int calcItems = 9 * prescriptions.Count;
+                int counter = 0;
+                ProvideUIUpdate(0, String.Format("Creating plan {0}", itr.Item1));
                 ExternalPlanSetup thePlan = theCourse.AddExternalPlanSetup(selectedSS);
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Created plan {0}", itr.Item1));
                 //100% dose prescribed in plan and plan ID is in the prescriptions
                 thePlan.SetPrescription(itr.Item3, itr.Item4, 1.0);
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Set prescription for plan {0}", itr.Item1));
+
                 string planName = itr.Item1;
                 thePlan.Id = planName;
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Set plan Id for {0}", itr.Item1));
+
                 //ask the user to set the calculation model if not calculation model was set in UI.xaml.cs (up near the top with the global parameters)
                 if (calculationModel == "")
                 {
@@ -126,8 +198,12 @@ namespace VMATAutoPlanMT.baseClasses
                         if (!CUI.confirm) return true;
                     }
                 }
+
                 thePlan.SetCalculationModel(CalculationType.PhotonVolumeDose, calculationModel);
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Set calculation model to {0}", calculationModel));
+
                 thePlan.SetCalculationModel(CalculationType.PhotonVMATOptimization, optimizationModel);
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Set optimization model to {0}", optimizationModel));
 
                 //Dictionary<string, string> d = thePlan.GetCalculationOptions(thePlan.GetCalculationModel(CalculationType.PhotonVMATOptimization));
                 //string m = "";
@@ -135,15 +211,33 @@ namespace VMATAutoPlanMT.baseClasses
                 //MessageBox.Show(m);
 
                 //set the GPU dose calculation option (only valid for acuros)
-                if (useGPUdose == "Yes" && !calculationModel.Contains("AAA")) thePlan.SetCalculationOption(calculationModel, "UseGPU", useGPUdose);
-                else thePlan.SetCalculationOption(calculationModel, "UseGPU", "No");
+                if (useGPUdose == "Yes" && !calculationModel.Contains("AAA"))
+                {
+                    thePlan.SetCalculationOption(calculationModel, "UseGPU", useGPUdose);
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Set GPU option for dose calc to {0}", useGPUdose));
+                }
+                else
+                {
+                    thePlan.SetCalculationOption(calculationModel, "UseGPU", "No");
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Set GPU option for dose calc to {0}", "No"));
+                }
+
 
                 //set MR restart level option for the photon optimization
                 thePlan.SetCalculationOption(optimizationModel, "VMAT/MRLevelAtRestart", MRrestart);
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Set MR Restart level to {0}", MRrestart));
 
                 //set the GPU optimization option
-                if (useGPUoptimization == "Yes") thePlan.SetCalculationOption(optimizationModel, "General/OptimizerSettings/UseGPU", useGPUoptimization);
-                else thePlan.SetCalculationOption(optimizationModel, "General/OptimizerSettings/UseGPU", "No");
+                if (useGPUoptimization == "Yes")
+                {
+                    thePlan.SetCalculationOption(optimizationModel, "General/OptimizerSettings/UseGPU", useGPUoptimization);
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Set GPU option for optimization to {0}", useGPUoptimization));
+                }
+                else
+                {
+                    thePlan.SetCalculationOption(optimizationModel, "General/OptimizerSettings/UseGPU", "No");
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Set GPU option for optimization to {0}", "No"));
+                }
 
                 //reference point can only be added for a plan that IS CURRENTLY OPEN
                 //plan.AddReferencePoint(selectedSS.Structures.First(x => x.Id == "TS_PTV_VMAT"), null, "VMAT TBI", "VMAT TBI");
@@ -153,7 +247,9 @@ namespace VMATAutoPlanMT.baseClasses
                 //plan.TargetVolumeID = selectedSS.Structures.First(x => x.Id == "TS_PTV_VMAT");
                 //plan.PrimaryReferencePoint = plan.ReferencePoints.Fisrt(x => x.Id == "VMAT TBI");
                 plans.Add(thePlan);
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Added plan {0} to stack!", itr.Item1));
             }
+            ProvideUIUpdate(100, String.Format("Finished creating and initializing plans!"));
             return false;
         }
 

@@ -907,24 +907,6 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 count++;
             }
 
-            /*
-            //AP/PA stuff (THIS NEEDS TO GO AFTER THE ABOVE CHECKS!). Ask the user if they want to split the AP/PA isocenters into two plans if there are two AP/PA isocenters
-            bool singleAPPAplan = true;
-            if (numIsos - numVMATIsos == 2)
-            {
-                selectItem SUI = new selectItem();
-                SUI.title.Text = "What should I do with the AP/PA isocenters?" + Environment.NewLine + Environment.NewLine + Environment.NewLine + "Put them in:";
-                SUI.title.TextAlign = System.Drawing.ContentAlignment.TopCenter;
-                SUI.itemCombo.Items.Add("One plan");
-                SUI.itemCombo.Items.Add("Separate plans");
-                SUI.itemCombo.Text = "One plan";
-                SUI.ShowDialog();
-                if (!SUI.confirm) return;
-                //get the option the user chose from the combobox
-                if (SUI.itemCombo.SelectedItem.ToString() == "Separate plans") singleAPPAplan = false;
-            }
-            */
-
             //Added code to account for the scenario where the user either requested or did not request to contour the overlap between fields in adjacent isocenters
             placeBeams_CSI place;
             if (contourOverlap_chkbox.IsChecked.Value)
@@ -942,7 +924,10 @@ namespace VMATAutoPlanMT.VMAT_CSI
             }
             else place = new placeBeams_CSI(selectedSS, planIsoBeamInfo, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel);
 
-            VMATplans = new List<ExternalPlanSetup>(place.generatePlans("VMAT CSI", prescriptions));
+            place.Initialize("VMAT CSI", prescriptions);
+            place.Execute();
+            VMATplans = new List<ExternalPlanSetup>(place.plans);
+            //VMATplans = new List<ExternalPlanSetup>(place.generatePlans("VMAT CSI", prescriptions));
             if (!VMATplans.Any()) return;
 
             //if the user elected to contour the overlap between fields in adjacent isocenters, get this list of structures from the placeBeams class and copy them to the jnxs vector

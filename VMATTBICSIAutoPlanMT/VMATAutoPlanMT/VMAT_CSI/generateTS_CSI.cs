@@ -10,7 +10,7 @@ using VMATAutoPlanMT.helpers;
 using VMATAutoPlanMT.Prompts;
 using VMATAutoPlanMT.MTProgressInfo;
 using System.Windows.Threading;
-using System.Threading;
+using System.Runtime.ExceptionServices;
 
 namespace VMATAutoPlanMT.VMAT_CSI
 {
@@ -27,7 +27,6 @@ namespace VMATAutoPlanMT.VMAT_CSI
         public int numIsos;
         public int numVMATIsos;
         public bool updateSparingList = false;
-        
 
         public generateTS_CSI(List<Tuple<string, string>> ts, List<Tuple<string, string, double>> list, List<Tuple<string, double, string>> targs, List<Tuple<string,string,int,DoseValue,double>> presc, StructureSet ss)
         {
@@ -59,17 +58,24 @@ namespace VMATAutoPlanMT.VMAT_CSI
             return false;
         }
 
+        //to handle system access exception violation
+        [HandleProcessCorruptedStateExceptions]
         public override bool Run()
         {
-            isoNames.Clear();
-            if (preliminaryChecks()) return true;
-            if (UnionLRStructures()) return true;
-            if (spareStructList.Any()) if (CheckHighResolution()) return true;
-            if (RemoveOldTSStructures(TS_structures)) return true;
-            if (createTargetStructures()) return true;
-            if (createTSStructures()) return true;
-            if (performTSStructureManipulation()) return true;
-            if (calculateNumIsos()) return true;
+            try
+            {
+                isoNames.Clear();
+                if (preliminaryChecks()) return true;
+                if (UnionLRStructures()) return true;
+                if (spareStructList.Any()) if (CheckHighResolution()) return true;
+                if (RemoveOldTSStructures(TS_structures)) return true;
+                if (createTargetStructures()) return true;
+                if (createTSStructures()) return true;
+                if (performTSStructureManipulation()) return true;
+                if (calculateNumIsos()) return true;
+                ProvideUIUpdate(100, "Finished Structure Tuning!");
+            }
+            catch(Exception e) { ProvideUIUpdate(String.Format("{0}", e.Message)); return true; }
             return false;
         }
 

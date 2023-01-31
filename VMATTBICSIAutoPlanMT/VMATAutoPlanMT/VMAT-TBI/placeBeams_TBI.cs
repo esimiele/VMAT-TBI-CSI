@@ -6,6 +6,7 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATAutoPlanMT.baseClasses;
 using VMATAutoPlanMT.Prompts;
+using System.Runtime.ExceptionServices;
 
 namespace VMATAutoPlanMT
 {
@@ -73,6 +74,13 @@ namespace VMATAutoPlanMT
             //user wants to contour the overlap between fields in adjacent VMAT isocenters
             contourOverlap = true;
             contourOverlapMargin = overlapMargin;
+        }
+
+        [HandleProcessCorruptedStateExceptions]
+        public override bool Run()
+        {
+            checkExistingPlans();
+            return false;
         }
 
         public override bool checkExistingPlans()

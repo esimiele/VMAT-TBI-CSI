@@ -41,6 +41,11 @@ namespace VMATAutoPlanMT.MTProgressInfo
                 prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(presc);
                 selectedSS = ss;
             }
+
+            public void construct()
+            {
+
+            }
         }
 
         //instance of dataContainer structure to copy the optimization parameters to thread-local memory
