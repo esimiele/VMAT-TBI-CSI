@@ -10,21 +10,28 @@ namespace VMATAutoPlanMT.baseClasses
 {
     public class MTbase
     {
-        public Dispatcher dispatch;
-        public MTProgress pw;
+        private Dispatcher _dispatch;
+        private MTProgress _pw;
         public void MTBase()
         { 
         }
         public void SetDispatcherAndUIInstance(Dispatcher d, MTProgress p)
         {
-            dispatch = d;
-            pw = p;
-            //ProvideUIUpdate("hello");
+            _dispatch = d;
+            _pw = p;
         }
 
         public virtual bool Run()
         {
             return false;
         }
+
+        public void UpdateUILabel(string message) { _dispatch.BeginInvoke((Action)(() => { _pw.UpdateLabel(message); })); }
+
+        public void ProvideUIUpdate(int percentComplete, string message) { _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(percentComplete, message); })); }
+
+        public void ProvideUIUpdate(int percentComplete) { _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(percentComplete); })); }
+
+        public void ProvideUIUpdate(string message) { _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(message); })); }
     }
 }

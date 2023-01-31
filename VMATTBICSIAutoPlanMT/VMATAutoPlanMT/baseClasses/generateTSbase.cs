@@ -29,16 +29,6 @@ namespace VMATAutoPlanMT.baseClasses
             return false;
         }
 
-
-
-        public void UpdateUILabel(string message) { dispatch.BeginInvoke((Action)(() => { pw.UpdateLabel(message); })); }
-
-        public void ProvideUIUpdate(int percentComplete, string message) { dispatch.BeginInvoke((Action)(() => { pw.provideUpdate(percentComplete, message); })); }
-
-        public void ProvideUIUpdate(int percentComplete) { dispatch.BeginInvoke((Action)(() => { pw.provideUpdate(percentComplete); })); }
-
-        public void ProvideUIUpdate(string message) { dispatch.BeginInvoke((Action)(() => { pw.provideUpdate(message); })); }
-
         public virtual bool generateStructures()
         {
             isoNames.Clear();
@@ -59,7 +49,8 @@ namespace VMATAutoPlanMT.baseClasses
         {
             if (!ss.Image.HasUserOrigin || !(ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").IsPointInsideSegment(ss.Image.UserOrigin)))
             {
-                MessageBox.Show("Did you forget to set the user origin? \nUser origin is NOT inside body contour! \nPlease fix and try again!");
+                //MessageBox.Show("Did you forget to set the user origin? \nUser origin is NOT inside body contour! \nPlease fix and try again!");
+                ProvideUIUpdate("Did you forget to set the user origin? \nUser origin is NOT inside body contour! \nPlease fix and try again!");
                 return true;
             }
             return false;
@@ -121,11 +112,11 @@ namespace VMATAutoPlanMT.baseClasses
                 }
             }
 
-            ProvideUIUpdate(0, "Removing remaining tuning structures");
+            ProvideUIUpdate(0, "Removing any remaining tuning structures");
             //4-15-2022 
             //remove ALL tuning structures from any previous runs (structure id starts with 'TS_'). Be sure to exclude any requested TS structures from the config file as we just added them!
             List<Structure> tsStructs = selectedSS.Structures.Where(x => x.Id.ToLower().Substring(0, 3) == "ts_").ToList();
-            //calcItems = tsStructs.Count;
+            calcItems = tsStructs.Count;
             counter = 0;
             foreach (Structure itr in tsStructs)
             {
@@ -146,11 +137,17 @@ namespace VMATAutoPlanMT.baseClasses
             int count = 0;
             foreach (Structure s in highRes)
             {
+                int counter = 0;
+                int calcItems = highRes.Count + 3;
+                string id = s.Id;
+                ProvideUIUpdate(String.Format("Converting: {0}", id));
                 //get the high res structure mesh geometry
                 MeshGeometry3D mesh = s.MeshGeometry;
                 //get the start and stop image planes for this structure
                 int startSlice = (int)((mesh.Bounds.Z - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes);
                 int stopSlice = (int)(((mesh.Bounds.Z + mesh.Bounds.SizeZ) - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes) + 1;
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Number of slices to contour: {0}", stopSlice - startSlice));
+
                 //create an Id for the low resolution struture that will be created. The name will be '_lowRes' appended to the current structure Id
                 string newName = s.Id + "_lowRes";
                 if (newName.Length > 16) newName = newName.Substring(0, 16);
@@ -162,12 +159,14 @@ namespace VMATAutoPlanMT.baseClasses
                     MessageBox.Show(String.Format("Error! Cannot add new structure: {0}!\nCorrect this issue and try again!", newName.Substring(0, 16)));
                     return new List<Tuple<string, string, double>> { };
                 }
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Added low-res structure: {0}", newName));
 
                 //foreach slice that contains contours, get the contours, and determine if you need to add or subtract the contours on the given image plane for the new low resolution structure. You need to subtract contours if the points lie INSIDE the current structure contour.
                 //We can sample three points (first, middle, and last points in array) to see if they are inside the current contour. If any of them are, subtract the set of contours from the image plane. Otherwise, add the contours to the image plane. NOTE: THIS LOGIC ASSUMES
                 //THAT YOU DO NOT OBTAIN THE CUTOUT CONTOUR POINTS BEFORE THE OUTER CONTOUR POINTS (it seems that ESAPI generally passes the main structure contours first before the cutout contours, but more testing is needed)
                 for (int slice = startSlice; slice < stopSlice; slice++)
                 {
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems));
                     VVector[][] points = s.GetContoursOnImagePlane(slice);
                     for (int i = 0; i < points.GetLength(0); i++)
                     {
@@ -177,6 +176,7 @@ namespace VMATAutoPlanMT.baseClasses
                     }
                 }
 
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Removing existing high-res structure from sparing list and replacing with low-res"));
                 //get the index of the high resolution structure in the structure sparing list and repace this entry with the newly created low resolution structure
                 int index = dataList.IndexOf(highResSpareList.ElementAt(count));
                 dataList.RemoveAt(index);
