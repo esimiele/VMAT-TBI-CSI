@@ -8,10 +8,12 @@
         Title="Progress" SizeToContent="WidthAndHeight" SizeChanged="Window_SizeChanged" WindowStartupLocation="CenterScreen">
     <Grid Background="DarkGray">
         <StackPanel>
+            <Grid HorizontalAlignment="Center">
+                <TextBlock x:Name="theLabel" FontWeight="Bold" Width="300" TextAlignment="Center" VerticalAlignment="Top" Height="18" HorizontalAlignment="Right" Margin="5"/>
+            </Grid>
             <Grid Width="340" Height="26" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,0,0,0">
-                <TextBlock x:Name="theLabel" FontWeight="Bold" TextAlignment="Center" Width="170" VerticalAlignment="Top" Height="18" HorizontalAlignment="Right" Margin="0,6,165,0"/>
-                <ProgressBar BorderThickness="1" BorderBrush="Black" HorizontalAlignment="Right" Height="20" Margin="0,5,10,0" VerticalAlignment="Top" Width="150" Minimum="0" Maximum="100" Foreground="LimeGreen" Name="progress"/>
-                <TextBlock Text="{Binding ElementName=progress, Path=Value, StringFormat={}{0:0}%}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,7,65,0" />
+                <ProgressBar BorderThickness="1" BorderBrush="Black" HorizontalAlignment="Center" Height="20" Margin="0,5,5,0" VerticalAlignment="Top" Width="300" Minimum="0" Maximum="100" Foreground="ForestGreen" Name="progress"/>
+                <TextBlock Text="{Binding ElementName=progress, Path=Value, StringFormat={}{0:0}%}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,7,5,0" />
             </Grid>
             <Expander VerticalAlignment="Bottom" Header="Details" Margin="5,5,0,2">
                 <Grid Height = "140" Width = "325" VerticalAlignment="Bottom" Margin="0,5,0,0">

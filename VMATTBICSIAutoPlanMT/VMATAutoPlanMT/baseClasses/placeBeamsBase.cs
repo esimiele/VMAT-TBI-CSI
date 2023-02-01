@@ -73,6 +73,7 @@ namespace VMATAutoPlanMT.baseClasses
             if (createPlans()) return null;
             //plan, isocenter positions, isocenter names, number of beams per isocenter
             List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> isoLocations = getIsocenterPositions();
+            UpdateUILabel("Assigning isocenters: ");
             int isoCount = 0;
             foreach(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> itr in isoLocations)
             {
@@ -138,7 +139,7 @@ namespace VMATAutoPlanMT.baseClasses
                 //MessageBox.Show(String.Format("The following plans already exist in course '{0}': {1}\nESAPI can't remove plans in the clinical environment! \nPlease manually remove this plan and try again.", theCourse, msg));
                 return true;
             }
-            else ProvideUIUpdate(100, String.Format("No plans currently exist in course {0} that !", courseId));
+            else ProvideUIUpdate(100, String.Format("No plans currently exist in course {0}!", courseId));
 
             return false;
         }
@@ -219,7 +220,7 @@ namespace VMATAutoPlanMT.baseClasses
                 else
                 {
                     thePlan.SetCalculationOption(calculationModel, "UseGPU", "No");
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Set GPU option for dose calc to {0}", "No"));
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Set GPU option for dose calculation to {0}", "No"));
                 }
 
 

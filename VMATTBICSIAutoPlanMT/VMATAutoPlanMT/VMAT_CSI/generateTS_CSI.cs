@@ -68,11 +68,14 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 if (preliminaryChecks()) return true;
                 if (UnionLRStructures()) return true;
                 if (spareStructList.Any()) if (CheckHighResolution()) return true;
-                if (RemoveOldTSStructures(TS_structures)) return true;
-                if (createTargetStructures()) return true;
+                //remove all only ts structures NOT including targets
+                if (RemoveOldTSStructures(TS_structures.Where(x => !x.Item2.ToLower().Contains("ctv") && !x.Item2.ToLower().Contains("ptv")).ToList())) return true;
+                if (CheckForTargetStructures()) return true;
+                //if (createTargetStructures()) return true;
                 if (createTSStructures()) return true;
                 if (performTSStructureManipulation()) return true;
                 if (calculateNumIsos()) return true;
+                UpdateUILabel("Finished!");
                 ProvideUIUpdate(100, "Finished Structure Tuning!");
             }
             catch(Exception e) { ProvideUIUpdate(String.Format("{0}", e.Message)); return true; }
@@ -166,7 +169,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
         public bool calculateNumIsos()
         {
-            UpdateUILabel("Num Isos");
+            UpdateUILabel("Calculating Number of Isocenters:");
             ProvideUIUpdate("Calculating number of isocenters");
             //For these cases the maximum number of allowed isocenters is 3. One isocenter is reserved for the brain and either one or two isocenters are used for the spine (depending on length).
             //revised to get the number of unique plans list, for each unique plan, find the target with the greatest z-extent and determine the number of isocenters based off that target. 
@@ -245,17 +248,45 @@ namespace VMATAutoPlanMT.VMAT_CSI
             return false;
         }
 
-        public bool createTargetStructures()
+        private bool CheckForTargetStructures()
         {
-            UpdateUILabel("Create Target Structures: ");
-            ProvideUIUpdate(0, "Creating target structures!");
-            //create the CTV and PTV structures
-            //if these structures were present, they should have been removed (regardless if they were contoured or not). 
-            List<Structure> addedTargets = new List<Structure> { };
+            UpdateUILabel("Checking For Missing Target Structures: ");
+            ProvideUIUpdate(0, "Checking for missing target structures!");
             List<Tuple<string, string>> prospectiveTargets = TS_structures.Where(x => x.Item2.ToLower().Contains("ctv") || x.Item2.ToLower().Contains("ptv")).OrderBy(x => x.Item2).ToList();
+            List<Tuple<string, string>> missingTargets = new List<Tuple<string, string>> { };
             int calcItems = prospectiveTargets.Count;
             int counter = 0;
             foreach (Tuple<string, string> itr in prospectiveTargets)
+            {
+                Structure tmp = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.Item2.ToLower());
+                if(tmp == null || tmp.IsEmpty)
+                {
+                    ProvideUIUpdate(String.Format("Target: {0} is missing or empty", itr.Item2));
+                    missingTargets.Add(itr);
+                }
+                ProvideUIUpdate((int)(100 * ++counter / calcItems));
+            }
+            if (missingTargets.Any())
+            {
+                ProvideUIUpdate(String.Format("Targets missing from the structure set! Creating them now!"));
+                if (createTargetStructures(missingTargets)) return true;
+            }
+            ProvideUIUpdate(String.Format("All requested targets are present and contoured! Skipping target creation!"));
+            return false;
+        }
+
+        public bool createTargetStructures(List<Tuple<string, string>> missingTargets)
+        {
+            UpdateUILabel("Create Missing Target Structures: ");
+            ProvideUIUpdate(0, "Creating missing target structures!");
+            //create the CTV and PTV structures
+            //if these structures were present, they should have been removed (regardless if they were contoured or not). 
+            List<Structure> addedTargets = new List<Structure> { };
+            //List<Tuple<string, string>> prospectiveTargets = TS_structures.Where(x => x.Item2.ToLower().Contains("ctv") || x.Item2.ToLower().Contains("ptv")).OrderBy(x => x.Item2).ToList();
+            //int calcItems = prospectiveTargets.Count;
+            int calcItems = missingTargets.Count;
+            int counter = 0;
+            foreach (Tuple<string, string> itr in missingTargets)
             {
                 if (selectedSS.CanAddStructure(itr.Item1, itr.Item2))
                 {
@@ -329,19 +360,23 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 }
             }
 
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Generating: PTV_CSI"));
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieving: PTV_CSI, PTV_Brain, and PTV_Spine"));
-            //used to create the ptv_csi structures
-            Structure combinedTarget = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_csi");
-            Structure brainTarget = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_brain"));
-            Structure spineTarget = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_spine"));
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Unioning PTV_Brain and PTV_Spine to make PTV_CSI"));
-            combinedTarget.SegmentVolume = brainTarget.Margin(0.0);
-            combinedTarget.SegmentVolume = combinedTarget.Or(spineTarget.Margin(0.0));
+            if(addedStructures.FirstOrDefault(x => x.ToLower() == "ptv_csi") != null)
+            {
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Generating: PTV_CSI"));
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieving: PTV_CSI, PTV_Brain, and PTV_Spine"));
+                //used to create the ptv_csi structures
+                Structure combinedTarget = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_csi");
+                Structure brainTarget = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_brain"));
+                Structure spineTarget = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_spine"));
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Unioning PTV_Brain and PTV_Spine to make PTV_CSI"));
+                combinedTarget.SegmentVolume = brainTarget.Margin(0.0);
+                combinedTarget.SegmentVolume = combinedTarget.Or(spineTarget.Margin(0.0));
 
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Cropping PTV_CSI from body with 5 mm inner margin"));
-            //1/3/2022, crop PTV structure from body by 5mm
-            cropStructureFromBody(combinedTarget, -0.5);
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Cropping PTV_CSI from body with 5 mm inner margin"));
+                //1/3/2022, crop PTV structure from body by 5mm
+                cropStructureFromBody(combinedTarget, -0.5);
+            }
+            else ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("PTV_CSI already exists in the structure set! Skipping!"));
             ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Targets added and contoured!"));
             return false;
         }

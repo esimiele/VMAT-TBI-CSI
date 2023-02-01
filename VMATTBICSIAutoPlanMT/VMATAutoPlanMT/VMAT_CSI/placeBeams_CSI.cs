@@ -82,7 +82,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 int numIsos = planIsoBeamInfo.FirstOrDefault(x => x.Item1 == itr.Id).Item2.Count;
                 int counter = 0;
                 int calcItems = numIsos;
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Calculated number of isos for (from target extent): {0}", pid));
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Num isos for plan (from generateTS): {0}", pid));
 
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved all prescriptions for this plan"));
                 //grab the target in this plan with the greatest z-extent (plans can now have multiple targets assigned)
@@ -117,21 +117,21 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     ProvideUIUpdate(String.Format("Calculating anterior extent of PTV_Spine"));
                     //Place field isocenters in y-direction at 2/3 the max 
                     spineYMin = (ptvSpine.MeshGeometry.Positions.Min(p => p.Y) * 0.8);
-                    ProvideUIUpdate(String.Format("Anterior extent of PTV_Spine: {0} mm", spineYMin));
+                    ProvideUIUpdate(String.Format("Anterior extent of PTV_Spine: {0:0.0} mm", spineYMin));
 
                     ProvideUIUpdate(String.Format("Calculating max and min extent of PTV_Spine"));
                     spineZMax = ptvSpine.MeshGeometry.Positions.Max(p => p.Z);
                     spineZMin = ptvSpine.MeshGeometry.Positions.Min(p => p.Z);
-                    ProvideUIUpdate(String.Format("Max extent of PTV_Spine: {0} mm", spineZMax));
-                    ProvideUIUpdate(String.Format("Min extent of PTV_Spine: {0} mm", spineZMin));
+                    ProvideUIUpdate(String.Format("Superior extent of PTV_Spine: {0:0.0} mm", spineZMax));
+                    ProvideUIUpdate(String.Format("Inferior extent of PTV_Spine: {0:0.0} mm", spineZMin));
 
                     ProvideUIUpdate(String.Format("Calculating center of PTV_Brain"));
                     brainZCenter = ptvBrain.CenterPoint.z;
-                    ProvideUIUpdate(String.Format("Center of PTV_Brain: {0} mm", brainZCenter));
+                    ProvideUIUpdate(String.Format("Center of PTV_Brain: {0:0.0} mm", brainZCenter));
 
-                    ProvideUIUpdate(String.Format("Calculating center of PTV_Brain to min extent of PTV_Spine"));
+                    ProvideUIUpdate(String.Format("Calculating center of PTV_Brain to inf extent of PTV_Spine"));
                     targetExtent = brainZCenter - spineZMin;
-                    ProvideUIUpdate(String.Format("Extent: {0} mm", targetExtent));
+                    ProvideUIUpdate(String.Format("Extent: {0:0.0} mm", targetExtent));
                 }
 
                 //All VMAT portions of the plans will ONLY have 3 isocenters
@@ -157,7 +157,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 
                 for (int i = 0; i < numIsos; i++)
                 {
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Determining isocenter position: {0}", numIsos));
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Determining position for isocenter: {0}", i));
                     VVector v = new VVector();
                     v.x = userOrigin.x;
                     if (longestTargetInPlan.Id.ToLower() == "ptv_csi")
@@ -189,7 +189,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     v.z = Math.Round(v.z / 10.0f) * 10.0f;
                     ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Calculated isocenter position (user coordinates): ({0}, {1}, {2})", v.x, v.y, v.z));
                     v = itr.StructureSet.Image.UserToDicom(v, itr);
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Calculated isocenter position (user coordinates): ({0}, {1}, {2})", v.x, v.y, v.z));
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Adding calculated isocenter position to stack!"));
                     tmp.Add(new Tuple<VVector, string, int>(v, planIsoBeamInfo.FirstOrDefault(x => x.Item1 == itr.Id).Item2.ElementAt(i).Item1, planIsoBeamInfo.FirstOrDefault(x => x.Item1 == itr.Id).Item2.ElementAt(i).Item2));
                 }
 
@@ -312,6 +312,8 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
         public override bool setBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
         {
+            string pid = iso.Item1.Id;
+            ProvideUIUpdate(0, String.Format("Assigning isocenters for plan: {0}", pid));
             //DRR parameters (dummy parameters to generate DRRs for each field)
             DRRCalculationParameters DRR = new DRRCalculationParameters();
             DRR.DRRSize = 500.0;
