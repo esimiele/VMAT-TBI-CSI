@@ -69,7 +69,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
         public override List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> getIsocenterPositions()
         {
-            UpdateUILabel("Isocenter positions: ");
+            UpdateUILabel("Calculating isocenter positions: ");
             ProvideUIUpdate(0, String.Format("Extracting isocenter positions for all plans"));
             List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> allIsocenters = new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
             Image image = selectedSS.Image;
@@ -78,19 +78,20 @@ namespace VMATAutoPlanMT.VMAT_CSI
             foreach (ExternalPlanSetup itr in plans)
             {
                 string pid = itr.Id;
-                ProvideUIUpdate(String.Format("Retrieving isocenters for plan: {0}", pid));
+                ProvideUIUpdate(String.Format("Retrieving number of isocenters for plan: {0}", pid));
                 int numIsos = planIsoBeamInfo.FirstOrDefault(x => x.Item1 == itr.Id).Item2.Count;
                 int counter = 0;
                 int calcItems = numIsos;
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Num isos for plan (from generateTS): {0}", pid));
 
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved all prescriptions for this plan"));
+                ProvideUIUpdate(String.Format("Retrieving prescriptions for plan: {0}", pid));
                 //grab the target in this plan with the greatest z-extent (plans can now have multiple targets assigned)
                 List<Tuple<string, string, int, DoseValue, double>> tmpList = prescriptions.Where(x => x.Item1 == itr.Id).ToList();
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved Presciptions"));
+
+                ProvideUIUpdate(String.Format("Determining target with greatest extent"));
                 double targetExtent = 0.0;
                 Structure longestTargetInPlan = null;
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Determining target with largest extent for {0}", pid));
-
                 foreach (Tuple<string, string, int, DoseValue, double> itr1 in tmpList)
                 {
                     Structure tmpTargStruct = selectedSS.Structures.FirstOrDefault(x => x.Id == itr1.Item2);
@@ -100,7 +101,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 }
                 if (longestTargetInPlan == null) return new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
                 string longestTgtId = longestTargetInPlan.Id;
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Longest target in {0}: {1}", pid, longestTgtId));
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Longest target in plan {0}: {1}", pid, longestTgtId));
 
                 List<Tuple<VVector, string, int>> tmp = new List<Tuple<VVector, string, int>> { };
                 double spineYMin = 0.0;
@@ -109,29 +110,30 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 double brainZCenter = 0.0;
                 if (longestTargetInPlan.Id.ToLower() == "ptv_csi")
                 {
-                    ProvideUIUpdate(String.Format("Retrieving PTV_Spine Structure"));
+                    calcItems += 7;
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieving PTV_Spine Structure"));
                     Structure ptvSpine = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_spine");
-                    ProvideUIUpdate(String.Format("Retrieving PTV_Brain Structure"));
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieving PTV_Brain Structure"));
                     Structure ptvBrain = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_brain");
 
                     ProvideUIUpdate(String.Format("Calculating anterior extent of PTV_Spine"));
                     //Place field isocenters in y-direction at 2/3 the max 
                     spineYMin = (ptvSpine.MeshGeometry.Positions.Min(p => p.Y) * 0.8);
-                    ProvideUIUpdate(String.Format("Anterior extent of PTV_Spine: {0:0.0} mm", spineYMin));
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Anterior extent of PTV_Spine: {0:0.0} mm", spineYMin));
 
                     ProvideUIUpdate(String.Format("Calculating max and min extent of PTV_Spine"));
                     spineZMax = ptvSpine.MeshGeometry.Positions.Max(p => p.Z);
                     spineZMin = ptvSpine.MeshGeometry.Positions.Min(p => p.Z);
-                    ProvideUIUpdate(String.Format("Superior extent of PTV_Spine: {0:0.0} mm", spineZMax));
-                    ProvideUIUpdate(String.Format("Inferior extent of PTV_Spine: {0:0.0} mm", spineZMin));
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Superior extent of PTV_Spine: {0:0.0} mm", spineZMax));
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Inferior extent of PTV_Spine: {0:0.0} mm", spineZMin));
 
                     ProvideUIUpdate(String.Format("Calculating center of PTV_Brain"));
                     brainZCenter = ptvBrain.CenterPoint.z;
-                    ProvideUIUpdate(String.Format("Center of PTV_Brain: {0:0.0} mm", brainZCenter));
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Center of PTV_Brain: {0:0.0} mm", brainZCenter));
 
                     ProvideUIUpdate(String.Format("Calculating center of PTV_Brain to inf extent of PTV_Spine"));
                     targetExtent = brainZCenter - spineZMin;
-                    ProvideUIUpdate(String.Format("Extent: {0:0.0} mm", targetExtent));
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Extent: {0:0.0} mm", targetExtent));
                 }
 
                 //All VMAT portions of the plans will ONLY have 3 isocenters
@@ -157,7 +159,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 
                 for (int i = 0; i < numIsos; i++)
                 {
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Determining position for isocenter: {0}", i));
+                    ProvideUIUpdate(String.Format("Determining position for isocenter: {0}", i));
                     VVector v = new VVector();
                     v.x = userOrigin.x;
                     if (longestTargetInPlan.Id.ToLower() == "ptv_csi")
@@ -180,7 +182,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                         //assumes one isocenter if the target is not ptv_csi
                         v.z = longestTargetInPlan.CenterPoint.z;
                     }
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Calculated isocenter position: ({0}, {1}, {2})", v.x, v.y, v.z));
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Calculated isocenter position"));
                     
                     ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Rounding Y- and Z-positions to nearest integer"));
                     //round z position to the nearest integer

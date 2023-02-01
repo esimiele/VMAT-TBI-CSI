@@ -55,6 +55,20 @@ namespace VMATAutoPlanMT
             flashMargin = fM;
         }
 
+        public override bool Run()
+        {
+            try 
+            { 
+                isoNames.Clear();
+                //if (preliminaryChecks(selectedSS, )) return true;
+                if (createTSStructures()) return true;
+                if (useFlash) if (createFlash()) return true;
+                MessageBox.Show("Structures generated successfully!\nPlease proceed to the beam placement tab!");
+            }
+            catch(Exception e) { ProvideUIUpdate(String.Format("{0}", e.Message)); return true; }
+            return false;
+        }
+
         public override bool preliminaryChecks()
         {
             //check if user origin was set

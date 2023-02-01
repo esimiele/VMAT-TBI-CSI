@@ -8,8 +8,6 @@ using System.Windows.Media.Media3D;
 using VMATAutoPlanMT.baseClasses;
 using VMATAutoPlanMT.helpers;
 using VMATAutoPlanMT.Prompts;
-using VMATAutoPlanMT.MTProgressInfo;
-using System.Windows.Threading;
 using System.Runtime.ExceptionServices;
 
 namespace VMATAutoPlanMT.VMAT_CSI
@@ -35,27 +33,6 @@ namespace VMATAutoPlanMT.VMAT_CSI
             targets = new List<Tuple<string, double, string>>(targs);
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(presc);
             selectedSS = ss;
-        }
-
-        public override bool generateStructures()
-        {
-            ESAPIworker.dataContainer d = new ESAPIworker.dataContainer();
-            d.construct(TS_structures, spareStructList, targets, prescriptions, selectedSS);
-            ESAPIworker slave = new ESAPIworker(d);
-            //create a new frame (multithreading jargon)
-            DispatcherFrame frame = new DispatcherFrame();
-            slave.RunOnNewThread(() =>
-            {
-                //pass the progress window the newly created thread and this instance of the optimizationLoop class.
-                MTProgress pw = new MTProgress();
-                pw.setCallerClass(slave, this);
-                pw.ShowDialog();
-
-                //tell the code to hold until the progress window closes.
-                frame.Continue = false;
-            });
-            Dispatcher.PushFrame(frame);
-            return false;
         }
 
         //to handle system access exception violation
@@ -97,6 +74,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 MessageBox.Show("Missing brain and/or spine structures! Please add and try again!");
                 return true;
             }
+
             ProvideUIUpdate((int)(100 * ++counter / calcItems), "Brain and spinal cord structures exist");
             ProvideUIUpdate(100, "Preliminary checks complete!");
             return false;
@@ -213,10 +191,10 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 {
                     //special rules for initial plan, which should have a target named PTV_CSI
                     //determine the number of isocenters required to treat PTV_Spine
-                    Structure spineTarget = selectedSS.Structures.FirstOrDefault(x => x.Id == "PTV_Spine");
+                    Structure spineTarget = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_spine");
                     if (spineTarget == null || spineTarget.IsEmpty)
                     {
-                        MessageBox.Show(String.Format("Error! No structure named: PTV_Spine found or contoured!"));
+                        MessageBox.Show(String.Format("Error! No structure named PTV_Spine was found or it was empty!"));
                         return true;
                     }
                     Point3DCollection pts = spineTarget.MeshGeometry.Positions;
@@ -630,23 +608,23 @@ namespace VMATAutoPlanMT.VMAT_CSI
             ProvideUIUpdate(String.Format("Retrieved list of TS manipulations"));
             //there are items in the sparing list requiring structure manipulation
             List<Tuple<string, string, double>> tmpSpareLst = spareStructList.Where(x => x.Item2.Contains("Crop target from structure") || x.Item2.Contains("Contour")).ToList();
-            if (tmpSpareLst.Any())
+            int counter = 0;
+            int calcItems = tmpSpareLst.Count * targets.Count;
+            foreach (Tuple<string, double, string> itr in targets)
             {
-                int counter = 0;
-                int calcItems = tmpSpareLst.Count * targets.Count;
-                foreach (Tuple<string, double, string> itr in targets)
+                //create a new TS target for optimization and copy the original target structure onto the new TS structure
+                string newName = String.Format("TS_{0}", itr.Item1);
+                if (newName.Length > 16) newName = newName.Substring(0, 16);
+                ProvideUIUpdate(String.Format("Retrieving TS target: {0}", newName));
+                Structure addedTSTarget = selectedSS.Structures.FirstOrDefault(x => x.Id == newName);
+                if (addedTSTarget == null)
                 {
-                    //create a new TS target for optimization and copy the original target structure onto the new TS structure
-                    string newName = String.Format("TS_{0}", itr.Item1);
-                    if (newName.Length > 16) newName = newName.Substring(0, 16);
-                    ProvideUIUpdate(String.Format("Retrieving TS target: {0}", newName));
-                    Structure addedTSTarget = selectedSS.Structures.FirstOrDefault(x => x.Id == newName);
-                    if (addedTSTarget == null)
-                    {
-                        ProvideUIUpdate(String.Format("TS target {0} does not exist. Creating it now!", newName));
-                        addedTSTarget = AddTSStructures(new Tuple<string, string>("CONTROL", newName));
-                        addedTSTarget.SegmentVolume = selectedSS.Structures.FirstOrDefault(x => x.Id == itr.Item1).Margin(0.0);
-                    }
+                    ProvideUIUpdate(String.Format("TS target {0} does not exist. Creating it now!", newName));
+                    addedTSTarget = AddTSStructures(new Tuple<string, string>("CONTROL", newName));
+                    addedTSTarget.SegmentVolume = selectedSS.Structures.FirstOrDefault(x => x.Id == itr.Item1).Margin(0.0);
+                }
+                if (tmpSpareLst.Any())
+                {
                     foreach (Tuple<string, string, double> itr1 in spareStructList)
                     {
                         //MessageBox.Show(String.Format("manipulate TS: {0}", itr1.Item1));
@@ -655,15 +633,15 @@ namespace VMATAutoPlanMT.VMAT_CSI
                         {
                             if(itr1.Item2.Contains("Body"))
                             {
-                            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Cropping {0} from Body with margin {1} cm", itr1.Item1, itr1.Item3));
-                            //crop from body
-                            cropStructureFromBody(theStructure, itr1.Item3);
+                                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Cropping {0} from Body with margin {1} cm", itr1.Item1, itr1.Item3));
+                                //crop from body
+                                cropStructureFromBody(theStructure, itr1.Item3);
                             }
                             else
                             {
-                            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Cropping {0} from target {1} with margin {2} cm", itr1.Item1, newName, itr1.Item3));
-                            //crop target from structure
-                            cropTargetFromStructure(addedTSTarget, theStructure, itr1.Item3);
+                                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Cropping {0} from target {1} with margin {2} cm", itr1.Item1, newName, itr1.Item3));
+                                //crop target from structure
+                                cropTargetFromStructure(addedTSTarget, theStructure, itr1.Item3);
                             }
                         }
                         else if(itr1.Item2.Contains("Contour"))
@@ -689,9 +667,8 @@ namespace VMATAutoPlanMT.VMAT_CSI
                         }
                     }
                 }
+                else ProvideUIUpdate(String.Format("No TS manipulations requested!"));
             }
-            else ProvideUIUpdate(String.Format("No TS manipulations requested!"));
-
             return false;
         }
     }

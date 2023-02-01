@@ -311,7 +311,7 @@
                                 <ScrollViewer x:Name="optParamScroller" Height="357" Width="585" Margin="0,10,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                     <StackPanel Name="opt_parameters" Margin="5"></StackPanel>
                                 </ScrollViewer>
-                                <Button Content="Set Optimization Constraints" FontWeight="Bold" Width="170" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,10,0,0" Click="AssignOptimizationConstraints_Click"></Button>
+                                <Button Content="Set Optimization Constraints" FontWeight="Bold" Width="190" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,10,0,0" Click="AssignOptimizationConstraints_Click"></Button>
                             </StackPanel>
                         </Border>
                     </TabItem>

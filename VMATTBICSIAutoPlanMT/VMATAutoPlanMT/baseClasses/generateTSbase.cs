@@ -5,7 +5,8 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Forms;
 using System.Windows.Media.Media3D;
-
+using VMATAutoPlanMT.MTProgressInfo;
+using System.Windows.Threading;
 
 namespace VMATAutoPlanMT.baseClasses
 {
@@ -31,11 +32,20 @@ namespace VMATAutoPlanMT.baseClasses
 
         public virtual bool generateStructures()
         {
-            isoNames.Clear();
-            //if (preliminaryChecks(selectedSS, )) return true;
-            if (createTSStructures()) return true;
-            if (useFlash) if (createFlash()) return true;
-            MessageBox.Show("Structures generated successfully!\nPlease proceed to the beam placement tab!");
+            ESAPIworker slave = new ESAPIworker();
+            //create a new frame (multithreading jargon)
+            DispatcherFrame frame = new DispatcherFrame();
+            slave.RunOnNewThread(() =>
+            {
+                //pass the progress window the newly created thread and this instance of the optimizationLoop class.
+                MTProgress pw = new MTProgress();
+                pw.setCallerClass(slave, this);
+                pw.ShowDialog();
+
+                //tell the code to hold until the progress window closes.
+                frame.Continue = false;
+            });
+            Dispatcher.PushFrame(frame);
             return false;
         }
 
@@ -115,7 +125,7 @@ namespace VMATAutoPlanMT.baseClasses
             ProvideUIUpdate(0, "Removing any remaining tuning structures");
             //4-15-2022 
             //remove ALL tuning structures from any previous runs (structure id starts with 'TS_'). Be sure to exclude any requested TS structures from the config file as we just added them!
-            List<Structure> tsStructs = selectedSS.Structures.Where(x => x.Id.ToLower().Substring(0, 3) == "ts_").ToList();
+            List<Structure> tsStructs = selectedSS.Structures.Where(x => x.Id.Length > 2 && x.Id.ToLower().Substring(0, 3) == "ts_").ToList();
             calcItems = tsStructs.Count;
             counter = 0;
             foreach (Structure itr in tsStructs)

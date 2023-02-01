@@ -48,9 +48,7 @@ namespace VMATAutoPlanMT.baseClasses
 
         public virtual bool Execute()
         {
-            ESAPIworker.dataContainer d = new ESAPIworker.dataContainer();
-            d.construct();
-            ESAPIworker slave = new ESAPIworker(d);
+            ESAPIworker slave = new ESAPIworker();
             //create a new frame (multithreading jargon)
             DispatcherFrame frame = new DispatcherFrame();
             slave.RunOnNewThread(() =>
@@ -109,14 +107,14 @@ namespace VMATAutoPlanMT.baseClasses
                 ProvideUIUpdate(0, String.Format("Course creation or assignment failed! Exiting!"));
                 return true;
             }
-            ProvideUIUpdate(String.Format("Course {0} retrieved!", courseId));
+            ProvideUIUpdate(100, String.Format("Course {0} retrieved!", courseId));
             if (checkExistingPlans()) return true;
             return false;
         }
 
         public virtual bool checkExistingPlans()
         {
-            UpdateUILabel("Check for existing plans: ");
+            UpdateUILabel("Checking for existing plans: ");
             //string msg = "";
             int numExistingPlans = 0;
             int calcItems = prescriptions.Count;
@@ -163,7 +161,6 @@ namespace VMATAutoPlanMT.baseClasses
         private bool createPlans()
         {
             UpdateUILabel("Creating plans: ");
-            
             foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
             {
                 int calcItems = 9 * prescriptions.Count;

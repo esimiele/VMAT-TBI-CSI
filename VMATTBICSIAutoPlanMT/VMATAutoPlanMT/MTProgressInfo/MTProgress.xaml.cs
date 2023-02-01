@@ -23,15 +23,10 @@ using System.Reflection;
 
 namespace VMATAutoPlanMT.MTProgressInfo
 {
-    /// <summary>
-    /// Interaction logic for generateTSProgress.xaml
-    /// </summary>
-    /// 
     public partial class MTProgress : Window
     {
         ESAPIworker slave;
         MTbase callerClass;
-        //generateTSbase ts;
         public List<string> addedStructures = new List<string> { };
 
         public MTProgress()
@@ -50,7 +45,7 @@ namespace VMATAutoPlanMT.MTProgressInfo
 
         public void doStuff()
         {
-            slave.DoWork(d =>
+            slave.DoWork(() =>
             {
                 //get instance of current dispatcher (double check the use of this dispatcher vs the dispatcher held in ESAPIworker...)
                 Dispatcher dispatch = Dispatcher;
