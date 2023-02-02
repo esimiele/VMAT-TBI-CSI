@@ -30,7 +30,7 @@
     <PlatformTarget>x64</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
+    <OutputPath>..\..\bin\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -122,17 +122,17 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="autoRunData.cs" />
-    <Compile Include="AutorunProgress.xaml.cs">
-      <DependentUpon>AutorunProgress.xaml</DependentUpon>
-    </Compile>
+    <Compile Include="baseClasses\MTBase.cs" />
     <Compile Include="baseClasses\generateTSbase.cs" />
     <Compile Include="baseClasses\planPrepBase.cs" />
-    <Compile Include="ESAPIworker.cs" />
     <Compile Include="helpers\BeamPlacementUIHelper.cs" />
     <Compile Include="helpers\CTImageExport.cs" />
     <Compile Include="helpers\ExportCTUIHelper.cs" />
     <Compile Include="helpers\OptimizationSetupUIHelper.cs" />
+    <Compile Include="MTProgressInfo\ESAPIworker.cs" />
+    <Compile Include="MTProgressInfo\MTProgress.xaml.cs">
+      <DependentUpon>MTProgress.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Prompts\SaveDialog.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -145,11 +145,11 @@
     <Compile Include="Prompts\selectItem.Designer.cs">
       <DependentUpon>selectItem.cs</DependentUpon>
     </Compile>
-    <Page Include="AutorunProgress.xaml">
+    <Page Include="helpers\Window1.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="helpers\Window1.xaml">
+    <Page Include="MTProgressInfo\MTProgress.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

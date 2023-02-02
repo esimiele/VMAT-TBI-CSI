@@ -127,7 +127,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Background" Value="LightGreen"/>
+                                <Setter Property="Background" Value="LightGray"/>
                                 <Setter Property="Foreground" Value="Black"/>
                                 <Setter Property="TextElement.FontWeight" TargetName="ContentSite" Value="Bold"/>
                             </Trigger>
@@ -222,7 +222,7 @@
                             </StackPanel>
                         </Border>
                     </TabItem>
-                    <TabItem Header="Set Targets" BorderThickness="0,1,1,0">
+                    <TabItem Header="Set Targets" BorderThickness="0,1,1,0" x:Name="targetsTabItem">
                         <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                             <StackPanel HorizontalAlignment="Center" Margin="0">
                                 <Label Content="Specify Targets" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"/>
@@ -240,7 +240,7 @@
                             </StackPanel>
                         </Border>
                     </TabItem>
-                    <TabItem Header="Structure Tuning" BorderThickness="0,1,1,0">
+                    <TabItem Header="Structure Tuning" BorderThickness="0,1,1,0" x:Name="structureTuningTabItem">
                         <TabControl Background="DarkGray">
                             <TabItem Header="Tuning Structure Generation" Width="294" BorderThickness="1,1,1,0">
                                 <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
@@ -261,7 +261,7 @@
                                     </StackPanel>
                                 </Border>
                             </TabItem>
-                            <TabItem Header="Tuning Structure Manipulation" Width="294" BorderThickness="0,1,1,0">
+                            <TabItem Header="Tuning Structure Manipulation" Width="294" BorderThickness="0,1,1,0" x:Name="TSManipulationTabItem">
                                 <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                                     <StackPanel HorizontalAlignment="Center" Margin="0">
                                         <Label Content="Structure Manipulation" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
@@ -282,7 +282,7 @@
                         </TabControl>
                         
                     </TabItem>
-                    <TabItem Header="Beam Placement" BorderThickness="0,1,1,0">
+                    <TabItem Header="Beam Placement" BorderThickness="0,1,1,0" x:Name="beamPlacementTabItem">
                         <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                             <StackPanel  Name="BEAMS_HEADER" HorizontalAlignment="Center" Margin="0">
                                 <Grid>
@@ -299,7 +299,7 @@
                             </StackPanel>
                         </Border>
                     </TabItem>
-                    <TabItem Header="Optimization Setup" BorderThickness="0,1,1,0">
+                    <TabItem Header="Optimization Setup" BorderThickness="0,1,1,0" x:Name="optimizationSetupTabItem">
                         <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                             <StackPanel Name="OPT" HorizontalAlignment="Center" Margin="0">
                                 <Label Content="Optimization Parameters" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"></Label>
@@ -311,11 +311,11 @@
                                 <ScrollViewer x:Name="optParamScroller" Height="357" Width="585" Margin="0,10,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                     <StackPanel Name="opt_parameters" Margin="5"></StackPanel>
                                 </ScrollViewer>
-                                <Button Content="Set Optimization Constraints" FontWeight="Bold" Width="170" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,10,0,0" Click="AssignOptimizationConstraints_Click"></Button>
+                                <Button Content="Set Optimization Constraints" FontWeight="Bold" Width="190" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,10,0,0" Click="AssignOptimizationConstraints_Click"></Button>
                             </StackPanel>
                         </Border>
                     </TabItem>
-                    <TabItem Header="Plan Preparation" BorderThickness="0,1,1,1">
+                    <TabItem Header="Plan Preparation" BorderThickness="0,1,1,1" x:Name="planPreparationTabItem">
                         <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                             <StackPanel Name="PREP">
                                 <Grid Height="40" Width ="400" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,10,0,0">

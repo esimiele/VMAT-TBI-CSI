@@ -612,7 +612,7 @@ namespace VMATAutoPlanMT
             if (!useFlash) generate = new generateTS_TBI(TS_structures, scleroStructures, structureSpareList, selectedSS, targetMargin, sclero_chkbox.IsChecked.Value);
             else generate = new generateTS_TBI(TS_structures, scleroStructures, structureSpareList, selectedSS, targetMargin, sclero_chkbox.IsChecked.Value, useFlash, flashStructure, flashMargin);
             pi.BeginModifications();
-            if (generate.generateStructures()) return;
+            if (generate.Execute()) return;
             //does the structure sparing list need to be updated? This occurs when structures the user elected to spare with option of 'Mean Dose < Rx Dose' are high resolution. Since Eclipse can't perform
             //boolean operations on structures of two different resolutions, code was added to the generateTS class to automatically convert these structures to low resolution with the name of
             // '<original structure Id>_lowRes'. When these structures are converted to low resolution, the updateSparingList flag in the generateTS class is set to true to tell this class that the 
@@ -780,7 +780,10 @@ namespace VMATAutoPlanMT
             }
             else place = new placeBeams_TBI(selectedSS, isoNames, numIsos, numVMATIsos, singleAPPAplan, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, useFlash);
 
-            VMATplan = place.generatePlans("VMAT TBI", new List<Tuple<string, string, int, DoseValue, double>> { Tuple.Create("VMAT TBI", "", prescription.Item1, prescription.Item2, 0.0)}).First();
+            place.Initialize("VMAT TBI", new List<Tuple<string, string, int, DoseValue, double>> { Tuple.Create("VMAT TBI", "", prescription.Item1, prescription.Item2, 0.0) });
+            place.Execute();
+            VMATplan = place.plans.First();
+            //VMATplan = place.generatePlans("VMAT TBI", new List<Tuple<string, string, int, DoseValue, double>> { Tuple.Create("VMAT TBI", "", prescription.Item1, prescription.Item2, 0.0)}).First();
             if (VMATplan == null) return;
 
             //if the user elected to contour the overlap between fields in adjacent isocenters, get this list of structures from the placeBeams class and copy them to the jnxs vector
@@ -1507,48 +1510,48 @@ namespace VMATAutoPlanMT
             }
         }
 
-        private void autorun_Click(object sender, RoutedEventArgs e)
-        {
-            if (string.IsNullOrEmpty(Rx.Text)) { MessageBox.Show("Error! Please select a template regimen or enter the dose per fx and number of fx!"); return; }
+        //private void autorun_Click(object sender, RoutedEventArgs e)
+        //{
+        //    if (string.IsNullOrEmpty(Rx.Text)) { MessageBox.Show("Error! Please select a template regimen or enter the dose per fx and number of fx!"); return; }
 
-            //copy the sparing structures in the defaultSpareStruct list to a temporary vector
-            List<Tuple<string, string, double>> templateList = new List<Tuple<string, string, double>>(defaultSpareStruct);
-            //add the case-specific sparing structures to the temporary list
-            if (nonmyelo_chkbox.IsChecked.Value) templateList = new List<Tuple<string, string, double>>(addCaseSpecificSpareStructures(nonmyeloSpareStruct, templateList));
-            else if (myelo_chkbox.IsChecked.Value) templateList = new List<Tuple<string, string, double>>(addCaseSpecificSpareStructures(myeloSpareStruct, templateList));
-            else if (sclero_chkbox.IsChecked.Value) templateList = new List<Tuple<string, string, double>>(addCaseSpecificSpareStructures(scleroSpareStruct, templateList));
+        //    //copy the sparing structures in the defaultSpareStruct list to a temporary vector
+        //    List<Tuple<string, string, double>> templateList = new List<Tuple<string, string, double>>(defaultSpareStruct);
+        //    //add the case-specific sparing structures to the temporary list
+        //    if (nonmyelo_chkbox.IsChecked.Value) templateList = new List<Tuple<string, string, double>>(addCaseSpecificSpareStructures(nonmyeloSpareStruct, templateList));
+        //    else if (myelo_chkbox.IsChecked.Value) templateList = new List<Tuple<string, string, double>>(addCaseSpecificSpareStructures(myeloSpareStruct, templateList));
+        //    else if (sclero_chkbox.IsChecked.Value) templateList = new List<Tuple<string, string, double>>(addCaseSpecificSpareStructures(scleroSpareStruct, templateList));
 
-            autoRunData a = new autoRunData();
-            a.construct(TS_structures, scleroStructures, templateList, selectedSS, double.Parse(defaultTargetMargin), sclero_chkbox.IsChecked.Value, useFlash, flashStructure, double.Parse(defaultFlashMargin), app);
-            //create a new thread and pass it the data structure created above (it will copy this information to its local thread memory)
-            ESAPIworker slave = new ESAPIworker(a);
-            //create a new frame (multithreading jargon)
-            DispatcherFrame frame = new DispatcherFrame();
-            //start the optimization
-            //open a new window to run on the newly created thread called "slave"
-            //for definition of the syntax used below, google "statement lambda c#"
-            RunOnNewThread(() =>
-            {
-                //pass the progress window the newly created thread and this instance of the optimizationLoop class.
-                AutorunProgress arpw = new AutorunProgress(slave);
-                arpw.ShowDialog();
+        //    autoRunData a = new autoRunData();
+        //    a.construct(TS_structures, scleroStructures, templateList, selectedSS, double.Parse(defaultTargetMargin), sclero_chkbox.IsChecked.Value, useFlash, flashStructure, double.Parse(defaultFlashMargin), app);
+        //    //create a new thread and pass it the data structure created above (it will copy this information to its local thread memory)
+        //    ESAPIworker slave = new ESAPIworker(a);
+        //    //create a new frame (multithreading jargon)
+        //    DispatcherFrame frame = new DispatcherFrame();
+        //    //start the optimization
+        //    //open a new window to run on the newly created thread called "slave"
+        //    //for definition of the syntax used below, google "statement lambda c#"
+        //    RunOnNewThread(() =>
+        //    {
+        //        //pass the progress window the newly created thread and this instance of the optimizationLoop class.
+        //        AutorunProgress arpw = new AutorunProgress(slave);
+        //        arpw.ShowDialog();
 
-                //tell the code to hold until the progress window closes.
-                frame.Continue = false;
-            });
+        //        //tell the code to hold until the progress window closes.
+        //        frame.Continue = false;
+        //    });
 
-            Dispatcher.PushFrame(frame);
-            //addDefaultsBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        }
+        //    Dispatcher.PushFrame(frame);
+        //    //addDefaultsBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        //}
 
-        //method to create the new thread, set the apartment state, set the new thread to be a background thread, and execute the action supplied to this method
-        private void RunOnNewThread(Action a)
-        {
-            Thread t = new Thread(() => a());
-            t.SetApartmentState(ApartmentState.STA);
-            t.IsBackground = true;
-            t.Start();
-        }
+        ////method to create the new thread, set the apartment state, set the new thread to be a background thread, and execute the action supplied to this method
+        //private void RunOnNewThread(Action a)
+        //{
+        //    Thread t = new Thread(() => a());
+        //    t.SetApartmentState(ApartmentState.STA);
+        //    t.IsBackground = true;
+        //    t.Start();
+        //}
 
         private void MainWindow_SizeChanged(object sender, RoutedEventArgs e)
         {

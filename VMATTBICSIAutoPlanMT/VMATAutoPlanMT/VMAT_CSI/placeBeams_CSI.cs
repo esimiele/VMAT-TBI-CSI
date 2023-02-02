@@ -7,6 +7,9 @@ using VMS.TPS.Common.Model.Types;
 using System.Windows.Media.Media3D;
 using VMATAutoPlanMT.baseClasses;
 using VMATAutoPlanMT.Prompts;
+using System.Windows.Threading;
+using System.Runtime.InteropServices.WindowsRuntime;
+using System.Runtime.ExceptionServices;
 
 namespace VMATAutoPlanMT.VMAT_CSI
 {
@@ -56,16 +59,37 @@ namespace VMATAutoPlanMT.VMAT_CSI
             contourOverlapMargin = overlapMargin;
         }
 
+        //to handle system access exception violation
+        [HandleProcessCorruptedStateExceptions]
+        public override bool Run()
+        {
+            GeneratePlanList();
+            return false;
+        }
+
         public override List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> getIsocenterPositions()
         {
-            List <Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> allIsocenters = new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
+            UpdateUILabel("Calculating isocenter positions: ");
+            ProvideUIUpdate(0, String.Format("Extracting isocenter positions for all plans"));
+            List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> allIsocenters = new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
             Image image = selectedSS.Image;
             VVector userOrigin = image.UserOrigin;
             int count = 0;
             foreach (ExternalPlanSetup itr in plans)
             {
+                string pid = itr.Id;
+                ProvideUIUpdate(String.Format("Retrieving number of isocenters for plan: {0}", pid));
+                int numIsos = planIsoBeamInfo.FirstOrDefault(x => x.Item1 == itr.Id).Item2.Count;
+                int counter = 0;
+                int calcItems = numIsos;
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Num isos for plan (from generateTS): {0}", pid));
+
+                ProvideUIUpdate(String.Format("Retrieving prescriptions for plan: {0}", pid));
                 //grab the target in this plan with the greatest z-extent (plans can now have multiple targets assigned)
                 List<Tuple<string, string, int, DoseValue, double>> tmpList = prescriptions.Where(x => x.Item1 == itr.Id).ToList();
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved Presciptions"));
+
+                ProvideUIUpdate(String.Format("Determining target with greatest extent"));
                 double targetExtent = 0.0;
                 Structure longestTargetInPlan = null;
                 foreach (Tuple<string, string, int, DoseValue, double> itr1 in tmpList)
@@ -76,23 +100,40 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     if (tmpDiff > targetExtent) { longestTargetInPlan = tmpTargStruct; targetExtent = tmpDiff; }
                 }
                 if (longestTargetInPlan == null) return new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
-                List<Tuple<VVector, string, int>> tmp = new List<Tuple<VVector, string, int>> { };
-                int numIsos = planIsoBeamInfo.FirstOrDefault(x => x.Item1 == itr.Id).Item2.Count;
+                string longestTgtId = longestTargetInPlan.Id;
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Longest target in plan {0}: {1}", pid, longestTgtId));
 
+                List<Tuple<VVector, string, int>> tmp = new List<Tuple<VVector, string, int>> { };
                 double spineYMin = 0.0;
                 double spineZMax = 0.0;
                 double spineZMin = 0.0;
                 double brainZCenter = 0.0;
                 if (longestTargetInPlan.Id.ToLower() == "ptv_csi")
                 {
+                    calcItems += 7;
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieving PTV_Spine Structure"));
                     Structure ptvSpine = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_spine");
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieving PTV_Brain Structure"));
                     Structure ptvBrain = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_brain");
+
+                    ProvideUIUpdate(String.Format("Calculating anterior extent of PTV_Spine"));
                     //Place field isocenters in y-direction at 2/3 the max 
                     spineYMin = (ptvSpine.MeshGeometry.Positions.Min(p => p.Y) * 0.8);
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Anterior extent of PTV_Spine: {0:0.0} mm", spineYMin));
+
+                    ProvideUIUpdate(String.Format("Calculating max and min extent of PTV_Spine"));
                     spineZMax = ptvSpine.MeshGeometry.Positions.Max(p => p.Z);
                     spineZMin = ptvSpine.MeshGeometry.Positions.Min(p => p.Z);
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Superior extent of PTV_Spine: {0:0.0} mm", spineZMax));
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Inferior extent of PTV_Spine: {0:0.0} mm", spineZMin));
+
+                    ProvideUIUpdate(String.Format("Calculating center of PTV_Brain"));
                     brainZCenter = ptvBrain.CenterPoint.z;
-                    targetExtent = brainZCenter - ptvSpine.MeshGeometry.Positions.Min(p => p.Z);
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Center of PTV_Brain: {0:0.0} mm", brainZCenter));
+
+                    ProvideUIUpdate(String.Format("Calculating center of PTV_Brain to inf extent of PTV_Spine"));
+                    targetExtent = brainZCenter - spineZMin;
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Extent: {0:0.0} mm", targetExtent));
                 }
 
                 //All VMAT portions of the plans will ONLY have 3 isocenters
@@ -102,7 +143,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
                 //however, the actual correct equation is given below (VMAT TBI):
                 //isoSeparation = Math.Round(((targetExtent - 380.0) / (numIsos - 1)) / 10.0f) * 10.0f;
-                isoSeparation = 190.0;
+                isoSeparation = 380.0;
 
                 //It is calculated by setting the most superior and inferior isocenters to be 19.0 cm from the target volume edge in the z-direction. The isocenter separtion is then calculated as half the distance between these two isocenters (sep = ((max-19cm)-(min+19cm)/2).
                 //Tested on 5-7-2020. When the correct equation is rounded, it gives the same answer as the original empirical equation above, however, the isocenters are better positioned in the target volume (i.e., more symmetric about the target volume). 
@@ -118,6 +159,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 
                 for (int i = 0; i < numIsos; i++)
                 {
+                    ProvideUIUpdate(String.Format("Determining position for isocenter: {0}", i));
                     VVector v = new VVector();
                     v.x = userOrigin.x;
                     if (longestTargetInPlan.Id.ToLower() == "ptv_csi")
@@ -125,7 +167,14 @@ namespace VMATAutoPlanMT.VMAT_CSI
                         v.y = spineYMin;
                         if (i == 0) v.z = brainZCenter;
                         //else v.z = (brainZCenter - i * isoSeparation);
-                        else v.z = (spineZMin + (numIsos - i) * isoSeparation);
+                        else
+                        {
+                            v.z = (spineZMin + (numIsos - i - 1) * isoSeparation + 180.0);
+                            if(i == 1)
+                            {
+                                if (v.z + 200.0 > tmp.ElementAt(0).Item1.z) v.z = tmp.ElementAt(0).Item1.z - 200.0;
+                            }
+                        }
                     }
                     else
                     {
@@ -133,11 +182,16 @@ namespace VMATAutoPlanMT.VMAT_CSI
                         //assumes one isocenter if the target is not ptv_csi
                         v.z = longestTargetInPlan.CenterPoint.z;
                     }
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Calculated isocenter position"));
+                    
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Rounding Y- and Z-positions to nearest integer"));
                     //round z position to the nearest integer
                     v = itr.StructureSet.Image.DicomToUser(v, itr);
                     v.y = Math.Round(v.y / 10.0f) * 10.0f;
                     v.z = Math.Round(v.z / 10.0f) * 10.0f;
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Calculated isocenter position (user coordinates): ({0}, {1}, {2})", v.x, v.y, v.z));
                     v = itr.StructureSet.Image.UserToDicom(v, itr);
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Adding calculated isocenter position to stack!"));
                     tmp.Add(new Tuple<VVector, string, int>(v, planIsoBeamInfo.FirstOrDefault(x => x.Item1 == itr.Id).Item2.ElementAt(i).Item1, planIsoBeamInfo.FirstOrDefault(x => x.Item1 == itr.Id).Item2.ElementAt(i).Item2));
                 }
 
@@ -147,7 +201,8 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 VVector lastIso = tmp.Last().Item1;
                 if (!((firstIso.z + 200.0) - longestTargetInPlan.MeshGeometry.Positions.Max(p => p.Z) >= checkIsoPlacementLimit) ||
                     !(longestTargetInPlan.MeshGeometry.Positions.Min(p => p.Z) - (lastIso.z - 200.0) >= checkIsoPlacementLimit)) checkIsoPlacement = true;
-
+                
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Finished retrieving isocenters for plan: {0}", pid));
                 allIsocenters.Add(Tuple.Create(itr, new List<Tuple<VVector, string, int>>(tmp)));
                 count++;
             }
@@ -259,12 +314,18 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
         public override bool setBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
         {
+            string pid = iso.Item1.Id;
+            ProvideUIUpdate(0, String.Format("Preparing to set isocenters for plan: {0}", pid));
+            int calcItems = 3;
+            int counter = 0;
             //DRR parameters (dummy parameters to generate DRRs for each field)
             DRRCalculationParameters DRR = new DRRCalculationParameters();
             DRR.DRRSize = 500.0;
             DRR.FieldOutlines = true;
             DRR.StructureOutlines = true;
             DRR.SetLayerParameters(1, 1.0, 100.0, 1000.0);
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Created default DRR parameters"));
+
             //int count = 0;
             //List<string> isoNameList = new List<string> { }; 
             //List<int> beamList = new List<int> { };
@@ -285,47 +346,79 @@ namespace VMATAutoPlanMT.VMAT_CSI
             List<Tuple<string, string, int, DoseValue, double>> tmp = prescriptions.Where(x => x.Item1 == iso.Item1.Id).ToList();
             if(tmp.Where(x => x.Item2.ToLower().Contains("ptv_csi")).Any()) target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_brain"));
             else target = selectedSS.Structures.FirstOrDefault(x => x.Id.Contains(tmp.First().Item2));
+            string tgtid = target.Id;
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved target for plan: {0}", tgtid));
 
-            if (target == null || target.IsEmpty) { MessageBox.Show(String.Format("Error! Target not found or is not contoured in plan {0}! Exiting!", iso.Item1.Id)); return true; }
-
-            //if (isoNameList == null) { MessageBox.Show(String.Format("Failed to set beams for plan: {0}! Exiting!", iso.Item1.Id)); return; }
+            if (target == null || target.IsEmpty) { ProvideUIUpdate(0, String.Format("Error! Target not found or is not contoured in plan {0}! Exiting!", iso.Item1.Id)); return true; }
+            ProvideUIUpdate(100, String.Format("Preparation complete!"));
 
             //place the beams for the VMAT plan
             int count = 0;
             string beamName;
             VRect<double> jp;
+            calcItems = 0;
+            counter = 0;
             for (int i = 0; i < iso.Item2.Count; i++)
             {
+                calcItems += iso.Item2.ElementAt(i).Item3 * 6;
+                ProvideUIUpdate(0, String.Format("Assigning isocenter: {0}", i + 1));
+
                 if (target.Id.ToLower().Contains("ptv_brain") && i > 0) target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_spine"));
                 //add beams for each isocenter
                 for (int j = 0; j < iso.Item2.ElementAt(i).Item3; j++)
                 {
+                    Beam b;
+                    beamName = String.Format("{0} ", count + 1);
+
                     //kind of messy, but used to increment the collimator rotation one element in the array so you don't end up in a situation where the single beam in this isocenter has the same collimator rotation as
                     //the single beam in the previous isocenter
                     if (i > 0 && iso.Item2.ElementAt(i).Item3 == 1 && iso.Item2.ElementAt(i - 1).Item3 == 1) j++;
+
                     jp = jawPos.ElementAt(j);
-                    Beam b;
-                    beamName = "";
-                    beamName += String.Format("{0} ", count + 1);
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved jaw positions (iso: {0}, beam: {1})", i, j));
+
                     double coll = collRot[j];
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved collimator positions (iso: {0}, beam: {1})", i, j));
+
+
                     //all even beams (e.g., 2, 4, etc.) will be CCW and all odd beams will be CW
                     if (count % 2 == 0)
                     {
                         b = iso.Item1.AddArcBeam(ebmpArc, jp, coll, CCW[0], CCW[1], GantryDirection.CounterClockwise, 0, iso.Item2.ElementAt(i).Item1);
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Added arc beam to iso: {0}", i));
+
                         if (j >= 2) beamName += String.Format("CCW {0}{1}", iso.Item2.ElementAt(i).Item2, 90);
                         else beamName += String.Format("CCW {0}{1}", iso.Item2.ElementAt(i).Item2, "");
                     }
                     else
                     {
                         b = iso.Item1.AddArcBeam(ebmpArc, jp, coll, CW[0], CW[1], GantryDirection.Clockwise, 0, iso.Item2.ElementAt(i).Item1);
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Added arc beam to iso: {0}", i + 1));
+                        
                         if (j >= 2) beamName += String.Format("CW {0}{1}", iso.Item2.ElementAt(i).Item2, 90);
                         else beamName += String.Format("CW {0}{1}", iso.Item2.ElementAt(i).Item2, "");
                     }
                     //auto fit collimator to target structure
                     //circular margin (in mm), target structure, use asymmetric x Jaws, use asymmetric y jaws, optimize collimator rotation
-                    b.FitCollimatorToStructure(new FitToStructureMargins(30.0), target, true, true, false);
+                    if (target.Id.ToLower().Contains("ptv_brain"))
+                    {
+                        b.FitCollimatorToStructure(new FitToStructureMargins(30.0, 40.0, 30.0, 30.0), target, true, true, false);
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Fit collimator to: {0}", target.Id));
+                        ProvideUIUpdate(String.Format("Asymmetric margin: {0} cm Lat, {1} cm Sup, {2} cm Inf", 3.0, 3.0, 4.0));
+                    }
+                    else
+                    {
+                        b.FitCollimatorToStructure(new FitToStructureMargins(30.0), target, true, true, false);
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Fit collimator to: {0}", target.Id));
+                        ProvideUIUpdate(String.Format("Uniform margin: {0} cm", 3.0));
+                    }
+
                     b.Id = beamName;
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Assigned beam id: {0}", beamName));
+
                     b.CreateOrReplaceDRR(DRR);
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Assigned DRR to beam: {0}", beamName));
+
                     count++;
                 }
             }

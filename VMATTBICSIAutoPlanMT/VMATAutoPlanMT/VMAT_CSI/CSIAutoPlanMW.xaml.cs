@@ -14,6 +14,8 @@ using System.Collections.ObjectModel;
 using System.Reflection;
 using VMATAutoPlanMT.helpers;
 using VMATAutoPlanMT.Prompts;
+using System.Threading.Tasks;
+
 
 namespace VMATAutoPlanMT.VMAT_CSI
 {
@@ -153,6 +155,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //load script configuration and display the settings
             if (configurationFile != "") loadConfigurationSettings(configurationFile);
             DisplayConfigurationParameters();
+            targetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
         }
 
         private void HelpButton_Click(object sender, RoutedEventArgs e)
@@ -310,7 +313,6 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 }
             }
         }
-
 
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         #region ExportCT
@@ -491,6 +493,9 @@ namespace VMATAutoPlanMT.VMAT_CSI
             targets = new List<Tuple<string, double, string>>(helper.parseTargets(targets_sp, selectedSS));
             if (!targets.Any()) return;
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(helper.GetPrescriptions(targets, initDosePerFxTB.Text, initNumFxTB.Text, initRxTB.Text, boostDosePerFxTB.Text, boostNumFxTB.Text));
+            targetsTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+            structureTuningTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
+            TSManipulationTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
         }
         #endregion
 
@@ -772,7 +777,8 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //create an instance of the generateTS_CSI class, passing the tuning structure list, structure sparing list, targets, prescriptions, and the selected structure set
             generateTS_CSI generate = new generateTS_CSI(TS_structures, structureSpareList, targets, prescriptions, selectedSS);
             pi.BeginModifications();
-            if (generate.generateStructures()) return;
+            if (generate.Execute()) return;
+
             //does the structure sparing list need to be updated? This occurs when structures the user elected to spare with option of 'Mean Dose < Rx Dose' are high resolution. Since Eclipse can't perform
             //boolean operations on structures of two different resolutions, code was added to the generateTS class to automatically convert these structures to low resolution with the name of
             // '<original structure Id>_lowRes'. When these structures are converted to low resolution, the updateSparingList flag in the generateTS class is set to true to tell this class that the 
@@ -791,6 +797,9 @@ namespace VMATAutoPlanMT.VMAT_CSI
             PopulateBeamsTab();
             PopulateOptimizationTab(opt_parameters);
             isModified = true;
+            structureTuningTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+            TSManipulationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+            beamPlacementTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
         }
         #endregion
 
@@ -904,24 +913,6 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 count++;
             }
 
-            /*
-            //AP/PA stuff (THIS NEEDS TO GO AFTER THE ABOVE CHECKS!). Ask the user if they want to split the AP/PA isocenters into two plans if there are two AP/PA isocenters
-            bool singleAPPAplan = true;
-            if (numIsos - numVMATIsos == 2)
-            {
-                selectItem SUI = new selectItem();
-                SUI.title.Text = "What should I do with the AP/PA isocenters?" + Environment.NewLine + Environment.NewLine + Environment.NewLine + "Put them in:";
-                SUI.title.TextAlign = System.Drawing.ContentAlignment.TopCenter;
-                SUI.itemCombo.Items.Add("One plan");
-                SUI.itemCombo.Items.Add("Separate plans");
-                SUI.itemCombo.Text = "One plan";
-                SUI.ShowDialog();
-                if (!SUI.confirm) return;
-                //get the option the user chose from the combobox
-                if (SUI.itemCombo.SelectedItem.ToString() == "Separate plans") singleAPPAplan = false;
-            }
-            */
-
             //Added code to account for the scenario where the user either requested or did not request to contour the overlap between fields in adjacent isocenters
             placeBeams_CSI place;
             if (contourOverlap_chkbox.IsChecked.Value)
@@ -939,7 +930,10 @@ namespace VMATAutoPlanMT.VMAT_CSI
             }
             else place = new placeBeams_CSI(selectedSS, planIsoBeamInfo, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel);
 
-            VMATplans = new List<ExternalPlanSetup>(place.generatePlans("VMAT CSI", prescriptions));
+            place.Initialize("VMAT CSI", prescriptions);
+            place.Execute();
+            VMATplans = new List<ExternalPlanSetup>(place.plans);
+            //VMATplans = new List<ExternalPlanSetup>(place.generatePlans("VMAT CSI", prescriptions));
             if (!VMATplans.Any()) return;
 
             //if the user elected to contour the overlap between fields in adjacent isocenters, get this list of structures from the placeBeams class and copy them to the jnxs vector
@@ -947,6 +941,8 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
             //if the user requested to contour the overlap between fields in adjacent VMAT isocenters, repopulate the optimization tab (will include the newly added field junction structures)!
             if (contourOverlap_chkbox.IsChecked.Value) PopulateOptimizationTab(opt_parameters);
+            beamPlacementTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+            optimizationSetupTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
         }
         #endregion
 
@@ -1134,6 +1130,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 MessageBox.Show(message);
                 isModified = true;
             }
+            optimizationSetupTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             /*
             if (VMATplan == null)
             {
@@ -1390,6 +1387,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 calcDoseTB.Visibility = Visibility.Visible;
             }
             isModified = true;
+            planPreparationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
         }
 
         private void CalculateDose_Click(object sender, RoutedEventArgs e)
@@ -2047,47 +2045,47 @@ namespace VMATAutoPlanMT.VMAT_CSI
             }
         }
 
-        private void autorun_Click(object sender, RoutedEventArgs e)
-        {
-            if (string.IsNullOrEmpty(initRxTB.Text)) { MessageBox.Show("Error! Please select a template regimen or enter the dose per fx and number of fx!"); return; }
+        //private void autorun_Click(object sender, RoutedEventArgs e)
+        //{
+        //    if (string.IsNullOrEmpty(initRxTB.Text)) { MessageBox.Show("Error! Please select a template regimen or enter the dose per fx and number of fx!"); return; }
 
-            //copy the sparing structures in the defaultSpareStruct list to a temporary vector
-            //List<Tuple<string, string, double>> templateList = new List<Tuple<string, string, double>>(defaultSpareStruct);
-            //add the case-specific sparing structures to the temporary list
-            //if (noBoost_chkbox.IsChecked.Value) templateList = new List<Tuple<string, string, double>>(addCaseSpecificSpareStructures(nonmyeloSpareStruct, templateList));
-            //else if (noBoost_chkbox.IsChecked.Value) templateList = new List<Tuple<string, string, double>>(addCaseSpecificSpareStructures(myeloSpareStruct, templateList));
+        //    //copy the sparing structures in the defaultSpareStruct list to a temporary vector
+        //    //List<Tuple<string, string, double>> templateList = new List<Tuple<string, string, double>>(defaultSpareStruct);
+        //    //add the case-specific sparing structures to the temporary list
+        //    //if (noBoost_chkbox.IsChecked.Value) templateList = new List<Tuple<string, string, double>>(addCaseSpecificSpareStructures(nonmyeloSpareStruct, templateList));
+        //    //else if (noBoost_chkbox.IsChecked.Value) templateList = new List<Tuple<string, string, double>>(addCaseSpecificSpareStructures(myeloSpareStruct, templateList));
 
-            autoRunData a = new autoRunData();
-           // a.construct(TS_structures, scleroStructures, templateList, selectedSS, 0.0, boost_chkbox.IsChecked.Value, useFlash, flashStructure, 0.0, app);
-            //create a new thread and pass it the data structure created above (it will copy this information to its local thread memory)
-            ESAPIworker slave = new ESAPIworker(a);
-            //create a new frame (multithreading jargon)
-            DispatcherFrame frame = new DispatcherFrame();
-            //start the optimization
-            //open a new window to run on the newly created thread called "slave"
-            //for definition of the syntax used below, google "statement lambda c#"
-            RunOnNewThread(() =>
-            {
-                //pass the progress window the newly created thread and this instance of the optimizationLoop class.
-                AutorunProgress arpw = new AutorunProgress(slave);
-                arpw.ShowDialog();
+        //    autoRunData a = new autoRunData();
+        //   // a.construct(TS_structures, scleroStructures, templateList, selectedSS, 0.0, boost_chkbox.IsChecked.Value, useFlash, flashStructure, 0.0, app);
+        //    //create a new thread and pass it the data structure created above (it will copy this information to its local thread memory)
+        //    ESAPIworker slave = new ESAPIworker(a);
+        //    //create a new frame (multithreading jargon)
+        //    DispatcherFrame frame = new DispatcherFrame();
+        //    //start the optimization
+        //    //open a new window to run on the newly created thread called "slave"
+        //    //for definition of the syntax used below, google "statement lambda c#"
+        //    RunOnNewThread(() =>
+        //    {
+        //        //pass the progress window the newly created thread and this instance of the optimizationLoop class.
+        //        AutorunProgress arpw = new AutorunProgress(slave);
+        //        arpw.ShowDialog();
 
-                //tell the code to hold until the progress window closes.
-                frame.Continue = false;
-            });
+        //        //tell the code to hold until the progress window closes.
+        //        frame.Continue = false;
+        //    });
 
-            Dispatcher.PushFrame(frame);
-            //addDefaultsBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        }
+        //    Dispatcher.PushFrame(frame);
+        //    //addDefaultsBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        //}
 
-        //method to create the new thread, set the apartment state, set the new thread to be a background thread, and execute the action supplied to this method
-        private void RunOnNewThread(Action a)
-        {
-            Thread t = new Thread(() => a());
-            t.SetApartmentState(ApartmentState.STA);
-            t.IsBackground = true;
-            t.Start();
-        }
+        ////method to create the new thread, set the apartment state, set the new thread to be a background thread, and execute the action supplied to this method
+        //private void RunOnNewThread(Action a)
+        //{
+        //    Thread t = new Thread(() => a());
+        //    t.SetApartmentState(ApartmentState.STA);
+        //    t.IsBackground = true;
+        //    t.Start();
+        //}
 
         private void MainWindow_SizeChanged(object sender, RoutedEventArgs e)
         {

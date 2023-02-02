@@ -21,7 +21,7 @@ namespace VMATAutoPlanMT
         //DICOM types
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
-        List<Tuple<string, string>> TS_structures;
+        public List<Tuple<string, string>> TS_structures;
         List<Tuple<string, string>> scleroStructures;
         public int numIsos;
         public int numVMATIsos;
@@ -55,10 +55,24 @@ namespace VMATAutoPlanMT
             flashMargin = fM;
         }
 
+        public override bool Run()
+        {
+            try 
+            { 
+                isoNames.Clear();
+                //if (preliminaryChecks(selectedSS, )) return true;
+                if (createTSStructures()) return true;
+                if (useFlash) if (createFlash()) return true;
+                MessageBox.Show("Structures generated successfully!\nPlease proceed to the beam placement tab!");
+            }
+            catch(Exception e) { ProvideUIUpdate(String.Format("{0}", e.Message)); return true; }
+            return false;
+        }
+
         public override bool preliminaryChecks()
         {
             //check if user origin was set
-            if (isUOriginInside()) return true;
+            if (isUOriginInside(selectedSS)) return true;
 
             //get the points collection for the Body (used for calculating number of isocenters)
             Point3DCollection pts = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").MeshGeometry.Positions;
