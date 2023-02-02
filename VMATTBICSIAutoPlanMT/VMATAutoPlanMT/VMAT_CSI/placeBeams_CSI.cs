@@ -315,13 +315,17 @@ namespace VMATAutoPlanMT.VMAT_CSI
         public override bool setBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
         {
             string pid = iso.Item1.Id;
-            ProvideUIUpdate(0, String.Format("Assigning isocenters for plan: {0}", pid));
+            ProvideUIUpdate(0, String.Format("Preparing to set isocenters for plan: {0}", pid));
+            int calcItems = 3;
+            int counter = 0;
             //DRR parameters (dummy parameters to generate DRRs for each field)
             DRRCalculationParameters DRR = new DRRCalculationParameters();
             DRR.DRRSize = 500.0;
             DRR.FieldOutlines = true;
             DRR.StructureOutlines = true;
             DRR.SetLayerParameters(1, 1.0, 100.0, 1000.0);
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Created default DRR parameters"));
+
             //int count = 0;
             //List<string> isoNameList = new List<string> { }; 
             //List<int> beamList = new List<int> { };
@@ -342,48 +346,79 @@ namespace VMATAutoPlanMT.VMAT_CSI
             List<Tuple<string, string, int, DoseValue, double>> tmp = prescriptions.Where(x => x.Item1 == iso.Item1.Id).ToList();
             if(tmp.Where(x => x.Item2.ToLower().Contains("ptv_csi")).Any()) target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_brain"));
             else target = selectedSS.Structures.FirstOrDefault(x => x.Id.Contains(tmp.First().Item2));
+            string tgtid = target.Id;
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved target for plan: {0}", tgtid));
 
-            if (target == null || target.IsEmpty) { MessageBox.Show(String.Format("Error! Target not found or is not contoured in plan {0}! Exiting!", iso.Item1.Id)); return true; }
-
-            //if (isoNameList == null) { MessageBox.Show(String.Format("Failed to set beams for plan: {0}! Exiting!", iso.Item1.Id)); return; }
+            if (target == null || target.IsEmpty) { ProvideUIUpdate(0, String.Format("Error! Target not found or is not contoured in plan {0}! Exiting!", iso.Item1.Id)); return true; }
+            ProvideUIUpdate(100, String.Format("Preparation complete!"));
 
             //place the beams for the VMAT plan
             int count = 0;
             string beamName;
             VRect<double> jp;
+            calcItems = 0;
+            counter = 0;
             for (int i = 0; i < iso.Item2.Count; i++)
             {
+                calcItems += iso.Item2.ElementAt(i).Item3 * 6;
+                ProvideUIUpdate(0, String.Format("Assigning isocenter: {0}", i));
+
                 if (target.Id.ToLower().Contains("ptv_brain") && i > 0) target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_spine"));
                 //add beams for each isocenter
                 for (int j = 0; j < iso.Item2.ElementAt(i).Item3; j++)
                 {
+                    Beam b;
+                    beamName = String.Format("{0} ", count + 1);
+
                     //kind of messy, but used to increment the collimator rotation one element in the array so you don't end up in a situation where the single beam in this isocenter has the same collimator rotation as
                     //the single beam in the previous isocenter
                     if (i > 0 && iso.Item2.ElementAt(i).Item3 == 1 && iso.Item2.ElementAt(i - 1).Item3 == 1) j++;
+
                     jp = jawPos.ElementAt(j);
-                    Beam b;
-                    beamName = "";
-                    beamName += String.Format("{0} ", count + 1);
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved jaw positions (iso: {0}, beam: {1})", i, j));
+
                     double coll = collRot[j];
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved collimator positions (iso: {0}, beam: {1})", i, j));
+
+
                     //all even beams (e.g., 2, 4, etc.) will be CCW and all odd beams will be CW
                     if (count % 2 == 0)
                     {
                         b = iso.Item1.AddArcBeam(ebmpArc, jp, coll, CCW[0], CCW[1], GantryDirection.CounterClockwise, 0, iso.Item2.ElementAt(i).Item1);
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Added arc beam to iso: {0}", i));
+
                         if (j >= 2) beamName += String.Format("CCW {0}{1}", iso.Item2.ElementAt(i).Item2, 90);
                         else beamName += String.Format("CCW {0}{1}", iso.Item2.ElementAt(i).Item2, "");
                     }
                     else
                     {
                         b = iso.Item1.AddArcBeam(ebmpArc, jp, coll, CW[0], CW[1], GantryDirection.Clockwise, 0, iso.Item2.ElementAt(i).Item1);
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Added arc beam to iso: {0}", i));
+                        
                         if (j >= 2) beamName += String.Format("CW {0}{1}", iso.Item2.ElementAt(i).Item2, 90);
                         else beamName += String.Format("CW {0}{1}", iso.Item2.ElementAt(i).Item2, "");
                     }
                     //auto fit collimator to target structure
                     //circular margin (in mm), target structure, use asymmetric x Jaws, use asymmetric y jaws, optimize collimator rotation
-                    if(target.Id.ToLower().Contains("ptv_brain")) b.FitCollimatorToStructure(new FitToStructureMargins(30.0, 40.0, 30.0, 30.0), target, true, true, false);
-                    else b.FitCollimatorToStructure(new FitToStructureMargins(30.0), target, true, true, false);
+                    if (target.Id.ToLower().Contains("ptv_brain"))
+                    {
+                        b.FitCollimatorToStructure(new FitToStructureMargins(30.0, 40.0, 30.0, 30.0), target, true, true, false);
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Fit collimator to: {0}", target.Id));
+                        ProvideUIUpdate(String.Format("Asymmetric margin: {0} cm Lat, {1} cm Sup, {2} cm Inf", 3.0, 3.0, 4.0));
+                    }
+                    else
+                    {
+                        b.FitCollimatorToStructure(new FitToStructureMargins(30.0), target, true, true, false);
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Fit collimator to: {0}", target.Id));
+                        ProvideUIUpdate(String.Format("Uniform margin: {0} cm", 3.0));
+                    }
+
                     b.Id = beamName;
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Assigned beam id: {0}", beamName));
+
                     b.CreateOrReplaceDRR(DRR);
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Assigned DRR to beam: {0}", beamName));
+
                     count++;
                 }
             }

@@ -127,7 +127,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Background" Value="LightGreen"/>
+                                <Setter Property="Background" Value="LightGray"/>
                                 <Setter Property="Foreground" Value="Black"/>
                                 <Setter Property="TextElement.FontWeight" TargetName="ContentSite" Value="Bold"/>
                             </Trigger>
@@ -222,7 +222,7 @@
                             </StackPanel>
                         </Border>
                     </TabItem>
-                    <TabItem Header="Set Targets" BorderThickness="0,1,1,0">
+                    <TabItem Header="Set Targets" BorderThickness="0,1,1,0" x:Name="targetsTabItem">
                         <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                             <StackPanel HorizontalAlignment="Center" Margin="0">
                                 <Label Content="Specify Targets" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"/>

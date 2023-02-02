@@ -504,7 +504,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //need lungs, body, and ptv spine structures
             Structure lungs = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "lungs");
             Structure body = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "body");
-            MeshGeometry3D mesh = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_spine").MeshGeometry;
+            MeshGeometry3D mesh = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_csi").MeshGeometry;
             //get most inferior slice of ptv_spine (mesgeometry.bounds.z indicates the most inferior part of a structure)
             int startSlice = (int)((mesh.Bounds.Z - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes);
             //only go to the most superior part of the lungs for contouring the arms

@@ -104,6 +104,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         public CSIAutoPlanMW(List<string> args)
         {
             InitializeComponent();
+            targetsTabItem.Background = System.Windows.Media.Brushes.Red;
             try { app = VMS.TPS.Common.Model.API.Application.CreateApplication(); }
             catch (Exception e) { MessageBox.Show(String.Format("Warning! Could not generate Aria application instance because: {0}", e.Message)); }
             string mrn = "";
@@ -493,6 +494,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             targets = new List<Tuple<string, double, string>>(helper.parseTargets(targets_sp, selectedSS));
             if (!targets.Any()) return;
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(helper.GetPrescriptions(targets, initDosePerFxTB.Text, initNumFxTB.Text, initRxTB.Text, boostDosePerFxTB.Text, boostNumFxTB.Text));
+            targetsTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
         }
         #endregion
 

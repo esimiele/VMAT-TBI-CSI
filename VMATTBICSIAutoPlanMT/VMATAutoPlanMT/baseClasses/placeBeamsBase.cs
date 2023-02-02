@@ -71,7 +71,7 @@ namespace VMATAutoPlanMT.baseClasses
             if (createPlans()) return null;
             //plan, isocenter positions, isocenter names, number of beams per isocenter
             List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> isoLocations = getIsocenterPositions();
-            UpdateUILabel("Assigning isocenters: ");
+            UpdateUILabel("Assigning isocenters and beams: ");
             int isoCount = 0;
             foreach(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> itr in isoLocations)
             {
@@ -79,7 +79,9 @@ namespace VMATAutoPlanMT.baseClasses
                 if(setBeams(itr)) return null;
                 isoCount += itr.Item2.Count;
             }
-            MessageBox.Show("Beams placed successfully!\nPlease proceed to the optimization setup tab!");
+            UpdateUILabel("Finished!");
+
+            //MessageBox.Show("Beams placed successfully!\nPlease proceed to the optimization setup tab!");
 
             if (checkIsoPlacement) MessageBox.Show(String.Format("WARNING: < {0:0.00} cm margin at most superior and inferior locations of body! Verify isocenter placement!", checkIsoPlacementLimit / 10));
             return plans;
