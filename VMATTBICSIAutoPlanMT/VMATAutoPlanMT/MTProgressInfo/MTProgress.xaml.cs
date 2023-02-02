@@ -52,7 +52,7 @@ namespace VMATAutoPlanMT.MTProgressInfo
                 //asign the dispatcher and an instance of this class to the caller class (used to marshal updates back to this UI)
                 callerClass.SetDispatcherAndUIInstance(dispatch, this);
                 //start the tasks asynchronously
-                callerClass.Run();
+                if (callerClass.Run()) slave.isError = true;
             });
         }
 

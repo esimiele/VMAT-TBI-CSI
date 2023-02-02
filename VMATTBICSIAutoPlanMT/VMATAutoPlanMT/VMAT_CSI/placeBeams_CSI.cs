@@ -361,7 +361,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             for (int i = 0; i < iso.Item2.Count; i++)
             {
                 calcItems += iso.Item2.ElementAt(i).Item3 * 6;
-                ProvideUIUpdate(0, String.Format("Assigning isocenter: {0}", i));
+                ProvideUIUpdate(0, String.Format("Assigning isocenter: {0}", i + 1));
 
                 if (target.Id.ToLower().Contains("ptv_brain") && i > 0) target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_spine"));
                 //add beams for each isocenter
@@ -393,7 +393,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     else
                     {
                         b = iso.Item1.AddArcBeam(ebmpArc, jp, coll, CW[0], CW[1], GantryDirection.Clockwise, 0, iso.Item2.ElementAt(i).Item1);
-                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Added arc beam to iso: {0}", i));
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Added arc beam to iso: {0}", i + 1));
                         
                         if (j >= 2) beamName += String.Format("CW {0}{1}", iso.Item2.ElementAt(i).Item2, 90);
                         else beamName += String.Format("CW {0}{1}", iso.Item2.ElementAt(i).Item2, "");

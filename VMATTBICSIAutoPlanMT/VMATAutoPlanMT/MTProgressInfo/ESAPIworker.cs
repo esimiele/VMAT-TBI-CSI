@@ -9,6 +9,7 @@ namespace VMATAutoPlanMT.MTProgressInfo
 {
     public class ESAPIworker
     {
+        public bool isError = false;
         public void RunOnNewThread(Action a)
         {
             Thread t = new Thread(() => a());

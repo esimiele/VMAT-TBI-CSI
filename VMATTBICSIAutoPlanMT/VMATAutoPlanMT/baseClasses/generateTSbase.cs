@@ -30,7 +30,7 @@ namespace VMATAutoPlanMT.baseClasses
             return false;
         }
 
-        public virtual bool generateStructures()
+        public virtual bool Execute()
         {
             ESAPIworker slave = new ESAPIworker();
             //create a new frame (multithreading jargon)
@@ -46,7 +46,8 @@ namespace VMATAutoPlanMT.baseClasses
                 frame.Continue = false;
             });
             Dispatcher.PushFrame(frame);
-            return false;
+            
+            return slave.isError;
         }
 
         public virtual bool preliminaryChecks()

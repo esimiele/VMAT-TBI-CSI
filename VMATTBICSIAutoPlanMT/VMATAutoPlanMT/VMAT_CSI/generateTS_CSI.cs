@@ -35,6 +35,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             selectedSS = ss;
         }
 
+        #region Run Control
         //to handle system access exception violation
         [HandleProcessCorruptedStateExceptions]
         public override bool Run()
@@ -58,7 +59,9 @@ namespace VMATAutoPlanMT.VMAT_CSI
             catch(Exception e) { ProvideUIUpdate(String.Format("{0}", e.Message)); return true; }
             return false;
         }
+        #endregion
 
+        #region Preliminary Checks and Work
         public override bool preliminaryChecks()
         {
             UpdateUILabel("Performing Preliminary Checks: ");
@@ -144,88 +147,9 @@ namespace VMATAutoPlanMT.VMAT_CSI
             else ProvideUIUpdate("No high resolution structures in the structure set!");
             return false;
         }
+        #endregion
 
-        public bool calculateNumIsos()
-        {
-            UpdateUILabel("Calculating Number of Isocenters:");
-            ProvideUIUpdate("Calculating number of isocenters");
-            //For these cases the maximum number of allowed isocenters is 3. One isocenter is reserved for the brain and either one or two isocenters are used for the spine (depending on length).
-            //revised to get the number of unique plans list, for each unique plan, find the target with the greatest z-extent and determine the number of isocenters based off that target. 
-            //plan Id, list of targets assigned to that plan
-            List<Tuple<string, List<string>>> planIdTargets = new List<Tuple<string, List<string>>> { };
-            string tmpPlanId = prescriptions.First().Item1;
-            List<string> targs = new List<string> { };
-            foreach(Tuple<string,string,int,DoseValue,double> itr in prescriptions)
-            {
-                if (itr.Item1 != tmpPlanId)
-                {
-                    planIdTargets.Add(new Tuple<string, List<string>>(tmpPlanId, new List<string>(targs)));
-                    tmpPlanId = itr.Item1;
-                    targs = new List<string> { itr.Item2 };
-                }
-                else targs.Add(itr.Item2);
-            }
-            planIdTargets.Add(new Tuple<string, List<string>>(tmpPlanId, new List<string>(targs)));
-
-            foreach(Tuple<string,List<string>> itr in planIdTargets)
-            {
-                //determine for each plan which target has the greatest z-extent
-                double maxTargetLength = 0.0;
-                string longestTargetInPlan = "";
-                foreach (string s in itr.Item2)
-                {
-                    Structure targStruct = selectedSS.Structures.FirstOrDefault(x => x.Id == itr.Item2.First());
-                    if (targStruct == null || targStruct.IsEmpty)
-                    {
-                        MessageBox.Show(String.Format("Error! No structure named: {0} found or contoured!", s));
-                        return true;
-                    }
-                    Point3DCollection pts = targStruct.MeshGeometry.Positions;
-                    double diff = pts.Max(p => p.Z) - pts.Min(p => p.Z);
-                    if (diff > maxTargetLength) { longestTargetInPlan = s; maxTargetLength = diff; }
-                }
-
-                //If the target ID is PTV_CSI, calculate the number of isocenters based on PTV_spine and add one iso for the brain
-                //planId, target list
-                if (longestTargetInPlan == "PTV_CSI")
-                {
-                    //special rules for initial plan, which should have a target named PTV_CSI
-                    //determine the number of isocenters required to treat PTV_Spine
-                    Structure spineTarget = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_spine");
-                    if (spineTarget == null || spineTarget.IsEmpty)
-                    {
-                        MessageBox.Show(String.Format("Error! No structure named PTV_Spine was found or it was empty!"));
-                        return true;
-                    }
-                    Point3DCollection pts = spineTarget.MeshGeometry.Positions;
-
-                    //Grab the thyroid structure, if it does not exist, add a 50 mm buffer to the field extent (rough estimate of most inferior position of thyroid)
-                    //Structure thyroidStruct = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("thyroid"));
-                    //if (thyroidStruct == null || thyroidStruct.IsEmpty) numVMATIsos = (int)Math.Ceiling((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 + 50.0));
-                    //else
-                    //{
-                    //    //If it exists, grab the minimum z position and subtract this from the ptv_spine extent (the brain fields extend down to the most inferior part of the thyroid)
-                    //    Point3DCollection thyroidPts = thyroidStruct.MeshGeometry.Positions;
-                    //    numVMATIsos = (int)Math.Ceiling((thyroidPts.Min(p => p.Z) - pts.Min(p => p.Z)) / 400.0);
-                    //}
-                    numVMATIsos = (int)Math.Ceiling((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 - 20.0));
-
-                    //MessageBox.Show(String.Format("{0}, {1}, {2}", pts.Max(p => p.Z) - pts.Min(p => p.Z), pts.Max(p => p.Z) - pts.Min(p => p.Z) - thyroidPts.Min(p => p.Z), (pts.Max(p => p.Z) - pts.Min(p => p.Z) - thyroidPts.Min(p => p.Z)) / 400.0));
-                    //one iso reserved for PTV_Brain
-                    numVMATIsos += 1;
-                }
-                else numVMATIsos = (int)Math.Ceiling(maxTargetLength / (400.0 - 20.0));
-                if (numVMATIsos > 3) numVMATIsos = 3;
-
-                //set isocenter names based on numIsos and numVMATIsos (be sure to pass 'true' for the third argument to indicate that this is a CSI plan(s))
-                //plan Id, list of isocenter names for this plan
-                isoNames.Add(Tuple.Create(itr.Item1, new List<string>(new isoNameHelper().getIsoNames(numVMATIsos, numVMATIsos, true))));
-            }
-            ProvideUIUpdate(String.Format("Required Number of Isocenters: {0}", numVMATIsos));
-
-            return false;
-        }
-
+        #region Target Creation
         private bool CheckForTargetStructures()
         {
             UpdateUILabel("Checking For Missing Target Structures: ");
@@ -358,7 +282,9 @@ namespace VMATAutoPlanMT.VMAT_CSI
             ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Targets added and contoured!"));
             return false;
         }
+        #endregion
 
+        #region Crop, Boolean, Ring Operations
         public bool cropStructureFromBody(Structure theStructure, double margin)
         {
             //margin is in cm
@@ -396,6 +322,21 @@ namespace VMATAutoPlanMT.VMAT_CSI
             return false;
         }
 
+        private bool createRing(Structure target, Structure ring, double margin, double thickness)
+        {
+            //margin is in cm
+            if ((margin >= -5.0 && margin <= 5.0) && (thickness + margin >= -5.0 && thickness + margin <= 5.0))
+            {
+                ring.SegmentVolume = target.Margin((thickness + margin) * 10);
+                ring.SegmentVolume = ring.Sub(target.Margin(margin * 10));
+                cropStructureFromBody(ring, 0.0);
+            }
+            else { ProvideUIUpdate("Added margin or ring thickness + margin MUST be within +/- 5.0 cm! Exiting"); return true; }
+            return false;
+        }
+        #endregion
+
+        #region TS Structure Creation and Manipulation
         public override bool createTSStructures()
         {
             //determine if any TS structures need to be added to the selected structure set
@@ -438,30 +379,94 @@ namespace VMATAutoPlanMT.VMAT_CSI
                             if (targetStructure != null)
                             {
                                 ProvideUIUpdate(String.Format("Generating ring {0} for target {1}", itr, itr1.Item1));
-                                //margin in mm. 
-                                double margin = ((itr1.Item2 - ringDose) / itr1.Item2) * 30.0;
+                                //margin in cm. 
+                                double margin = ((itr1.Item2 - ringDose) / itr1.Item2) * 3.0;
                                 if (margin > 0.0)
                                 {
                                     //method to create ring of 2.0 cm thickness
                                     //first create structure that is a copy of the target structure with an outer margin of ((Rx - ring dose / Rx) * 30 mm) + 20 mm.
                                     //1/5/2023, nataliya stated the 50% Rx ring should be 1.5 cm from the target and have a thickness of 2 cm. Redefined the margin formula to equal 15 mm whenever (Rx - ring dose) / Rx = 0.5
-                                    addedStructure.SegmentVolume = targetStructure.Margin(margin + 20.0 > 50.0 ? 50.0 : margin + 20.0);
-                                    //next, add a dummy structure that is a copy of the target structure with an outer margin of ((Rx - ring dose / Rx) * 30 mm)
-                                    //if (selectedSS.Structures.Where(x => x.Id.ToLower() == "dummy").Any()) selectedSS.RemoveStructure(selectedSS.Structures.First(x => x.Id.ToLower() == "dummy"));
-                                    //Structure dummy = selectedSS.AddStructure("CONTROL", "Dummy");
-                                    //dummy.SegmentVolume = targetStructure.Margin(margin);
-                                    //now, contour the ring as the original ring minus the dummy structure
-                                    addedStructure.SegmentVolume = addedStructure.Sub(targetStructure.Margin(margin));
-                                    //addedStructure.SegmentVolume = addedStructure.Sub(dummy.Margin(0.0));
+                                    //addedStructure.SegmentVolume = addedStructure.Sub(targetStructure.Margin(margin));
                                     //keep only the parts of the ring that are inside the body!
-                                    cropStructureFromBody(addedStructure, 0.0);
+                                    double thickness = margin + 2.0 > 5.0 ? 5.0 : margin + 2.0;
+                                    createRing(targetStructure, addedStructure, margin, thickness);
                                     ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Finished contouring ring: {0}", itr));
-                                    //selectedSS.RemoveStructure(dummy);
                                 }
                             }
                         }
                     }
                     else ProvideUIUpdate(String.Format("Could not parse ring dose for {0}! Skipping!", itr));
+                }
+                else if(itr.ToLower().Contains("ts_globes") || itr.ToLower().Contains("ts_lenses"))
+                {
+                    calcItems = 4;
+                    Structure targetStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_brain" && !x.IsEmpty);
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved brain target: {0}", targetStructure.Id));
+
+                    Structure normal = null;
+                    if (itr.ToLower().Contains("globes")) normal = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("globes") && !x.IsEmpty);
+                    else normal = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("lenses") && !x.IsEmpty);
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved structure: {0}", normal.Id));
+
+                    if (targetStructure != null && normal != null)
+                    {
+                        ProvideUIUpdate(String.Format("Generating ring {0} for target {1}", itr, "PTV_Brain"));
+                        //margin in cm. 
+                        double margin = 0;
+                        double thickness = 0;
+                        if(itr.ToLower().Contains("globes"))
+                        {
+                            margin = 0.5;
+                            thickness = 1.0;
+                        }
+                        else
+                        {
+                            margin = 1.5;
+                            thickness = 2.0;
+                        }    
+                        createRing(targetStructure, addedStructure, margin, thickness);
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Finished contouring ring: {0}", addedStructure.Id));
+
+                        ProvideUIUpdate(String.Format("Contouring overlap between ring and {0}", itr.ToLower().Contains("globes") ? "Globes" : "Lenses"));
+                        contourOverlap(normal, addedStructure, 0.0);
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Overlap Contoured!"));
+
+                        if(addedStructure.IsEmpty)
+                        {
+                            ProvideUIUpdate(String.Format("{0} is empty! Removing now!", itr));
+                            calcItems += 1;
+                            selectedSS.RemoveStructure(addedStructure);
+                            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Removed structure: {0}", itr));
+                        }
+                        ProvideUIUpdate(String.Format("Finished contouring: {0}", itr));
+                    }
+                    else ProvideUIUpdate(String.Format("Warning! Could not retrieve PTV_Brain structure! Skipping {0}", itr));
+                }
+                else if (itr.ToLower().Contains("ts_lenses"))
+                {
+                    calcItems = 4;
+                    Structure targetStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_brain" && !x.IsEmpty);
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved brain target: {0}", targetStructure.Id));
+
+                    Structure globes = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("globes") && !x.IsEmpty);
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved globes structure: {0}", globes.Id));
+
+                    if (targetStructure != null && globes != null)
+                    {
+                        ProvideUIUpdate(String.Format("Generating ring {0} for target {1}", itr, "PTV_Brain"));
+                        //margin in mm. 
+                        double margin = 5.0;
+                        double thickness = 10.0;
+                        createRing(targetStructure, addedStructure, margin, thickness);
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Finished contouring ring: {0}", addedStructure.Id));
+
+
+                        ProvideUIUpdate(String.Format("Contouring overlap between ring and globes"));
+                        contourOverlap(globes, addedStructure, 0.0);
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Overlap Contoured!"));
+                        ProvideUIUpdate(String.Format("Finished contouring: {0}", itr));
+                    }
+                    else ProvideUIUpdate("Warning! Could not retrieve PTV_Brain structure! Skipping TS_Globes");
                 }
                 else if (itr.ToLower().Contains("armsavoid")) createArmsAvoid(addedStructure);
                 else if (!(itr.ToLower().Contains("ptv")))
@@ -671,5 +676,91 @@ namespace VMATAutoPlanMT.VMAT_CSI
             }
             return false;
         }
+        #endregion
+
+        #region Isocenter Calculation
+        public bool calculateNumIsos()
+        {
+            UpdateUILabel("Calculating Number of Isocenters:");
+            ProvideUIUpdate("Calculating number of isocenters");
+            //For these cases the maximum number of allowed isocenters is 3. One isocenter is reserved for the brain and either one or two isocenters are used for the spine (depending on length).
+            //revised to get the number of unique plans list, for each unique plan, find the target with the greatest z-extent and determine the number of isocenters based off that target. 
+            //plan Id, list of targets assigned to that plan
+            List<Tuple<string, List<string>>> planIdTargets = new List<Tuple<string, List<string>>> { };
+            string tmpPlanId = prescriptions.First().Item1;
+            List<string> targs = new List<string> { };
+            foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
+            {
+                if (itr.Item1 != tmpPlanId)
+                {
+                    planIdTargets.Add(new Tuple<string, List<string>>(tmpPlanId, new List<string>(targs)));
+                    tmpPlanId = itr.Item1;
+                    targs = new List<string> { itr.Item2 };
+                }
+                else targs.Add(itr.Item2);
+            }
+            planIdTargets.Add(new Tuple<string, List<string>>(tmpPlanId, new List<string>(targs)));
+
+            foreach (Tuple<string, List<string>> itr in planIdTargets)
+            {
+                //determine for each plan which target has the greatest z-extent
+                double maxTargetLength = 0.0;
+                string longestTargetInPlan = "";
+                foreach (string s in itr.Item2)
+                {
+                    Structure targStruct = selectedSS.Structures.FirstOrDefault(x => x.Id == itr.Item2.First());
+                    if (targStruct == null || targStruct.IsEmpty)
+                    {
+                        MessageBox.Show(String.Format("Error! No structure named: {0} found or contoured!", s));
+                        return true;
+                    }
+                    Point3DCollection pts = targStruct.MeshGeometry.Positions;
+                    double diff = pts.Max(p => p.Z) - pts.Min(p => p.Z);
+                    if (diff > maxTargetLength) { longestTargetInPlan = s; maxTargetLength = diff; }
+                }
+
+                //If the target ID is PTV_CSI, calculate the number of isocenters based on PTV_spine and add one iso for the brain
+                //planId, target list
+                if (longestTargetInPlan.ToLower() == "ptv_csi")
+                {
+                    //special rules for initial plan, which should have a target named PTV_CSI
+                    //determine the number of isocenters required to treat PTV_Spine
+                    Structure spineTarget = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_spine");
+                    if (spineTarget == null || spineTarget.IsEmpty)
+                    {
+                        MessageBox.Show(String.Format("Error! No structure named PTV_Spine was found or it was empty!"));
+                        return true;
+                    }
+                    Point3DCollection pts = spineTarget.MeshGeometry.Positions;
+
+                    //Grab the thyroid structure, if it does not exist, add a 50 mm buffer to the field extent (rough estimate of most inferior position of thyroid)
+                    //Structure thyroidStruct = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("thyroid"));
+                    //if (thyroidStruct == null || thyroidStruct.IsEmpty) numVMATIsos = (int)Math.Ceiling((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 + 50.0));
+                    //else
+                    //{
+                    //    //If it exists, grab the minimum z position and subtract this from the ptv_spine extent (the brain fields extend down to the most inferior part of the thyroid)
+                    //    Point3DCollection thyroidPts = thyroidStruct.MeshGeometry.Positions;
+                    //    numVMATIsos = (int)Math.Ceiling((thyroidPts.Min(p => p.Z) - pts.Min(p => p.Z)) / 400.0);
+                    //}
+                    //subtract 50 mm from the numerator as ptv_spine extends 10 mm into ptv_brain and brain fields have a 40 mm inferior margin on the ptv_brain (10 + 40 = 50 mm). Overlap is accounted for in the denominator.
+                    numVMATIsos = (int)Math.Ceiling((pts.Max(p => p.Z) - pts.Min(p => p.Z) - 50.0) / (400.0 - 20.0));
+                    ProvideUIUpdate(String.Format("{0:0.0}, {1:0.0}, {2:0.0}", pts.Max(p => p.Z) - pts.Min(p => p.Z), (pts.Max(p => p.Z) - pts.Min(p => p.Z) - 40.0) / (400.0 - 20.0), numVMATIsos));
+
+                    //MessageBox.Show(String.Format("{0}, {1}, {2}", pts.Max(p => p.Z) - pts.Min(p => p.Z), pts.Max(p => p.Z) - pts.Min(p => p.Z) - thyroidPts.Min(p => p.Z), (pts.Max(p => p.Z) - pts.Min(p => p.Z) - thyroidPts.Min(p => p.Z)) / 400.0));
+                    //one iso reserved for PTV_Brain
+                    numVMATIsos += 1;
+                }
+                else numVMATIsos = (int)Math.Ceiling(maxTargetLength / (400.0 - 20.0));
+                if (numVMATIsos > 3) numVMATIsos = 3;
+
+                //set isocenter names based on numIsos and numVMATIsos (be sure to pass 'true' for the third argument to indicate that this is a CSI plan(s))
+                //plan Id, list of isocenter names for this plan
+                isoNames.Add(Tuple.Create(itr.Item1, new List<string>(new isoNameHelper().getIsoNames(numVMATIsos, numVMATIsos, true))));
+            }
+            ProvideUIUpdate(String.Format("Required Number of Isocenters: {0}", numVMATIsos));
+
+            return false;
+        }
+        #endregion
     }
 }

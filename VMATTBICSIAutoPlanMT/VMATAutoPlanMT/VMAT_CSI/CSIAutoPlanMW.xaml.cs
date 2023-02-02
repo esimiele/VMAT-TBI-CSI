@@ -104,7 +104,6 @@ namespace VMATAutoPlanMT.VMAT_CSI
         public CSIAutoPlanMW(List<string> args)
         {
             InitializeComponent();
-            targetsTabItem.Background = System.Windows.Media.Brushes.Red;
             try { app = VMS.TPS.Common.Model.API.Application.CreateApplication(); }
             catch (Exception e) { MessageBox.Show(String.Format("Warning! Could not generate Aria application instance because: {0}", e.Message)); }
             string mrn = "";
@@ -156,6 +155,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //load script configuration and display the settings
             if (configurationFile != "") loadConfigurationSettings(configurationFile);
             DisplayConfigurationParameters();
+            targetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
         }
 
         private void HelpButton_Click(object sender, RoutedEventArgs e)
@@ -313,7 +313,6 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 }
             }
         }
-
 
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         #region ExportCT
@@ -495,6 +494,8 @@ namespace VMATAutoPlanMT.VMAT_CSI
             if (!targets.Any()) return;
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(helper.GetPrescriptions(targets, initDosePerFxTB.Text, initNumFxTB.Text, initRxTB.Text, boostDosePerFxTB.Text, boostNumFxTB.Text));
             targetsTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+            structureTuningTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
+            TSManipulationTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
         }
         #endregion
 
@@ -776,7 +777,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //create an instance of the generateTS_CSI class, passing the tuning structure list, structure sparing list, targets, prescriptions, and the selected structure set
             generateTS_CSI generate = new generateTS_CSI(TS_structures, structureSpareList, targets, prescriptions, selectedSS);
             pi.BeginModifications();
-            if (generate.generateStructures()) return;
+            if (generate.Execute()) return;
 
             //does the structure sparing list need to be updated? This occurs when structures the user elected to spare with option of 'Mean Dose < Rx Dose' are high resolution. Since Eclipse can't perform
             //boolean operations on structures of two different resolutions, code was added to the generateTS class to automatically convert these structures to low resolution with the name of
@@ -796,6 +797,9 @@ namespace VMATAutoPlanMT.VMAT_CSI
             PopulateBeamsTab();
             PopulateOptimizationTab(opt_parameters);
             isModified = true;
+            structureTuningTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+            TSManipulationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+            beamPlacementTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
         }
         #endregion
 
@@ -937,6 +941,8 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
             //if the user requested to contour the overlap between fields in adjacent VMAT isocenters, repopulate the optimization tab (will include the newly added field junction structures)!
             if (contourOverlap_chkbox.IsChecked.Value) PopulateOptimizationTab(opt_parameters);
+            beamPlacementTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+            optimizationSetupTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
         }
         #endregion
 
@@ -1124,6 +1130,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 MessageBox.Show(message);
                 isModified = true;
             }
+            optimizationSetupTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             /*
             if (VMATplan == null)
             {
@@ -1380,6 +1387,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 calcDoseTB.Visibility = Visibility.Visible;
             }
             isModified = true;
+            planPreparationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
         }
 
         private void CalculateDose_Click(object sender, RoutedEventArgs e)
