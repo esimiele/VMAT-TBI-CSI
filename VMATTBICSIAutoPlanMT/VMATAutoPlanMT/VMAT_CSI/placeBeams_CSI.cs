@@ -118,8 +118,20 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
                     ProvideUIUpdate(String.Format("Calculating anterior extent of PTV_Spine"));
                     //Place field isocenters in y-direction at 2/3 the max 
-                    spineYMin = (ptvSpine.MeshGeometry.Positions.Min(p => p.Y) * 0.8);
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Anterior extent of PTV_Spine: {0:0.0} mm", spineYMin));
+                    spineYMin = (ptvSpine.MeshGeometry.Positions.Min(p => p.Y));
+                    ProvideUIUpdate(String.Format("Anterior extent of PTV_Spine: {0:0.0} mm", spineYMin));
+                    spineYMin *= 0.8;
+                    //absolute value accounts for positive or negative y position in DCM coordinates
+                    if (Math.Abs(spineYMin) < Math.Abs(ptvSpine.CenterPoint.y))
+                    {
+                        ProvideUIUpdate(String.Format("0.8 * PTV_Spine is more posterior than center of PTV_Spine!: {0:0.0} mm vs {1:0.0} mm", spineYMin, ptvSpine.CenterPoint.y));
+                        spineYMin = ptvSpine.CenterPoint.y;
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Assigning Ant-post iso location to center of PTV_Spine: {0:0.0} mm", spineYMin));
+                    }
+                    else
+                    {
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("0.8 * Anterior extent of PTV_Spine: {0:0.0} mm", spineYMin));
+                    }
 
                     ProvideUIUpdate(String.Format("Calculating max and min extent of PTV_Spine"));
                     spineZMax = ptvSpine.MeshGeometry.Positions.Max(p => p.Z);
