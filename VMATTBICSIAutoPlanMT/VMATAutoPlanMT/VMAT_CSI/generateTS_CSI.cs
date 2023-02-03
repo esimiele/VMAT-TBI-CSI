@@ -388,7 +388,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                                     //1/5/2023, nataliya stated the 50% Rx ring should be 1.5 cm from the target and have a thickness of 2 cm. Redefined the margin formula to equal 15 mm whenever (Rx - ring dose) / Rx = 0.5
                                     //addedStructure.SegmentVolume = addedStructure.Sub(targetStructure.Margin(margin));
                                     //keep only the parts of the ring that are inside the body!
-                                    double thickness = margin + 2.0 > 5.0 ? 5.0 : margin + 2.0;
+                                    double thickness = margin + 2.0 > 5.0 ? 5.0 - margin : 2.0;
                                     createRing(targetStructure, addedStructure, margin, thickness);
                                     ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Finished contouring ring: {0}", itr));
                                 }
