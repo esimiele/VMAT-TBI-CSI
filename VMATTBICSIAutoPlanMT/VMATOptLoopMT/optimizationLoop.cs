@@ -613,7 +613,7 @@ namespace VMATTBI_optLoop
                 //add the cooler structure to the structure list and convert the doseLevel isodose volume to a structure. Add this new structure to the list with a max dose objective of Rx * 105% and give it a priority of 80
                 Structure coolerStructure = s.AddStructure("CONTROL", name);
                 coolerStructure.ConvertDoseLevelToStructure(d, dv);
-                cooler = Tuple.Create(name, "Upper", doseLevel * plan.TotalDose.Dose, volume, priority);
+                cooler = Tuple.Create(name, "Upper", requestedDoseConstraint * plan.TotalDose.Dose, volume, priority);
             }
             return cooler;
         }
