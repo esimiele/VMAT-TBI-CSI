@@ -573,7 +573,7 @@ namespace VMATTBI_optLoop
                 if (addTSstruct)
                 {
                     //cooler
-                    if (itr.Item1.Contains("cooler")) TSstructure = generateCooler(plan, itr.Item2 / 100, itr.Item4, itr.Item1, itr.Item5);
+                    if (itr.Item1.Contains("cooler")) TSstructure = generateCooler(plan, itr.Item2 / 100, itr.Item3 / 100, itr.Item4, itr.Item1, itr.Item5);
                     //heater
                     else TSstructure = generateHeater(plan, target, itr.Item2 / 100, itr.Item3 / 100, itr.Item4, itr.Item1, itr.Item5); 
                     if (TSstructure != null) 
@@ -600,7 +600,7 @@ namespace VMATTBI_optLoop
         }
 //**********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************
 
-        private Tuple<string, string, double, double, int> generateCooler(ExternalPlanSetup plan, double doseLevel, double volume, string name, int priority)
+        private Tuple<string, string, double, double, int> generateCooler(ExternalPlanSetup plan, double doseLevel, double requestedDoseConstraint, double volume, string name, int priority)
         {
             //create an empty optiization objective
             Tuple<string, string, double, double, int> cooler = null;

@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:VMATTBI_optLoop"
         mc:Ignorable="d"
         Height="740" Width="615" Background="White"
-        Title="VMAT TBI Optimization Loop" Closing="Window_Closing">
+        Title="VMAT Optimization Loop" Closing="Window_Closing">
     <Grid>
         <Grid Height="235" Width="600" VerticalAlignment="Top" Margin="0,-1,-8,0">
             <Grid.Background>
@@ -23,7 +23,7 @@
             </Grid.Background>
             <StackPanel>
                 <Grid Margin="0,5,0,5">
-                    <Label Content="VMAT TBI optimization loop script" HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="16" FontWeight="Bold" Margin="0,0,0,0"></Label>
+                    <Label Content="VMAT Optimization loop script" HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="16" FontWeight="Bold" Margin="0,0,0,0"></Label>
                     <Button x:Name="help" Height="20" Width="75" HorizontalAlignment="Right" VerticalAlignment="Top" Content="Help" Margin="0,7,20,0" Click="Help_Click"></Button>
                     <Button x:Name="quickStart" Height="20" Width="75" HorizontalAlignment="Left" VerticalAlignment="Top" Content="Quick Start" Margin="20,7,0,0" Click="QuickStart_Click"></Button>
                 </Grid>

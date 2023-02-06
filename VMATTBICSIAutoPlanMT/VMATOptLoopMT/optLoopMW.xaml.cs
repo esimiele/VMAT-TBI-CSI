@@ -18,7 +18,6 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Reflection;
 
-
 namespace VMATTBI_optLoop
 {
     public partial class MainWindow : Window
@@ -84,11 +83,11 @@ namespace VMATTBI_optLoop
 
         public List<Tuple<string, string, double, double, DoseValuePresentation>> planObj = new List<Tuple<string, string, double, double, DoseValuePresentation>> { };
         public List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>
-        {
-            new Tuple<string,double,double,double,int,List<Tuple<string, double, string, double>>>("TS_cooler110",110.0,0.0,0.0,80,new List<Tuple<string, double, string, double>>{ }),
-            new Tuple<string,double,double,double,int,List<Tuple<string, double, string, double>>>("TS_heater90",90.0,100.0,0.0,60,new List<Tuple<string, double, string, double>>{ }),
-            new Tuple<string,double,double,double,int,List<Tuple<string, double, string, double>>>("TS_cooler70",70.0,90.0,0.0,80,new List<Tuple<string, double, string, double>>{new Tuple<string, double, string, double>("Dmax",0.0,">",140), new Tuple<string, double, string, double>("V",110.0,">",10)}),
-        };
+            {
+                new Tuple<string,double,double,double,int,List<Tuple<string, double, string, double>>>("TS_cooler110",110.0,108.0,0.0,80,new List<Tuple<string, double, string, double>>{ }),
+                new Tuple<string,double,double,double,int,List<Tuple<string, double, string, double>>>("TS_heater90",90.0,100.0,0.0,60,new List<Tuple<string, double, string, double>>{ }),
+                new Tuple<string,double,double,double,int,List<Tuple<string, double, string, double>>>("TS_cooler70",70.0,90.0,0.0,80,new List<Tuple<string, double, string, double>>{new Tuple<string, double, string, double>("Dmax",0.0,">",140), new Tuple<string, double, string, double>("V",110.0,">",10)}),
+            };
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         VMS.TPS.Common.Model.API.Application app = VMS.TPS.Common.Model.API.Application.CreateApplication();
