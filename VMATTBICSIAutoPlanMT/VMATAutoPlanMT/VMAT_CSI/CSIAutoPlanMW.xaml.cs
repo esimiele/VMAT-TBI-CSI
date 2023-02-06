@@ -14,6 +14,7 @@ using System.Collections.ObjectModel;
 using System.Reflection;
 using VMATAutoPlanMT.helpers;
 using VMATAutoPlanMT.Prompts;
+using VMATAutoPlanMT.Logging;
 using System.Threading.Tasks;
 
 
@@ -58,6 +59,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         //data members
+        Logger log = null;
         string configFile = "";
         public Patient pi = null;
         StructureSet selectedSS = null;
@@ -116,6 +118,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 ss = args.ElementAt(1);
                 configurationFile = args.ElementAt(2);
             }
+            log = new Logger(@"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\Research\VMAT-TBI-CSI\log_files\", "VMAT CSI", mrn);
             if (app != null)
             {
                 if (string.IsNullOrEmpty(mrn) || string.IsNullOrWhiteSpace(mrn))
@@ -129,6 +132,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                         catch (Exception except) { MessageBox.Show(string.Format("Error! Could not open patient because: {0}! Please try again!", except.Message)); pi = null; }
                     }
                     else { this.Close(); return; }
+                    log.mrn = e.value.Text;
                 }
                 else pi = app.OpenPatientById(mrn);
 
@@ -144,6 +148,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     if (!string.IsNullOrEmpty(ss)) { selectedSS = pi.StructureSets.FirstOrDefault(x => x.Id == ss); SSID.Text = selectedSS.Id; }
                     else MessageBox.Show("Warning! No structure set in context! Please select a structure set at the top of the GUI!");
                     new ExportCTUIHelper().populateCTImageSets(pi.StructureSets.Where(x => x != selectedSS).ToList(), selectedSS, CTimage_sp);
+
                 }
                 else MessageBox.Show("Could not open patient!");
             }
@@ -176,6 +181,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
             //update selected structure set
             selectedSS = pi.StructureSets.FirstOrDefault(x => x.Id == SSID.SelectedItem.ToString());
+            log.selectedSS = selectedSS.Id;
         }
 
         private void ClearAllCurrentParameters()
@@ -217,6 +223,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 if (selectedTemplate.boostRxDosePerFx != 0.1 && selectedTemplate.boostRxNumFx != 1) setBoostPrescriptionInfo(selectedTemplate.boostRxDosePerFx, selectedTemplate.boostRxNumFx);
                 ClearAllCurrentParameters();
                 LoadTemplateDefaults();
+                log.template = selectedTemplate.templateName;
             }
             else
             {
@@ -443,7 +450,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             ComboBox c = (ComboBox)sender;
             if (c.SelectedItem.ToString() != "--Add New--") return;
             bool isTargetStructure = true;
-            if (c.Name != "str_cb") isTargetStructure = true;
+            if (c.Name != "str_cb") isTargetStructure = false;
             foreach (object obj in theSP.Children)
             {
                 UIElementCollection row = ((StackPanel)obj).Children;
@@ -496,6 +503,8 @@ namespace VMATAutoPlanMT.VMAT_CSI
             targetsTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             structureTuningTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             TSManipulationTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
+            log.targets = targets;
+            log.prescriptions = prescriptions;
         }
         #endregion
 
@@ -800,6 +809,9 @@ namespace VMATAutoPlanMT.VMAT_CSI
             structureTuningTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             TSManipulationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             beamPlacementTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
+            log.addedStructures = generate.addedStructures;
+            log.structureManipulations = structureSpareList;
+            log.isoNames = isoNames;
         }
         #endregion
 
@@ -943,6 +955,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             if (contourOverlap_chkbox.IsChecked.Value) PopulateOptimizationTab(opt_parameters);
             beamPlacementTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             optimizationSetupTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
+            foreach (ExternalPlanSetup itr in VMATplans) log.planUIDs.Add(itr.UID);
         }
         #endregion
 
@@ -1177,6 +1190,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //}
             //}
             //autoSave = true;
+            log.optimizationConstraints = optParametersListList;
         }
 
         private void AddOptimizationConstraint_Click(object sender, RoutedEventArgs e)
@@ -2031,6 +2045,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         {
             //be sure to close the patient before closing the application. Not doing so will result in unclosed timestamps in eclipse
             //if (autoSave) { app.SaveModifications(); Process.Start(optLoopProcess); }
+            log.Dump();
             if (autoSave) app.SaveModifications();
             else if (isModified)
             {

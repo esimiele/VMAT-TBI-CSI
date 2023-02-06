@@ -63,7 +63,6 @@ namespace VMATAutoPlanMT.MTProgressInfo
             progress.Value = percentComplete;
             progressTB.Text += message + System.Environment.NewLine;
             scroller.ScrollToBottom();
-            //updateLogFile(message);
         }
 
         public void provideUpdate(int percentComplete) { progress.Value = percentComplete; }

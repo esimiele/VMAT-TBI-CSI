@@ -129,6 +129,7 @@
     <Compile Include="helpers\CTImageExport.cs" />
     <Compile Include="helpers\ExportCTUIHelper.cs" />
     <Compile Include="helpers\OptimizationSetupUIHelper.cs" />
+    <Compile Include="Logging\Logger.cs" />
     <Compile Include="MTProgressInfo\ESAPIworker.cs" />
     <Compile Include="MTProgressInfo\MTProgress.xaml.cs">
       <DependentUpon>MTProgress.xaml</DependentUpon>

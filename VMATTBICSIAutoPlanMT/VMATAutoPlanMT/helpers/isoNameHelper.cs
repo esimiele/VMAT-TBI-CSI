@@ -44,8 +44,11 @@ namespace VMATAutoPlanMT
             else
             {
                 isoNames.Add("Brain");
-                if (numVMATIsos > 2) isoNames.Add("UpSpine");
-                isoNames.Add("LowSpine");
+                if(numVMATIsos > 1)
+                {
+                    if (numVMATIsos > 2) isoNames.Add("UpSpine");
+                    isoNames.Add("LowSpine");
+                }
             }
             return isoNames;
         }
