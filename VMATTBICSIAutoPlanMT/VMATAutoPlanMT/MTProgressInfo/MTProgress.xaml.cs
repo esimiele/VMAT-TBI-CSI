@@ -60,14 +60,7 @@ namespace VMATAutoPlanMT.MTProgressInfo
 
         public void provideUpdate(int percentComplete, string message, bool fail = false)
         {
-            if(!fail)
-            {
-                progress.Value = percentComplete;
-            }
-            else
-            {
-                FailEvent();
-            }
+            if(fail) FailEvent();
             progressTB.Text += message + System.Environment.NewLine;
             scroller.ScrollToBottom();
         }
@@ -76,10 +69,7 @@ namespace VMATAutoPlanMT.MTProgressInfo
 
         public void provideUpdate(string message, bool fail = false) 
         {
-            if(fail)
-            {
-                FailEvent();
-            }
+            if(fail) FailEvent();
             progressTB.Text += message + System.Environment.NewLine;
             scroller.ScrollToBottom(); 
         }
