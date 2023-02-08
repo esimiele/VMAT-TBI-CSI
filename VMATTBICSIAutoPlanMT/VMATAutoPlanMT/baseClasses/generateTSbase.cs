@@ -61,7 +61,7 @@ namespace VMATAutoPlanMT.baseClasses
             if (!ss.Image.HasUserOrigin || !(ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").IsPointInsideSegment(ss.Image.UserOrigin)))
             {
                 //MessageBox.Show("Did you forget to set the user origin? \nUser origin is NOT inside body contour! \nPlease fix and try again!");
-                ProvideUIUpdate("Did you forget to set the user origin? \nUser origin is NOT inside body contour! \nPlease fix and try again!");
+                ProvideUIUpdate("Did you forget to set the user origin? \nUser origin is NOT inside body contour! \nPlease fix and try again!", true);
                 return true;
             }
             return false;
@@ -102,21 +102,21 @@ namespace VMATAutoPlanMT.baseClasses
                         }
                         else
                         {
-                            ProvideUIUpdate(0, String.Format("Error! {0} can't be removed from the structure set!", itr.Item2));
+                            ProvideUIUpdate(0, String.Format("Error! {0} can't be removed from the structure set!", itr.Item2), true);
                             //MessageBox.Show(String.Format("Error! \n{0} can't be removed from the structure set!", tmp.Id));
                             return true;
                         }
 
                         if (!selectedSS.CanAddStructure(itr.Item1, itr.Item2))
                         {
-                            ProvideUIUpdate(0, String.Format("Error! {0} can't be added the structure set!", itr.Item2));
+                            ProvideUIUpdate(0, String.Format("Error! {0} can't be added the structure set!", itr.Item2), true);
                             //MessageBox.Show(String.Format("Error! \n{0} can't be added to the structure set!", itr.Item2));
                             return true;
                         }
                     }
                     else
                     {
-                        ProvideUIUpdate(0, String.Format("{0} is of DICOM type 'None'! ESAPI can't operate on DICOM type 'None'", itr.Item2));
+                        ProvideUIUpdate(0, String.Format("{0} is of DICOM type 'None'! ESAPI can't operate on DICOM type 'None'", itr.Item2), true);
                         //MessageBox.Show(String.Format("Error! \n{0} is of DICOM type 'None'! \nESAPI can't operate on DICOM type 'None'", itr.Item2));
                         return true;
                     }
@@ -139,7 +139,6 @@ namespace VMATAutoPlanMT.baseClasses
                 }
             }
             ProvideUIUpdate(100, String.Format("Prior tuning structures successfully removed!"));
-
             return false;
         }
 
@@ -167,7 +166,7 @@ namespace VMATAutoPlanMT.baseClasses
                 if (selectedSS.CanAddStructure("CONTROL", newName)) lowRes = selectedSS.AddStructure("CONTROL", newName);
                 else
                 {
-                    MessageBox.Show(String.Format("Error! Cannot add new structure: {0}!\nCorrect this issue and try again!", newName.Substring(0, 16)));
+                    ProvideUIUpdate(String.Format("Error! Cannot add new structure: {0}!\nCorrect this issue and try again!", newName), true);
                     return new List<Tuple<string, string, double>> { };
                 }
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Added low-res structure: {0}", newName));
@@ -183,7 +182,6 @@ namespace VMATAutoPlanMT.baseClasses
                     {
                         if (lowRes.IsPointInsideSegment(points[i][0]) || lowRes.IsPointInsideSegment(points[i][points[i].GetLength(0) - 1]) || lowRes.IsPointInsideSegment(points[i][(int)(points[i].GetLength(0) / 2)])) lowRes.SubtractContourOnImagePlane(points[i], slice);
                         else lowRes.AddContourOnImagePlane(points[i], slice);
-                        //data += System.Environment.NewLine;
                     }
                 }
 
@@ -209,7 +207,7 @@ namespace VMATAutoPlanMT.baseClasses
                 addedStructures.Add(structName);
                 optParameters.Add(Tuple.Create(structName, ""));
             }
-            else MessageBox.Show(String.Format("Can't add {0} to the structure set!", structName));
+            else ProvideUIUpdate(String.Format("Can't add {0} to the structure set!", structName));
             return addedStructure;
         }
     }

@@ -28,10 +28,10 @@ namespace VMATAutoPlanMT.baseClasses
 
         public void UpdateUILabel(string message) { _dispatch.BeginInvoke((Action)(() => { _pw.UpdateLabel(message); })); }
 
-        public void ProvideUIUpdate(int percentComplete, string message) { _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(percentComplete, message); })); }
+        public void ProvideUIUpdate(int percentComplete, string message, bool fail = false) { _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(percentComplete, message, fail); })); }
 
         public void ProvideUIUpdate(int percentComplete) { _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(percentComplete); })); }
 
-        public void ProvideUIUpdate(string message) { _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(message); })); }
+        public void ProvideUIUpdate(string message, bool fail = false) { _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(message, fail); })); }
     }
 }

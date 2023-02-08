@@ -148,7 +148,7 @@ namespace VMATAutoPlanMT.helpers
             return unionedName;
         }
 
-        public bool unionLRStructures(Tuple<Structure, Structure, string> itr, StructureSet selectedSS)
+        public (bool, string) unionLRStructures(Tuple<Structure, Structure, string> itr, StructureSet selectedSS)
         {
             Structure newStructure = null;
             string newName = itr.Item3;
@@ -161,8 +161,8 @@ namespace VMATAutoPlanMT.helpers
                 newStructure.SegmentVolume = itr.Item1.Margin(0.0);
                 newStructure.SegmentVolume = newStructure.Or(itr.Item2.Margin(0.0));
             }
-            catch (Exception except) { MessageBox.Show(String.Format("Warning! Could not add structure: {0}\nBecause: {1}", newName, except.Message)); return true; }
-            return false;
+            catch (Exception except) { string message = String.Format("Warning! Could not add structure: {0}\nBecause: {1}", newName, except.Message); return (true, message); }
+            return (false, "");
         }
 
         public List<Tuple<string, string, double>> parseSpareStructList(StackPanel theSP)
