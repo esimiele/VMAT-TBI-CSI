@@ -340,16 +340,9 @@ namespace VMATAutoPlanMT.VMAT_CSI
         #region TS Structure Creation and Manipulation
         public override bool createTSStructures()
         {
-            //determine if any TS structures need to be added to the selected structure set
-            //foreach (Tuple<string, string, double> itr in spareStructList)
-            //{
-            //    //optParameters.Add(Tuple.Create(itr.Item1, itr.Item2));
-            //    //this is here to add
-            //    if (itr.Item2 == "Crop target from structure") foreach (Tuple<string, string> itr1 in TS_structures.Where(x => x.Item2.ToLower().Contains(itr.Item1.ToLower()))) AddTSStructures(itr1);
-            //}
-            //get all TS structures that do not contain 'ctv' or 'ptv' in the title
             UpdateUILabel("Create TS Structures: ");
             ProvideUIUpdate(String.Format("Adding remaining tuning structures to stack!"));
+            //get all TS structures that do not contain 'ctv' or 'ptv' in the title
             List<Tuple<string, string>> remainingTS = TS_structures.Where(x => !x.Item2.ToLower().Contains("ctv") && !x.Item2.ToLower().Contains("ptv")).ToList();
             int calcItems = remainingTS.Count;
             int counter = 0;
@@ -367,7 +360,6 @@ namespace VMATAutoPlanMT.VMAT_CSI
             {
                 counter = 0;
                 ProvideUIUpdate(0, String.Format("Contouring TS: {0}", itr));
-                //MessageBox.Show(String.Format("create TS: {0}", itr));
                 Structure addedStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.ToLower());
                 if (itr.ToLower().Contains("ts_ring"))
                 {

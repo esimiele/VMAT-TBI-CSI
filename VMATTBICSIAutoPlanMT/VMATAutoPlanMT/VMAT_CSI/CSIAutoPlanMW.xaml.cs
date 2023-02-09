@@ -786,7 +786,10 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //create an instance of the generateTS_CSI class, passing the tuning structure list, structure sparing list, targets, prescriptions, and the selected structure set
             generateTS_CSI generate = new generateTS_CSI(TS_structures, structureSpareList, targets, prescriptions, selectedSS);
             pi.BeginModifications();
-            if (generate.Execute()) return;
+            bool result = generate.Execute();
+            //grab the log output regardless if it passes or fails
+            log.AppendLogOutput("TS Generation and manipulation output:", generate.GetLogOutput());
+            if (result) return;
 
             //does the structure sparing list need to be updated? This occurs when structures the user elected to spare with option of 'Mean Dose < Rx Dose' are high resolution. Since Eclipse can't perform
             //boolean operations on structures of two different resolutions, code was added to the generateTS class to automatically convert these structures to low resolution with the name of

@@ -22,7 +22,6 @@ namespace VMATAutoPlanMT.baseClasses
 
         public generateTSbase()
         {
-
         }
 
         public virtual bool PerformStructureGeneration()
@@ -60,7 +59,6 @@ namespace VMATAutoPlanMT.baseClasses
         {
             if (!ss.Image.HasUserOrigin || !(ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").IsPointInsideSegment(ss.Image.UserOrigin)))
             {
-                //MessageBox.Show("Did you forget to set the user origin? \nUser origin is NOT inside body contour! \nPlease fix and try again!");
                 ProvideUIUpdate("Did you forget to set the user origin? \nUser origin is NOT inside body contour! \nPlease fix and try again!", true);
                 return true;
             }
@@ -103,21 +101,18 @@ namespace VMATAutoPlanMT.baseClasses
                         else
                         {
                             ProvideUIUpdate(0, String.Format("Error! {0} can't be removed from the structure set!", itr.Item2), true);
-                            //MessageBox.Show(String.Format("Error! \n{0} can't be removed from the structure set!", tmp.Id));
                             return true;
                         }
 
                         if (!selectedSS.CanAddStructure(itr.Item1, itr.Item2))
                         {
                             ProvideUIUpdate(0, String.Format("Error! {0} can't be added the structure set!", itr.Item2), true);
-                            //MessageBox.Show(String.Format("Error! \n{0} can't be added to the structure set!", itr.Item2));
                             return true;
                         }
                     }
                     else
                     {
                         ProvideUIUpdate(0, String.Format("{0} is of DICOM type 'None'! ESAPI can't operate on DICOM type 'None'", itr.Item2), true);
-                        //MessageBox.Show(String.Format("Error! \n{0} is of DICOM type 'None'! \nESAPI can't operate on DICOM type 'None'", itr.Item2));
                         return true;
                     }
                 }
