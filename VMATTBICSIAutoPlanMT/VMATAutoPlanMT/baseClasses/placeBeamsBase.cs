@@ -19,7 +19,7 @@ namespace VMATAutoPlanMT.baseClasses
         public bool checkIsoPlacement = false;
         public List<ExternalPlanSetup> plans = new List<ExternalPlanSetup> { };
         public double checkIsoPlacementLimit = 5.0;
-        public string courseId;
+        private string courseId;
         public Course theCourse;
         public StructureSet selectedSS;
         //plan ID, target Id, numFx, dosePerFx, cumulative dose
@@ -34,66 +34,42 @@ namespace VMATAutoPlanMT.baseClasses
         public Structure target = null;
         public int numVMATIsos;
 
-        public placeBeamsBase()
-        {
-
-        }
-
-        public virtual bool Initialize(string cId, List<Tuple<string, string, int, DoseValue, double>> presc)
+        public bool Initialize(string cId, List<Tuple<string, string, int, DoseValue, double>> presc)
         {
             courseId = cId;
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(presc);
             return false;
         }
 
-        public virtual bool Execute()
+        public virtual bool GeneratePlanList()
         {
-            ESAPIworker slave = new ESAPIworker();
-            //create a new frame (multithreading jargon)
-            DispatcherFrame frame = new DispatcherFrame();
-            slave.RunOnNewThread(() =>
-            {
-                //pass the progress window the newly created thread and this instance of the optimizationLoop class.
-                MTProgress pw = new MTProgress();
-                pw.setCallerClass(slave, this);
-                pw.ShowDialog();
-
-                //tell the code to hold until the progress window closes.
-                frame.Continue = false;
-            });
-            Dispatcher.PushFrame(frame);
-            return false;
-        }
-
-        public virtual List<ExternalPlanSetup> GeneratePlanList()
-        {
-            if (checkExistingCoursePlans(courseId)) return null;
-            if (createPlans()) return null;
-            //plan, isocenter positions, isocenter names, number of beams per isocenter
-            List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> isoLocations = getIsocenterPositions();
+            if (CheckExistingCourse()) return true;
+            if (CheckExistingPlans()) return true;
+            if (CreatePlans()) return true;
+            //plan, List<isocenter positions, isocenter names, number of beams per isocenter>
+            List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> isoLocations = GetIsocenterPositions();
             UpdateUILabel("Assigning isocenters and beams: ");
             int isoCount = 0;
             foreach(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> itr in isoLocations)
             {
-                if (contourOverlap) contourFieldOverlap(itr, isoCount);
-                if(setBeams(itr)) return null;
+                //ensure contour overlap is requested AND there are more than two isocenters for this plan
+                if (contourOverlap && itr.Item2.Count > 1) if(ContourFieldOverlap(itr, isoCount)) return true;
+                if(SetBeams(itr)) return true;
                 isoCount += itr.Item2.Count;
             }
             UpdateUILabel("Finished!");
 
-            //MessageBox.Show("Beams placed successfully!\nPlease proceed to the optimization setup tab!");
-
             if (checkIsoPlacement) MessageBox.Show(String.Format("WARNING: < {0:0.00} cm margin at most superior and inferior locations of body! Verify isocenter placement!", checkIsoPlacementLimit / 10));
-            return plans;
+            return false;
         }
 
-        private bool checkExistingCoursePlans(string courseId)
+        private bool CheckExistingCourse()
         {
             UpdateUILabel("Check course: ");
             int calcItems = 1;
             int counter = 0;
             ProvideUIUpdate(0, String.Format("Checking for existing course {0}", courseId));
-            //look for a course name VMAT TBI. If it does not exit, create it, otherwise load it into memory
+            //look for a course with id = courseId assigned at initialization. If it does not exit, create it, otherwise load it into memory
             if (selectedSS.Patient.Courses.Where(x => x.Id == courseId).Any())
             {
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Course {0} found!", courseId));
@@ -102,22 +78,20 @@ namespace VMATAutoPlanMT.baseClasses
             else
             {
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Course {0} does not exist. Creating now!", courseId));
-                theCourse = createCourse(courseId);
+                theCourse = CreateCourse();
             }
             if (theCourse == null)
             {
-                ProvideUIUpdate(0, String.Format("Course creation or assignment failed! Exiting!"));
+                ProvideUIUpdate(0, String.Format("Course creation or assignment failed! Exiting!", true));
                 return true;
             }
             ProvideUIUpdate(100, String.Format("Course {0} retrieved!", courseId));
-            if (checkExistingPlans()) return true;
             return false;
         }
 
-        public virtual bool checkExistingPlans()
+        public virtual bool CheckExistingPlans()
         {
             UpdateUILabel("Checking for existing plans: ");
-            //string msg = "";
             int numExistingPlans = 0;
             int calcItems = prescriptions.Count;
             int counter = 0;
@@ -125,7 +99,6 @@ namespace VMATAutoPlanMT.baseClasses
             {
                 if (theCourse.ExternalPlanSetups.Where(x => x.Id == itr.Item1).Any())
                 {
-                    //msg += itr.Item1 + Environment.NewLine;
                     numExistingPlans++;
                     ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Plan {0} EXISTS in course {1}", itr.Item1, courseId));
                 }
@@ -135,8 +108,7 @@ namespace VMATAutoPlanMT.baseClasses
             {
                 ProvideUIUpdate(0, String.Format("One or more plans exist in course {0}", courseId));
                 ProvideUIUpdate(String.Format("ESAPI can't remove plans in the clinical environment!"));
-                ProvideUIUpdate(String.Format("Please manually remove this plan and try again."));
-                //MessageBox.Show(String.Format("The following plans already exist in course '{0}': {1}\nESAPI can't remove plans in the clinical environment! \nPlease manually remove this plan and try again.", theCourse, msg));
+                ProvideUIUpdate(String.Format("Please manually remove this plan and try again.", true));
                 return true;
             }
             else ProvideUIUpdate(100, String.Format("No plans currently exist in course {0}!", courseId));
@@ -144,7 +116,7 @@ namespace VMATAutoPlanMT.baseClasses
             return false;
         }
 
-        private Course createCourse(string courseId)
+        private Course CreateCourse()
         {
             Course tmpCourse = null;
             if (selectedSS.Patient.CanAddCourse())
@@ -155,12 +127,11 @@ namespace VMATAutoPlanMT.baseClasses
             else
             {
                 ProvideUIUpdate(String.Format("Error! Can't add a treatment course to the patient!"));
-                //MessageBox.Show("Error! \nCan't add a treatment course to the patient!");
             }
             return tmpCourse;
         }
 
-        private bool createPlans()
+        private bool CreatePlans()
         {
             UpdateUILabel("Creating plans: ");
             foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
@@ -244,8 +215,8 @@ namespace VMATAutoPlanMT.baseClasses
 
                 //these need to be fixed
                 //v16 of Eclipse allows for the creation of a plan with a named target structure and named primary reference point. Neither of these options are available in v15
-                //plan.TargetVolumeID = selectedSS.Structures.First(x => x.Id == "TS_PTV_VMAT");
-                //plan.PrimaryReferencePoint = plan.ReferencePoints.Fisrt(x => x.Id == "VMAT TBI");
+                //plan.TargetVolumeID = selectedSS.Structures.First(x => x.Id == "xx");
+                //plan.PrimaryReferencePoint = plan.ReferencePoints.Fisrt(x => x.Id == "xx");
                 plans.Add(thePlan);
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Added plan {0} to stack!", itr.Item1));
             }
@@ -255,12 +226,16 @@ namespace VMATAutoPlanMT.baseClasses
 
         //function used to contour the overlap between fields in adjacent isocenters for the VMAT Plan ONLY!
         //this option is requested by the user by selecting the checkbox on the main UI on the beam placement tab
-        private void contourFieldOverlap(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> isoLocations, int isoCount)
+        private bool ContourFieldOverlap(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> isoLocations, int isoCount)
         {
-            //only one isocenter. No adjacent isocenters requiring overlap contouring
-            if (isoLocations.Item2.Count == 1) return;
-            Structure target_tmp = selectedSS.Structures.FirstOrDefault(x => x.Id == prescriptions.FirstOrDefault(y => y.Item1 == isoLocations.Item1.Id).Item2);
-            if (target_tmp == null) { MessageBox.Show(String.Format("Error getting target structure ({0}) for plan: {1}! Exiting!", prescriptions.FirstOrDefault(y => y.Item1 == isoLocations.Item1.Id).Item2, prescriptions.FirstOrDefault(y => y.Item1 == isoLocations.Item1.Id))); return; }
+            //grab target Id for this prescription item
+            string targetId = prescriptions.FirstOrDefault(y => y.Item1 == isoLocations.Item1.Id).Item2;
+            Structure target_tmp = selectedSS.Structures.FirstOrDefault(x => x.Id == targetId);
+            if (target_tmp == null) 
+            { 
+                ProvideUIUpdate(String.Format("Error getting target structure ({0}) for plan: {1}! Exiting!", targetId, prescriptions.FirstOrDefault(y => y.Item1 == isoLocations.Item1.Id)), true); 
+                return true; 
+            }
             //grab the image and get the z resolution and dicom origin (we only care about the z position of the dicom origin)
             Image image = selectedSS.Image;
             double zResolution = image.ZRes;
@@ -270,33 +245,48 @@ namespace VMATAutoPlanMT.baseClasses
 
             //calculate the center position between adjacent isocenters, number of image slices to contour on based on overlap and with additional user-specified margin (from main UI)
             //and the slice where the contouring should begin
-            //string output = "";
             for (int i = 1; i < isoLocations.Item2.Count; i++)
             {
                 //calculate the center position between adjacent isocenters. NOTE: this calculation works from superior to inferior!
                 double center = isoLocations.Item2.ElementAt(i - 1).Item1.z + (isoLocations.Item2.ElementAt(i).Item1.z - isoLocations.Item2.ElementAt(i - 1).Item1.z) / 2;
                 //this is left as a double so I can cast it to an int in the second overlap item and use it in the calculation in the third overlap item
-                double numSlices = Math.Ceiling(400.0 + contourOverlapMargin - Math.Abs(isoLocations.Item2.ElementAt(i).Item1.z - isoLocations.Item2.ElementAt(i - 1).Item1.z));
-                overlap.Add(new Tuple<double, int, int>(
-                    center,
-                    (int)(numSlices / zResolution),
-                    (int)(Math.Abs(dicomOrigin.z - center + numSlices / 2) / zResolution)));
+                //logic to consider the situation where the y extent of the fields are NOT 40 cm!
+                Beam iso1Beam1 = isoLocations.Item1.Beams.First(x => x.IsocenterPosition.z == isoLocations.Item2.ElementAt(i - 1).Item1.z);
+                Beam iso2Beam1 = isoLocations.Item1.Beams.First(x => x.IsocenterPosition.z == isoLocations.Item2.ElementAt(i).Item1.z);
+                //assumes iso1beam1 y1 is oriented inferior on patient and iso2beam1 is oriented superior on patient
+                double fieldLength = Math.Abs(iso1Beam1.GetEditableParameters().ControlPoints.First().JawPositions.Y1) + Math.Abs(iso2Beam1.GetEditableParameters().ControlPoints.First().JawPositions.Y2);
+                double numSlices = Math.Ceiling(fieldLength + contourOverlapMargin - Math.Abs(isoLocations.Item2.ElementAt(i).Item1.z - isoLocations.Item2.ElementAt(i - 1).Item1.z));
+                overlap.Add(new Tuple<double, int, int>(center,
+                                                        (int)(numSlices / zResolution),
+                                                        (int)(Math.Abs(dicomOrigin.z - center + numSlices / 2) / zResolution)));
                 //add a new junction structure (named TS_jnx<i>) to the stack. Contours will be added to these structure later
                 jnxs.Add(selectedSS.AddStructure("CONTROL", string.Format("TS_jnx{0}", isoCount + i)));
-                //output += String.Format("{0}, {1}, {2}\n", 
-                //    isoLocations.ElementAt(i - 1).z + (isoLocations.ElementAt(i).z - isoLocations.ElementAt(i - 1).z) / 2,
-                //    (int)Math.Ceiling((410.0 - Math.Abs(isoLocations.ElementAt(i).z - isoLocations.ElementAt(i - 1).z)) / zResolution),
-                //    (int)(Math.Abs(dicomOrigin.z - (isoLocations.ElementAt(i - 1).z + ((isoLocations.ElementAt(i).z - isoLocations.ElementAt(i - 1).z) / 2)) + Math.Ceiling((410.0 - Math.Abs(isoLocations.ElementAt(i).z - isoLocations.ElementAt(i - 1).z))/2)) / zResolution));
             }
-            //MessageBox.Show(output);
-
 
             //make a box at the min/max x,y positions of the target structure with 5 cm margin
-            Point3DCollection targetPts = target_tmp.MeshGeometry.Positions;
-            double xMax = targetPts.Max(p => p.X) + 50.0;
-            double xMin = targetPts.Min(p => p.X) - 50.0;
-            double yMax = targetPts.Max(p => p.Y) + 50.0;
-            double yMin = targetPts.Min(p => p.Y) - 50.0;
+            VVector[] targetBoundingBox = CreateTargetBoundingBox(target_tmp, 5.0);
+
+            //add the contours to each relevant plan for each structure in the jnxs stack
+            int count = 0;
+            foreach (Tuple<double, int, int> value in overlap)
+            {
+                for (int i = value.Item3; i < (value.Item3 + value.Item2); i++) jnxs.ElementAt(count).AddContourOnImagePlane(targetBoundingBox, i);
+                //only keep the portion of the box contour that overlaps with the target
+                jnxs.ElementAt(count).SegmentVolume = jnxs.ElementAt(count).And(target_tmp.Margin(0));
+                count++;
+            }
+            return false;
+        }
+
+        private VVector[] CreateTargetBoundingBox(Structure target, double margin)
+        {
+            margin *= 10;
+            //margin is in cm
+            Point3DCollection targetPts = target.MeshGeometry.Positions;
+            double xMax = targetPts.Max(p => p.X) + margin;
+            double xMin = targetPts.Min(p => p.X) - margin;
+            double yMax = targetPts.Max(p => p.Y) + margin;
+            double yMin = targetPts.Min(p => p.Y) - margin;
 
             VVector[] pts = new[] {
                                     new VVector(xMax, yMax, 0),
@@ -308,23 +298,16 @@ namespace VMATAutoPlanMT.baseClasses
                                     new VVector(xMin, yMax, 0),
                                     new VVector(0, yMax, 0)};
 
-            //add the contours to each relevant plan for each structure in the jnxs stack
-            int count = 0;
-            foreach (Tuple<double, int, int> value in overlap)
-            {
-                for (int i = value.Item3; i < (value.Item3 + value.Item2); i++) jnxs.ElementAt(count).AddContourOnImagePlane(pts, i);
-                //only keep the portion of the box contour that overlaps with the target
-                jnxs.ElementAt(count).SegmentVolume = jnxs.ElementAt(count).And(target_tmp.Margin(0));
-                count++;
-            }
+            return pts;
         }
 
-        public virtual bool setBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> isoLocations)
+        public virtual bool SetBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> isoLocations)
         {
-            return false;
+            //needs to be implemented by deriving class
+            return true;
         }
 
-        public virtual List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> getIsocenterPositions()
+        public virtual List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> GetIsocenterPositions()
         {
             return new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
         }

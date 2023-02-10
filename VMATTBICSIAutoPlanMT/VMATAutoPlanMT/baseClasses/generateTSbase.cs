@@ -18,50 +18,11 @@ namespace VMATAutoPlanMT.baseClasses
         public bool useFlash = false;
         //plan Id, list of isocenter names for this plan
         public List<Tuple<string,List<string>>> isoNames = new List<Tuple<string, List<string>>> { };
-        
 
-        public generateTSbase()
-        {
-        }
-
-        public virtual bool PerformStructureGeneration()
-        {
-            return false;
-        }
-
-        public virtual bool Execute()
-        {
-            ESAPIworker slave = new ESAPIworker();
-            //create a new frame (multithreading jargon)
-            DispatcherFrame frame = new DispatcherFrame();
-            slave.RunOnNewThread(() =>
-            {
-                //pass the progress window the newly created thread and this instance of the optimizationLoop class.
-                MTProgress pw = new MTProgress();
-                pw.setCallerClass(slave, this);
-                pw.ShowDialog();
-
-                //tell the code to hold until the progress window closes.
-                frame.Continue = false;
-            });
-            Dispatcher.PushFrame(frame);
-            
-            return slave.isError;
-        }
-
+        #region virtual methods
         public virtual bool preliminaryChecks()
         {
             //specific to each case (TBI or CSI)
-            return false;
-        }
-
-        public bool isUOriginInside(StructureSet ss)
-        {
-            if (!ss.Image.HasUserOrigin || !(ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").IsPointInsideSegment(ss.Image.UserOrigin)))
-            {
-                ProvideUIUpdate("Did you forget to set the user origin? \nUser origin is NOT inside body contour! \nPlease fix and try again!", true);
-                return true;
-            }
             return false;
         }
 
@@ -76,8 +37,10 @@ namespace VMATAutoPlanMT.baseClasses
             //no virtual method implementation as this method is really only useful for VMAT TBI as VMAT CSI already has a healthy margin going from CTV->PTV
             return false;
         }
+        #endregion
 
-        public virtual bool RemoveOldTSStructures(List<Tuple<string,string>> structures)
+        #region helper functions related to TS generation and manipulation
+        public bool RemoveOldTSStructures(List<Tuple<string, string>> structures)
         {
             UpdateUILabel("Remove Prior Tuning Structures: ");
             ProvideUIUpdate(0, "Removing prior tuning structures");
@@ -137,7 +100,7 @@ namespace VMATAutoPlanMT.baseClasses
             return false;
         }
 
-        public virtual List<Tuple<string,string,double>> convertHighToLowRes(List<Structure> highRes, List<Tuple<string, string, double>> highResSpareList, List<Tuple<string,string,double>> dataList)
+        public List<Tuple<string, string, double>> convertHighToLowRes(List<Structure> highRes, List<Tuple<string, string, double>> highResSpareList, List<Tuple<string, string, double>> dataList)
         {
             int count = 0;
             foreach (Structure s in highRes)
@@ -191,7 +154,7 @@ namespace VMATAutoPlanMT.baseClasses
             return dataList;
         }
 
-        public virtual Structure AddTSStructures(Tuple<string, string> itr1)
+        public Structure AddTSStructures(Tuple<string, string> itr1)
         {
             Structure addedStructure = null;
             string dicomType = itr1.Item1;
@@ -205,5 +168,16 @@ namespace VMATAutoPlanMT.baseClasses
             else ProvideUIUpdate(String.Format("Can't add {0} to the structure set!", structName));
             return addedStructure;
         }
+
+        public bool isUOriginInside(StructureSet ss)
+        {
+            if (!ss.Image.HasUserOrigin || !(ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").IsPointInsideSegment(ss.Image.UserOrigin)))
+            {
+                ProvideUIUpdate("Did you forget to set the user origin? \nUser origin is NOT inside body contour! \nPlease fix and try again!", true);
+                return true;
+            }
+            return false;
+        }
+        #endregion
     }
 }

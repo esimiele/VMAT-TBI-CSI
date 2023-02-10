@@ -63,11 +63,10 @@ namespace VMATAutoPlanMT.VMAT_CSI
         [HandleProcessCorruptedStateExceptions]
         public override bool Run()
         {
-            GeneratePlanList();
-            return false;
+            return GeneratePlanList();
         }
 
-        public override List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> getIsocenterPositions()
+        public override List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> GetIsocenterPositions()
         {
             UpdateUILabel("Calculating isocenter positions: ");
             ProvideUIUpdate(0, String.Format("Extracting isocenter positions for all plans"));
@@ -324,7 +323,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //return iso;
         }
 
-        public override bool setBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
+        public override bool SetBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
         {
             string pid = iso.Item1.Id;
             ProvideUIUpdate(0, String.Format("Preparing to set isocenters for plan: {0}", pid));

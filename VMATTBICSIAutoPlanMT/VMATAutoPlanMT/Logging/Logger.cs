@@ -21,7 +21,13 @@ namespace VMATAutoPlanMT.Logging
         public string planType { get; set; }
         public string template { get; set; }
         public string selectedSS { get; set; }
-        public void AppendLogOutput(string info, StringBuilder s) { _logFromOperations.AppendLine(info); _logFromOperations.Append(s); }
+        //called after TS generation and beam placement are performed to copy the immediate log output from MTProgress window to the log file
+        public void AppendLogOutput(string info, StringBuilder s) 
+        {
+            _logFromOperations.AppendLine(info); 
+            _logFromOperations.Append(s); 
+            _logFromOperations.AppendLine(""); 
+        }
 
         //targets and prescription
         //structure ID, Rx dose, plan Id
@@ -112,7 +118,9 @@ namespace VMATAutoPlanMT.Logging
                     sb.AppendLine(String.Format("        {{{0},{1},{2},{3},{4}}}", itr1.Item1, itr1.Item2, itr1.Item3, itr1.Item4, itr1.Item5));
                 }
             }
+            sb.AppendLine(String.Format(""));
             sb.AppendLine("Detailed log output");
+            sb.AppendLine(String.Format(""));
 
             try
             {

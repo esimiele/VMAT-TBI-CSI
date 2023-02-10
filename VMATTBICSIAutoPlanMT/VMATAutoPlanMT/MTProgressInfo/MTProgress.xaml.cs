@@ -56,16 +56,21 @@ namespace VMATAutoPlanMT.MTProgressInfo
             });
         }
 
-        public void UpdateLabel(string message) { theLabel.Text = message; }
-
-        public void provideUpdate(int percentComplete, string message, bool fail = false)
-        {
-            if(fail) FailEvent();
-            progressTB.Text += message + Environment.NewLine;
-            scroller.ScrollToBottom();
+        public void UpdateLabel(string message) 
+        { 
+            theLabel.Text = message; 
         }
 
-        public void provideUpdate(int percentComplete) { progress.Value = percentComplete; }
+        public void provideUpdate(int percentComplete, string message = "", bool fail = false)
+        {
+            if(fail) FailEvent();
+            progress.Value = percentComplete;
+            if(!string.IsNullOrEmpty(message))
+            {
+                progressTB.Text += message + Environment.NewLine;
+                scroller.ScrollToBottom();
+            }
+        }
 
         public void provideUpdate(string message, bool fail = false) 
         {

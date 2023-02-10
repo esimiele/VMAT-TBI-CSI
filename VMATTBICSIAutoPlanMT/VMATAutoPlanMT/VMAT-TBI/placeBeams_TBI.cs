@@ -79,11 +79,11 @@ namespace VMATAutoPlanMT
         [HandleProcessCorruptedStateExceptions]
         public override bool Run()
         {
-            checkExistingPlans();
+            CheckExistingPlans();
             return false;
         }
 
-        public override bool checkExistingPlans()
+        public override bool CheckExistingPlans()
         {
             string planID = prescriptions.First().Item1;
             //6-10-2020 EAS, research system only!
@@ -102,7 +102,7 @@ namespace VMATAutoPlanMT
             return false;
         }
 
-        public override List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> getIsocenterPositions()
+        public override List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> GetIsocenterPositions()
         {
             plan = plans.First();
             //List<Tuple<ExternalPlanSetup, List<VVector>>> allIsocenters = new List<Tuple<ExternalPlanSetup, List<VVector>>> { };
@@ -236,7 +236,7 @@ namespace VMATAutoPlanMT
             return allIsocenters;
         }
 
-        public override bool setBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
+        public override bool SetBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
         {
             //DRR parameters (dummy parameters to generate DRRs for each field)
             DRRCalculationParameters DRR = new DRRCalculationParameters();

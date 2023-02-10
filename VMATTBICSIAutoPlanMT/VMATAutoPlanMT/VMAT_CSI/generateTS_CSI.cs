@@ -346,7 +346,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             List<Tuple<string, string>> remainingTS = TS_structures.Where(x => !x.Item2.ToLower().Contains("ctv") && !x.Item2.ToLower().Contains("ptv")).ToList();
             int calcItems = remainingTS.Count;
             int counter = 0;
-            foreach (Tuple<string, string> itr in TS_structures.Where(x => !x.Item2.ToLower().Contains("ctv") && !x.Item2.ToLower().Contains("ptv")))
+            foreach (Tuple<string, string> itr in remainingTS)
             {
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Adding TS to added structures: {0}", itr.Item2));
                 //if those structures have NOT been added to the added structure list, go ahead and add them to stack
@@ -393,47 +393,62 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 else if(itr.ToLower().Contains("ts_globes") || itr.ToLower().Contains("ts_lenses"))
                 {
                     calcItems = 4;
+                    //try to grab ptv_brain first
                     Structure targetStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_brain" && !x.IsEmpty);
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved brain target: {0}", targetStructure.Id));
+                    double margin = 0;
 
-                    Structure normal = null;
-                    if (itr.ToLower().Contains("globes")) normal = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("globes") && !x.IsEmpty);
-                    else normal = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("lenses") && !x.IsEmpty);
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved structure: {0}", normal.Id));
-
-                    if (targetStructure != null && normal != null)
+                    if (targetStructure == null)
                     {
-                        ProvideUIUpdate(String.Format("Generating ring {0} for target {1}", itr, "PTV_Brain"));
-                        //margin in cm. 
-                        double margin = 0;
-                        double thickness = 0;
-                        if(itr.ToLower().Contains("globes"))
-                        {
-                            margin = 0.5;
-                            thickness = 1.0;
-                        }
-                        else
-                        {
-                            margin = 1.5;
-                            thickness = 2.0;
-                        }
-                        if (createRing(targetStructure, addedStructure, margin, thickness)) return true;
-                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Finished contouring ring: {0}", addedStructure.Id));
-
-                        ProvideUIUpdate(String.Format("Contouring overlap between ring and {0}", itr.ToLower().Contains("globes") ? "Globes" : "Lenses"));
-                        if (contourOverlap(normal, addedStructure, 0.0)) return true;
-                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Overlap Contoured!"));
-
-                        if(addedStructure.IsEmpty)
-                        {
-                            ProvideUIUpdate(String.Format("{0} is empty! Removing now!", itr));
-                            calcItems += 1;
-                            selectedSS.RemoveStructure(addedStructure);
-                            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Removed structure: {0}", itr));
-                        }
-                        ProvideUIUpdate(String.Format("Finished contouring: {0}", itr));
+                        //could not retrieve ptv_brain
+                        calcItems += 1;
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Failed to retrieve PTV_Brain! Attempting to retrieve brain structure: {0}", "Brain"));
+                        targetStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "brain" && !x.IsEmpty);
+                        //additional 5 mm margin for ring creation to account for the missing 5 mm margin going from brain --> PTV_Vrain
+                        margin = 0.5;
                     }
-                    else ProvideUIUpdate(String.Format("Warning! Could not retrieve PTV_Brain structure! Skipping {0}", itr));
+                    if(targetStructure != null)
+                    {
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved brain target: {0}", targetStructure.Id));
+                        Structure normal = null;
+                        if (itr.ToLower().Contains("globes")) normal = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("globes") && !x.IsEmpty);
+                        else normal = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("lenses") && !x.IsEmpty);
+
+                        if (normal != null)
+                        {
+                            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved structure: {0}", normal.Id));
+                            ProvideUIUpdate(String.Format("Generating ring {0} for target {1}", itr, targetStructure.Id));
+                            //margin in cm. 
+                            double thickness = 0;
+                            if (itr.ToLower().Contains("globes"))
+                            {
+                                //need to add these margins to the existing margin distance to account for the situation where ptv_brain is not retrieved, but the brain structure is.
+                                margin += 0.5;
+                                thickness = 1.0;
+                            }
+                            else
+                            {
+                                margin += 1.5;
+                                thickness = 2.0;
+                            }
+                            if (createRing(targetStructure, addedStructure, margin, thickness)) return true;
+                            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Finished contouring ring: {0}", addedStructure.Id));
+
+                            ProvideUIUpdate(String.Format("Contouring overlap between ring and {0}", itr.ToLower().Contains("globes") ? "Globes" : "Lenses"));
+                            if (contourOverlap(normal, addedStructure, 0.0)) return true;
+                            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Overlap Contoured!"));
+
+                            if (addedStructure.IsEmpty)
+                            {
+                                ProvideUIUpdate(String.Format("{0} is empty! Removing now!", itr));
+                                calcItems += 1;
+                                selectedSS.RemoveStructure(addedStructure);
+                                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Removed structure: {0}", itr));
+                            }
+                            ProvideUIUpdate(String.Format("Finished contouring: {0}", itr));
+                        }
+                        else ProvideUIUpdate(String.Format("Warning! Could not retrieve normal structure! Skipping {0}", itr));
+                    }
+                    else ProvideUIUpdate(String.Format("Warning! Could not retrieve Brain structure! Skipping {0}", itr));
                 }
                 else if (itr.ToLower().Contains("armsavoid")) createArmsAvoid(addedStructure);
                 else if (!(itr.ToLower().Contains("ptv")))
@@ -481,7 +496,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 ProvideUIUpdate("Error! Body and/or lungs structures were not found or are empty! Exiting!", true);
             }
             MeshGeometry3D mesh = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_csi").MeshGeometry;
-            //get most inferior slice of ptv_spine (mesgeometry.bounds.z indicates the most inferior part of a structure)
+            //get most inferior slice of ptv_csi (mesgeometry.bounds.z indicates the most inferior part of a structure)
             int startSlice = (int)((mesh.Bounds.Z - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes);
             //only go to the most superior part of the lungs for contouring the arms
             int stopSlice = (int)((lungs.MeshGeometry.Positions.Max(p => p.Z) - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes) + 1;
@@ -631,11 +646,6 @@ namespace VMATAutoPlanMT.VMAT_CSI
                             Structure originalNormal = selectedSS.Structures.FirstOrDefault(x => x.Id == itr1.Item1);
                             addedTSNormal.SegmentVolume = originalNormal.Margin(0.0);
                             if(contourOverlap(addedTSTarget, addedTSNormal, itr1.Item3)) return true;
-                            //Structure tmp = selectedSS.AddStructure("CONTROL", "dummy");
-                            //tmp.SegmentVolume = addedTSNormal.Margin(0.0);
-                            //tmp.Sub(originalNormal.Margin(0.0));
-                            //if (tmp.IsEmpty) selectedSS.RemoveStructure(addedTSNormal);
-                            //selectedSS.RemoveStructure(tmp);
                             if (addedTSNormal.IsEmpty)
                             {
                                 ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("{0} was contoured, but it's empty! Removing!", newName));
@@ -707,17 +717,22 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 {
                     calcItems += 1;
                     //special rules for initial plan, which should have a target named PTV_CSI
-                    //determine the number of isocenters required to treat PTV_Spine
-                    Structure spineTarget = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_spine");
+                    //first, determine the number of isocenters required to treat PTV_Spine
+                    //
+                    //2/10/2023 according to Nataliya, PTV_Spine might not be present in the structure set 100% of the time. Therefore, just grab the spinal cord structure and add the margins
+                    //used to create PTV_Spine (0.5 cm Ant and 1.5 cm Inf) manually.
+                    Structure spineTarget = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinalcord" || x.Id.ToLower() == "spinal_cord");
                     if (spineTarget == null || spineTarget.IsEmpty)
                     {
-                        ProvideUIUpdate(String.Format("Error! No structure named PTV_Spine was found or it was empty!"), true);
+                        ProvideUIUpdate(String.Format("Error! No structure named spinalcord or spinal_cord was found or it was empty!"), true);
                         return true;
                     }
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), "Retrieved PTV_Spine");
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), "Retrieved spinal cord structure");
 
                     Point3DCollection pts = spineTarget.MeshGeometry.Positions;
-
+                    //ESAPI default distances are in mm
+                    double addedMargin = 20.0;
+                    double spineTargetExtent = (pts.Max(p => p.Z) - pts.Min(p => p.Z)) + addedMargin;
                     //Grab the thyroid structure, if it does not exist, add a 50 mm buffer to the field extent (rough estimate of most inferior position of thyroid)
                     //Structure thyroidStruct = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("thyroid"));
                     //if (thyroidStruct == null || thyroidStruct.IsEmpty) numVMATIsos = (int)Math.Ceiling((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 + 50.0));
@@ -727,11 +742,12 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     //    Point3DCollection thyroidPts = thyroidStruct.MeshGeometry.Positions;
                     //    numVMATIsos = (int)Math.Ceiling((thyroidPts.Min(p => p.Z) - pts.Min(p => p.Z)) / 400.0);
                     //}
-                    //subtract 50 mm from the numerator as ptv_spine extends 10 mm into ptv_brain and brain fields have a 40 mm inferior margin on the ptv_brain (10 + 40 = 50 mm). Overlap is accounted for in the denominator.
-                    numVMATIsos = (int)Math.Ceiling((pts.Max(p => p.Z) - pts.Min(p => p.Z) - 50.0) / (400.0 - 20.0));
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("{0:0.0}, {1:0.0}, {2:0.0}", pts.Max(p => p.Z) - pts.Min(p => p.Z), (pts.Max(p => p.Z) - pts.Min(p => p.Z) - 40.0) / (400.0 - 20.0), numVMATIsos));
+                    //
+                    //subtract 50 mm from the numerator as ptv_spine extends 10 mm into ptv_brain and brain fields have a 40 mm inferior margin on the ptv_brain (10 + 40 = 50 mm). 
+                    //Overlap is accounted for in the denominator.
+                    numVMATIsos = (int)Math.Ceiling((spineTargetExtent - 50.0) / (400.0 - 20.0));
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("{0:0.0}, {1:0.0}, {2:0.0}", spineTargetExtent, (spineTargetExtent - 50.0) / (400.0 - 20.0), numVMATIsos));
 
-                    //MessageBox.Show(String.Format("{0}, {1}, {2}", pts.Max(p => p.Z) - pts.Min(p => p.Z), pts.Max(p => p.Z) - pts.Min(p => p.Z) - thyroidPts.Min(p => p.Z), (pts.Max(p => p.Z) - pts.Min(p => p.Z) - thyroidPts.Min(p => p.Z)) / 400.0));
                     //one iso reserved for PTV_Brain
                     numVMATIsos += 1;
                 }

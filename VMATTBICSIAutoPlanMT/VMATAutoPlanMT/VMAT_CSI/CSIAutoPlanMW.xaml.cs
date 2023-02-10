@@ -698,7 +698,13 @@ namespace VMATAutoPlanMT.VMAT_CSI
         }
 
         //method to clear and individual row in the structure sparing list (i.e., remove a single structure)
-        private void ClearStructureManipulationItem_Click(object sender, EventArgs e) { if (new GeneralUIhelper().clearRow(sender, (sender as Button).Name.Contains("template") ? templateStructures_sp : structures_sp)) ClearStructureManipulationsList((sender as Button).Name.Contains("template") ? templateClearSpareStructuresBtn : ClearStructureManipulationsBtn); }
+        private void ClearStructureManipulationItem_Click(object sender, EventArgs e)
+        {
+            if (new GeneralUIhelper().clearRow(sender, (sender as Button).Name.Contains("template") ? templateStructures_sp : structures_sp))
+            {
+                ClearStructureManipulationsList((sender as Button).Name.Contains("template") ? templateClearSpareStructuresBtn : ClearStructureManipulationsBtn);
+            }
+        }
 
         private void AddDefaultStructureManipulations_Click(object sender, RoutedEventArgs e)
         {
@@ -745,7 +751,14 @@ namespace VMATAutoPlanMT.VMAT_CSI
         {
             foreach (Tuple<string, string, double> s in caseSpareStruct)
             {
-                if (s.Item1.ToLower() == "ovaries" || s.Item1.ToLower() == "testes") { if ((pi.Sex == "Female" && s.Item1.ToLower() == "ovaries") || (pi.Sex == "Male" && s.Item1.ToLower() == "testes")) template.Add(s); }
+                if (s.Item1.ToLower() == "ovaries" || s.Item1.ToLower() == "testes") 
+                {
+                    if ((pi.Sex == "Female" && s.Item1.ToLower() == "ovaries") ||
+                        (pi.Sex == "Male" && s.Item1.ToLower() == "testes"))
+                    {
+                        template.Add(s);
+                    }
+                }
                 else template.Add(s);
             }
             return template;
@@ -938,7 +951,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     MessageBox.Show("Error! The entered added margin for the contour overlap text box is NaN! Please enter a valid number and try again!");
                     return;
                 }
-                //convert from mm to cm
+                //convert from cm to mm
                 contourOverlapMargin *= 10.0;
                 //overloaded constructor for the placeBeams class
                 place = new placeBeams_CSI(selectedSS, planIsoBeamInfo, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, contourOverlapMargin);
@@ -947,6 +960,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
             place.Initialize("VMAT CSI", prescriptions);
             place.Execute();
+            log.AppendLogOutput("Plan generation and beam placement output:", place.GetLogOutput());
             VMATplans = new List<ExternalPlanSetup>(place.plans);
             //VMATplans = new List<ExternalPlanSetup>(place.generatePlans("VMAT CSI", prescriptions));
             if (!VMATplans.Any()) return;
