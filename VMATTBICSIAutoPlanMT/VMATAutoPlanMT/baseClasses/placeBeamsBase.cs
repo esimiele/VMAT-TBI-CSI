@@ -34,19 +34,13 @@ namespace VMATAutoPlanMT.baseClasses
         public Structure target = null;
         public int numVMATIsos;
 
-        public bool Initialize(string cId, List<Tuple<string, string, int, DoseValue, double>> presc)
-        {
-            courseId = cId;
-            prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(presc);
-            return false;
-        }
-
+        #region virtual methods
         public virtual bool GeneratePlanList()
         {
             if (CheckExistingCourse()) return true;
             if (CheckExistingPlans()) return true;
             if (CreatePlans()) return true;
-            //plan, List<isocenter positions, isocenter names, number of beams per isocenter>
+            //plan, List<isocenter position, isocenter name, number of beams per isocenter>
             List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> isoLocations = GetIsocenterPositions();
             UpdateUILabel("Assigning isocenters and beams: ");
             int isoCount = 0;
@@ -61,6 +55,53 @@ namespace VMATAutoPlanMT.baseClasses
 
             if (checkIsoPlacement) MessageBox.Show(String.Format("WARNING: < {0:0.00} cm margin at most superior and inferior locations of body! Verify isocenter placement!", checkIsoPlacementLimit / 10));
             return false;
+        }
+
+        //2-12-2023 to be converted to non-virtual method so TBI uses the same plan checking syntax as CSI
+        public virtual bool CheckExistingPlans()
+        {
+            UpdateUILabel("Checking for existing plans: ");
+            int numExistingPlans = 0;
+            int calcItems = prescriptions.Count;
+            int counter = 0;
+            foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
+            {
+                if (theCourse.ExternalPlanSetups.Where(x => x.Id == itr.Item1).Any())
+                {
+                    numExistingPlans++;
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Plan {0} EXISTS in course {1}", itr.Item1, courseId));
+                }
+                else ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Plan {0} does not exist in course {1}", itr.Item1, courseId));
+            }
+            if (numExistingPlans > 0)
+            {
+                ProvideUIUpdate(0, String.Format("One or more plans exist in course {0}", courseId));
+                ProvideUIUpdate(String.Format("ESAPI can't remove plans in the clinical environment!"));
+                ProvideUIUpdate(String.Format("Please manually remove this plan and try again.", true));
+                return true;
+            }
+            else ProvideUIUpdate(100, String.Format("No plans currently exist in course {0}!", courseId));
+
+            return false;
+        }
+
+        public virtual bool SetBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> isoLocations)
+        {
+            //needs to be implemented by deriving class
+            return true;
+        }
+
+        public virtual List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> GetIsocenterPositions()
+        {
+            return new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
+        }
+        #endregion
+
+        #region concrete methods
+        public void Initialize(string cId, List<Tuple<string, string, int, DoseValue, double>> presc)
+        {
+            courseId = cId;
+            prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(presc);
         }
 
         private bool CheckExistingCourse()
@@ -86,33 +127,6 @@ namespace VMATAutoPlanMT.baseClasses
                 return true;
             }
             ProvideUIUpdate(100, String.Format("Course {0} retrieved!", courseId));
-            return false;
-        }
-
-        public virtual bool CheckExistingPlans()
-        {
-            UpdateUILabel("Checking for existing plans: ");
-            int numExistingPlans = 0;
-            int calcItems = prescriptions.Count;
-            int counter = 0;
-            foreach(Tuple<string, string, int, DoseValue, double> itr in prescriptions)
-            {
-                if (theCourse.ExternalPlanSetups.Where(x => x.Id == itr.Item1).Any())
-                {
-                    numExistingPlans++;
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Plan {0} EXISTS in course {1}", itr.Item1, courseId));
-                }
-                else ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Plan {0} does not exist in course {1}", itr.Item1, courseId));
-            }
-            if(numExistingPlans > 0)
-            {
-                ProvideUIUpdate(0, String.Format("One or more plans exist in course {0}", courseId));
-                ProvideUIUpdate(String.Format("ESAPI can't remove plans in the clinical environment!"));
-                ProvideUIUpdate(String.Format("Please manually remove this plan and try again.", true));
-                return true;
-            }
-            else ProvideUIUpdate(100, String.Format("No plans currently exist in course {0}!", courseId));
-
             return false;
         }
 
@@ -224,7 +238,7 @@ namespace VMATAutoPlanMT.baseClasses
             return false;
         }
 
-        //function used to contour the overlap between fields in adjacent isocenters for the VMAT Plan ONLY!
+        //function used to contour the overlap between fields in adjacent isocenters for the VMAT Plans ONLY!
         //this option is requested by the user by selecting the checkbox on the main UI on the beam placement tab
         private bool ContourFieldOverlap(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> isoLocations, int isoCount)
         {
@@ -300,16 +314,6 @@ namespace VMATAutoPlanMT.baseClasses
 
             return pts;
         }
-
-        public virtual bool SetBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> isoLocations)
-        {
-            //needs to be implemented by deriving class
-            return true;
-        }
-
-        public virtual List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> GetIsocenterPositions()
-        {
-            return new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
-        }
+        #endregion
     }
 }

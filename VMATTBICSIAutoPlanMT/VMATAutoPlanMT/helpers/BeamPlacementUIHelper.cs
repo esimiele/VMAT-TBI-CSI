@@ -260,5 +260,65 @@ namespace VMATAutoPlanMT.helpers
             }
             return theSPList;
         }
+
+        public (string, string, List<List<int>>) GetBeamSelections(StackPanel theSP, List<Tuple<string,List<string>>> isos)
+        {
+            int count = 0;
+            bool firstCombo = true;
+            string chosenLinac = "";
+            string chosenEnergy = "";
+            //int[,] numBeams = new int[numVMATIsos];
+            List<List<int>> numBeams = new List<List<int>> { };
+            List<int> numBeams_temp = new List<int> { };
+            int numElementsPerRow = 0;
+            foreach (object obj in theSP.Children)
+            {
+                foreach (object obj1 in ((StackPanel)obj).Children)
+                {
+                    if (obj1.GetType() == typeof(ComboBox))
+                    {
+                        //similar code to parsing the structure sparing list
+                        if (firstCombo)
+                        {
+                            chosenLinac = (obj1 as ComboBox).SelectedItem.ToString();
+                            firstCombo = false;
+                        }
+                        else chosenEnergy = (obj1 as ComboBox).SelectedItem.ToString();
+                    }
+                    if (obj1.GetType() == typeof(TextBox))
+                    {
+                        // MessageBox.Show(count.ToString());
+                        if (!int.TryParse((obj1 as TextBox).Text, out int beamTMP))
+                        {
+                            MessageBox.Show(String.Format("Error! \nNumber of beams entered in iso {0} is NaN!", isos.ElementAt(count)));
+                            return ("","",new List<List<int>>());
+                        }
+                        else if (beamTMP < 1)
+                        {
+                            MessageBox.Show(String.Format("Error! \nNumber of beams entered in iso {0} is < 1!", isos.ElementAt(count)));
+                            return ("", "", new List<List<int>>());
+                        }
+                        else if (beamTMP > 4)
+                        {
+                            MessageBox.Show(String.Format("Error! \nNumber of beams entered in iso {0} is > 4!", isos.ElementAt(count)));
+                            return ("", "", new List<List<int>>());
+                        }
+                        else numBeams_temp.Add(beamTMP);
+                        count++;
+                    }
+                    numElementsPerRow++;
+                }
+                if (numElementsPerRow == 1 && numBeams_temp.Any())
+                {
+                    //indicates only one item was in this stack panel indicating it was only a label indicating the code has finished reading the number of isos and beams per isos for this plan
+                    numBeams.Add(new List<int>(numBeams_temp));
+                    numBeams_temp = new List<int> { };
+                }
+                numElementsPerRow = 0;
+            }
+            numBeams.Add(new List<int>(numBeams_temp));
+
+            return (chosenLinac, chosenEnergy, numBeams);
+        }
     }
 }

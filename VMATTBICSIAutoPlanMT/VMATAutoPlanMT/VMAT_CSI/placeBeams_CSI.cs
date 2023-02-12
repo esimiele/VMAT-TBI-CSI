@@ -15,11 +15,9 @@ namespace VMATAutoPlanMT.VMAT_CSI
 {
     class placeBeams_CSI : placeBeamsBase
     {
-        //List<List<int>> numBeams;
+        //plan, list<iso name, number of beams>
         List<Tuple<string, List<Tuple<string, int>>>> planIsoBeamInfo;
-        //public List<Tuple<string,List<string>>> isoNames;
         double isoSeparation = 0;
-        //public ExternalPlanSetup plan = null;
         double[] collRot;
         double[] CW = { 181.0, 179.0 };
         double[] CCW = { 179.0, 181.0 };
@@ -112,32 +110,56 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     calcItems += 7;
                     ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieving PTV_Spine Structure"));
                     Structure ptvSpine = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_spine");
+                    if(ptvSpine == null)
+                    {
+                        calcItems += 1;
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Failed to find PTV_Spine Structure! Retrieving spinal cord structure"));
+                        ptvSpine = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinalcord" || x.Id.ToLower() == "spinal_cord");
+                        if(ptvSpine == null) ProvideUIUpdate(String.Format("Failed to retrieve spinal cord structure! Cannot calculate isocenter positions! Exiting"), true);
+                    }
                     ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieving PTV_Brain Structure"));
                     Structure ptvBrain = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_brain");
+                    if (ptvBrain == null)
+                    {
+                        calcItems += 1;
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Failed to find PTV_Brain Structure! Retrieving brain structure"));
+                        ptvBrain = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "brain");
+                        if (ptvBrain == null) ProvideUIUpdate(String.Format("Failed to retrieve brain structure! Cannot calculate isocenter positions! Exiting"), true);
+                    }
 
                     ProvideUIUpdate(String.Format("Calculating anterior extent of PTV_Spine"));
                     //Place field isocenters in y-direction at 2/3 the max 
                     spineYMin = (ptvSpine.MeshGeometry.Positions.Min(p => p.Y));
+                    ProvideUIUpdate(String.Format("Calculating superior and inferior extent of PTV_Spine"));
+                    spineZMax = ptvSpine.MeshGeometry.Positions.Max(p => p.Z);
+                    spineZMin = ptvSpine.MeshGeometry.Positions.Min(p => p.Z);
+                    if (!ptvSpine.Id.ToLower().Contains("ptv"))
+                    {
+                        ProvideUIUpdate("Adding 5 mm anterior margin to spinal cord structure to mimic anterior extent of PTV_Spine!");
+                        spineYMin += 5;
+                        ProvideUIUpdate("Adding 10 mm superior margin to spinal cord structure to mimic superior extent of PTV_Spine!");
+                        spineZMax += 10.0;
+                        ProvideUIUpdate("Adding 15 mm inferior margin to spinal cord structure to mimic inferior extent of PTV_Spine!");
+                        spineZMax -= 15.0;
+                    }
                     ProvideUIUpdate(String.Format("Anterior extent of PTV_Spine: {0:0.0} mm", spineYMin));
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Superior extent of PTV_Spine: {0:0.0} mm", spineZMax));
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Inferior extent of PTV_Spine: {0:0.0} mm", spineZMin));
+
                     spineYMin *= 0.8;
                     //absolute value accounts for positive or negative y position in DCM coordinates
                     if (Math.Abs(spineYMin) < Math.Abs(ptvSpine.CenterPoint.y))
                     {
-                        ProvideUIUpdate(String.Format("0.8 * PTV_Spine is more posterior than center of PTV_Spine!: {0:0.0} mm vs {1:0.0} mm", spineYMin, ptvSpine.CenterPoint.y));
+                        ProvideUIUpdate(String.Format("0.8 * PTV_Spine Ymin is more posterior than center of PTV_Spine!: {0:0.0} mm vs {1:0.0} mm", spineYMin, ptvSpine.CenterPoint.y));
                         spineYMin = ptvSpine.CenterPoint.y;
                         ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Assigning Ant-post iso location to center of PTV_Spine: {0:0.0} mm", spineYMin));
                     }
                     else
                     {
-                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("0.8 * Anterior extent of PTV_Spine: {0:0.0} mm", spineYMin));
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("0.8 * Anterior extent of PTV_spine: {0:0.0} mm", spineYMin));
                     }
 
-                    ProvideUIUpdate(String.Format("Calculating max and min extent of PTV_Spine"));
-                    spineZMax = ptvSpine.MeshGeometry.Positions.Max(p => p.Z);
-                    spineZMin = ptvSpine.MeshGeometry.Positions.Min(p => p.Z);
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Superior extent of PTV_Spine: {0:0.0} mm", spineZMax));
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Inferior extent of PTV_Spine: {0:0.0} mm", spineZMin));
-
+                    //since Brain CTV = Brain and PTV = CTV + 5 mm uniform margin, center of brain is unaffected by adding the 5 mm margin if the PTV_Brain structure could not be found
                     ProvideUIUpdate(String.Format("Calculating center of PTV_Brain"));
                     brainZCenter = ptvBrain.CenterPoint.z;
                     ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Center of PTV_Brain: {0:0.0} mm", brainZCenter));
@@ -146,27 +168,13 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     targetExtent = brainZCenter - spineZMin;
                     ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Extent: {0:0.0} mm", targetExtent));
                 }
-
-                //All VMAT portions of the plans will ONLY have 3 isocenters
-                //double isoSeparation = Math.Round(((target.MeshGeometry.Positions.Max(p => p.Z) - target.MeshGeometry.Positions.Min(p => p.Z) - 10.0*numIsos) / numIsos) / 10.0f) * 10.0f;
-                //5-7-202 The equation below was determined assuming each VMAT plan would always use 3 isos. In addition, the -30.0 was empirically determined by comparing the calculated isocenter separations to those that were used in the clinical plans
-                //isoSeparation = Math.Round(((target.MeshGeometry.Positions.Max(p => p.Z) - target.MeshGeometry.Positions.Min(p => p.Z) - 30.0) / 3) / 10.0f) * 10.0f;
-
-                //however, the actual correct equation is given below (VMAT TBI):
+                //The actual correct equation for calculating the isocenter separation is given below for VMAT TBI:
                 //isoSeparation = Math.Round(((targetExtent - 380.0) / (numIsos - 1)) / 10.0f) * 10.0f;
+
+                //It is calculated by setting the most superior and inferior isocenters to be 19.0 cm from the target volume edge in the z-direction. 
+                //The isocenter separtion is then calculated as half the distance between these two isocenters (sep = ((max-19cm)-(min+19cm)/2).
+                //NOTE THAT THIS EQUATION WILL NOT WORK FOR VMAT CSI AS IT RESULTS IN A POORLY POSITIONED UPPER SPINE ISOCENTER IF APPLICABLE
                 isoSeparation = 380.0;
-
-                //It is calculated by setting the most superior and inferior isocenters to be 19.0 cm from the target volume edge in the z-direction. The isocenter separtion is then calculated as half the distance between these two isocenters (sep = ((max-19cm)-(min+19cm)/2).
-                //Tested on 5-7-2020. When the correct equation is rounded, it gives the same answer as the original empirical equation above, however, the isocenters are better positioned in the target volume (i.e., more symmetric about the target volume). 
-                //The ratio of the actual to empirical iso separation equations can be expressed as r=(3/(numVMATIsos-1))((x-380)/(x-30)) where x = (max-min). The ratio is within +/-5% for max-min values (i.e., patient heights) between 99.0 cm (i.e., 3.25 feet) and 116.0 cm
-
-                //if (isoSeparation > 380.0)
-                //{
-                //    var CUI = new confirmUI();
-                //    CUI.message.Text = "Calculated isocenter separation > 38.0 cm, which reduces the overlap between adjacent fields!" + Environment.NewLine + Environment.NewLine + "Truncate isocenter separation to 38.0 cm?!";
-                //    CUI.ShowDialog();
-                //    if (CUI.confirm) isoSeparation = 380.0;
-                //}
                 
                 for (int i = 0; i < numIsos; i++)
                 {
@@ -175,27 +183,34 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     v.x = userOrigin.x;
                     if (longestTargetInPlan.Id.ToLower() == "ptv_csi")
                     {
+                        //special case when the main target is ptv_csi
+                        //asign y position to spineYmin
                         v.y = spineYMin;
+                        //assign the first isocenter to the center of the ptv_brain
                         if (i == 0) v.z = brainZCenter;
                         //else v.z = (brainZCenter - i * isoSeparation);
                         else
                         {
+                            //for all other isocenters work your way down towards the inferior extent of ptv_spine
                             v.z = (spineZMin + (numIsos - i - 1) * isoSeparation + 180.0);
                             if(i == 1)
                             {
+                                //for the second isocenter, check to see if it is placed TOO CLOSE to the brain isocenter. Do this by adding 20 cm (1/2 field length) to the proposed second isocenter.
+                                //if the resulting value is greater than the brain isocenter z position, force the second isocenter position to be equal to the brain isocenter z position - 20 cm.
                                 if (v.z + 200.0 > tmp.ElementAt(0).Item1.z) v.z = tmp.ElementAt(0).Item1.z - 200.0;
                             }
                         }
                     }
                     else
                     {
+                        //assign y isocenter position to the y position of the user origin. This will likely change
                         v.y = userOrigin.y;
                         //assumes one isocenter if the target is not ptv_csi
                         v.z = longestTargetInPlan.CenterPoint.z;
                     }
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Calculated isocenter position"));
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Calculated isocenter position {0}", i + 1));
                     
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Rounding Y- and Z-positions to nearest integer"));
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Rounding Y- and Z-positions to nearest integer values"));
                     //round z position to the nearest integer
                     v = itr.StructureSet.Image.DicomToUser(v, itr);
                     v.y = Math.Round(v.y / 10.0f) * 10.0f;
@@ -206,127 +221,16 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     tmp.Add(new Tuple<VVector, string, int>(v, planIsoBeamInfo.FirstOrDefault(x => x.Item1 == itr.Id).Item2.ElementAt(i).Item1, planIsoBeamInfo.FirstOrDefault(x => x.Item1 == itr.Id).Item2.ElementAt(i).Item2));
                 }
 
-                //evaluate the distance between the edge of the beam and the max/min of the PTV_body contour. If it is < checkIsoPlacementLimit, then warn the user that they might be fully covering the ptv_body structure.
-                //7-17-2020, checkIsoPlacementLimit = 5 mm
-                VVector firstIso = tmp.First().Item1;
-                VVector lastIso = tmp.Last().Item1;
-                if (!((firstIso.z + 200.0) - longestTargetInPlan.MeshGeometry.Positions.Max(p => p.Z) >= checkIsoPlacementLimit) ||
-                    !(longestTargetInPlan.MeshGeometry.Positions.Min(p => p.Z) - (lastIso.z - 200.0) >= checkIsoPlacementLimit)) checkIsoPlacement = true;
-                
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Finished retrieving isocenters for plan: {0}", pid));
                 allIsocenters.Add(Tuple.Create(itr, new List<Tuple<VVector, string, int>>(tmp)));
                 count++;
             }
             return allIsocenters;
-
-            ////matchline is present and not empty
-            //if (selectedSS.Structures.Where(x => x.Id.ToLower() == "matchline").Any() && !selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").IsEmpty)
-            //{
-
-            //    //5-11-2020 update EAS. isoSeparationSup is the isocenter separation for the VMAT isos and isoSeparationInf is the iso separation for the AP/PA isocenters
-            //    double isoSeparationSup = Math.Round(((target.MeshGeometry.Positions.Max(p => p.Z) - selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - 380.0) / (numVMATIsos - 1)) / 10.0f) * 10.0f;
-            //    double isoSeparationInf = Math.Round((selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - target.MeshGeometry.Positions.Min(p => p.Z) - 380.0) / 10.0f) * 10.0f;
-            //    if (isoSeparationSup > 380.0 || isoSeparationInf > 380.0)
-            //    {
-            //        var CUI = new confirmUI();
-            //        CUI.message.Text = "Calculated isocenter separation > 38.0 cm, which reduces the overlap between adjacent fields!" + Environment.NewLine + Environment.NewLine + "Truncate isocenter separation to 38.0 cm?!";
-            //        CUI.cancelBTN.Text = "No";
-            //        CUI.ShowDialog();
-            //        if (CUI.confirm)
-            //        {
-            //            if (isoSeparationSup > 380.0 && isoSeparationInf > 380.0) isoSeparationSup = isoSeparationInf = 380.0;
-            //            else if (isoSeparationSup > 380.0) isoSeparationSup = 380.0;
-            //            else isoSeparationInf = 380.0;
-            //        }
-            //    }
-
-            //    double matchlineZ = selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z;
-            //    for (int i = 0; i < numVMATIsos; i++)
-            //    {
-            //        VVector v = new VVector();
-            //        v.x = userOrigin.x;
-            //        v.y = userOrigin.y;
-            //        //6-10-2020 EAS, want to count up from matchplane to ensure distance from matchplane is fixed at 190 mm
-            //        v.z = matchlineZ + i * isoSeparationSup + 190.0;
-            //        //round z position to the nearest integer
-            //        v = plan.StructureSet.Image.DicomToUser(v, plan);
-            //        v.z = Math.Round(v.z / 10.0f) * 10.0f;
-            //        v = plan.StructureSet.Image.UserToDicom(v, plan);
-            //        iso.Add(v);
-            //    }
-
-            //    //6-10-2020 EAS, need to reverse order of list because it has to be descending from z location (i.e., sup to inf) for beam placement to work correctly
-            //    iso.Reverse();
-            //    //6-11-2020 EAS, this is used to account for any rounding of the isocenter position immediately superior to the matchline
-            //    double offset = iso.LastOrDefault().z - matchlineZ;
-
-            //    //for (int i = 0; i < (numIsos - numVMATIsos); i++)
-            //    //{
-            //    //    VVector v = new VVector();
-            //    //    v.x = userOrigin.x;
-            //    //    v.y = userOrigin.y;
-            //    //    //5-11-2020 update EAS (the first isocenter immediately inferior to the matchline is now a distance = offset away). This ensures the isocenters immediately inferior and superior to the 
-            //    //    //matchline are equidistant from the matchline
-            //    //    v.z = matchlineZ - i * isoSeparationInf - offset;
-            //    //    //round z position to the nearest integer
-            //    //    v = plan.StructureSet.Image.DicomToUser(v, plan);
-            //    //    v.z = Math.Round(v.z / 10.0f) * 10.0f;
-            //    //    v = plan.StructureSet.Image.UserToDicom(v, plan);
-            //    //    iso.Add(v);
-            //    //}
-            //}
-            //else
-            //{
-            //    //All VMAT portions of the plans will ONLY have 3 isocenters
-            //    //double isoSeparation = Math.Round(((target.MeshGeometry.Positions.Max(p => p.Z) - target.MeshGeometry.Positions.Min(p => p.Z) - 10.0*numIsos) / numIsos) / 10.0f) * 10.0f;
-            //    //5-7-202 The equation below was determined assuming each VMAT plan would always use 3 isos. In addition, the -30.0 was empirically determined by comparing the calculated isocenter separations to those that were used in the clinical plans
-            //    //isoSeparation = Math.Round(((target.MeshGeometry.Positions.Max(p => p.Z) - target.MeshGeometry.Positions.Min(p => p.Z) - 30.0) / 3) / 10.0f) * 10.0f;
-
-            //    //however, the actual correct equation is given below:
-            //    isoSeparation = Math.Round(((target.MeshGeometry.Positions.Max(p => p.Z) - target.MeshGeometry.Positions.Min(p => p.Z) - 380.0) / (numVMATIsos - 1)) / 10.0f) * 10.0f;
-
-            //    //It is calculated by setting the most superior and inferior isocenters to be 19.0 cm from the target volume edge in the z-direction. The isocenter separtion is then calculated as half the distance between these two isocenters (sep = ((max-19cm)-(min+19cm)/2).
-            //    //Tested on 5-7-2020. When the correct equation is rounded, it gives the same answer as the original empirical equation above, however, the isocenters are better positioned in the target volume (i.e., more symmetric about the target volume). 
-            //    //The ratio of the actual to empirical iso separation equations can be expressed as r=(3/(numVMATIsos-1))((x-380)/(x-30)) where x = (max-min). The ratio is within +/-5% for max-min values (i.e., patient heights) between 99.0 cm (i.e., 3.25 feet) and 116.0 cm
-
-            //    if (isoSeparation > 380.0)
-            //    {
-            //        var CUI = new confirmUI();
-            //        CUI.message.Text = "Calculated isocenter separation > 38.0 cm, which reduces the overlap between adjacent fields!" + Environment.NewLine + Environment.NewLine + "Truncate isocenter separation to 38.0 cm?!";
-            //        CUI.ShowDialog();
-            //        if (CUI.confirm) isoSeparation = 380.0;
-            //    }
-
-            //    for (int i = 0; i < numVMATIsos; i++)
-            //    {
-            //        VVector v = new VVector();
-            //        v.x = userOrigin.x;
-            //        v.y = userOrigin.y;
-            //        //5-7-2020 isocenter positions for actual isocenter separation equation described above
-            //        v.z = (target.MeshGeometry.Positions.Max(p => p.Z) - i * isoSeparation - 190.0);
-            //        //round z position to the nearest integer
-            //        v = plan.StructureSet.Image.DicomToUser(v, plan);
-            //        v.z = Math.Round(v.z / 10.0f) * 10.0f;
-            //        v = plan.StructureSet.Image.UserToDicom(v, plan);
-            //        iso.Add(v);
-            //    }
-            //}
-
-            //MessageBox.Show(String.Format("{0}, {1}, {2}, {3}, {4}, {5}",
-            //    firstIso.z,
-            //    lastIso.z,
-            //    target.MeshGeometry.Positions.Max(p => p.Z),
-            //    target.MeshGeometry.Positions.Min(p => p.Z),
-            //    (firstIso.z + 200.0 - target.MeshGeometry.Positions.Max(p => p.Z)),
-            //    (target.MeshGeometry.Positions.Min(p => p.Z) - (lastIso.z - 200.0))));
-
-            //return iso;
         }
 
         public override bool SetBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
         {
-            string pid = iso.Item1.Id;
-            ProvideUIUpdate(0, String.Format("Preparing to set isocenters for plan: {0}", pid));
+            ProvideUIUpdate(0, String.Format("Preparing to set isocenters for plan: {0}", iso.Item1.Id));
             int calcItems = 3;
             int counter = 0;
             //DRR parameters (dummy parameters to generate DRRs for each field)
@@ -354,13 +258,29 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //    }
             //    count++;
             //}
-            List<Tuple<string, string, int, DoseValue, double>> tmp = prescriptions.Where(x => x.Item1 == iso.Item1.Id).ToList();
-            if(tmp.Where(x => x.Item2.ToLower().Contains("ptv_csi")).Any()) target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_brain"));
-            else target = selectedSS.Structures.FirstOrDefault(x => x.Id.Contains(tmp.First().Item2));
-            string tgtid = target.Id;
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved target for plan: {0}", tgtid));
 
-            if (target == null || target.IsEmpty) { ProvideUIUpdate(0, String.Format("Error! Target not found or is not contoured in plan {0}! Exiting!", iso.Item1.Id)); return true; }
+            //grab all prescriptions assigned to this plan
+            List<Tuple<string, string, int, DoseValue, double>> tmp = prescriptions.Where(x => x.Item1 == iso.Item1.Id).ToList();
+            //if any of the targets for this plan are ptv_csi, then you must use the special beam placement logic for the initial plan
+            if (tmp.Where(x => x.Item2.ToLower().Contains("ptv_csi")).Any())
+            {
+                target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_brain"));
+                if (target == null)
+                {
+                    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                    /////2-12-2023 Need to finish!!!
+                    calcItems += 3;
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Failed to find PTV_Brain Structure! Retrieving brain structure"));
+                    target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "brain");
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Creating PTV_Brain structure!"));
+                    selectedSS.AddStructure("CONTROL", "PTV_Brain");
+                    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                }
+            }
+            else target = selectedSS.Structures.FirstOrDefault(x => x.Id.Contains(tmp.First().Item2));
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved target for plan: {0}", target.Id));
+
+            if (target == null || target.IsEmpty) { ProvideUIUpdate(0, String.Format("Error! Target not found or is not contoured in plan {0}! Exiting!", iso.Item1.Id), true); return true; }
             ProvideUIUpdate(100, String.Format("Preparation complete!"));
 
             //place the beams for the VMAT plan
@@ -381,16 +301,15 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     Beam b;
                     beamName = String.Format("{0} ", count + 1);
 
-                    //kind of messy, but used to increment the collimator rotation one element in the array so you don't end up in a situation where the single beam in this isocenter has the same collimator rotation as
-                    //the single beam in the previous isocenter
+                    //kind of messy, but used to increment the collimator rotation one element in the array so you don't end up in a situation where the 
+                    //single beam in this isocenter has the same collimator rotation as the single beam in the previous isocenter
                     if (i > 0 && iso.Item2.ElementAt(i).Item3 == 1 && iso.Item2.ElementAt(i - 1).Item3 == 1) j++;
 
                     jp = jawPos.ElementAt(j);
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved jaw positions (iso: {0}, beam: {1})", i, j));
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved jaw positions (iso: {0}, beam: {1})", i + 1, j + 1));
 
                     double coll = collRot[j];
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved collimator positions (iso: {0}, beam: {1})", i, j));
-
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved collimator positions (iso: {0}, beam: {1})", i + 1, j + 1));
 
                     //all even beams (e.g., 2, 4, etc.) will be CCW and all odd beams will be CW
                     if (count % 2 == 0)
@@ -434,104 +353,6 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 }
             }
             return false;
-
-            /*
-            //add additional plan for ap/pa legs fields (all ap/pa isocenter fields will be contained within this plan)
-            if (numIsos > numVMATIsos)
-            {
-                //6-10-2020 EAS, checked if exisiting _Legs plan is present in createPlan method
-                legs_planUpper = theCourse.AddExternalPlanSetup(selectedSS);
-                if (singleAPPAplan) legs_planUpper.Id = String.Format("_Legs");
-                else legs_planUpper.Id = String.Format("{0} Upper Legs", numVMATIsos + 1);
-                //100% dose prescribed in plan
-                legs_planUpper.SetPrescription(prescription.Item1, prescription.Item2, 1.0);
-                legs_planUpper.SetCalculationModel(CalculationType.PhotonVolumeDose, calculationModel);
-
-                Structure target;
-                if (useFlash) target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_flash_target");
-                else target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_body");
-
-                //adjust x2 jaw (furthest from matchline) so that it covers edge of target volume
-                double x2 = isoLocations.ElementAt(numVMATIsos).z - (target.MeshGeometry.Positions.Min(p => p.Z) - 20.0);
-                if (x2 > 200.0) x2 = 200.0;
-                else if (x2 < 10.0) x2 = 10.0;
-
-                //AP field
-                //set MLC positions. First row is bank number 0 (X1 leaves) and second row is bank number 1 (X2).
-                float[,] MLCpos = new float[2, 60];
-                for (int i = 0; i < 60; i++)
-                {
-                    MLCpos[0, i] = (float)-200.0;
-                    MLCpos[1, i] = (float)(x2);
-                }
-                Beam b = legs_planUpper.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(-200.0, -200.0, x2, 200.0), 90.0, 0.0, 0.0, isoLocations.ElementAt(numVMATIsos));
-                b.Id = String.Format("{0} AP Upper Legs", ++count);
-                b.CreateOrReplaceDRR(DRR);
-
-                //PA field
-                b = legs_planUpper.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(-200.0, -200.0, x2, 200.0), 90.0, 180.0, 0.0, isoLocations.ElementAt(numVMATIsos));
-                b.Id = String.Format("{0} PA Upper Legs", ++count);
-                b.CreateOrReplaceDRR(DRR);
-
-                if ((numIsos - numVMATIsos) == 2)
-                {
-                    VVector infIso = new VVector();
-                    //the element at numVMATIsos in isoLocations vector is the first AP/PA isocenter
-                    infIso.x = isoLocations.ElementAt(numVMATIsos).x;
-                    infIso.y = isoLocations.ElementAt(numVMATIsos).y;
-
-                    double x1 = -200.0;
-                    //if the distance between the matchline and the inferior edge of the target is < 600 mm, set the beams in the second isocenter (inferior-most) to be half-beam blocks
-                    if (selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - target.MeshGeometry.Positions.Min(p => p.Z) < 600.0)
-                    {
-                        infIso.z = isoLocations.ElementAt(numVMATIsos).z - 200.0;
-                        x1 = 0.0;
-                    }
-                    else infIso.z = isoLocations.ElementAt(numVMATIsos).z - 390.0;
-                    //fit x1 jaw to extend of patient
-                    x2 = infIso.z - (target.MeshGeometry.Positions.Min(p => p.Z) - 20.0);
-                    if (x2 > 200.0) x2 = 200.0;
-                    else if (x2 < 10.0) x2 = 10.0;
-
-                    //set MLC positions
-                    MLCpos = new float[2, 60];
-                    for (int i = 0; i < 60; i++)
-                    {
-                        MLCpos[0, i] = (float)(x1);
-                        MLCpos[1, i] = (float)(x2);
-                    }
-                    //AP field
-                    if (singleAPPAplan)
-                    {
-                        b = legs_planUpper.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(x1, -200.0, x2, 200.0), 90.0, 0.0, 0.0, infIso);
-                        b.Id = String.Format("{0} AP Lower Legs", ++count);
-                        b.CreateOrReplaceDRR(DRR);
-
-                        //PA field
-                        b = legs_planUpper.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(x1, -200.0, x2, 200.0), 90.0, 180.0, 0.0, infIso);
-                        b.Id = String.Format("{0} PA Lower Legs", ++count);
-                        b.CreateOrReplaceDRR(DRR);
-                    }
-                    else
-                    {
-                        //create a new legs plan if the user wants to separate the two APPA isocenters into separate plans
-                        ExternalPlanSetup legs_planLower = theCourse.AddExternalPlanSetup(selectedSS);
-                        legs_planLower.Id = String.Format("{0} Lower Legs", numIsos);
-                        legs_planLower.SetPrescription(prescription.Item1, prescription.Item2, 1.0);
-                        legs_planLower.SetCalculationModel(CalculationType.PhotonVolumeDose, calculationModel);
-
-                        b = legs_planLower.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(x1, -200.0, x2, 200.0), 90.0, 0.0, 0.0, infIso);
-                        b.Id = String.Format("{0} AP Lower Legs", ++count);
-                        b.CreateOrReplaceDRR(DRR);
-
-                        //PA field
-                        b = legs_planLower.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(x1, -200.0, x2, 200.0), 90.0, 180.0, 0.0, infIso);
-                        b.Id = String.Format("{0} PA Lower Legs", ++count);
-                        b.CreateOrReplaceDRR(DRR);
-                    }
-                }
-            }
-            */
         }
     }
 }

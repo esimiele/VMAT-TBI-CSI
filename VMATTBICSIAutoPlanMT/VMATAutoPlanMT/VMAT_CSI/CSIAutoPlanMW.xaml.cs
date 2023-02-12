@@ -875,64 +875,16 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 return;
             }
 
-            int count = 0;
-            bool firstCombo = true;
-            string chosenLinac = "";
-            string chosenEnergy = "";
-            //int[,] numBeams = new int[numVMATIsos];
-            List<List<int>> numBeams = new List<List<int>> { };
-            List<int> numBeams_temp = new List<int> { };
-            int numElementsPerRow = 0;
-            foreach (object obj in BEAMS_SP.Children)
-            {
-                foreach (object obj1 in ((StackPanel)obj).Children)
-                {
-                    if (obj1.GetType() == typeof(ComboBox))
-                    {
-                        //similar code to parsing the structure sparing list
-                        if (firstCombo)
-                        {
-                            chosenLinac = (obj1 as ComboBox).SelectedItem.ToString();
-                            firstCombo = false;
-                        }
-                        else chosenEnergy = (obj1 as ComboBox).SelectedItem.ToString();
-                    }
-                    if (obj1.GetType() == typeof(TextBox))
-                    {
-                        // MessageBox.Show(count.ToString());
-                        if (!int.TryParse((obj1 as TextBox).Text, out int beamTMP))
-                        {
-                            MessageBox.Show(String.Format("Error! \nNumber of beams entered in iso {0} is NaN!", isoNames.ElementAt(count)));
-                            return;
-                        }
-                        else if (beamTMP < 1)
-                        {
-                            MessageBox.Show(String.Format("Error! \nNumber of beams entered in iso {0} is < 1!", isoNames.ElementAt(count)));
-                            return;
-                        }
-                        else if (beamTMP > 4)
-                        {
-                            MessageBox.Show(String.Format("Error! \nNumber of beams entered in iso {0} is > 4!", isoNames.ElementAt(count)));
-                            return;
-                        }
-                        else numBeams_temp.Add(beamTMP);
-                        count++;
-                    }
-                    numElementsPerRow++;
-                }
-                if(numElementsPerRow == 1 && numBeams_temp.Any())
-                {
-                    //indicates only one item was in this stack panel indicating it was only a label indicating the code has finished reading the number of isos and beams per isos for this plan
-                    numBeams.Add(new List<int>(numBeams_temp));
-                    numBeams_temp = new List<int> { };
-                }
-                numElementsPerRow = 0;
-            }
-            numBeams.Add(new List<int>(numBeams_temp));
+            (string, string, List<List<int>>) selections = new BeamPlacementUIHelper().GetBeamSelections(BEAMS_SP, isoNames);
+            if (selections.Item1 == "") return;
+
+            string chosenLinac = selections.Item1;
+            string chosenEnergy = selections.Item2;
+            List<List<int>> numBeams = selections.Item3;
 
             //now that we have a list of plans each with a list of isocenter names, we want to make a new list of plans each with a list of tuples of isocenter names and beams per isocenter
             List<Tuple<string, List<Tuple<string, int>>>> planIsoBeamInfo = new List<Tuple<string, List<Tuple<string, int>>>> { };
-            count = 0;
+            int count = 0;
             foreach(Tuple<string,List<string>> itr in isoNames)
             {
                 List<Tuple<string, int>> isoNameBeams = new List<Tuple<string, int>> { };
@@ -966,13 +918,14 @@ namespace VMATAutoPlanMT.VMAT_CSI
             if (!VMATplans.Any()) return;
 
             //if the user elected to contour the overlap between fields in adjacent isocenters, get this list of structures from the placeBeams class and copy them to the jnxs vector
-           if (contourOverlap_chkbox.IsChecked.Value) jnxs = place.jnxs;
+            if (contourOverlap_chkbox.IsChecked.Value) jnxs = place.jnxs;
 
             //if the user requested to contour the overlap between fields in adjacent VMAT isocenters, repopulate the optimization tab (will include the newly added field junction structures)!
             if (contourOverlap_chkbox.IsChecked.Value) PopulateOptimizationTab(opt_parameters);
             beamPlacementTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             optimizationSetupTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
-            foreach (ExternalPlanSetup itr in VMATplans) log.planUIDs.Add(itr.UID);
+            //list the plan UIDs in ascending order
+            foreach (ExternalPlanSetup itr in VMATplans.OrderBy(x => x.TotalDose.Dose)) log.planUIDs.Add(itr.UID);
         }
         #endregion
 
