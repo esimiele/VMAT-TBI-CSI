@@ -74,14 +74,13 @@ namespace VMATAutoPlanMT.VMAT_CSI
             int count = 0;
             foreach (ExternalPlanSetup itr in plans)
             {
-                string pid = itr.Id;
-                ProvideUIUpdate(String.Format("Retrieving number of isocenters for plan: {0}", pid));
+                ProvideUIUpdate(String.Format("Retrieving number of isocenters for plan: {0}", itr.Id));
                 int numIsos = planIsoBeamInfo.FirstOrDefault(x => x.Item1 == itr.Id).Item2.Count;
                 int counter = 0;
                 int calcItems = numIsos;
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Num isos for plan (from generateTS): {0}", pid));
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Num isos for plan (from generateTS): {0}", itr.Id));
 
-                ProvideUIUpdate(String.Format("Retrieving prescriptions for plan: {0}", pid));
+                ProvideUIUpdate(String.Format("Retrieving prescriptions for plan: {0}", itr.Id));
                 //grab the target in this plan with the greatest z-extent (plans can now have multiple targets assigned)
                 List<Tuple<string, string, int, DoseValue, double>> tmpList = prescriptions.Where(x => x.Item1 == itr.Id).ToList();
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved Presciptions"));
@@ -96,9 +95,13 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     double tmpDiff = pts.Max(p => p.Z) - pts.Min(p => p.Z);
                     if (tmpDiff > targetExtent) { longestTargetInPlan = tmpTargStruct; targetExtent = tmpDiff; }
                 }
-                if (longestTargetInPlan == null) return new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
+                if (longestTargetInPlan == null)
+                {
+                    ProvideUIUpdate(0, String.Format("Could not determine longest target in plan {0}! Exiting", itr.Id), true);
+                    return new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
+                }
                 string longestTgtId = longestTargetInPlan.Id;
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Longest target in plan {0}: {1}", pid, longestTgtId));
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Longest target in plan {0}: {1}", itr.Id, longestTgtId));
 
                 List<Tuple<VVector, string, int>> tmp = new List<Tuple<VVector, string, int>> { };
                 double spineYMin = 0.0;
@@ -115,7 +118,11 @@ namespace VMATAutoPlanMT.VMAT_CSI
                         calcItems += 1;
                         ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Failed to find PTV_Spine Structure! Retrieving spinal cord structure"));
                         ptvSpine = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinalcord" || x.Id.ToLower() == "spinal_cord");
-                        if(ptvSpine == null) ProvideUIUpdate(String.Format("Failed to retrieve spinal cord structure! Cannot calculate isocenter positions! Exiting"), true);
+                        if (ptvSpine == null)
+                        {
+                            ProvideUIUpdate(String.Format("Failed to retrieve spinal cord structure! Cannot calculate isocenter positions! Exiting"), true);
+                            return allIsocenters;
+                        }
                     }
                     ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieving PTV_Brain Structure"));
                     Structure ptvBrain = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_brain");
@@ -124,7 +131,11 @@ namespace VMATAutoPlanMT.VMAT_CSI
                         calcItems += 1;
                         ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Failed to find PTV_Brain Structure! Retrieving brain structure"));
                         ptvBrain = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "brain");
-                        if (ptvBrain == null) ProvideUIUpdate(String.Format("Failed to retrieve brain structure! Cannot calculate isocenter positions! Exiting"), true);
+                        if (ptvBrain == null)
+                        {
+                            ProvideUIUpdate(String.Format("Failed to retrieve brain structure! Cannot calculate isocenter positions! Exiting"), true);
+                            return allIsocenters;
+                        }
                     }
 
                     ProvideUIUpdate(String.Format("Calculating anterior extent of PTV_Spine"));
@@ -221,7 +232,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     tmp.Add(new Tuple<VVector, string, int>(v, planIsoBeamInfo.FirstOrDefault(x => x.Item1 == itr.Id).Item2.ElementAt(i).Item1, planIsoBeamInfo.FirstOrDefault(x => x.Item1 == itr.Id).Item2.ElementAt(i).Item2));
                 }
 
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Finished retrieving isocenters for plan: {0}", pid));
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Finished retrieving isocenters for plan: {0}", itr.Id));
                 allIsocenters.Add(Tuple.Create(itr, new List<Tuple<VVector, string, int>>(tmp)));
                 count++;
             }
@@ -264,18 +275,19 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //if any of the targets for this plan are ptv_csi, then you must use the special beam placement logic for the initial plan
             if (tmp.Where(x => x.Item2.ToLower().Contains("ptv_csi")).Any())
             {
-                target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_brain"));
-                if (target == null)
+                //verify that BOTH PTV spine and PTV brain exist in the current structure set! If not, create them (used to fit the field jaws to the target
+                if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_brain") == null)
                 {
-                    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                    /////2-12-2023 Need to finish!!!
-                    calcItems += 3;
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Failed to find PTV_Brain Structure! Retrieving brain structure"));
-                    target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "brain");
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Creating PTV_Brain structure!"));
-                    selectedSS.AddStructure("CONTROL", "PTV_Brain");
-                    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                    //uniform 5mm outer margin to create brain ptv from brain ctv/brain structure
+                    if (CreateTargetStructure("PTV_Brain", "brain", new AxisAlignedMargins(StructureMarginGeometry.Outer, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0))) return true;
                 }
+                if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_spine") == null)
+                {
+                    //ctv_spine = spinal_cord+0.5cm ANT, +1.5cm Inf, and +1.0 cm in all other directions
+                    //ptv_spine = ctv_spine + 5 mm outer margin --> add 5 mm to the asymmetric margins used to create the ctv
+                    if (CreateTargetStructure("PTV_Spine", "spinalcord", new AxisAlignedMargins(StructureMarginGeometry.Outer, 15.0, 10.0, 20.0, 15.0, 15.0, 15.0), "spinal_cord")) return true;
+                }
+                target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_brain");
             }
             else target = selectedSS.Structures.FirstOrDefault(x => x.Id.Contains(tmp.First().Item2));
             ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved target for plan: {0}", target.Id));
@@ -351,6 +363,33 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
                     count++;
                 }
+            }
+            return false;
+        }
+
+        private bool CreateTargetStructure(string targetStructureId, string baseStructureId, AxisAlignedMargins margin, string alternateBasStructureId = "")
+        {
+            int calcItems = 3;
+            int counter = 0;
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Failed to find {0} Structure! Retrieving {1} structure", targetStructureId, baseStructureId));
+            Structure baseStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == baseStructureId.ToLower());
+            if(baseStructure == null && !string.IsNullOrEmpty(alternateBasStructureId)) baseStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == alternateBasStructureId.ToLower());
+            if(baseStructure == null)
+            {
+                ProvideUIUpdate(String.Format("Could not retrieve base structure {0}. Exiting!", baseStructureId), true);
+                return true;
+            }
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Creating {0} structure!", targetStructureId));
+            if (selectedSS.CanAddStructure("CONTROL", String.Format("{0}", targetStructureId)))
+            {
+                Structure target = selectedSS.AddStructure("CONTROL", String.Format("{0}", targetStructureId));
+                target.SegmentVolume = baseStructure.AsymmetricMargin(margin);
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Created {0} structure!", targetStructureId));
+            }
+            else
+            {
+                ProvideUIUpdate(String.Format("Failed to add {0} to the structure set! Exiting!", targetStructureId), true);
+                return true;
             }
             return false;
         }

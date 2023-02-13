@@ -946,22 +946,6 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 {
                     if (selectedTemplate.init_constraints.Any()) tmpList.Add(selectedTemplate.init_constraints);
                     if (selectedTemplate.bst_constraints.Any()) tmpList.Add(selectedTemplate.bst_constraints);
-
-                    // double RxDose = prescriptions.Item2.Dose * prescriptions.Item1;
-                    //double baseDose = 1.0;
-                    //List<Tuple<string, string, double, double, int>> dummy = new List<Tuple<string, string, double, double, int>> { };
-                    //use optimization objects of the closer of the two default regiments (6-18-2021)
-                    //if (Math.Pow(RxDose - (nonmyeloNumFx * nonmyeloDosePerFx), 2) <= Math.Pow(RxDose - (reduceDoseNumFx * reduceDoseDosePerFx), 2))
-                    //{
-                    //    dummy = optConstBoost;
-                    //    baseDose = nonmyeloDosePerFx * nonmyeloNumFx;
-                    //}
-                    //else
-                    //{
-                    //    dummy = optConstNoBoost;
-                    //    baseDose = reduceDoseDosePerFx * reduceDoseNumFx;
-                    //}
-                    //  foreach (Tuple<string, string, double, double, int> opt in dummy) tmp.Add(Tuple.Create(opt.Item1, opt.Item2, opt.Item3 * (RxDose / baseDose), opt.Item4, opt.Item5));
                 }
                 else
                 {
@@ -990,6 +974,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             }
             else
             {
+                //do NOT check to ensure structures in optimization constraint list are present in structure set before adding them to the UI list
                 foreach (List<Tuple<string, string, double, double, int>> itr in tmpList) defaultListList.Add(new List<Tuple<string, string, double, double, int>>(itr));
             }
 
@@ -2015,14 +2000,17 @@ namespace VMATAutoPlanMT.VMAT_CSI
         {
             //be sure to close the patient before closing the application. Not doing so will result in unclosed timestamps in eclipse
             //if (autoSave) { app.SaveModifications(); Process.Start(optLoopProcess); }
-            log.Dump();
             if (autoSave) app.SaveModifications();
             else if (isModified)
             {
                 SaveDialog SD = new SaveDialog();
                 SD.ShowDialog();
                 if (SD.save) app.SaveModifications();
+                if (!autoSave && !SD.save) log.AppendLogOutput("Modifications NOT saved to database!");
+                else log.AppendLogOutput("Modifications saved to database!");
             }
+            else log.AppendLogOutput("No changes made to database objects!");
+            log.Dump();
             if (app != null)
             {
                 if (pi != null) app.ClosePatient();

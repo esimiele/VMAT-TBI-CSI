@@ -46,9 +46,9 @@ namespace VMATAutoPlanMT.baseClasses
             int isoCount = 0;
             foreach(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> itr in isoLocations)
             {
-                //ensure contour overlap is requested AND there are more than two isocenters for this plan
-                if (contourOverlap && itr.Item2.Count > 1) if(ContourFieldOverlap(itr, isoCount)) return true;
                 if(SetBeams(itr)) return true;
+                //ensure contour overlap is requested AND there are more than two isocenters for this plan
+                if (contourOverlap && itr.Item2.Count > 1) if (ContourFieldOverlap(itr, isoCount)) return true;
                 isoCount += itr.Item2.Count;
             }
             UpdateUILabel("Finished!");
@@ -242,13 +242,20 @@ namespace VMATAutoPlanMT.baseClasses
         //this option is requested by the user by selecting the checkbox on the main UI on the beam placement tab
         private bool ContourFieldOverlap(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> isoLocations, int isoCount)
         {
+            //2/13/2023
+            //add provide ui updates to this method!
             //grab target Id for this prescription item
+            if(prescriptions.FirstOrDefault(y => y.Item1 == isoLocations.Item1.Id) == null)
+            {
+                ProvideUIUpdate(String.Format("Error! No matching prescrition found for iso plan name {0}", isoLocations.Item1.Id), true);
+                return true;
+            }
             string targetId = prescriptions.FirstOrDefault(y => y.Item1 == isoLocations.Item1.Id).Item2;
             Structure target_tmp = selectedSS.Structures.FirstOrDefault(x => x.Id == targetId);
-            if (target_tmp == null) 
-            { 
-                ProvideUIUpdate(String.Format("Error getting target structure ({0}) for plan: {1}! Exiting!", targetId, prescriptions.FirstOrDefault(y => y.Item1 == isoLocations.Item1.Id)), true); 
-                return true; 
+            if (target_tmp == null)
+            {
+                ProvideUIUpdate(String.Format("Error getting target structure ({0}) for plan: {1}! Exiting!", targetId, prescriptions.FirstOrDefault(y => y.Item1 == isoLocations.Item1.Id)), true);
+                return true;
             }
             //grab the image and get the z resolution and dicom origin (we only care about the z position of the dicom origin)
             Image image = selectedSS.Image;
@@ -270,9 +277,9 @@ namespace VMATAutoPlanMT.baseClasses
                 //assumes iso1beam1 y1 is oriented inferior on patient and iso2beam1 is oriented superior on patient
                 double fieldLength = Math.Abs(iso1Beam1.GetEditableParameters().ControlPoints.First().JawPositions.Y1) + Math.Abs(iso2Beam1.GetEditableParameters().ControlPoints.First().JawPositions.Y2);
                 double numSlices = Math.Ceiling(fieldLength + contourOverlapMargin - Math.Abs(isoLocations.Item2.ElementAt(i).Item1.z - isoLocations.Item2.ElementAt(i - 1).Item1.z));
-                overlap.Add(new Tuple<double, int, int>(center,
-                                                        (int)(numSlices / zResolution),
-                                                        (int)(Math.Abs(dicomOrigin.z - center + numSlices / 2) / zResolution)));
+                overlap.Add(new Tuple<double, int, int>(center, // the center location
+                                                        (int)(numSlices / zResolution), //total number of slices to contour
+                                                        (int)(Math.Abs(dicomOrigin.z - center + numSlices / 2) / zResolution))); // starting slice to contour
                 //add a new junction structure (named TS_jnx<i>) to the stack. Contours will be added to these structure later
                 jnxs.Add(selectedSS.AddStructure("CONTROL", string.Format("TS_jnx{0}", isoCount + i)));
             }

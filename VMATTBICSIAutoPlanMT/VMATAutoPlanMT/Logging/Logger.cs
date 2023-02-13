@@ -29,6 +29,12 @@ namespace VMATAutoPlanMT.Logging
             _logFromOperations.AppendLine(""); 
         }
 
+        public void AppendLogOutput(string info)
+        {
+            _logFromOperations.AppendLine(info);
+            _logFromOperations.AppendLine("");
+        }
+
         //targets and prescription
         //structure ID, Rx dose, plan Id
         public List<Tuple<string, double, string>> targets { get; set; }
