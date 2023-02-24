@@ -17,10 +17,11 @@ using System.Windows.Shapes;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Reflection;
+using VMATTBICSIOptLoopMT.Prompts;
 
-namespace VMATTBI_optLoop
+namespace VMATTBICSIOptLoopMT
 {
-    public partial class MainWindow : Window
+    public partial class OptLoopMW : Window
     {
         /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// MAIN PARAMETERS FOR THIS CLASS AND ALL OTHER CLASSES IN THIS APPLICATION.
@@ -100,7 +101,7 @@ namespace VMATTBI_optLoop
         bool copyAndSavePlanItr = false;
         bool useFlash = false;
 
-        public MainWindow(string[] args)
+        public OptLoopMW(string[] args)
         {
             InitializeComponent();
             string patmrn = "";

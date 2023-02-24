@@ -8,159 +8,56 @@ using System.Windows.Threading;
 using System.Threading;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
+using VMATTBICSIOptLoopMT.Prompts;
+using VMATTBICSIOptLoopMT.MTWorker;
+using VMATTBICSIOptLoopMT.PlanEvaluation;
+using VMATTBICSIOptLoopMT.baseClasses;
 
-namespace VMATTBI_optLoop
+namespace VMATTBICSIOptLoopMT
 {
-    //data structure to hold all this crap
-    public struct dataContainer
+    public class optimizationLoop : MTbase
     {
-        //data members
-        public VMS.TPS.Common.Model.API.Application app;
-        public ExternalPlanSetup plan;
-        public string id;
-        public int numOptimizations;
-        public double targetVolCoverage;
-        public double relativeDose;
-        public bool runCoverageCheck;
-        public bool oneMoreOpt;
-        public bool copyAndSavePlanItr;
-        public bool useFlash;
-        public List<Tuple<string, string, double, double, int>> optParams;
-        public List<Tuple<string, string, double, double, DoseValuePresentation>> planObj;
-        public List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures;
-        public double threshold;
-        public double lowDoseLimit;
-        public bool isDemo;
-        public string logFilePath;
-        //simple method to automatically assign/initialize the above data members
-        public void construct(ExternalPlanSetup p, List<Tuple<string, string, double, double, int>> param, List<Tuple<string,string,double,double,DoseValuePresentation>> objectives, List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> RTS,
-                              double targetNorm, int numOpt, bool coverMe, bool unoMas, bool copyAndSave, bool flash, double thres, double lowDose, bool demo, string logPath, VMS.TPS.Common.Model.API.Application a)
-        {
-            optParams = new List<Tuple<string, string, double, double, int>> { };
-            optParams = param;
-
-            plan = p;
-            id = plan.Course.Patient.Id;
-            numOptimizations = numOpt;
-
-            //log file path
-            logFilePath = logPath;
-            //run the optimization loop as a demo
-            isDemo = demo;
-            //what percentage of the target volume should recieve the prescription dose
-            targetVolCoverage = targetNorm;
-            //dose relative to the prescription dose expressed as a percent (used for normalization)
-            relativeDose = 100.0;
-            //threshold to determine if the dose or the priority should be adjusted for an optimization constraint. This threshold indicates the relative cost, above which, the dose will be decreased for an optimization constraint.
-            //Below the threshold, the priority will be increased for an optimization constraint. 
-            threshold = thres;
-            //the low dose limit is used to prevent the algorithm (below) from pushing the dose constraints too low. Basically, if the proposed new dose (i.e., calculated dose from the previous optimization minus the proposed dose decrement)
-            //is greater than the prescription dose times the lowDoseLimit, the change is accepted and the dose constraint is modified. Otherwise, the optimization constraint is NOT altered
-            lowDoseLimit = lowDose;
-            //copy additional optimization loop parameters
-            runCoverageCheck = coverMe;
-            oneMoreOpt = unoMas;
-            copyAndSavePlanItr = copyAndSave;
-            useFlash = flash;
-            app = a;
-
-            planObj = objectives;
-            requestedTSstructures = RTS;
-        }
-    }
-
-    //separate class to help facilitate multithreading
-    public class ESAPIworker
-    {
-        //instance of dataContainer structure to copy the optimization parameters to thread-local memory
-        public dataContainer data;
-        public readonly Dispatcher _dispatcher;
-
-        //constructor
-        public ESAPIworker(dataContainer d)
-        {
-            //copy optimization parameters from main thread to new thread
-            data = d;
-            //copy the dispatcher assigned to the main thread (the optimization loop will run on the main thread)
-            _dispatcher = Dispatcher.CurrentDispatcher;
-        }
-
-        //asynchronously execute the supplied task on the main thread
-        public void DoWork(Action<dataContainer> a)
-        {
-            _dispatcher.BeginInvoke(a, data);
-        }
-    }
-
-    public class optimizationLoop
-    {
-        //data structure to hold the results of the plan evaluation following an optimization
-        public struct evalStruct
-        {
-            //difference between current dose values for each structure in the optimization list and the optimization constraint(s) for that structure
-            public List<Tuple<Structure, DVHData, double, double, double, int>> diffPlanOpt;
-            //same for plan objectives
-            public List<Tuple<Structure, DVHData, double, double>> diffPlanObj;
-            //vector to hold the updated optimization objectives (to be assigned to the plan)
-            public List<Tuple<string, string, double, double, int>> updatedObj;
-            //the total cost sum(dose diff^2 * priority) for all structures in the optimization objective vector list
-            public double totalCostPlanOpt;
-            //same for plan objective vector
-            public double totalCostPlanObj;
-            //counter to hold the number of added cooler and heater structures to the structure set
-            public int numAddedStructs;
-            //simple constructure method to initialize the data members. Need to have this here because you can't initialize data members directly within a data structure
-            public void construct()
-            {
-                //vector to hold the results from the optimization for a particular OPTIMIZATION objective
-                //structure, dvh data, current dose obj, dose diff^2, cost, current priority, priority difference
-                diffPlanOpt = new List<Tuple<Structure, DVHData, double, double, double, int>> { };
-                //vector to hold the results from the optimization for a particular PLAN objective
-                diffPlanObj = new List<Tuple<Structure, DVHData, double, double>> { };
-                //vector to hold the updated optimization objectives (following adjustment in the evaluateAndUpdatePlan method)
-                updatedObj = new List<Tuple<string, string, double, double, int>> { };
-                numAddedStructs = 0;
-            }
-        }
-
         public optimizationLoop(ExternalPlanSetup p, List<Tuple<string, string, double, double, int>> param, List<Tuple<string, string, double, double, DoseValuePresentation>> objectives, List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> RTS,
                                 double targetNorm, int numOpt, bool coverMe, bool unoMas, bool copyAndSave, bool flash, double thres, double lowDose, bool demo, string log, VMS.TPS.Common.Model.API.Application a)
         {
             //create a new instance of the structure dataContainer and assign the optimization loop parameters entered by the user to the various data members
-            dataContainer d = new dataContainer();
-            d.construct(p, param, objectives, RTS, targetNorm, numOpt, coverMe, unoMas, copyAndSave, flash, thres, lowDose, demo, log, a);
+            _data = new dataContainer();
+            _data.construct(p, param, objectives, RTS, targetNorm, numOpt, coverMe, unoMas, copyAndSave, flash, thres, lowDose, demo, log, a);
 
             //create a new thread and pass it the data structure created above (it will copy this information to its local thread memory)
-            ESAPIworker slave = new ESAPIworker(d);
-            //create a new frame (multithreading jargon)
-            DispatcherFrame frame = new DispatcherFrame();
-            //start the optimization
-            //open a new window to run on the newly created thread called "slave"
-            //for definition of the syntax used below, google "statement lambda c#"
-            RunOnNewThread(() =>
-            {
-                //pass the progress window the newly created thread and this instance of the optimizationLoop class.
-                progressWindow pw = new VMATTBI_optLoop.progressWindow(slave, this);
-                pw.ShowDialog();
+            //ESAPIworker slave = new ESAPIworker(d);
+            ////create a new frame (multithreading jargon)
+            //DispatcherFrame frame = new DispatcherFrame();
+            ////start the optimization
+            ////open a new window to run on the newly created thread called "slave"
+            ////for definition of the syntax used below, google "statement lambda c#"
+            //slave.RunOnNewThread(() =>
+            //{
+            //    //pass the progress window the newly created thread and this instance of the optimizationLoop class.
+            //    progressWindow pw = new progressWindow(slave, this);
+            //    pw.ShowDialog();
 
-                //tell the code to hold until the progress window closes.
-                frame.Continue = false;
-            });
+            //    //tell the code to hold until the progress window closes.
+            //    frame.Continue = false;
+            //});
 
-            Dispatcher.PushFrame(frame);
+            //Dispatcher.PushFrame(frame);
         }
 
-        //method to create the new thread, set the apartment state, set the new thread to be a background thread, and execute the action supplied to this method
-        private void RunOnNewThread(Action a)
+        public override bool Run(dataContainer d)
         {
-            Thread t = new Thread(() => a());
-            t.SetApartmentState(ApartmentState.STA);
-            t.IsBackground = true;
-            t.Start();
+            try
+            {
+                SetAbortUIStatus("Running");
+                if (preliminaryChecks(d.plan)) return true;
+            }
+            catch (Exception e) { ProvideUIUpdate(String.Format("{0}", e.Message), true); return true; }
+            return false;
         }
 
         public bool preliminaryChecks(ExternalPlanSetup plan)
         {
+            ProvideUIUpdate("hello");
             //check if the user assigned the imaging device Id. If not, the optimization will crash with no error
             if (plan.StructureSet.Image.Series.ImagingDeviceId == "")
             {
@@ -231,7 +128,7 @@ namespace VMATTBI_optLoop
             //check to see if the couch and rail structures are present in the structure set. If not, let the user know as an FYI. At this point, the user can choose to stop the optimization loop and add the couch structures
             if (!couch.Any() || !rails.Any())
             {
-                confirmUI CUI = new VMATTBI_optLoop.confirmUI();
+                confirmUI CUI = new confirmUI();
                 CUI.message.Text = String.Format("I didn't found any couch structures in the structure set!") + Environment.NewLine + Environment.NewLine + "Continue?!";
                 CUI.ShowDialog();
                 if (!CUI.confirm) return true;
@@ -243,7 +140,7 @@ namespace VMATTBI_optLoop
                 //if a matchline contour is present and filled, does the spinning manny couch exist in the structure set? If not, let the user know so they can decide if they want to continue of stop the optimization loop
                 if (spinningManny == null || spinningManny.IsEmpty)
                 {
-                    confirmUI CUI = new VMATTBI_optLoop.confirmUI();
+                    confirmUI CUI = new confirmUI();
                     CUI.message.Text = String.Format("I found a matchline, but no spinning manny couch or it's empty!") + Environment.NewLine + Environment.NewLine + "Continue?!";
                     CUI.ShowDialog();
                     if (!CUI.confirm) return true;
@@ -260,7 +157,7 @@ namespace VMATTBI_optLoop
                 //We've found that eclipse will throw warning messages after each dose calculation if the couch structures are on the last slices of the CT image. The reason is because a beam could exit the support
                 //structure (i.e., the couch) through the end of the couch thus exiting the CT image altogether. Eclipse warns that you are transporting radiation through a structure at the end of the CT image, which
                 //defines the world volume (i.e., outside this volume, the radiation transport is killed)
-                confirmUI CUI = new VMATTBI_optLoop.confirmUI();
+                confirmUI CUI = new confirmUI();
                 CUI.message.Text = String.Format("I found couch contours on the first or last slices of the CT image!") + Environment.NewLine + Environment.NewLine + 
                                                  "Do you want to remove them?!" + Environment.NewLine + "(The script will be less likely to throw warnings)";
                 CUI.ShowDialog();
@@ -290,7 +187,7 @@ namespace VMATTBI_optLoop
                     {
                         message += Environment.NewLine + "I need to reset the dose matrix, crop the structures, then re-calculate the dose." + Environment.NewLine + "Continue?!";
                         //8-15-2020 dumbass way around the whole "dose has been calculated, you can't change anything!" issue.
-                        CUI = new VMATTBI_optLoop.confirmUI();
+                        CUI = new confirmUI();
                         CUI.message.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
                         CUI.message.Text = message;
                         CUI.ShowDialog();
@@ -355,11 +252,11 @@ namespace VMATTBI_optLoop
 //**********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************
 // ADJUST THIS CODE IF YOU WANT TO CHANGE HOW THE PROGRAM ADJUSTS THE OPTIMIZATION CONSTRAINTS AFTER EACH ITERATION
 //**********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************
-        public evalStruct evaluateAndUpdatePlan(ExternalPlanSetup plan, List<Tuple<string, string, double, double, int>> optParams, List<Tuple<string, string, double, double, DoseValuePresentation>> planObj, 
+        public evalPlanStruct evaluateAndUpdatePlan(ExternalPlanSetup plan, List<Tuple<string, string, double, double, int>> optParams, List<Tuple<string, string, double, double, DoseValuePresentation>> planObj, 
                                                 List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures, double threshold, double lowDoseLimit, bool finalOptimization)
         {
             //create a new data structure to hold the results of the plan quality evaluation
-            evalStruct e = new evalStruct();
+            evalPlanStruct e = new evalPlanStruct();
             e.construct();
 
             //get current optimization objectives from plan (we could use the optParams list, but we want the actual instances of the OptimizationObjective class so we can get the results from each objective)

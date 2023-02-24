@@ -6,7 +6,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{0D8218FD-0F0D-4370-8402-4A8730032EFF}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>VMATTBI_optLoopMT</RootNamespace>
+    <RootNamespace>VMATTBICSIOptLoopMT</RootNamespace>
     <AssemblyName>VMATTBI_optLoopMT</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -96,12 +96,16 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="confirmUI.cs">
+    <Compile Include="baseClasses\MTBase.cs" />
+    <Compile Include="MTWorker\dataContainer.cs" />
+    <Compile Include="PlanEvaluation\evalPlanStruct.cs" />
+    <Compile Include="Prompts\confirmUI.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="confirmUI.Designer.cs">
+    <Compile Include="Prompts\confirmUI.Designer.cs">
       <DependentUpon>confirmUI.cs</DependentUpon>
     </Compile>
+    <Compile Include="MTWorker\ESAPIworker.cs" />
     <Compile Include="optLoopMW.xaml.cs">
       <DependentUpon>optLoopMW.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -129,7 +133,7 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
-    <EmbeddedResource Include="confirmUI.resx">
+    <EmbeddedResource Include="Prompts\confirmUI.resx">
       <DependentUpon>confirmUI.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">

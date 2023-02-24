@@ -1,4 +1,4 @@
-﻿namespace VMATTBI_optLoop
+﻿namespace VMATTBICSIOptLoopMT.Prompts
 {
     partial class confirmUI
     {

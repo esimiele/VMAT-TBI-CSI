@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace VMATTBI_optLoop
+namespace VMATTBICSIOptLoopMT.Prompts
 {
     public partial class confirmUI : Form
     {
