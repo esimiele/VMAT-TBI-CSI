@@ -14,14 +14,14 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         protected dataContainer _data;
         public StringBuilder GetLogOutput() { return _logOutput; }
 
-        public virtual bool Run(dataContainer d)
+        public virtual bool Run()
         {
             return false;
         }
 
-        public bool Execute(dataContainer _data)
+        public bool Execute()
         {
-            ESAPIworker slave = new ESAPIworker(_data);
+            ESAPIworker slave = new ESAPIworker();
             //create a new frame (multithreading jargon)
             DispatcherFrame frame = new DispatcherFrame();
             slave.RunOnNewThread(() =>
@@ -51,22 +51,42 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         //    _dispatch.BeginInvoke((Action)(() => { _pw.UpdateLabel(message); })); 
         //}
 
-        public void SetAbortUIStatus(string message)
+        protected void SetAbortUIStatus(string message)
         {
             if (!string.IsNullOrEmpty(message)) _logOutput.AppendLine(message);
             _dispatch.BeginInvoke((Action)(() => { _pw.abortStatus.Text = message; }));
         }
 
-        public void ProvideUIUpdate(int percentComplete, string message = "", bool fail = false) 
+        protected void ProvideUIUpdate(int percentComplete, string message = "", bool fail = false) 
         {
             if(!string.IsNullOrEmpty(message)) _logOutput.AppendLine(message);
             _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(percentComplete, message, fail); })); 
         }
 
-        public void ProvideUIUpdate(string message, bool fail = false) 
+        protected void ProvideUIUpdate(string message, bool fail = false) 
         {
             _logOutput.AppendLine(message);
             _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(message, fail); })); 
+        }
+
+        protected bool GetAbortStatus()
+        {
+            return _pw.abortOpt;
+        }
+
+        protected void KillOptimizationLoop()
+        {
+            _dispatch.BeginInvoke((Action)(() => { _pw.setAbortStatus(); }));
+        }
+
+        protected void OptimizationLoopFinished()
+        {
+            _dispatch.BeginInvoke((Action)(() => { _pw.isFinished = true;  _pw.setAbortStatus(); }));
+        }
+
+        protected string GetElapsedTime()
+        {
+            return _pw.currentTime;
         }
     }
 }

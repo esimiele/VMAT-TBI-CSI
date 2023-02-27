@@ -13,22 +13,20 @@ namespace VMATTBICSIOptLoopMT.MTWorker
     {
         public bool isError = false;
         //instance of dataContainer structure to copy the optimization parameters to thread-local memory
-        public dataContainer data;
         public readonly Dispatcher _dispatcher;
 
         //constructor
-        public ESAPIworker(dataContainer d)
+        public ESAPIworker()
         {
             //copy optimization parameters from main thread to new thread
-            data = d;
             //copy the dispatcher assigned to the main thread (the optimization loop will run on the main thread)
             _dispatcher = Dispatcher.CurrentDispatcher;
         }
 
         //asynchronously execute the supplied task on the main thread
-        public void DoWork(Action<dataContainer> a)
+        public void DoWork(Action a)
         {
-            _dispatcher.BeginInvoke(a, data);
+            _dispatcher.BeginInvoke(a);
         }
 
         //method to create the new thread, set the apartment state, set the new thread to be a background thread, and execute the action supplied to this method

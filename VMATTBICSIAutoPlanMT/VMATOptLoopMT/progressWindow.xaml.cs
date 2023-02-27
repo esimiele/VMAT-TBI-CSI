@@ -55,56 +55,62 @@ namespace VMATTBICSIOptLoopMT
         //get instances of the stopwatch and dispatch timer to report how long the calculation takes at each reporting interval
         Stopwatch sw = new Stopwatch();
         DispatcherTimer dt = new DispatcherTimer();
-        string currentTime = "";
+        public string currentTime = "";
+
+        public progressWindow()
+        {
+            InitializeComponent();
+
+        }
 
         public progressWindow(ESAPIworker e = null, optimizationLoop o = null)
         {
             InitializeComponent();
 
-            //flags to let the code know if the user wants to stop the optimization loop, is the optimization loop finished, and can the progress window close
-            abortOpt = false;
-            isFinished = false;
-            canClose = false;
-            //copy the thread instance and optimizationLoop class instance
-            slave = e;
-            op = o;
-            //copy the patient MRN so the script will always write the output to my folder (so I don't have to worry about users forgetting to save the output)
-            id = slave.data.id;
+            ////flags to let the code know if the user wants to stop the optimization loop, is the optimization loop finished, and can the progress window close
+            //abortOpt = false;
+            //isFinished = false;
+            //canClose = false;
+            ////copy the thread instance and optimizationLoop class instance
+            //slave = e;
+            //op = o;
+            ////copy the patient MRN so the script will always write the output to my folder (so I don't have to worry about users forgetting to save the output)
+            //id = slave.data.id;
 
-            //demo status
-            demo = slave.data.isDemo;
+            ////demo status
+            //demo = slave.data.isDemo;
 
-            //copy log path
-            logPath = slave.data.logFilePath;
+            ////copy log path
+            //logPath = slave.data.logFilePath;
 
-            optPlanObjHeader = " Plan objectives:" + System.Environment.NewLine;
-            optPlanObjHeader += " --------------------------------------------------------------------------" + System.Environment.NewLine;
-            optPlanObjHeader += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -9} |", "structure Id", "constraint type", "dose", "volume (%)", "dose type") + System.Environment.NewLine;
-            optPlanObjHeader += " --------------------------------------------------------------------------" + System.Environment.NewLine;
+            //optPlanObjHeader = " Plan objectives:" + System.Environment.NewLine;
+            //optPlanObjHeader += " --------------------------------------------------------------------------" + System.Environment.NewLine;
+            //optPlanObjHeader += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -9} |", "structure Id", "constraint type", "dose", "volume (%)", "dose type") + System.Environment.NewLine;
+            //optPlanObjHeader += " --------------------------------------------------------------------------" + System.Environment.NewLine;
 
-            optRequestTS += String.Format(" Requested tuning structures:") + System.Environment.NewLine;
-            optRequestTS += " --------------------------------------------------------------------------" + System.Environment.NewLine;
-            optRequestTS += String.Format(" {0, -15} | {1, -9} | {2, -10} | {3, -5} | {4, -8} | {5, -10} |", "structure Id", "low D (%)", "high D (%)", "V (%)", "priority", "constraint") + System.Environment.NewLine;
-            optRequestTS += " --------------------------------------------------------------------------" + System.Environment.NewLine;
+            //optRequestTS += String.Format(" Requested tuning structures:") + System.Environment.NewLine;
+            //optRequestTS += " --------------------------------------------------------------------------" + System.Environment.NewLine;
+            //optRequestTS += String.Format(" {0, -15} | {1, -9} | {2, -10} | {3, -5} | {4, -8} | {5, -10} |", "structure Id", "low D (%)", "high D (%)", "V (%)", "priority", "constraint") + System.Environment.NewLine;
+            //optRequestTS += " --------------------------------------------------------------------------" + System.Environment.NewLine;
             
-            //setup formating for progress window output text
-            optObjHeader = " Updated optimization constraints:" + System.Environment.NewLine;
-            optObjHeader += " -------------------------------------------------------------------------" + System.Environment.NewLine;
-            optObjHeader += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |" + System.Environment.NewLine, "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority");
-            optObjHeader += " -------------------------------------------------------------------------" + System.Environment.NewLine;
+            ////setup formating for progress window output text
+            //optObjHeader = " Updated optimization constraints:" + System.Environment.NewLine;
+            //optObjHeader += " -------------------------------------------------------------------------" + System.Environment.NewLine;
+            //optObjHeader += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |" + System.Environment.NewLine, "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority");
+            //optObjHeader += " -------------------------------------------------------------------------" + System.Environment.NewLine;
 
-            optResHeader = " Results of optimization:" + System.Environment.NewLine;
-            optResHeader += " ---------------------------------------------------------------------------------------------------------" + System.Environment.NewLine;
-            optResHeader += String.Format(" {0, -15} | {1, -16} | {2, -20} | {3, -16} | {4, -12} | {5, -9} |" + System.Environment.NewLine, "structure Id", "constraint type", "dose diff^2 (cGy^2)", "current priority", "cost", "cost (%)");
-            optResHeader += " ---------------------------------------------------------------------------------------------------------" + System.Environment.NewLine;
+            //optResHeader = " Results of optimization:" + System.Environment.NewLine;
+            //optResHeader += " ---------------------------------------------------------------------------------------------------------" + System.Environment.NewLine;
+            //optResHeader += String.Format(" {0, -15} | {1, -16} | {2, -20} | {3, -16} | {4, -12} | {5, -9} |" + System.Environment.NewLine, "structure Id", "constraint type", "dose diff^2 (cGy^2)", "current priority", "cost", "cost (%)");
+            //optResHeader += " ---------------------------------------------------------------------------------------------------------" + System.Environment.NewLine;
 
-            //set total number of milestones (used for calculation of percent progress completed)
-            //7 milestones always have to be completed if coverage check is selected
-            if (slave.data.oneMoreOpt) calcItems = (10 + 7 * slave.data.numOptimizations);
-            else calcItems = (7 + 7 * slave.data.numOptimizations);
-            //if coverage check is NOT selected, remove 4 of these milestones
-            if (demo || !slave.data.runCoverageCheck) calcItems -= 5;
-            if (slave.data.useFlash) calcItems += 2;
+            ////set total number of milestones (used for calculation of percent progress completed)
+            ////7 milestones always have to be completed if coverage check is selected
+            //if (slave.data.oneMoreOpt) calcItems = (10 + 7 * slave.data.numOptimizations);
+            //else calcItems = (7 + 7 * slave.data.numOptimizations);
+            ////if coverage check is NOT selected, remove 4 of these milestones
+            //if (demo || !slave.data.runCoverageCheck) calcItems -= 5;
+            //if (slave.data.useFlash) calcItems += 2;
 
             ////start the optimization loop
             //try
@@ -134,14 +140,14 @@ namespace VMATTBICSIOptLoopMT
 
         public void doStuff()
         {
-            slave.DoWork(d =>
+            slave.DoWork(() =>
             {
                 //get instance of current dispatcher (double check the use of this dispatcher vs the dispatcher held in ESAPIworker...)
                 Dispatcher dispatch = Dispatcher;
                 //asign the dispatcher and an instance of this class to the caller class (used to marshal updates back to this UI)
                 callerClass.SetDispatcherAndUIInstance(dispatch, this);
                 //start the tasks asynchronously
-                if (callerClass.Run(d)) slave.isError = true;
+                if (callerClass.Run()) slave.isError = true;
                 sw.Stop();
                 dt.Stop();
             });
@@ -257,6 +263,10 @@ namespace VMATTBICSIOptLoopMT
         //            }
         //        }
         //        Dispatcher.BeginInvoke((Action)(() => { provideUpdate(TSstructures); }));
+
+
+
+
 
         //        //update the progress in the message window and the percent completion in the GUI
         //        Dispatcher.BeginInvoke((Action)(() => { provideUpdate((int)(100 * (++percentCompletion) / calcItems), " Primilary checks passed"); }));
@@ -702,15 +712,36 @@ namespace VMATTBICSIOptLoopMT
         //three overloaded methods to provide periodic updates on the progress of the optimization loop
         public void provideUpdate(int percentComplete, string message, bool fail)
         {
+            if (fail) FailEvent();
             progress.Value = percentComplete;
             update.Text += message + System.Environment.NewLine;
             scroller.ScrollToBottom();
             updateLogFile(message);
         }
 
-        public void provideUpdate(int percentComplete) { progress.Value = percentComplete; }
+        public void provideUpdate(int percentComplete) 
+        { 
+            progress.Value = percentComplete; 
+        }
 
-        public void provideUpdate(string message, bool fail) { update.Text += message + System.Environment.NewLine; scroller.ScrollToBottom(); updateLogFile(message); }
+        public void provideUpdate(string message, bool fail) 
+        {
+            if (fail) FailEvent();
+            update.Text += message + System.Environment.NewLine; 
+            scroller.ScrollToBottom(); 
+            updateLogFile(message); 
+        }
+
+        private void FailEvent()
+        {
+            progress.Background = Brushes.Red;
+            progress.Foreground = Brushes.Red;
+            abortStatus.Text = "Failed!";
+            abortStatus.Background = Brushes.Red;
+            sw.Stop();
+            dt.Stop();
+            canClose = true;
+        }
 
         private void updateLogFile(string output)
         {
@@ -749,7 +780,7 @@ namespace VMATTBICSIOptLoopMT
             }
         }
 
-        private void setAbortStatus()
+        public void setAbortStatus()
         {
             if (abortOpt)
             {
