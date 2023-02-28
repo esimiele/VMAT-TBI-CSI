@@ -11,7 +11,6 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         private Dispatcher _dispatch;
         protected progressWindow _pw;
         private StringBuilder  _logOutput;
-        protected dataContainer _data;
         public StringBuilder GetLogOutput() { return _logOutput; }
 
         public virtual bool Run()
@@ -44,12 +43,6 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             _pw = p;
             _logOutput = new StringBuilder();
         }
-
-        //public void UpdateUILabel(string message) 
-        //{ 
-        //    _logOutput.AppendLine(message); 
-        //    _dispatch.BeginInvoke((Action)(() => { _pw.UpdateLabel(message); })); 
-        //}
 
         protected void SetAbortUIStatus(string message)
         {

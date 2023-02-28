@@ -9,40 +9,19 @@ using System.Threading;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIOptLoopMT.Prompts;
-using VMATTBICSIOptLoopMT.MTWorker;
 using VMATTBICSIOptLoopMT.PlanEvaluation;
 using VMATTBICSIOptLoopMT.baseClasses;
+using VMATTBICSIOptLoopMT.helpers;
 
 namespace VMATTBICSIOptLoopMT
 {
     public class optimizationLoop : MTbase
     {
-        public optimizationLoop(ExternalPlanSetup p, List<Tuple<string, string, double, double, int>> param, List<Tuple<string, string, double, double, DoseValuePresentation>> objectives, List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> RTS,
-                                double targetNorm, int numOpt, bool coverMe, bool unoMas, bool copyAndSave, bool flash, double thres, double lowDose, bool demo, string log, VMS.TPS.Common.Model.API.Application a)
+        private dataContainer _data;
+
+        public optimizationLoop(dataContainer _d)
         {
-            //create a new instance of the structure dataContainer and assign the optimization loop parameters entered by the user to the various data members
-            _data = new dataContainer();
-            _data.construct(p, param, objectives, RTS, targetNorm, numOpt, coverMe, unoMas, copyAndSave, flash, thres, lowDose, demo, log, a);
-
-            //create a new thread and pass it the data structure created above (it will copy this information to its local thread memory)
-            //ESAPIworker slave = new ESAPIworker(d);
-            ////create a new frame (multithreading jargon)
-            //DispatcherFrame frame = new DispatcherFrame();
-            ////start the optimization
-            ////open a new window to run on the newly created thread called "slave"
-            ////for definition of the syntax used below, google "statement lambda c#"
-            //slave.RunOnNewThread(() =>
-            //{
-            //    //pass the progress window the newly created thread and this instance of the optimizationLoop class.
-            //    progressWindow pw = new progressWindow(slave, this);
-            //    pw.ShowDialog();
-
-            //    //tell the code to hold until the progress window closes.
-            //    frame.Continue = false;
-            //});
-
-            //Dispatcher.PushFrame(frame);
-            Execute();
+            _data = _d;
         }
 
         public override bool Run()
@@ -50,14 +29,23 @@ namespace VMATTBICSIOptLoopMT
             try
             {
                 SetAbortUIStatus("Runnning");
-                PrintRunInfo();
-                if (GetAbortStatus()) KillOptimizationLoop();
+                PrintRunSetupInfo();
                 if (preliminaryChecks(_data.plan)) return true;
-                if (GetAbortStatus()) KillOptimizationLoop();
+                
                 if (_data.isDemo || !_data.runCoverageCheck) ProvideUIUpdate(" Skipping coverage check! Moving on to optimization loop!");
                 else
                 {
                     if (RunCoverageCheck(_data.optParams, _data.plan, _data.relativeDose, _data.targetVolCoverage, _data.useFlash)) return true;
+                    ProvideUIUpdate(" Coverage check completed! Commencing optimization loop!");
+                }
+                if (_data.numOptimizations < 1)
+                {
+                    UpdateConstraints(_data.optParams, _data.plan);
+                    ProvideUIUpdate(100);
+                }
+                else
+                {
+                    if(RunOptimizationLoop()) return true;
                 }
                 OptimizationLoopFinished();
             }
@@ -65,10 +53,78 @@ namespace VMATTBICSIOptLoopMT
             return false;
         }
 
-        #region runinfo
-        private void PrintRunInfo()
+        private void PrintFailedMessage(string optorcalc, string reason = "")
         {
-            string info = String.Format(" ---------------------------------------------------------------------------------------------------------" + Environment.NewLine +
+            if(string.IsNullOrEmpty(reason))
+            {
+                ProvideUIUpdate(String.Format(" Error! {0} failed!" + Environment.NewLine + " Try running the {0} manually Eclipse for more information!" + Environment.NewLine + Environment.NewLine + " Exiting!", optorcalc), true);
+            }
+            else
+            {
+                ProvideUIUpdate(String.Format(" Error! {0} failed because: {1}" + Environment.NewLine + Environment.NewLine + " Exiting!", optorcalc, reason), true);
+            }
+        }
+
+        private void PrintAdditionalPlanDoseInfo(List<Tuple<string,string,double,string>> requestedInfo, ExternalPlanSetup plan)
+        {
+            Structure structure;
+            List<Structure> planStructures = plan.StructureSet.Structures.ToList();
+            
+            string message = " Additional plan infomation: " + Environment.NewLine;
+            foreach(Tuple<string,string,double,string> itr in requestedInfo)
+            {
+                if(itr.Item1.Contains("<plan>"))
+                {
+                    if (itr.Item2 == "Dmax") ProvideUIUpdate(String.Format(" Plan global Dmax = {0:0.0}%", 100 * (plan.Dose.DoseMax3D.Dose / plan.TotalDose.Dose)));
+                    else ProvideUIUpdate(String.Format("Cannot retrive metric ({0},{1},{2},{3})! Skipping!", itr.Item1, itr.Item2, itr.Item3, itr.Item4));
+                }
+                else
+                {
+                    structure = planStructures.FirstOrDefault(x => x.Id.ToLower() == itr.Item1.ToLower());
+                    if(structure != null)
+                    {
+                        if(itr.Item2.Contains("max") || itr.Item2.Contains("min"))
+                        {
+                            ProvideUIUpdate(String.Format(" {0} {1} = {2:0.0}{3}", 
+                                            structure.Id, 
+                                            itr.Item2, 
+                                            plan.GetDoseAtVolume(structure, itr.Item2 == "Dmax" ? 0.0 : 100.0, VolumePresentation.Relative, itr.Item4 == "Relative" ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute).Dose, 
+                                            itr.Item4 == "Relative" ? "%" : "cGy"));
+                        }
+                        else
+                        {
+                            if(itr.Item2 == "D")
+                            {
+                                //dose at specified volume requested
+                                ProvideUIUpdate(String.Format(" {0} {1}{2}% = {3:0.0}{4}",
+                                            structure.Id,
+                                            itr.Item2,
+                                            itr.Item3,
+                                            plan.GetDoseAtVolume(structure, itr.Item3, VolumePresentation.Relative, itr.Item4 == "Relative" ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute).Dose,
+                                            itr.Item4 == "Relative" ? "%" : "cGy"));
+                            }
+                            else
+                            {
+                                //volume at specified dose requested
+                                ProvideUIUpdate(String.Format(" {0} {1}{2}% = {3:0.0}{4}",
+                                            structure.Id,
+                                            itr.Item2,
+                                            itr.Item3,
+                                            plan.GetVolumeAtDose(structure, new DoseValue(itr.Item3, DoseValue.DoseUnit.Percent), itr.Item4 == "Relative" ? VolumePresentation.Relative : VolumePresentation.AbsoluteCm3),
+                                            itr.Item4 == "Relative" ? "%" : "cc"));
+                            }
+                        }
+                    }
+                    else ProvideUIUpdate(String.Format("Cannot retrive metric ({0},{1},{2},{3})! Skipping!", itr.Item1, itr.Item2, itr.Item3, itr.Item4));
+
+                }
+            }
+        }
+
+        #region print run setup and format headers
+        private void PrintRunSetupInfo()
+        {
+            string optimizationLoopSetupInfo = String.Format(" ---------------------------------------------------------------------------------------------------------" + Environment.NewLine +
                                         " Date: {0}" + Environment.NewLine +
                                         " Optimization parameters:" + Environment.NewLine +
                                         " Run coverage check: {1}" + Environment.NewLine +
@@ -78,8 +134,13 @@ namespace VMATTBICSIOptLoopMT
                                         " Plan normalization: PTV V{5}cGy = {6:0.0}%" + Environment.NewLine,
                                         DateTime.Now, _data.runCoverageCheck, _data.numOptimizations, _data.oneMoreOpt, _data.copyAndSavePlanItr, _data.plan.TotalDose.Dose, _data.targetVolCoverage);
 
-            ProvideUIUpdate(info);
+            ProvideUIUpdate(optimizationLoopSetupInfo);
+            PrintPlanObjectives();
+            PrintRequestedTSStructures();
+        }
 
+        private void PrintPlanObjectives()
+        {
             string optPlanObjHeader = " Plan objectives:" + Environment.NewLine;
             optPlanObjHeader += " --------------------------------------------------------------------------" + Environment.NewLine;
             optPlanObjHeader += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -9} |", "structure Id", "constraint type", "dose", "volume (%)", "dose type") + Environment.NewLine;
@@ -92,7 +153,10 @@ namespace VMATTBICSIOptLoopMT
                 ProvideUIUpdate(String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-9} |", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5));
             }
             ProvideUIUpdate(Environment.NewLine);
+        }
 
+        private void PrintRequestedTSStructures()
+        {
             string optRequestTS = String.Format(" Requested tuning structures:") + Environment.NewLine;
             optRequestTS += " --------------------------------------------------------------------------" + Environment.NewLine;
             optRequestTS += String.Format(" {0, -15} | {1, -9} | {2, -10} | {3, -5} | {4, -8} | {5, -10} |", "structure Id", "low D (%)", "high D (%)", "V (%)", "priority", "constraint") + Environment.NewLine;
@@ -126,19 +190,24 @@ namespace VMATTBICSIOptLoopMT
                 }
                 ProvideUIUpdate(msg);
             }
+        }
 
-            //setup formating for progress window output text
-            string optObjHeader = " Updated optimization constraints:" + System.Environment.NewLine;
-            optObjHeader += " -------------------------------------------------------------------------" + System.Environment.NewLine;
-            optObjHeader += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |" + System.Environment.NewLine, "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority");
-            optObjHeader += " -------------------------------------------------------------------------" + System.Environment.NewLine;
+        private string GetOptimizationObjectivesHeader()
+        {
+            string optObjHeader = " Updated optimization constraints:" + Environment.NewLine;
+            optObjHeader += " -------------------------------------------------------------------------" + Environment.NewLine;
+            optObjHeader += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |" + Environment.NewLine, "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority");
+            optObjHeader += " -------------------------------------------------------------------------";
+            return optObjHeader;
+        }
 
-            string optResHeader = " Results of optimization:" + System.Environment.NewLine;
-            optResHeader += " ---------------------------------------------------------------------------------------------------------" + System.Environment.NewLine;
-            optResHeader += String.Format(" {0, -15} | {1, -16} | {2, -20} | {3, -16} | {4, -12} | {5, -9} |" + System.Environment.NewLine, "structure Id", "constraint type", "dose diff^2 (cGy^2)", "current priority", "cost", "cost (%)");
-            optResHeader += " ---------------------------------------------------------------------------------------------------------" + System.Environment.NewLine;
-
-
+        private string GetOptimizationResultsHeader()
+        {
+            string optResHeader = " Results of optimization:" + Environment.NewLine;
+            optResHeader += " ---------------------------------------------------------------------------------------------------------" + Environment.NewLine;
+            optResHeader += String.Format(" {0, -15} | {1, -16} | {2, -20} | {3, -16} | {4, -12} | {5, -9} |" + Environment.NewLine, "structure Id", "constraint type", "dose diff^2 (cGy^2)", "current priority", "cost", "cost (%)");
+            optResHeader += " ---------------------------------------------------------------------------------------------------------";
+            return optResHeader;
         }
         #endregion
 
@@ -336,30 +405,33 @@ namespace VMATTBICSIOptLoopMT
             plan.OptimizationSetup.AddAutomaticNormalTissueObjective(0.0);
             //be sure to set the dose value presentation to absolute! This is important for plan evaluation in the evaluateAndUpdatePlan method below
             plan.DoseValuePresentation = DoseValuePresentation.Absolute;
-            //return true;
+
+
+            if (GetAbortStatus())
+            {
+                KillOptimizationLoop();
+                return true;
+            }
             return false;
         }
         #endregion
 
+        #region coverage check
         private bool RunCoverageCheck(List<Tuple<string, string, double, double, int>> optParams, ExternalPlanSetup plan, double relativeDose, double targetVolCoverage, bool useFlash)
         {
-            ProvideUIUpdate("Running coverage check now!" + Environment.NewLine);
+            ProvideUIUpdate(" Running coverage check..." + Environment.NewLine);
             //zero all optimization objectives except those in the target
             List<Tuple<string, string, double, double, int>> targetOnlyObj = new List<Tuple<string, string, double, double, int>> { };
-            int priority;
-            string optObjHeader = " Updated optimization constraints:" + System.Environment.NewLine;
-            optObjHeader += " -------------------------------------------------------------------------" + Environment.NewLine;
-            optObjHeader += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |" + Environment.NewLine, "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority");
-            optObjHeader += " -------------------------------------------------------------------------";
-            ProvideUIUpdate(optObjHeader);
+            
+            ProvideUIUpdate(GetOptimizationObjectivesHeader());
 
             int percentCompletion = 0;
             int calcItems = 5;
 
-            foreach (Tuple<string, string, double, double, int> opt in _data.optParams)
+            foreach (Tuple<string, string, double, double, int> opt in optParams)
             {
+                int priority = 0;
                 if (opt.Item1.ToLower().Contains("ptv") || opt.Item1.ToLower().Contains("ts_jnx")) priority = opt.Item5;
-                else priority = 0;
                 targetOnlyObj.Add(Tuple.Create(opt.Item1, opt.Item2, opt.Item3, opt.Item4, priority));
                 //record the optimization constraints for each structure after zero-ing the priorities. This information will be reported to the user in a progress update
                 ProvideUIUpdate(String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.Item1, opt.Item2, opt.Item3, opt.Item4, priority));
@@ -369,61 +441,39 @@ namespace VMATTBICSIOptLoopMT
             ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems));
 
             //run one optimization with NO intermediate dose.
-            try
+            OptimizePlan(new OptimizationOptionsVMAT(OptimizationIntermediateDoseOption.NoIntermediateDose, ""), plan, _data.app);
+
+            if (GetAbortStatus())
             {
-                OptimizerResult optRes = plan.OptimizeVMAT(new OptimizationOptionsVMAT(OptimizationIntermediateDoseOption.NoIntermediateDose, ""));
-                if (!optRes.Success) 
-                { 
-                    ProvideUIUpdate(String.Format(" Error! Optimization failed!" + Environment.NewLine + " Try running the optimization manually Eclipse for more information!" + Environment.NewLine + Environment.NewLine + " Exiting!"), true);
-                    return true;
-                }
-            }
-            catch (Exception except) 
-            {
-                ProvideUIUpdate(String.Format(" Error! Optimization failed because: {0}" + Environment.NewLine + Environment.NewLine + " Exiting!", except.Message), true); 
+                KillOptimizationLoop();
                 return true;
             }
-            if (GetAbortStatus()) return true;
-            //provide update
+
             ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Optimization finished on coverage check! Calculating dose!"); 
-            ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime())); 
+            ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
 
             //calculate dose (using AAA algorithm)
-            try
+            CalculateDose(plan, _data.app);
+            
+            if (GetAbortStatus())
             {
-                CalculationResult calcRes = plan.CalculateDose();
-                if (!calcRes.Success) 
-                { 
-                    ProvideUIUpdate(String.Format(" Error! Dose calculation failed!" + Environment.NewLine + " Try running the dose calculation manually Eclipse for more information!" + Environment.NewLine + Environment.NewLine + " Exiting!"), true);
-                    return true;
-                }
-            }
-            catch (Exception except) 
-            { 
-                ProvideUIUpdate(String.Format(" Error! Dose calculation failed because: {0}" + Environment.NewLine + Environment.NewLine + " Exiting!", except.Message), true);
+                KillOptimizationLoop();
                 return true;
             }
-            if (GetAbortStatus()) return true;
             ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Dose calculated for coverage check, normalizing plan!");
 
             //normalize plan
             normalizePlan(plan, relativeDose, targetVolCoverage, useFlash);
-            if (GetAbortStatus()) return true;
+            if (GetAbortStatus())
+            {
+                KillOptimizationLoop();
+                return true;
+            }
+
             ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Plan normalized!");
 
             //print useful info about target coverage and global dmax
-            Structure target;
-            if (useFlash) target = plan.StructureSet.Structures.First(x => x.Id.ToLower() == "ts_ptv_flash");
-            //else target = plan.StructureSet.Structures.First(x => x.Id.ToLower() == "ts_ptv_vmat");
-            else target = plan.StructureSet.Structures.First(x => x.Id.ToLower() == "ts_ptv_csi");
-            string additionalPlanInfo = " Additional plan infomation: " + System.Environment.NewLine +
-                                String.Format(" Plan global Dmax = {0:0.0}%", 100 * (plan.Dose.DoseMax3D.Dose / plan.TotalDose.Dose)) + System.Environment.NewLine +
-                                String.Format(" {0} Dmax = {1:0.0}%", target.Id, plan.GetDoseAtVolume(target, 0.0, VolumePresentation.Relative, DoseValuePresentation.Relative).Dose) + Environment.NewLine +
-                                String.Format(" {0} Dmin = {1:0.0}%", target.Id, plan.GetDoseAtVolume(target, 100.0, VolumePresentation.Relative, DoseValuePresentation.Relative).Dose) + Environment.NewLine +
-                                String.Format(" {0} V90% = {1:0.0}%", target.Id, plan.GetVolumeAtDose(target, new DoseValue(90.0, DoseValue.DoseUnit.Percent), VolumePresentation.Relative)) + Environment.NewLine +
-                                String.Format(" {0} V110% = {1:0.0}%", target.Id, plan.GetVolumeAtDose(target, new DoseValue(110.0, DoseValue.DoseUnit.Percent), VolumePresentation.Relative)) + Environment.NewLine +
-                                String.Format(" {0} V120% = {1:0.0}%", target.Id, plan.GetVolumeAtDose(target, new DoseValue(120.0, DoseValue.DoseUnit.Percent), VolumePresentation.Relative));
-            ProvideUIUpdate(additionalPlanInfo);
+            PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, plan);
 
             //calculate global Dmax expressed as a percent of the prescription dose (if dose has been calculated)
             if (plan.IsDoseValid && ((plan.Dose.DoseMax3D.Dose / plan.TotalDose.Dose) > 1.40))
@@ -432,12 +482,195 @@ namespace VMATTBICSIOptLoopMT
                                 String.Format(" I'm having trouble covering the target with the Rx Dose! Hot spot = {0:0.0}%", 100 * (plan.Dose.DoseMax3D.Dose / plan.TotalDose.Dose)) +
                                 Environment.NewLine + " Consider stopping the optimization and checking the beam arrangement!");
             }
-            else
+            return false;
+        }
+        #endregion
+
+        #region optimization loop
+        private bool RunOptimizationLoop()
+        {
+            int percentCompletion = 0;
+            int calcItems = 100;
+
+            //update the current optimization parameters for this iteration
+            _data.optParams = InitializeOptimizationConstriants(_data.optParams);
+            //reset the objectives and inform the user of the current optimization parameters
+            UpdateConstraints(_data.optParams, _data.plan);
+
+            if (_data.isDemo) Thread.Sleep(3000);
+            else _data.app.SaveModifications();
+
+            ProvideUIUpdate(" Starting optimization loop!");
+            //counter to keep track of how many optimization iterations have been performed
+            int count = 0;
+            while (count < _data.numOptimizations)
             {
-                ProvideUIUpdate("Coverage looks good!");
+                ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), String.Format(" Iteration {0}:", count + 1));
+                ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
+                if (_data.isDemo) Thread.Sleep(3000);
+                else if (OptimizePlan(new OptimizationOptionsVMAT(OptimizationIntermediateDoseOption.NoIntermediateDose, ""), _data.plan, _data.app)) return true;
+
+                //check if user wants to stop
+                if (GetAbortStatus())
+                {
+                    KillOptimizationLoop();
+                    return true;
+                }
+
+                ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Optimization finished! Calculating intermediate dose!");
+                ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
+                if (_data.isDemo) Thread.Sleep(3000);
+                else if (CalculateDose(_data.plan, _data.app)) return true;
+
+                if (GetAbortStatus())
+                {
+                    KillOptimizationLoop();
+                    return true;
+                }
+
+                ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Dose calculated! Continuing optimization!");
+                ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
+                if (_data.isDemo) Thread.Sleep(3000);
+                else if (OptimizePlan(new OptimizationOptionsVMAT(OptimizationOption.ContinueOptimizationWithPlanDoseAsIntermediateDose, ""), _data.plan, _data.app)) return true;
+
+                //check if user wants to stop
+                if (GetAbortStatus())
+                {
+                    KillOptimizationLoop();
+                    return true;
+                }
+
+                ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Optimization finished! Calculating dose!");
+                ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
+                if (_data.isDemo) Thread.Sleep(3000);
+                else if (CalculateDose(_data.plan, _data.app)) return true;
+
+                if (GetAbortStatus())
+                {
+                    KillOptimizationLoop();
+                    return true;
+                }
+
+                ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Dose calculated, normalizing plan!");
+                ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
+
+                //normalize
+                normalizePlan(_data.plan, _data.relativeDose, _data.targetVolCoverage, _data.useFlash);
+                if (GetAbortStatus())
+                {
+                    KillOptimizationLoop();
+                    return true;
+                }
+
+                ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Plan normalized! Evaluating plan quality and updating constraints!"); ;
+                //evaluate the new plan for quality and make any adjustments to the optimization parameters
+                evalPlanStruct e = evaluateAndUpdatePlan(_data.plan, _data.optParams, _data.planObj, _data.requestedTSstructures, _data.threshold, _data.lowDoseLimit, (_data.oneMoreOpt && ((count + 1) == _data.numOptimizations)));
+
+                //updated optimization constraint list is empty, which means that all plan objectives have been met. Let the user know and break the loop. Also set oneMoreOpt to false so that extra optimization is not performed
+                if (!e.updatedObj.Any())
+                {
+                    ProvideUIUpdate(String.Format(" All plan objectives have been met! Exiting!"), true);
+                    _data.oneMoreOpt = false;
+                    break;
+                }
+
+                //did the user request to copy and save each plan iteration from the optimization loop?
+                //the last two boolean evaluations check if the user requested one more optimization (always copy and save) or this is not the last loop iteration (used in the case where the user elected NOT to do one more optimization
+                //but still wants to copy and save each plan). We don't want to copy and save the plan on the last loop iteration when oneMoreOpt is false because we will end up with two copies of
+                //the same plan!
+                if (!_data.isDemo && _data.copyAndSavePlanItr && (_data.oneMoreOpt || ((count + 1) != _data.numOptimizations))) CopyAndSavePlan(_data.plan, count);
+
+                //print the results of the quality check for this optimization
+                string optResults = Environment.NewLine + GetOptimizationResultsHeader();
+                int index = 0;
+                //structure, dvh data, current dose obj, dose diff^2, cost, current priority, priority difference
+                foreach (Tuple<Structure, DVHData, double, double, double, int> itr in e.diffPlanOpt)
+                {
+                    string id = "";
+                    //grab the structure id from the optParams list (better to work with string literals rather than trying to access the structure id through the structure object instance in the diffPlanOpt data structure)
+                    id = _data.optParams.ElementAt(index).Item1;
+                    //"structure Id", "constraint type", "dose diff^2 (cGy^2)", "current priority", "cost", "cost (%)"
+                    optResults += String.Format(" {0, -15} | {1, -16} | {2, -20:N1} | {3, -16} | {4, -12:N1} | {5, -9:N1} |" + Environment.NewLine, id, _data.optParams.ElementAt(index).Item2, itr.Item4, itr.Item6, itr.Item5, 100 * itr.Item5 / e.totalCostPlanOpt);
+                    index++;
+                }
+                ProvideUIUpdate(optResults);
+
+                PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, _data.plan);
             }
             return false;
         }
+        #endregion
+
+        #region helper functions
+        private bool OptimizePlan(OptimizationOptionsVMAT options, ExternalPlanSetup plan, VMS.TPS.Common.Model.API.Application app)
+        {
+            //optimize with intermediate dose (AAA algorithm).
+            try
+            {
+                OptimizerResult optRes = plan.OptimizeVMAT(options);
+                if (!optRes.Success)
+                {
+                    PrintFailedMessage("Optimization");
+                    return true;
+                }
+            }
+            catch (Exception except)
+            {
+                PrintFailedMessage("Optimization", except.Message);
+                return true;
+            }
+            app.SaveModifications();
+            return false;
+        }
+
+        private bool CalculateDose(ExternalPlanSetup plan, VMS.TPS.Common.Model.API.Application app)
+        {
+            //calculate dose
+            try
+            {
+                CalculationResult calcRes = plan.CalculateDose();
+                if (!calcRes.Success)
+                {
+                    PrintFailedMessage("Dose calculation");
+                    return true;
+                }
+            }
+            catch (Exception except)
+            {
+                PrintFailedMessage("Dose calculation", except.Message);
+                return true;
+            }
+            app.SaveModifications();
+            return false;
+        }
+
+        private bool CopyAndSavePlan(ExternalPlanSetup plan, int count)
+        {
+            Course c = plan.Course;
+            //this copies the plan and the dose!
+            ExternalPlanSetup newPlan = (ExternalPlanSetup)c.CopyPlanSetup(plan);
+            newPlan.Id = String.Format("opt itr {0}", count + 1);
+            return false;
+        }
+
+        private List<Tuple<string, string, double, double, int>> InitializeOptimizationConstriants(List<Tuple<string, string, double, double, int>> originalOptObj)
+        {
+            //coverage check passed, now set some initial optimization parameters for each structure in the initial list
+            List<Tuple<string, string, double, double, int>> optObj = new List<Tuple<string, string, double, double, int>> { };
+            int priority = 0;
+            ProvideUIUpdate(Environment.NewLine + GetOptimizationObjectivesHeader());
+            foreach (Tuple<string, string, double, double, int> opt in originalOptObj)
+            {
+                //leave the PTV priorities at their original values (i.e., 100)
+                if (opt.Item1.ToLower().Contains("ptv") || opt.Item1.ToLower().Contains("ts_jnx")) priority = opt.Item5;
+                //start OAR structure priorities at 2/3 of the values the user specified so there is some wiggle room for adjustment
+                else priority = (int)Math.Ceiling(((double)opt.Item5 * 2) / 3);
+                optObj.Add(Tuple.Create(opt.Item1, opt.Item2, opt.Item3, opt.Item4, priority));
+                ProvideUIUpdate(String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.Item1, opt.Item2, opt.Item3, opt.Item4, priority));
+            }
+            return optObj;
+        }
+        #endregion
 
         //**********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************
         // ADJUST THIS CODE IF YOU WANT TO CHANGE HOW THE PROGRAM ADJUSTS THE OPTIMIZATION CONSTRAINTS AFTER EACH ITERATION

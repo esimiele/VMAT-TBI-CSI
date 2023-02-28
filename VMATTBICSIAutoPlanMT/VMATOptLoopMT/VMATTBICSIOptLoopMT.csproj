@@ -97,7 +97,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="baseClasses\MTBase.cs" />
-    <Compile Include="MTWorker\dataContainer.cs" />
+    <Compile Include="helpers\dataContainer.cs" />
     <Compile Include="PlanEvaluation\evalPlanStruct.cs" />
     <Compile Include="Prompts\confirmUI.cs">
       <SubType>Form</SubType>

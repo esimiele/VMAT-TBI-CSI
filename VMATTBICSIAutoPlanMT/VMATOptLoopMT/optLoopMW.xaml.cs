@@ -1,23 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.IO;
 using Microsoft.Win32;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using System.Reflection;
 using VMATTBICSIOptLoopMT.Prompts;
+using VMATTBICSIOptLoopMT.helpers;
 
 namespace VMATTBICSIOptLoopMT
 {
@@ -89,6 +80,8 @@ namespace VMATTBICSIOptLoopMT
                 new Tuple<string,double,double,double,int,List<Tuple<string, double, string, double>>>("TS_heater90",90.0,100.0,0.0,60,new List<Tuple<string, double, string, double>>{ }),
                 new Tuple<string,double,double,double,int,List<Tuple<string, double, string, double>>>("TS_cooler70",70.0,90.0,0.0,80,new List<Tuple<string, double, string, double>>{new Tuple<string, double, string, double>("Dmax",0.0,">",140), new Tuple<string, double, string, double>("V",110.0,">",10)}),
             };
+
+        public List<Tuple<string, string, double, string>> planDoseInfo = new List<Tuple<string, string, double, string>> { };
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         VMS.TPS.Common.Model.API.Application app = VMS.TPS.Common.Model.API.Application.CreateApplication();
@@ -145,6 +138,21 @@ namespace VMATTBICSIOptLoopMT
             configTB.Text += String.Format("Plan normalization: {0}% (i.e., PTV V100% = {0}%)", defaultPlanNorm) + System.Environment.NewLine;
             configTB.Text += String.Format("Decision threshold: {0}", threshold) + System.Environment.NewLine;
             configTB.Text += String.Format("Relative lower dose limit: {0}", lowDoseLimit) + System.Environment.NewLine + System.Environment.NewLine;
+
+            if (planDoseInfo.Any())
+            {
+                configTB.Text += "---------------------------------------------------------------------------" + Environment.NewLine;
+                configTB.Text += String.Format("Requested dosimetric info from plan after each iteration:") + Environment.NewLine;
+                configTB.Text += String.Format(" {0, -15} | {1, -6} | {2, -9} |", "structure Id", "metric", "dose type") + Environment.NewLine;
+
+                foreach (Tuple<string,string,double,string> itr in planDoseInfo)
+                {
+                    if(itr.Item2.Contains("max") || itr.Item2.Contains("min")) configTB.Text += String.Format(" {0, -15} | {1, -6} | {2, -9} |", itr.Item1, itr.Item2, itr.Item4) + Environment.NewLine;
+                    else configTB.Text += String.Format(" {0, -15} | {1, -6} | {2, -9} |", itr.Item1, String.Format("{0}{1}%", itr.Item2, itr.Item3), itr.Item4) + Environment.NewLine;
+                }
+                configTB.Text += System.Environment.NewLine;
+                configTB.Text += System.Environment.NewLine;
+            }
             
             configTB.Text += "---------------------------------------------------------------------------" + System.Environment.NewLine;
             configTB.Text += String.Format("Scleroderma trial plan objectives:") + System.Environment.NewLine;
@@ -390,15 +398,52 @@ namespace VMATTBICSIOptLoopMT
 
             //construct the actual plan objective array
             ConstructPlanObjectives();
+            planDoseInfo = new List<Tuple<string, string, double, string>>(ConstructPlanDoseInfo());
+
+            //create a new instance of the structure dataContainer and assign the optimization loop parameters entered by the user to the various data members
+            dataContainer data = new dataContainer();
+            data.construct(plan, 
+                           optParametersList, 
+                           planObj, 
+                           requestedTSstructures, 
+                           planDoseInfo,
+                           planNorm, 
+                           numOptimizations, 
+                           runCoverageCheck, 
+                           runOneMoreOpt, 
+                           copyAndSavePlanItr, 
+                           useFlash, 
+                           threshold, 
+                           lowDoseLimit, 
+                           demo, 
+                           logFilePath, 
+                           app);
 
             //start the optimization loop (all saving to the database is performed in the progressWindow class)
             pi.BeginModifications();
-            optimizationLoop optLoop = new optimizationLoop(plan, optParametersList, planObj, requestedTSstructures, planNorm, numOptimizations, runCoverageCheck, runOneMoreOpt, copyAndSavePlanItr, useFlash, threshold, lowDoseLimit, demo, logFilePath, app);
+            optimizationLoop optLoop = new optimizationLoop(data);
+            optLoop.Execute();
+        }
+
+        private List<Tuple<string,string,double,string>> ConstructPlanDoseInfo()
+        {
+            List<Tuple<string, string, double, string>> tmp = new List<Tuple<string, string, double, string>> { };
+
+            foreach(Tuple<string,string,double,string> itr in planDoseInfo)
+            {
+                if (itr.Item1 == "<targetId>")
+                {
+                    tmp.Add(Tuple.Create(GetPlanTargetId(), itr.Item2, itr.Item3, itr.Item4));
+                }
+                else tmp.Add(Tuple.Create(itr.Item1, itr.Item2, itr.Item3, itr.Item4));
+            }
+
+            return tmp;
         }
 
         private void ConstructPlanObjectives()
         {
-            List<Tuple<string, string, double, double, DoseValuePresentation>> temp = new List<Tuple<string, string, double, double, DoseValuePresentation>> { };
+            List<Tuple<string, string, double, double, DoseValuePresentation>> temp;
             if (scleroTrial) temp = planObjSclero;
             else temp = planObjGeneral;
             foreach(Tuple<string,string,double,double,DoseValuePresentation> obj in temp)
@@ -407,10 +452,16 @@ namespace VMATTBICSIOptLoopMT
                 {
                     //if(useFlash) planObj.Add(Tuple.Create("TS_PTV_FLASH", obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
                     //else planObj.Add(Tuple.Create("TS_PTV_VMAT", obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
-                    planObj.Add(Tuple.Create("TS_PTV_CSI", obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
+                    planObj.Add(Tuple.Create(GetPlanTargetId(), obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
                 }
                 else planObj.Add(Tuple.Create(obj.Item1, obj.Item2, obj.Item3, obj.Item4, obj.Item5));
             }
+        }
+
+        private string GetPlanTargetId()
+        {
+            if (useFlash) return "TS_PTV_FLASH";
+            else return "TS_PTV_CSI";
         }
 
         private void add_constraint_Click(object sender, RoutedEventArgs e)
@@ -615,6 +666,7 @@ namespace VMATTBICSIOptLoopMT
                     List<Tuple<string, string, double, double, DoseValuePresentation>> planObjSclero_temp = new List<Tuple<string, string, double, double, DoseValuePresentation>> { };
                     List<Tuple<string, string, double, double, DoseValuePresentation>> planObjGeneral_temp = new List<Tuple<string, string, double, double, DoseValuePresentation>> { };
                     List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures_temp = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> { };
+                    List<Tuple<string, string, double, string>> planDoseInfo_temp = new List<Tuple<string, string, double, string>> { };
                     while ((line = reader.ReadLine()) != null)
                     {
                         if (!string.IsNullOrEmpty(line) && line.Substring(0, 1) != "%")
@@ -656,6 +708,7 @@ namespace VMATTBICSIOptLoopMT
                                         else if (line.Contains("add scleroderma plan objective")) planObjSclero_temp.Add(parsePlanObjective(line));
                                         else if (line.Contains("add plan objective")) planObjGeneral_temp.Add(parsePlanObjective(line));
                                         else if (line.Contains("add TS structure")) requestedTSstructures_temp.Add(parseTSstructure(line));
+                                        else if (line.Contains("add plan dose info")) planDoseInfo_temp.Add(ParseRequestedPlanDoseInfo(line));
                                     }
                                 }
                             }
@@ -664,6 +717,7 @@ namespace VMATTBICSIOptLoopMT
                     if (planObjSclero_temp.Any()) planObjSclero = planObjSclero_temp;
                     if (planObjGeneral_temp.Any()) planObjGeneral = planObjGeneral_temp;
                     if (requestedTSstructures_temp.Any()) requestedTSstructures = requestedTSstructures_temp;
+                    if (planDoseInfo_temp.Any()) planDoseInfo = planDoseInfo_temp;
                 }
                 return false;
             }
@@ -758,6 +812,40 @@ namespace VMATTBICSIOptLoopMT
                 return Tuple.Create(structure, lowDoseLevel, upperDoseLevel, volumeVal, priority, new List<Tuple<string, double, string, double>>(constraints));
             }
             catch (Exception e) { MessageBox.Show(String.Format("Error could not parse TS structure: {0}\nBecause: {1}", line, e.Message)); return Tuple.Create("", 0.0, 0.0, 0.0, 0, new List<Tuple<string, double, string, double>> { }); }
+        }
+
+        private Tuple<string,string,double,string> ParseRequestedPlanDoseInfo(string line)
+        {
+            line = cropLine(line, "{");
+            string structure = line.Substring(0, line.IndexOf(","));
+            line = cropLine(line, ",");
+            string constraintType;
+            double doseVal = 0.0;
+            string representation;
+            string constraintTypeTmp = line.Substring(0, line.IndexOf(","));
+            if (line.Substring(0, 1) == "D")
+            {
+                //only add for final optimization (i.e., one more optimization requested where current calculated dose is used as intermediate)
+                if (constraintTypeTmp.Contains("max")) constraintType = "Dmax";
+                else if (constraintTypeTmp.Contains("min")) constraintType = "Dmin";
+                else
+                {
+                    constraintType = "D";
+                    constraintTypeTmp = cropLine(constraintTypeTmp, "D");
+                    doseVal = double.Parse(constraintTypeTmp);
+                }
+            }
+            else
+            {
+                constraintType = "V";
+                constraintTypeTmp = cropLine(constraintTypeTmp, "V");
+                doseVal = double.Parse(constraintTypeTmp);
+            }
+            line = cropLine(line, ",");
+            if (line.Contains("Relative")) representation = "Relative";
+            else representation = "Absolute";
+
+            return Tuple.Create(structure, constraintType, doseVal, representation);
         }
 
         private string cropLine(string line, string cropChar) { return line.Substring(line.IndexOf(cropChar) + 1, line.Length - line.IndexOf(cropChar) - 1); }

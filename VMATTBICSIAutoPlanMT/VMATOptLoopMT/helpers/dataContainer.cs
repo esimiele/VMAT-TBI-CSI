@@ -6,13 +6,13 @@ using System.Threading.Tasks;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 
-namespace VMATTBICSIOptLoopMT.MTWorker
+namespace VMATTBICSIOptLoopMT.helpers
 {
-    //data structure to hold all this crap
+    //data structure to hold all the relevant information
     public struct dataContainer
     {
         //data members
-        public VMS.TPS.Common.Model.API.Application app;
+        public Application app;
         public ExternalPlanSetup plan;
         public string id;
         public int numOptimizations;
@@ -25,13 +25,29 @@ namespace VMATTBICSIOptLoopMT.MTWorker
         public List<Tuple<string, string, double, double, int>> optParams;
         public List<Tuple<string, string, double, double, DoseValuePresentation>> planObj;
         public List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures;
+        public List<Tuple<string, string, double, string>> requestedPlanDoseInfo;
         public double threshold;
         public double lowDoseLimit;
         public bool isDemo;
         public string logFilePath;
         //simple method to automatically assign/initialize the above data members
-        public void construct(ExternalPlanSetup p, List<Tuple<string, string, double, double, int>> param, List<Tuple<string, string, double, double, DoseValuePresentation>> objectives, List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> RTS,
-                              double targetNorm, int numOpt, bool coverMe, bool unoMas, bool copyAndSave, bool flash, double thres, double lowDose, bool demo, string logPath, VMS.TPS.Common.Model.API.Application a)
+        public void construct(ExternalPlanSetup p, 
+                              List<Tuple<string, string, double, double, int>> param, 
+                              List<Tuple<string, string, double, double, DoseValuePresentation>> objectives, 
+                              List<Tuple<string, double, double, double, int, 
+                              List<Tuple<string, double, string, double>>>> RTS,
+                              List<Tuple<string,string,double,string>> info,
+                              double targetNorm, 
+                              int numOpt, 
+                              bool coverMe, 
+                              bool unoMas, 
+                              bool copyAndSave, 
+                              bool flash, 
+                              double thres, 
+                              double lowDose, 
+                              bool demo, 
+                              string logPath, 
+                              Application a)
         {
             optParams = new List<Tuple<string, string, double, double, int>> { };
             optParams = param;
@@ -63,6 +79,7 @@ namespace VMATTBICSIOptLoopMT.MTWorker
 
             planObj = objectives;
             requestedTSstructures = RTS;
+            requestedPlanDoseInfo = info;
         }
     }
 }
