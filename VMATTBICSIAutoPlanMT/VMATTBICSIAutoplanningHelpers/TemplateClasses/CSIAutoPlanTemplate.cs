@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace VMATAutoPlanMT.VMAT_CSI
+namespace VMATTBICSIAutoplanningHelpers.TemplateClasses
 {
-    public class autoPlanTemplate
+    public class CSIAutoPlanTemplate
     {
         public string templateName { get; set; }
         public double initialRxDosePerFx = 0.1;
@@ -24,16 +21,16 @@ namespace VMATAutoPlanMT.VMAT_CSI
         //DICOM type, structure ID
         public List<Tuple<string, string>> TS_structures = new List<Tuple<string, string>> { };
 
-        public autoPlanTemplate()
+        public CSIAutoPlanTemplate()
         {
         }
 
-        public autoPlanTemplate(int count)
+        public CSIAutoPlanTemplate(int count)
         {
             templateName = String.Format("Template: {0}", count);
         }
 
-        public autoPlanTemplate(string name)
+        public CSIAutoPlanTemplate(string name)
         {
             templateName = name;
         }

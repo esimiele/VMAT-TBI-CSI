@@ -10,7 +10,8 @@ using System.Diagnostics;
 using Microsoft.Win32;
 using System.Windows.Threading;
 using System.Threading;
-using VMATAutoPlanMT.helpers;
+using VMATTBICSIAutoplanningHelpers.helpers;
+using VMATTBICSIAutoplanningHelpers.Prompts;
 using VMATAutoPlanMT.Prompts;
 
 namespace VMATAutoPlanMT

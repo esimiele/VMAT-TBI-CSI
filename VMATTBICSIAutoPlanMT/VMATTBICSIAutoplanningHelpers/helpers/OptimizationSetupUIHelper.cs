@@ -6,10 +6,34 @@ using System.Windows.Controls;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 
-namespace VMATAutoPlanMT.helpers
+namespace VMATTBICSIAutoplanningHelpers.helpers
 {
-    class OptimizationSetupUIHelper
+    public class OptimizationSetupUIHelper
     {
+        public List<Tuple<string, string, double, double, int>> ReadConstraintsFromPlan(ExternalPlanSetup plan)
+        {
+            //grab the optimization constraints in the existing VMAT TBI plan and display them to the user
+            List<Tuple<string, string, double, double, int>> defaultList = new List<Tuple<string, string, double, double, int>> { };
+            foreach (OptimizationObjective itr in plan.OptimizationSetup.Objectives)
+            {
+                //do NOT include any cooler or heater tuning structures in the list
+                if (!itr.StructureId.ToLower().Contains("ts_cooler") && !itr.StructureId.ToLower().Contains("ts_heater"))
+                {
+                    if (itr.GetType() == typeof(OptimizationPointObjective))
+                    {
+                        OptimizationPointObjective pt = (itr as OptimizationPointObjective);
+                        defaultList.Add(Tuple.Create(pt.StructureId, pt.Operator.ToString(), pt.Dose.Dose, pt.Volume, (int)pt.Priority));
+                    }
+                    else if (itr.GetType() == typeof(OptimizationMeanDoseObjective))
+                    {
+                        OptimizationMeanDoseObjective mean = (itr as OptimizationMeanDoseObjective);
+                        defaultList.Add(Tuple.Create(mean.StructureId, "Mean", mean.Dose.Dose, 0.0, (int)mean.Priority));
+                    }
+                }
+            }
+            return defaultList;
+        }
+
         public StackPanel AddPlanIdtoOptList(StackPanel theSP, string id)
         {
             StackPanel sp = new StackPanel();
@@ -282,11 +306,16 @@ namespace VMATAutoPlanMT.helpers
             {
                 //assign the constraints to the plan. I haven't found a use for the exact constraint yet, so I just wrote the script to throw a warning if the exact constraint was selected (that row of data will NOT be
                 //assigned to the VMAT plan)
-                if (opt.Item2 == "Upper") VMATplan.OptimizationSetup.AddPointObjective(VMATplan.StructureSet.Structures.First(x => x.Id == opt.Item1), OptimizationObjectiveOperator.Upper, new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item4, (double)opt.Item5);
-                else if (opt.Item2 == "Lower") VMATplan.OptimizationSetup.AddPointObjective(VMATplan.StructureSet.Structures.First(x => x.Id == opt.Item1), OptimizationObjectiveOperator.Lower, new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item4, (double)opt.Item5);
-                else if (opt.Item2 == "Mean") VMATplan.OptimizationSetup.AddMeanDoseObjective(VMATplan.StructureSet.Structures.First(x => x.Id == opt.Item1), new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), (double)opt.Item5);
+                Structure s = VMATplan.StructureSet.Structures.First(x => x.Id == opt.Item1);
+                if (opt.Item2 == "Upper") VMATplan.OptimizationSetup.AddPointObjective(s, OptimizationObjectiveOperator.Upper, new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item4, (double)opt.Item5);
+                else if (opt.Item2 == "Lower") VMATplan.OptimizationSetup.AddPointObjective(s, OptimizationObjectiveOperator.Lower, new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item4, (double)opt.Item5);
+                else if (opt.Item2 == "Mean") VMATplan.OptimizationSetup.AddMeanDoseObjective(s, new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), (double)opt.Item5);
                 else if (opt.Item2 == "Exact") System.Windows.Forms.MessageBox.Show("Script not setup to handle exact dose constraints!");
-                else { System.Windows.Forms.MessageBox.Show("Constraint type not recognized!"); isError = true; }
+                else 
+                { 
+                    System.Windows.Forms.MessageBox.Show("Constraint type not recognized!"); 
+                    isError = true; 
+                }
             }
             //turn on/turn off jaw tracking
             try { VMATplan.OptimizationSetup.UseJawTracking = useJawTracking; }

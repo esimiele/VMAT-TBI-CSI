@@ -1,16 +1,14 @@
 ﻿using System;
 using System.Windows.Forms;
 
-namespace VMATAutoPlanMT.Prompts
+namespace VMATTBICSIAutoplanningHelpers.Prompts
 {
-    public partial class enterMissingInfo : Form
+    public partial class selectItem : Form
     {
         public bool confirm = false;
-        public enterMissingInfo(string titleString, string infoString)
+        public selectItem()
         {
             InitializeComponent();
-            title.Text = titleString;
-            info.Text = infoString;
         }
 
         private void confirm_Click(object sender, EventArgs e)

@@ -11,6 +11,8 @@ using System.Threading;
 using System.Windows.Threading;
 using VMATAutoPlanMT.baseClasses;
 using VMATAutoPlanMT.Prompts;
+using VMATTBICSIAutoplanningHelpers.Prompts;
+using VMATTBICSIAutoplanningHelpers.helpers;
 
 namespace VMATAutoPlanMT
 {

@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using VMATAutoPlanMT.Prompts;
+using VMATTBICSIAutoplanningHelpers.Prompts;
 
-namespace VMATAutoPlanMT.helpers
+namespace VMATTBICSIAutoplanningHelpers.helpers
 {
-    class BeamPlacementUIHelper
+    public class BeamPlacementUIHelper
     {
         public List<StackPanel> populateBeamsTabHelper(StackPanel theSP, List<string> linacs, List<string> beamEnergies, List<string> isoNames, int[] beamsPerIso, int numIsos, int numVMATIsos)
         {

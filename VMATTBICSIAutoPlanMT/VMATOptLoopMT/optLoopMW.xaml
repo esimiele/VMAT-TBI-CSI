@@ -67,7 +67,7 @@
                 <StackPanel Name="OPT" Width="600" Height="444" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0">
                     <Label Content="Optimization Parameters" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"></Label>
                     <Grid Height="25" Width ="520" HorizontalAlignment="Center" Margin="0,5,0,0">
-                        <Button Content="Add Constraint" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="add_constraint_Click"/>
+                        <Button Content="Add Constraint" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="AddOptimizationConstraint_Click"/>
                         <Button Content="Get Constraints From Plan" Width="150" HorizontalAlignment="Center" VerticalAlignment="Top" Click="getOptFromPlan_Click"/>
                         <Button Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_optParams_Click"/>
                     </Grid>

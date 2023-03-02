@@ -6,6 +6,7 @@ using VMS.TPS.Common.Model.Types;
 using System.Windows.Forms;
 using System.Windows.Media.Media3D;
 using VMATAutoPlanMT.Prompts;
+using VMATTBICSIAutoplanningHelpers.Prompts;
 using System.Windows.Threading;
 using VMATAutoPlanMT.MTProgressInfo;
 using System.Diagnostics;

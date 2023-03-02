@@ -5,9 +5,9 @@ using VMS.TPS.Common.Model.API;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace VMATAutoPlanMT.helpers
+namespace VMATTBICSIAutoplanningHelpers.helpers
 {
-    class StructureTuningUIHelper
+    public class StructureTuningUIHelper
     {
         public StackPanel getSpareStructHeader(StackPanel theSP)
         {

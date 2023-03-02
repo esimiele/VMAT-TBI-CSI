@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Controls;
 using System.Windows;
-using VMATAutoPlanMT.VMAT_CSI;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
+using VMATTBICSIAutoplanningHelpers.TemplateClasses;
 
-namespace VMATAutoPlanMT.helpers
+namespace VMATTBICSIAutoplanningHelpers.helpers
 {
-    internal class TargetsUIHelper
+    public class TargetsUIHelper
     {
-        public List<Tuple<string, double, string>> AddTargetDefaults(autoPlanTemplate template, StructureSet selectedSS)
+        public List<Tuple<string, double, string>> AddTargetDefaults(CSIAutoPlanTemplate template, StructureSet selectedSS)
         {
             List<Tuple<string, double, string>> tmpList = new List<Tuple<string, double, string>> { Tuple.Create("--select--", 0.0, "--select--") };
             List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>> { };

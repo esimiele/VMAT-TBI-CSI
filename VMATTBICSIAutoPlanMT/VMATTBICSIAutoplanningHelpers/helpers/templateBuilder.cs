@@ -5,11 +5,11 @@ using System.Windows.Controls;
 using System.Windows;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using VMATAutoPlanMT;
+using VMATTBICSIAutoplanningHelpers.TemplateClasses;
 
-namespace VMATAutoPlanMT.helpers
+namespace VMATTBICSIAutoplanningHelpers.helpers
 {
-    class TemplateBuilder
+    public class TemplateBuilder
     {
         public StackPanel addTemplateTSHeader(StackPanel theSP)
         {
@@ -147,7 +147,7 @@ namespace VMATAutoPlanMT.helpers
             return TSStructureList;
         }
 
-        public string generateTemplatePreviewText(VMAT_CSI.autoPlanTemplate prospectiveTemplate)
+        public string generateTemplatePreviewText(CSIAutoPlanTemplate prospectiveTemplate)
         {
             string output = "";
             output = "";
@@ -207,7 +207,7 @@ namespace VMATAutoPlanMT.helpers
             return output;
         }
 
-        public string generateSerializedTemplate(VMAT_CSI.autoPlanTemplate prospectiveTemplate)
+        public string generateSerializedTemplate(CSIAutoPlanTemplate prospectiveTemplate)
         {
             string output = ":begin template case configuration:" + System.Environment.NewLine;
             output += "%template name" + Environment.NewLine;

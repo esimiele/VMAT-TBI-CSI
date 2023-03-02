@@ -6,7 +6,7 @@ using VMS.TPS.Common.Model.Types;
 using System.Windows.Controls;
 using System.Windows;
 
-namespace VMATAutoPlanMT.helpers
+namespace VMATTBICSIAutoplanningHelpers.helpers
 {
     public class GeneralUIhelper
     {

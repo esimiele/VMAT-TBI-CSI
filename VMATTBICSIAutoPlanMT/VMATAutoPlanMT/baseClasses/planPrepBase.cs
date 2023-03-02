@@ -5,6 +5,7 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Forms;
 using VMATAutoPlanMT.Prompts;
+using VMATTBICSIAutoplanningHelpers.Prompts;
 
 namespace VMATAutoPlanMT.baseClasses
 {

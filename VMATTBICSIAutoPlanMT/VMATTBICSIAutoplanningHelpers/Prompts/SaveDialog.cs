@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows.Forms;
 
-namespace VMATAutoPlanMT.Prompts
+namespace VMATTBICSIAutoplanningHelpers.Prompts
 {
     public partial class SaveDialog : Form
     {

@@ -8,15 +8,13 @@ using VMS.TPS.Common.Model.Types;
 using System.IO;
 using System.Diagnostics;
 using Microsoft.Win32;
-using System.Windows.Threading;
-using System.Threading;
 using System.Collections.ObjectModel;
 using System.Reflection;
-using VMATAutoPlanMT.helpers;
 using VMATAutoPlanMT.Prompts;
 using VMATAutoPlanMT.Logging;
-using System.Threading.Tasks;
-
+using VMATTBICSIAutoplanningHelpers.TemplateClasses;
+using VMATTBICSIAutoplanningHelpers.helpers;
+using VMATTBICSIAutoplanningHelpers.Prompts;
 
 namespace VMATAutoPlanMT.VMAT_CSI
 {
@@ -98,9 +96,9 @@ namespace VMATAutoPlanMT.VMAT_CSI
         bool autoSave = false;
         bool checkStructuresToUnion = true;
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
-        public ObservableCollection<autoPlanTemplate> PlanTemplates { get; set; }
+        public ObservableCollection<CSIAutoPlanTemplate> PlanTemplates { get; set; }
         //temporary variable to add new templates to the list
-        autoPlanTemplate prospectiveTemplate = null;
+        CSIAutoPlanTemplate prospectiveTemplate = null;
         //ProcessStartInfo optLoopProcess;
 
         public CSIAutoPlanMW(List<string> args)
@@ -153,7 +151,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 else MessageBox.Show("Could not open patient!");
             }
 
-            PlanTemplates = new ObservableCollection<autoPlanTemplate>() { new autoPlanTemplate("--select--") };
+            PlanTemplates = new ObservableCollection<CSIAutoPlanTemplate>() { new CSIAutoPlanTemplate("--select--") };
             DataContext = this;
             templateBuildOptionCB.Items.Add("Existing template");
             templateBuildOptionCB.Items.Add("Current parameters");
@@ -211,7 +209,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
         private void Templates_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            autoPlanTemplate selectedTemplate = templateList.SelectedItem as autoPlanTemplate;
+            CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
             if (selectedTemplate == null) return;
             initDosePerFxTB.Text = "";
             initNumFxTB.Text = "";
@@ -275,7 +273,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             else if (int.TryParse(initNumFxTB.Text, out int newNumFx) && double.TryParse(initDosePerFxTB.Text, out double newDoseFx))
             {
                 initRxTB.Text = (newNumFx * newDoseFx).ToString();
-                autoPlanTemplate selectedTemplate = templateList.SelectedItem as autoPlanTemplate;
+                CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
                 if (selectedTemplate != null)
                 {
                     //verify that the entered dose/fx and num fx agree with those stored in the template, otherwise unselect the template
@@ -312,7 +310,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             else if (int.TryParse(boostNumFxTB.Text, out int newNumFx) && double.TryParse(boostDosePerFxTB.Text, out double newDoseFx))
             {
                 boostRxTB.Text = (newNumFx * newDoseFx).ToString();
-                autoPlanTemplate selectedTemplate = templateList.SelectedItem as autoPlanTemplate;
+                CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
                 if (selectedTemplate != null)
                 {
                     //verify that the entered dose/fx and num fx agree with those stored in the template, otherwise unselect the template
@@ -368,7 +366,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         private void AddTargetDefaults_Click(object sender, RoutedEventArgs e)
         {
             if (selectedSS == null) { MessageBox.Show("Error! The structure set has not been assigned! Choose a structure set and try again!"); return; }
-            List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>>(new TargetsUIHelper().AddTargetDefaults((templateList.SelectedItem as autoPlanTemplate), selectedSS));
+            List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>>(new TargetsUIHelper().AddTargetDefaults((templateList.SelectedItem as CSIAutoPlanTemplate), selectedSS));
             ClearAllTargetItems();
             AddTargetVolumes(targetList, targets_sp);
             targetsScroller.ScrollToBottom();
@@ -545,7 +543,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         private void AddDefaultTuningStructures_Click(object sender, RoutedEventArgs e)
         {
             List<Tuple<string, string>> tmp = new List<Tuple<string, string>>(defaultTS_structures);
-            if (templateList.SelectedItem != null) foreach (Tuple<string, string> itr in ((autoPlanTemplate)templateList.SelectedItem).TS_structures) tmp.Add(itr);
+            if (templateList.SelectedItem != null) foreach (Tuple<string, string> itr in ((CSIAutoPlanTemplate)templateList.SelectedItem).TS_structures) tmp.Add(itr);
             //populate the comboboxes
             AddTuningStructureVolumes(tmp, TS_sp);
             TSScroller.ScrollToBottom();
@@ -713,7 +711,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //copy the sparing structures in the defaultSpareStruct list to a temporary vector
             List<Tuple<string, string, double>> templateSpareList = new List<Tuple<string, string, double>>(defaultTSStructureManipulations);
             //add the case-specific sparing structures to the temporary list
-            if (templateList.SelectedItem != null) templateSpareList = new List<Tuple<string, string, double>>(AddTemplateSpecificStructureManipulations((templateList.SelectedItem as autoPlanTemplate).spareStructures, templateSpareList));
+            if (templateList.SelectedItem != null) templateSpareList = new List<Tuple<string, string, double>>(AddTemplateSpecificStructureManipulations((templateList.SelectedItem as CSIAutoPlanTemplate).spareStructures, templateSpareList));
             if (!templateSpareList.Any()) { MessageBox.Show("No default tuning structure manipulations contained in the selected template!"); return; }
 
             string missOutput = "";
@@ -940,7 +938,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 //tmplist is empty indicating that no optimization constraints were present on the UI when this method was called
                 tmpList = new List<List<Tuple<string, string, double, double, int>>> { };
                 //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose
-                autoPlanTemplate selectedTemplate = templateList.SelectedItem as autoPlanTemplate;
+                CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
                 if (selectedTemplate == null) { MessageBox.Show("No template selected!"); return; }
                 if (prescriptions != null)
                 {
@@ -1193,7 +1191,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 }
                 else
                 {
-                    autoPlanTemplate selectedTemplate = templateList.SelectedItem as autoPlanTemplate;
+                    CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
                     if(selectedTemplate != null)
                     {
                         if(index == 0)
@@ -1221,7 +1219,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
         private void AddOptimizationConstraintsHeader(StackPanel theSP)
         {
-            theSP.Children.Add(new OptimizationSetupUIHelper().getOptHeader(structures_sp.Width));
+            theSP.Children.Add(new OptimizationSetupUIHelper().getOptHeader(theSP.Width));
         }
 
         private void AddOptimizationConstraintItems(List<Tuple<string, string, double, double, int>> defaultList, string planId, StackPanel theSP)
@@ -1449,10 +1447,10 @@ namespace VMATAutoPlanMT.VMAT_CSI
             if (selectedSS == null) { MessageBox.Show("Error! The structure set has not been assigned! Choose a structure set and try again!"); return; }
             if (templateBuildOptionCB.SelectedItem.ToString().ToLower() == "existing template")
             {
-                autoPlanTemplate theTemplate = null;
+                CSIAutoPlanTemplate theTemplate = null;
                 selectItem SUI = new selectItem();
                 SUI.title.Text = "Please select and existing template!";
-                foreach (autoPlanTemplate itr in PlanTemplates) SUI.itemCombo.Items.Add(itr.templateName);
+                foreach (CSIAutoPlanTemplate itr in PlanTemplates) SUI.itemCombo.Items.Add(itr.templateName);
                 SUI.itemCombo.SelectedIndex = 0;
                 SUI.ShowDialog();
                 if (SUI.confirm) theTemplate = PlanTemplates.FirstOrDefault(x => x.templateName == SUI.itemCombo.SelectedItem.ToString());
@@ -1518,7 +1516,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     templateBstPlanNumFxTB.Text = boostNumFxTB.Text;
                 }
 
-                autoPlanTemplate selectedTemplate = templateList.SelectedItem as autoPlanTemplate;
+                CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
                 //add default TS structures
                 ClearTuningStructureList(templateTS_sp);
                 TemplateBuilder builder = new TemplateBuilder();
@@ -1550,7 +1548,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         private void generateTemplatePreview_Click(object sender, RoutedEventArgs e)
         {
             if (selectedSS == null) { MessageBox.Show("Error! Please select a Structure Set before add sparing volumes!"); return; }
-            prospectiveTemplate = new autoPlanTemplate();
+            prospectiveTemplate = new CSIAutoPlanTemplate();
             prospectiveTemplate.templateName = templateNameTB.Text;
 
             if (!double.TryParse(templateInitPlanDosePerFxTB.Text, out prospectiveTemplate.initialRxDosePerFx)) {MessageBox.Show("Error! Initial plan dose per fx not parsed successfully! Fix and try again!"); return; }
@@ -1590,7 +1588,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 }
             }
 
-            helpers.TemplateBuilder builder = new helpers.TemplateBuilder();
+            TemplateBuilder builder = new TemplateBuilder();
             File.WriteAllText(fileName, builder.generateSerializedTemplate(prospectiveTemplate));
             PlanTemplates.Add(prospectiveTemplate);
             DisplayConfigurationParameters();
@@ -1658,7 +1656,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             }
             else configTB.Text += String.Format(" No default sparing structures to list") + System.Environment.NewLine + System.Environment.NewLine;
 
-            foreach (autoPlanTemplate itr in PlanTemplates.Where(x => x.templateName != "--select--"))
+            foreach (CSIAutoPlanTemplate itr in PlanTemplates.Where(x => x.templateName != "--select--"))
             {
                 configTB.Text += "-----------------------------------------------------------------------------" + System.Environment.NewLine;
 
@@ -1723,8 +1721,8 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //load a configuration file different from the default in the executing assembly folder
             configFile = "";
             //PlanTemplates.Clear();
-            //PlanTemplates = new ObservableCollection<autoPlanTemplate> { new autoPlanTemplate("--select--") };
-            //PlanTemplates.Add(new autoPlanTemplate("--select--"));
+            //PlanTemplates = new ObservableCollection<CSIAutoPlanTemplate> { new CSIAutoPlanTemplate("--select--") };
+            //PlanTemplates.Add(new CSIAutoPlanTemplate("--select--"));
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.InitialDirectory = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\configuration\\";
             openFileDialog.Filter = "ini files (*.ini)|*.ini|All files (*.*)|*.*";
@@ -1882,7 +1880,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     {
                         if (line.Equals(":begin template case configuration:"))
                         {
-                            autoPlanTemplate tempTemplate = new autoPlanTemplate(templateCount);
+                            CSIAutoPlanTemplate tempTemplate = new CSIAutoPlanTemplate(templateCount);
                             List<Tuple<string, string, double>> spareStruct_temp = new List<Tuple<string, string, double>> { };
                             List<Tuple<string, string>> TSstructures_temp = new List<Tuple<string, string>> { };
                             List<Tuple<string, string, double, double, int>> initOptConst_temp = new List<Tuple<string, string, double, double, int>> { };
@@ -2064,7 +2062,5 @@ namespace VMATAutoPlanMT.VMAT_CSI
         {
             SizeToContent = SizeToContent.WidthAndHeight;
         }
-
-
     }
 }

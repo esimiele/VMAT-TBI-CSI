@@ -4,39 +4,32 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{D708CC35-888E-4FE5-B9C6-B858B9BA0015}</ProjectGuid>
-    <OutputType>WinExe</OutputType>
-    <RootNamespace>VMATAutoPlanMT</RootNamespace>
-    <AssemblyName>VMATTBICSIAutoPlanMT</AssemblyName>
+    <ProjectGuid>{B3FBF7B5-9E18-43BA-B40F-144682A3956E}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>VMATTBICSIAutoplanningHelpers</RootNamespace>
+    <AssemblyName>VMATTBICSIAutoplanningHelpers</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-    <WarningLevel>4</WarningLevel>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <Deterministic>false</Deterministic>
+    <Deterministic>true</Deterministic>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>x64</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\..\bin\</OutputPath>
+    <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>x64</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>..\..\bin\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup>
-    <ApplicationIcon>AutoPlan.ico</ApplicationIcon>
+    <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="EvilDICOM, Version=2.0.6.5, Culture=neutral, processorArchitecture=MSIL">
@@ -72,6 +65,8 @@
     <Reference Include="Microsoft.Extensions.Primitives, Version=3.1.2.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Extensions.Primitives.3.1.2\lib\netstandard2.0\Microsoft.Extensions.Primitives.dll</HintPath>
     </Reference>
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
     <Reference Include="System" />
     <Reference Include="System.Buffers, Version=4.0.2.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Buffers.4.4.0\lib\netstandard2.0\System.Buffers.dll</HintPath>
@@ -80,7 +75,7 @@
       <HintPath>..\packages\System.ComponentModel.Annotations.4.7.0\lib\net461\System.ComponentModel.Annotations.dll</HintPath>
     </Reference>
     <Reference Include="System.ComponentModel.DataAnnotations" />
-    <Reference Include="System.Data" />
+    <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Memory, Version=4.0.1.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Memory.4.5.2\lib\netstandard2.0\System.Memory.dll</HintPath>
@@ -95,16 +90,14 @@
     <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Threading.Tasks.Extensions.4.5.2\lib\netstandard2.0\System.Threading.Tasks.Extensions.dll</HintPath>
     </Reference>
+    <Reference Include="System.Windows" />
     <Reference Include="System.Windows.Forms" />
-    <Reference Include="System.Xml" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
-    <Reference Include="System.Xaml">
-      <RequiredTargetFramework>4.0</RequiredTargetFramework>
-    </Reference>
+    <Reference Include="System.Xml" />
     <Reference Include="VMS.TPS.Common.Model.API, Version=1.0.300.11, Culture=neutral, PublicKeyToken=305b81e210ec4b89, processorArchitecture=AMD64">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\VMS_TPS_resources\v15\VMS.TPS.Common.Model.API.dll</HintPath>
@@ -114,122 +107,61 @@
       <HintPath>..\..\VMS_TPS_resources\v15\VMS.TPS.Common.Model.Types.dll</HintPath>
     </Reference>
     <Reference Include="WindowsBase" />
-    <Reference Include="PresentationCore" />
-    <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
-    <ApplicationDefinition Include="App.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </ApplicationDefinition>
-    <Compile Include="baseClasses\MTBase.cs" />
-    <Compile Include="baseClasses\generateTSbase.cs" />
-    <Compile Include="baseClasses\planPrepBase.cs" />
-    <Compile Include="Logging\Logger.cs" />
-    <Compile Include="MTProgressInfo\ESAPIworker.cs" />
-    <Compile Include="MTProgressInfo\MTProgress.xaml.cs">
-      <DependentUpon>MTProgress.xaml</DependentUpon>
-    </Compile>
-    <Page Include="MTProgressInfo\MTProgress.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="VMAT_CSI\CSIAutoPlanMW.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="VMAT-TBI\TBIAutoPlanMW.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Compile Include="App.xaml.cs">
-      <DependentUpon>App.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Launcher\launchVMATTBICSIautoPlan.cs" />
-    <Compile Include="VMAT_CSI\generateTS_CSI.cs" />
-    <Compile Include="VMAT_CSI\placeBeams_CSI.cs" />
-    <Compile Include="VMAT_CSI\planPrep_CSI.cs" />
-    <Compile Include="VMAT-TBI\generateTS_TBI.cs" />
-    <Compile Include="Prompts\selectOption.cs">
+    <Compile Include="helpers\BeamPlacementUIHelper.cs" />
+    <Compile Include="helpers\CTImageExport.cs" />
+    <Compile Include="helpers\ExportCTUIHelper.cs" />
+    <Compile Include="helpers\GeneralUIhelper.cs" />
+    <Compile Include="helpers\isoNameHelper.cs" />
+    <Compile Include="helpers\OptimizationSetupUIHelper.cs" />
+    <Compile Include="helpers\StructureTuningUIHelper.cs" />
+    <Compile Include="helpers\TargetsUIHelper.cs" />
+    <Compile Include="helpers\templateBuilder.cs" />
+    <Compile Include="Prompts\confirmUI.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Prompts\selectOption.Designer.cs">
-      <DependentUpon>selectOption.cs</DependentUpon>
+    <Compile Include="Prompts\confirmUI.Designer.cs">
+      <DependentUpon>confirmUI.cs</DependentUpon>
     </Compile>
-    <Compile Include="baseClasses\placeBeamsBase.cs" />
-    <Compile Include="VMAT_CSI\CSIAutoPlanMW.xaml.cs">
-      <DependentUpon>CSIAutoPlanMW.xaml</DependentUpon>
+    <Compile Include="Prompts\enterMissingInfo.cs">
+      <SubType>Form</SubType>
     </Compile>
-    <Compile Include="VMAT-TBI\TBIAutoPlanMW.xaml.cs">
-      <DependentUpon>TBIAutoPlanMW.xaml</DependentUpon>
-      <SubType>Code</SubType>
+    <Compile Include="Prompts\enterMissingInfo.Designer.cs">
+      <DependentUpon>enterMissingInfo.cs</DependentUpon>
     </Compile>
+    <Compile Include="Prompts\SaveDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Prompts\SaveDialog.Designer.cs">
+      <DependentUpon>SaveDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Prompts\selectItem.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Prompts\selectItem.Designer.cs">
+      <DependentUpon>selectItem.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TemplateClasses\CSIAutoPlanTemplate.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="VMAT-TBI\placeBeams_TBI.cs" />
-    <Compile Include="VMAT-TBI\planPrep_TBI.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-    </Compile>
-    <EmbeddedResource Include="Prompts\selectOption.resx">
-      <DependentUpon>selectOption.cs</DependentUpon>
+    <EmbeddedResource Include="Prompts\confirmUI.resx">
+      <DependentUpon>confirmUI.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    <EmbeddedResource Include="Prompts\enterMissingInfo.resx">
+      <DependentUpon>enterMissingInfo.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Prompts\SaveDialog.resx">
+      <DependentUpon>SaveDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Prompts\selectItem.resx">
+      <DependentUpon>selectItem.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
     <None Include="packages.config" />
-    <None Include="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
-    <None Include="_configuration\VMAT_CSI_config.ini" />
-    <None Include="_configuration\VMAT_TBI_config.ini" />
-    <None Include="_planTemplates\CSI\CSI_mediumRisk.ini" />
-    <None Include="_planTemplates\CSI\CSI_reduceDose.ini" />
-    <None Include="_planTemplates\CSI\CSI_regimen1.ini" />
-    <None Include="_planTemplates\CSI\CSI_regimen2.ini" />
-    <None Include="_planTemplates\TBI\TBI_regimen1.ini" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="AutoPlan.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\Stanford.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\VMATTBICSIAutoplanningHelpers\VMATTBICSIAutoPlanningHelpers.csproj">
-      <Project>{b3fbf7b5-9e18-43ba-b40f-144682a3956e}</Project>
-      <Name>VMATTBICSIAutoPlanningHelpers</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PostBuildEvent>copy "$(ProjectDir)Launcher\*" "$(ProjectDir)$(OutDir)"
-copy "$(ProjectDir)_configuration\*" "$(ProjectDir)$(OutDir)\configuration"
-copy "$(ProjectDir)_planTemplates\CSI\*" "$(ProjectDir)$(OutDir)\templates"
-copy "$(ProjectDir)_planTemplates\TBI\*" "$(ProjectDir)$(OutDir)\templates"</PostBuildEvent>
-  </PropertyGroup>
-  <PropertyGroup>
-    <PreBuildEvent>if NOT EXIST "$(ProjectDir)$(OutDir)\configuration\" (
-mkdir "$(ProjectDir)$(OutDir)\configuration\"
-)
-if NOT EXIST "$(ProjectDir)$(OutDir)templates\" (
-mkdir "$(ProjectDir)$(OutDir)\templates\"
-)</PreBuildEvent>
-  </PropertyGroup>
 </Project>

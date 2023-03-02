@@ -15,7 +15,6 @@ using VMATAutoPlanMT.VMAT_CSI;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Threading;
-using VMATAutoPlanMT.helpers;
 using System.Windows.Media.Media3D;
 using VMATAutoPlanMT.baseClasses;
 using System.Reflection;

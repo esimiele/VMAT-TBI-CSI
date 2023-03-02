@@ -7,9 +7,9 @@ using System.Windows.Controls;
 using System.Windows;
 using VMS.TPS.Common.Model.API;
 
-namespace VMATAutoPlanMT.helpers
+namespace VMATTBICSIAutoplanningHelpers.helpers
 {
-    internal class ExportCTUIHelper
+    public class ExportCTUIHelper
     {
         public void PrintExportImgInfo()
         {

@@ -1,4 +1,4 @@
-﻿namespace VMATAutoPlanMT.Prompts
+﻿namespace VMATTBICSIAutoplanningHelpers.Prompts
 {
     partial class SaveDialog
     {

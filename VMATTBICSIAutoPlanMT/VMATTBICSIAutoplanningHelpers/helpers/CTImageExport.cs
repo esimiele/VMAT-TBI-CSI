@@ -15,7 +15,7 @@ using EvilDICOM.Core.Element;
 using EvilDICOM.Network;
 using EvilDICOM.Network.Enums;
 
-namespace VMATAutoPlanMT.helpers
+namespace VMATTBICSIAutoplanningHelpers.helpers
 {
     public class CTImageExport
     {

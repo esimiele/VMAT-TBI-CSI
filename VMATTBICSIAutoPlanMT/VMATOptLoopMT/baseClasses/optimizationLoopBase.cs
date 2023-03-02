@@ -1,25 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Threading;
 using System.Threading;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using VMATTBICSIOptLoopMT.Prompts;
 using VMATTBICSIOptLoopMT.PlanEvaluation;
 using VMATTBICSIOptLoopMT.baseClasses;
 using VMATTBICSIOptLoopMT.helpers;
+using VMATTBICSIAutoplanningHelpers.Prompts;
 
-namespace VMATTBICSIOptLoopMT
+namespace VMATTBICSIOptLoopMT.baseClasses
 {
-    public class optimizationLoop : MTbase
+    public class optimizationLoopBase : MTbase
     {
         private dataContainer _data;
 
-        public optimizationLoop(dataContainer _d)
+        public optimizationLoopBase(dataContainer _d)
         {
             _data = _d;
         }
@@ -441,25 +438,14 @@ namespace VMATTBICSIOptLoopMT
             ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems));
 
             //run one optimization with NO intermediate dose.
-            OptimizePlan(new OptimizationOptionsVMAT(OptimizationIntermediateDoseOption.NoIntermediateDose, ""), plan, _data.app);
-
-            if (GetAbortStatus())
-            {
-                KillOptimizationLoop();
-                return true;
-            }
+            if (OptimizePlan(_data.isDemo, new OptimizationOptionsVMAT(OptimizationIntermediateDoseOption.NoIntermediateDose, ""), plan, _data.app)) return true;
 
             ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Optimization finished on coverage check! Calculating dose!"); 
             ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
 
             //calculate dose (using AAA algorithm)
-            CalculateDose(plan, _data.app);
+            if(CalculateDose(_data.isDemo, plan, _data.app)) return true;
             
-            if (GetAbortStatus())
-            {
-                KillOptimizationLoop();
-                return true;
-            }
             ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Dose calculated for coverage check, normalizing plan!");
 
             //normalize plan
@@ -507,49 +493,19 @@ namespace VMATTBICSIOptLoopMT
             {
                 ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), String.Format(" Iteration {0}:", count + 1));
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
-                if (_data.isDemo) Thread.Sleep(3000);
-                else if (OptimizePlan(new OptimizationOptionsVMAT(OptimizationIntermediateDoseOption.NoIntermediateDose, ""), _data.plan, _data.app)) return true;
-
-                //check if user wants to stop
-                if (GetAbortStatus())
-                {
-                    KillOptimizationLoop();
-                    return true;
-                }
+                if (OptimizePlan(_data.isDemo, new OptimizationOptionsVMAT(OptimizationIntermediateDoseOption.NoIntermediateDose, ""), _data.plan, _data.app)) return true;
 
                 ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Optimization finished! Calculating intermediate dose!");
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
-                if (_data.isDemo) Thread.Sleep(3000);
-                else if (CalculateDose(_data.plan, _data.app)) return true;
-
-                if (GetAbortStatus())
-                {
-                    KillOptimizationLoop();
-                    return true;
-                }
+                if (CalculateDose(_data.isDemo, _data.plan, _data.app)) return true;
 
                 ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Dose calculated! Continuing optimization!");
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
-                if (_data.isDemo) Thread.Sleep(3000);
-                else if (OptimizePlan(new OptimizationOptionsVMAT(OptimizationOption.ContinueOptimizationWithPlanDoseAsIntermediateDose, ""), _data.plan, _data.app)) return true;
-
-                //check if user wants to stop
-                if (GetAbortStatus())
-                {
-                    KillOptimizationLoop();
-                    return true;
-                }
+                if (OptimizePlan(_data.isDemo, new OptimizationOptionsVMAT(OptimizationOption.ContinueOptimizationWithPlanDoseAsIntermediateDose, ""), _data.plan, _data.app)) return true;
 
                 ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Optimization finished! Calculating dose!");
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
-                if (_data.isDemo) Thread.Sleep(3000);
-                else if (CalculateDose(_data.plan, _data.app)) return true;
-
-                if (GetAbortStatus())
-                {
-                    KillOptimizationLoop();
-                    return true;
-                }
+                if (CalculateDose(_data.isDemo, _data.plan, _data.app)) return true;
 
                 ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Dose calculated, normalizing plan!");
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
@@ -596,51 +552,166 @@ namespace VMATTBICSIOptLoopMT
                 ProvideUIUpdate(optResults);
 
                 PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, _data.plan);
+
+                //really crank up the priority and lower the dose objective on the cooler on the last iteration of the optimization loop
+                //this is basically here to avoid having to call op.updateConstraints a second time (if this batch of code was placed outside of the loop)
+                if (_data.oneMoreOpt && ((count + 1) == _data.numOptimizations))
+                {
+                    //go through the current list of optimization objects and add all of them to finalObj vector. ADD COMMENTS!
+                    List<Tuple<string, string, double, double, int>> finalObj = new List<Tuple<string, string, double, double, int>> { };
+                    foreach (Tuple<string, string, double, double, int> itr in e.updatedObj)
+                    {
+                        //get maximum priority and assign it to the cooler structure to really push the hotspot down. Also lower dose objective
+                        if (itr.Item1.ToLower().Contains("ts_cooler"))
+                        {
+                            finalObj.Add(new Tuple<string, string, double, double, int>(itr.Item1, itr.Item2, 0.98 * itr.Item3, itr.Item4, Math.Max(itr.Item5, (int)(0.9 * (double)e.updatedObj.Max(x => x.Item5)))));
+                        }
+                        else finalObj.Add(itr);
+                    }
+                    //set e.updatedObj to be equal to finalObj
+                    e.updatedObj = finalObj;
+                }
+
+                //print the updated optimization objectives to the user
+                string newObj = Environment.NewLine + GetOptimizationObjectivesHeader();
+                foreach (Tuple<string, string, double, double, int> itr in e.updatedObj)
+                    newObj += String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5);
+                ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), newObj);
+
+                //update the optimization constraints in the plan
+                UpdateConstraints(e.updatedObj, _data.plan);
+
+                //increment the counter, update d.optParams so it is set to the initial optimization constraints at the BEGINNING of the optimization iteration, and save the changes to the plan
+                count++;
+                _data.optParams = e.updatedObj;
+                if (!_data.isDemo) _data.app.SaveModifications();
             }
+
+            //option to run one additional optimization (can be requested on the main GUI)
+            if (_data.oneMoreOpt)
+            {
+                ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Running one final optimization starting at MR3 to try and reduce global plan hotspots!");
+                ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
+
+                //one final push to lower the global plan hotspot if the user asked for it
+                if (OptimizePlan(_data.isDemo, new OptimizationOptionsVMAT(OptimizationOption.ContinueOptimizationWithPlanDoseAsIntermediateDose, ""), _data.plan, _data.app)) return true;
+
+                ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Optimization finished! Calculating dose!");
+                ProvideUIUpdate(String.Format(" Elapsed time: {0}" + Environment.NewLine, GetElapsedTime()));
+                if (CalculateDose(_data.isDemo, _data.plan, _data.app)) return true;
+
+                ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Dose calculated, normalizing plan!");
+                ProvideUIUpdate(String.Format(" Elapsed time: {0}" + Environment.NewLine, GetElapsedTime()));
+
+                //normalize
+                normalizePlan(_data.plan, _data.relativeDose, _data.targetVolCoverage, _data.useFlash);
+
+                //print requested additional info about the plan
+                PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, _data.plan);
+            }
+
+            if (_data.useFlash)
+            {
+                ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), String.Format(Environment.NewLine + " Removing flash, recalculating dose, and renormalizing to TS_PTV_VMAT!"));
+                ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
+
+                Structure bolus = _data.plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == "bolus_flash");
+                if (bolus == null)
+                {
+                    //no structure named bolus_flash found. This is a problem. 
+                    ProvideUIUpdate(" No structure named 'BOLUS_FLASH' found in structure set! Exiting!");
+                }
+                else
+                {
+                    //reset dose calculation matrix for each plan in the current course. Sorry! You will have to recalculate dose to EVERY plan!
+                    string calcModel = _data.plan.GetCalculationModel(CalculationType.PhotonVolumeDose);
+                    List<ExternalPlanSetup> plansWithCalcDose = new List<ExternalPlanSetup> { };
+                    foreach (ExternalPlanSetup p in _data.plan.Course.ExternalPlanSetups)
+                    {
+                        if (p.IsDoseValid && p.StructureSet == _data.plan.StructureSet)
+                        {
+                            p.ClearCalculationModel(CalculationType.PhotonVolumeDose);
+                            p.SetCalculationModel(CalculationType.PhotonVolumeDose, calcModel);
+                            plansWithCalcDose.Add(p);
+                        }
+                    }
+                    //reset the bolus dose to undefined
+                    bolus.ResetAssignedHU();
+                    //recalculate dose to all the plans that had previously had dose calculated in the current course
+                    foreach (ExternalPlanSetup p in plansWithCalcDose) CalculateDose(_data.isDemo, _data.plan, _data.app);
+
+                    ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Dose calculated, normalizing plan!");
+                    ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
+                    //"trick" the normalizePlan method into thinking we are not using flash. Therefore, it will normalize to TS_PTV_VMAT instead of TS_PTV_FLASH (i.e., set useFlash to false)
+                    normalizePlan(_data.plan, _data.relativeDose, _data.targetVolCoverage, false);
+                }
+            }
+            ProvideUIUpdate(100, Environment.NewLine + " Finished!");
+            if (!_data.isDemo && (_data.oneMoreOpt || _data.useFlash)) _data.app.SaveModifications();
             return false;
         }
         #endregion
 
         #region helper functions
-        private bool OptimizePlan(OptimizationOptionsVMAT options, ExternalPlanSetup plan, VMS.TPS.Common.Model.API.Application app)
+        private bool OptimizePlan(bool isDemo, OptimizationOptionsVMAT options, ExternalPlanSetup plan, VMS.TPS.Common.Model.API.Application app)
         {
-            //optimize with intermediate dose (AAA algorithm).
-            try
+            if(isDemo) Thread.Sleep(3000);
+            else
             {
-                OptimizerResult optRes = plan.OptimizeVMAT(options);
-                if (!optRes.Success)
+                //optimize with intermediate dose (AAA algorithm).
+                try
                 {
-                    PrintFailedMessage("Optimization");
+                    OptimizerResult optRes = plan.OptimizeVMAT(options);
+                    if (!optRes.Success)
+                    {
+                        PrintFailedMessage("Optimization");
+                        return true;
+                    }
+                }
+                catch (Exception except)
+                {
+                    PrintFailedMessage("Optimization", except.Message);
                     return true;
                 }
+                app.SaveModifications();
             }
-            catch (Exception except)
+            //check if user wants to stop
+            if (GetAbortStatus())
             {
-                PrintFailedMessage("Optimization", except.Message);
+                KillOptimizationLoop();
                 return true;
             }
-            app.SaveModifications();
             return false;
         }
 
-        private bool CalculateDose(ExternalPlanSetup plan, VMS.TPS.Common.Model.API.Application app)
+        private bool CalculateDose(bool isDemo, ExternalPlanSetup plan, VMS.TPS.Common.Model.API.Application app)
         {
-            //calculate dose
-            try
+            if (isDemo) Thread.Sleep(3000);
+            else
             {
-                CalculationResult calcRes = plan.CalculateDose();
-                if (!calcRes.Success)
+                //calculate dose
+                try
                 {
-                    PrintFailedMessage("Dose calculation");
+                    CalculationResult calcRes = plan.CalculateDose();
+                    if (!calcRes.Success)
+                    {
+                        PrintFailedMessage("Dose calculation");
+                        return true;
+                    }
+                }
+                catch (Exception except)
+                {
+                    PrintFailedMessage("Dose calculation", except.Message);
                     return true;
                 }
+                app.SaveModifications();
             }
-            catch (Exception except)
+            //check if user wants to stop
+            if (GetAbortStatus())
             {
-                PrintFailedMessage("Dose calculation", except.Message);
+                KillOptimizationLoop();
                 return true;
             }
-            app.SaveModifications();
             return false;
         }
 
@@ -909,17 +980,16 @@ namespace VMATTBICSIOptLoopMT
 
         private void removeCoolHeatStructures(ExternalPlanSetup plan)
         {
-            StructureSet s = plan.StructureSet;
-            List<Structure> cool = new List<Structure> { };
-            foreach (Structure c in s.Structures.Where(x => x.Id.ToLower().Contains("ts_cooler"))) cool.Add(c);
-            List<Structure> heater = new List<Structure> { };
-            foreach (Structure h in s.Structures.Where(x => x.Id.ToLower().Contains("ts_heater"))) heater.Add(h);
-            //now remove the structures
-            foreach (Structure c in cool) if (s.CanRemoveStructure(c)) s.RemoveStructure(c); else MessageBox.Show(string.Format("Can't remove cooler: {0}", c.Id));
-            foreach (Structure h in heater) if (s.CanRemoveStructure(h)) s.RemoveStructure(h); else MessageBox.Show(string.Format("Can't remove heater: {0}", h.Id));
+            StructureSet ss = plan.StructureSet;
+            foreach(Structure itr in ss.Structures.Where(x => x.Id.ToLower().Contains("ts_cooler") || x.Id.ToLower().Contains("ts_heater")))
+            {
+                if (ss.CanRemoveStructure(itr)) ss.RemoveStructure(itr);
+                else ProvideUIUpdate(String.Format("Warning! Cannot remove {0} from the structure set! Skipping!", itr.Id));
+            }
         }
-//**********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************
+        //**********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************
 
+        #region generate heaters and coolers
         private Tuple<string, string, double, double, int> generateCooler(ExternalPlanSetup plan, double doseLevel, double requestedDoseConstraint, double volume, string name, int priority)
         {
             //create an empty optiization objective
@@ -968,6 +1038,7 @@ namespace VMATTBICSIOptLoopMT
             }
             return heater;
         }
+        #endregion
 
         private void UpdateConstraints(List<Tuple<string, string, double, double, int>> obj, ExternalPlanSetup plan)
         {
