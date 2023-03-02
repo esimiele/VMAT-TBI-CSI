@@ -5,87 +5,237 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:VMATTBICSIOptLoopMT"
         mc:Ignorable="d"
-        Height="740" Width="615" Background="White"
+        SizeToContent="WidthAndHeight"
+        Background="White"
         Title="VMAT Optimization Loop" Closing="Window_Closing">
-    <Grid>
-        <Grid Height="235" Width="600" VerticalAlignment="Top" Margin="0,-1,-8,0">
-            <Grid.Background>
-                <ImageBrush ImageSource="/Images/StanfordMedicine1.png"  Stretch="Uniform" AlignmentY="Top" Opacity="0.5">
-                    <ImageBrush.Transform>
-                        <TransformGroup>
-                            <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
-                            <SkewTransform/>
-                            <RotateTransform/>
-                            <TranslateTransform Y="20" X="30"/>
-                        </TransformGroup>
-                    </ImageBrush.Transform>
-                </ImageBrush>
-            </Grid.Background>
-            <StackPanel>
-                <Grid Margin="0,5,0,5">
-                    <Label Content="VMAT Optimization loop script" HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="16" FontWeight="Bold" Margin="0,0,0,0"></Label>
-                    <Button x:Name="help" Height="20" Width="75" HorizontalAlignment="Right" VerticalAlignment="Top" Content="Help" Margin="0,7,20,0" Click="Help_Click"></Button>
-                    <Button x:Name="quickStart" Height="20" Width="75" HorizontalAlignment="Left" VerticalAlignment="Top" Content="Quick Start" Margin="20,7,0,0" Click="QuickStart_Click"></Button>
-                </Grid>
-                <Grid Margin="0,13,0,5">
-                    <Label Content="Patient MRN:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,435,0"></Label>
-                    <TextBox x:Name="MRN" Height="22" Width="85" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,350,0"></TextBox>
-                    <Label Content="Dose per fraction (cGy/fraction):" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,128,0"></Label>
-                    <TextBox x:Name="dosePerFx" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,53,0" IsReadOnly="True"></TextBox>
-                </Grid>
-                <Grid Margin="0,0,0,5">
-                    <Button x:Name="openPatient" Content="Open Patient" Width="85" Height="22" Margin="0,4,350,0" HorizontalAlignment="Right" VerticalAlignment="Top" Click="OpenPatient_Click"></Button>
-                    <Label Content="Number of fractions:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,128,0"/>
-                    <TextBox x:Name="numFx" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,53,0" IsReadOnly="True"></TextBox>
-                </Grid>
-                <Grid Margin="0,0,0,5">
-                    <Label Content="Run coverage check:" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,435,0"></Label>
-                    <CheckBox x:Name="runCoverageCk" HorizontalAlignment="Right" Margin="0,7,420,0" VerticalAlignment="Top"/>
-                    <Label Content="Rx dose (cGy):" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,128,0"></Label>
-                    <TextBox x:Name="Rx" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,53,0" IsReadOnly="True"></TextBox>
-                </Grid>
-                <Grid Margin="0,0,0,5">
-                    <Label Content="Max number optimizations:" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,435,0"></Label>
-                    <TextBox x:Name="numOptLoops" Height="22" Width="85" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,350,0"></TextBox>
-                    <Label Content="Run additional optimization to lower hotspots:" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,68,0"></Label>
-                    <CheckBox x:Name="runAdditionalOpt" HorizontalAlignment="Right" Margin="0,7,53,0" VerticalAlignment="Top"/>
-                </Grid>
-                <Grid Margin="0,0,0,5">
-                    <Label Content="Copy and save each optimized plan:" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,230,0"></Label>
-                    <CheckBox x:Name="copyAndSave" HorizontalAlignment="Right" Margin="0,7,215,0" VerticalAlignment="Top"/>
-                </Grid>
-                <Grid Margin="0,0,0,5">
-                    <Label Content="PTV V100% (in %):" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,320,0"></Label>
-                    <TextBox x:Name="targetNormTB" Height="22" Width="60" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,255,0"></TextBox>
-                    <Button x:Name="targetNormInfo" Content="?" Height="22" Width="20" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,215,0" Click="targetNormInfo_Click"></Button>
-                </Grid>
-            </StackPanel>
-        </Grid>
+    <Window.Resources>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="White"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="LightGray"/>
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Background" Value="White"/>
+        </Style>
+        <Style TargetType="Label">
+            <Setter Property="Foreground" Value="Black"/>
+        </Style>
+        <!--Scrollbar Thumbs-->
+        <Style x:Key="ScrollThumbs" TargetType="{x:Type Thumb}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Thumb}">
+                        <Grid x:Name="Grid">
+                            <Rectangle HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Width="Auto" Height="Auto" Fill="Transparent"/>
+                            <Border x:Name="Rectangle1" CornerRadius="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Width="Auto" Height="Auto" Background="{TemplateBinding Background}"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Tag" Value="Horizontal">
+                                <Setter TargetName="Rectangle1" Property="Width" Value="Auto"/>
+                                <Setter TargetName="Rectangle1" Property="Height" Value="7"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
-        <TabControl Background="DarkGray" HorizontalAlignment="Left" Height="480" Margin="0,0,0,0" VerticalAlignment="Bottom" Width="607">
-            <TabItem Header="Run parameters">
-                <StackPanel Name="OPT" Width="600" Height="444" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0">
-                    <Label Content="Optimization Parameters" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"></Label>
-                    <Grid Height="25" Width ="520" HorizontalAlignment="Center" Margin="0,5,0,0">
-                        <Button Content="Add Constraint" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="AddOptimizationConstraint_Click"/>
-                        <Button Content="Get Constraints From Plan" Width="150" HorizontalAlignment="Center" VerticalAlignment="Top" Click="getOptFromPlan_Click"/>
-                        <Button Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_optParams_Click"/>
+        <!--ScrollBars-->
+        <Style x:Key="ScrollBarStyle" TargetType="{x:Type ScrollBar}">
+            <Setter Property="Foreground" Value="GhostWhite"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Width" Value="8"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ScrollBar}">
+                        <Grid x:Name="GridRoot" Width="8" Background="{TemplateBinding Background}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="0.00001*"/>
+                            </Grid.RowDefinitions>
+
+                            <Track x:Name="PART_Track" Grid.Row="0" IsDirectionReversed="true" Focusable="false">
+                                <Track.Thumb>
+                                    <Thumb x:Name="Thumb" Background="{TemplateBinding Foreground}" Style="{StaticResource ScrollThumbs}"/>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton x:Name="PageUp" Command="ScrollBar.PageDownCommand" Opacity="0" Focusable="false"/>
+                                </Track.IncreaseRepeatButton>
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton x:Name="PageDown" Command="ScrollBar.PageUpCommand" Opacity="0" Focusable="false"/>
+                                </Track.DecreaseRepeatButton>
+                            </Track>
+                        </Grid>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="false">
+                                <Setter TargetName="Thumb" Property="Visibility" Value="Collapsed"/>
+                            </Trigger>
+                            <Trigger Property="Orientation" Value="Horizontal">
+                                <Setter TargetName="GridRoot" Property="LayoutTransform">
+                                    <Setter.Value>
+                                        <RotateTransform Angle="-90"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="PART_Track" Property="LayoutTransform">
+                                    <Setter.Value>
+                                        <RotateTransform Angle="-90"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="Width" Value="Auto"/>
+                                <Setter Property="Height" Value="8"/>
+                                <Setter TargetName="Thumb" Property="Tag" Value="Horizontal"/>
+                                <Setter TargetName="PageDown" Property="Command" Value="ScrollBar.PageLeftCommand"/>
+                                <Setter TargetName="PageUp" Property="Command" Value="ScrollBar.PageRightCommand"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ScrollViewer -->
+        <Style x:Key="ScrollViewerStyle" TargetType="{x:Type ScrollViewer}">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ScrollViewer}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="16"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            <ScrollContentPresenter Grid.ColumnSpan="3" />
+                            <ScrollBar x:Name="PART_VerticalScrollBar" Grid.Column="2" Value="{TemplateBinding VerticalOffset}" Maximum="{TemplateBinding ScrollableHeight}" ViewportSize="{TemplateBinding ViewportHeight}" Style="{DynamicResource ScrollBarStyle}" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="TabItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TabItem}">
+                        <Border x:Name="PART_Border" Background="{TemplateBinding Background}" BorderThickness="{TemplateBinding BorderThickness}" BorderBrush="Black" Margin="0,0,0,0" CornerRadius="2,2,0,0" Padding="5,1,5,1">
+                            <ContentPresenter x:Name="ContentSite" ContentSource="Header" Margin="5" HorizontalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="LightGray"/>
+                                <Setter Property="Foreground" Value="Black"/>
+                                <Setter Property="TextElement.FontWeight" TargetName="ContentSite" Value="Bold"/>
+                            </Trigger>
+
+                            <Trigger Property="IsSelected" Value="false">
+                                <Setter Property="Background" Value="LightGray"/>
+                                <Setter Property="Foreground" Value="Black"/>
+
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <Grid>
+        <StackPanel>
+            <Grid Height="245" Width="740" VerticalAlignment="Top" Margin="0">
+                <Grid.Background>
+                    <ImageBrush ImageSource="/Images/StanfordMedicine1.png"  Stretch="Uniform" AlignmentY="Top" Opacity="0.25">
+                        <ImageBrush.Transform>
+                            <TransformGroup>
+                                <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>
+                                <SkewTransform/>
+                                <RotateTransform/>
+                                <TranslateTransform Y="20" X="30"/>
+                            </TransformGroup>
+                        </ImageBrush.Transform>
+                    </ImageBrush>
+                </Grid.Background>
+                <StackPanel>
+                    <Grid Margin="0,5,0,5">
+                        <Label Content="VMAT Optimization loop script" HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="16" FontWeight="Bold" Margin="0,0,0,0"></Label>
+                        <Button x:Name="help" Height="20" Width="75" HorizontalAlignment="Right" VerticalAlignment="Top" Content="Help" Margin="0,7,20,0" Click="Help_Click"></Button>
+                        <Button x:Name="quickStart" Height="20" Width="75" HorizontalAlignment="Left" VerticalAlignment="Top" Content="Quick Start" Margin="20,7,0,0" Click="QuickStart_Click"></Button>
                     </Grid>
-                    <ScrollViewer x:Name="optParamScroller" Height="330" Width="570" Margin="0,10,5,0" HorizontalAlignment="Center" VerticalAlignment="Bottom">
-                        <StackPanel Name="opt_parameters" Margin="5"></StackPanel>
-                    </ScrollViewer>
-                    <Button Content="Confirm Constraints and Begin Optimization" FontWeight="Bold" Width="260" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,10,0,0" Click="startOpt_Click"></Button>
+                    <Grid Margin="0,13,0,5">
+                        <Label Content="Patient MRN:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,585,0"></Label>
+                        <TextBox x:Name="MRN" Height="22" Width="85" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,500,0"></TextBox>
+                        <Label Content="Dose per fraction (cGy/fraction):" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,128,0"></Label>
+                        <TextBox x:Name="dosePerFx" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,53,0" IsReadOnly="True"></TextBox>
+                    </Grid>
+                    <Grid Margin="0,0,0,5">
+                        <Button x:Name="openPatient" Content="Open Patient" Width="85" Height="22" Margin="0,4,500,0" HorizontalAlignment="Right" VerticalAlignment="Top" Click="OpenPatient_Click"></Button>
+                        <Label Content="Number of fractions:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,128,0"/>
+                        <TextBox x:Name="numFx" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,53,0" IsReadOnly="True"></TextBox>
+                    </Grid>
+                    <Grid Margin="0,0,0,5">
+                        <Label Content="Run coverage check:" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,585,0"></Label>
+                        <CheckBox x:Name="runCoverageCk" HorizontalAlignment="Right" Margin="0,7,570,0" VerticalAlignment="Top"/>
+                        <Label Content="Rx dose (cGy):" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,128,0"></Label>
+                        <TextBox x:Name="Rx" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,53,0" IsReadOnly="True"></TextBox>
+                    </Grid>
+                    <Grid Margin="0,0,0,5">
+                        <Label Content="Max number optimizations:" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,585,0"></Label>
+                        <TextBox x:Name="numOptLoops" Height="22" Width="85" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,500,0"></TextBox>
+                        <Label Content="Run additional optimization to lower hotspots:" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,68,0"></Label>
+                        <CheckBox x:Name="runAdditionalOpt" HorizontalAlignment="Right" Margin="0,7,53,0" VerticalAlignment="Top"/>
+                    </Grid>
+                    <Grid Margin="0,0,0,5">
+                        <Label Content="Copy and save each optimized plan:" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,290,0"></Label>
+                        <CheckBox x:Name="copyAndSave" HorizontalAlignment="Right" Margin="0,7,275,0" VerticalAlignment="Top"/>
+                    </Grid>
+                    <Grid Margin="0,0,0,5">
+                        <Label Content="PTV V100% (in %):" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,360,0"></Label>
+                        <TextBox x:Name="targetNormTB" Height="22" Width="60" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,295,0"></TextBox>
+                        <Button x:Name="targetNormInfo" Content="?" Height="22" Width="20" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,255,0" Click="targetNormInfo_Click"></Button>
+                    </Grid>
                 </StackPanel>
-            </TabItem>
-            <TabItem Header="Script Configuration" Margin="378,-2,-382,-2">
-                <StackPanel Name="configuration" Width="600" Height="444" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0">
-                    <Label Content="Current Script Configuration Parameters" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
-                    <ScrollViewer x:Name ="configScroller" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="590" Height="370" Margin="0,5,8,0" BorderBrush="Black">
-                        <TextBlock x:Name="configTB" FontSize="12" FontFamily="Courier New" Width="575" Background="White" TextWrapping="Wrap"></TextBlock>
-                    </ScrollViewer>
-                    <Button x:Name="loadNewConfigFile" Content="Load new configuration file" Width="160" HorizontalAlignment="Center" Margin="0,8,0,0" Click="loadNewConfigFile_Click"></Button>
-                </StackPanel>
-            </TabItem>
-        </TabControl>
+            </Grid>
+            <Grid Background="DarkGray" VerticalAlignment="Bottom" Margin="0">
+                <TabControl Background="DarkGray" HorizontalAlignment="Left" TabStripPlacement="Left" Margin="0">
+                    <TabItem Header="Plan Objectives" BorderThickness="0,1,1,0">
+                        <StackPanel Name="OBJ" Width="600" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0">
+                            <Label Content="Plan Objectives" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"></Label>
+                            <Grid Height="25" Width ="520" HorizontalAlignment="Center" Margin="0,5,0,0">
+                                <Button Content="Add Objective" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                                <Button Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top"/>
+                            </Grid>
+                            <ScrollViewer x:Name="objParamScroller" Height="360" Width="595" Margin="0,10,5,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                <StackPanel Name="obj_parameters" Margin="5"></StackPanel>
+                            </ScrollViewer>
+                        </StackPanel>
+                    </TabItem>
+                    <TabItem Header="Optimization Setup" BorderThickness="0,1,1,1">
+                        <StackPanel Name="OPT" Width="600" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0">
+                            <Label Content="Optimization Parameters" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"></Label>
+                            <Grid Height="25" Width ="520" HorizontalAlignment="Center" Margin="0,5,0,0">
+                                <Button Content="Add Constraint" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="AddOptimizationConstraint_Click"/>
+                                <Button Content="Get Constraints From Plan" Width="150" HorizontalAlignment="Center" VerticalAlignment="Top" Click="getOptFromPlan_Click"/>
+                                <Button Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_optParams_Click"/>
+                            </Grid>
+                            <ScrollViewer x:Name="optParamScroller" Height="330" Width="595" Margin="0,10,5,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                <StackPanel Name="opt_parameters" Margin="5"></StackPanel>
+                            </ScrollViewer>
+                            <Button Content="Confirm Constraints and Begin Optimization" FontWeight="Bold" Width="260" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,10,0,0" Click="startOpt_Click"></Button>
+                        </StackPanel>
+                    </TabItem>
+                    <TabItem Header="Script Configuration" VerticalAlignment="Bottom" BorderThickness="0,1,1,1" Margin="0,0,0,-191">
+                        <StackPanel Name="configuration" Width="600" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0">
+                            <Label Content="Current Script Configuration" FontSize="16" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
+                            <ScrollViewer x:Name ="configScroller" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="590" Height="373" Margin="0,5,5,0" BorderBrush="Black">
+                                <TextBlock x:Name="configTB" FontSize="12" FontFamily="Courier New" Width="575" Background="White" TextWrapping="Wrap"></TextBlock>
+                            </ScrollViewer>
+                            <Button x:Name="loadNewConfigFile" Content="Load new configuration file" Width="160" HorizontalAlignment="Center" Margin="0,8,0,0" Click="loadNewConfigFile_Click"></Button>
+                        </StackPanel>
+                    </TabItem>
+                </TabControl>
+            </Grid>
+        </StackPanel>
     </Grid>
 </Window>

@@ -16,7 +16,7 @@ using VMATTBICSIAutoplanningHelpers.helpers;
 
 namespace VMATAutoPlanMT
 {
-    class generateTS_TBI : generateTSbase
+    public class generateTS_TBI : generateTSbase
     {
         //structure, sparing type, added margin
         public List<Tuple<string, string, double>> spareStructList;
@@ -71,7 +71,7 @@ namespace VMATAutoPlanMT
             return false;
         }
 
-        public override bool preliminaryChecks()
+        protected override bool preliminaryChecks()
         {
             //check if user origin was set
             if (isUOriginInside(selectedSS)) return true;
@@ -174,7 +174,7 @@ namespace VMATAutoPlanMT
             return false;
         }
 
-        public override bool createTSStructures()
+        protected override bool createTSStructures()
         {
             if (RemoveOldTSStructures(TS_structures)) return true;
             if (scleroTrial) if (RemoveOldTSStructures(scleroStructures)) return true;
@@ -418,7 +418,7 @@ namespace VMATAutoPlanMT
             return false;
         }
 
-        public override bool createFlash()
+        protected override bool createFlash()
         {
             //create flash for the plan per the users request
             //NOTE: IT IS IMPORTANT THAT ALL OF THE STRUCTURES CREATED IN THIS METHOD (I.E., ALL STRUCTURES USED TO GENERATE FLASH HAVE THE KEYWORD 'FLASH' SOMEWHERE IN THE STRUCTURE ID)!

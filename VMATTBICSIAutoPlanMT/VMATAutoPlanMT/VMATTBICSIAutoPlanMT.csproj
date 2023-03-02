@@ -126,7 +126,6 @@
     <Compile Include="baseClasses\generateTSbase.cs" />
     <Compile Include="baseClasses\planPrepBase.cs" />
     <Compile Include="Logging\Logger.cs" />
-    <Compile Include="MTProgressInfo\ESAPIworker.cs" />
     <Compile Include="MTProgressInfo\MTProgress.xaml.cs">
       <DependentUpon>MTProgress.xaml</DependentUpon>
     </Compile>

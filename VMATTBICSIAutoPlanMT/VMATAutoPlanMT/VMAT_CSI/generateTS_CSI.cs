@@ -19,11 +19,11 @@ namespace VMATAutoPlanMT.VMAT_CSI
         //DICOM types
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
-        public List<Tuple<string, string>> TS_structures;
+        protected List<Tuple<string, string>> TS_structures;
         List<Tuple<string, double, string>> targets;
         List<Tuple<string, string, int, DoseValue, double>> prescriptions;
-        public int numIsos;
-        public int numVMATIsos;
+        protected int numIsos;
+        protected int numVMATIsos;
         public bool updateSparingList = false;
 
         public generateTS_CSI(List<Tuple<string, string>> ts, List<Tuple<string, string, double>> list, List<Tuple<string, double, string>> targs, List<Tuple<string,string,int,DoseValue,double>> presc, StructureSet ss)
@@ -62,7 +62,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         #endregion
 
         #region Preliminary Checks and Structure Unioning
-        public override bool preliminaryChecks()
+        protected override bool preliminaryChecks()
         {
             UpdateUILabel("Performing Preliminary Checks: ");
             int calcItems = 2;
@@ -83,7 +83,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             return false;
         }
 
-        public bool UnionLRStructures()
+        protected bool UnionLRStructures()
         {
             UpdateUILabel("Unioning Structures: ");
             ProvideUIUpdate(0, "Checking for L and R structures to union!");
@@ -178,7 +178,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             return false;
         }
 
-        public bool createTargetStructures(List<Tuple<string, string>> missingTargets)
+        protected bool createTargetStructures(List<Tuple<string, string>> missingTargets)
         {
             UpdateUILabel("Create Missing Target Structures: ");
             ProvideUIUpdate(0, "Creating missing target structures!");
@@ -286,7 +286,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         #endregion
 
         #region Crop, Boolean, Ring Operations
-        public bool cropStructureFromBody(Structure theStructure, double margin)
+        protected bool cropStructureFromBody(Structure theStructure, double margin)
         {
             //margin is in cm
             Structure body = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "body");
@@ -299,7 +299,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             return false;
         }
 
-        public bool cropTargetFromStructure(Structure target, Structure normal, double margin)
+        protected bool cropTargetFromStructure(Structure target, Structure normal, double margin)
         {
             //margin is in cm
             if (target != null && normal != null)
@@ -311,7 +311,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             return false;
         }
 
-        public bool contourOverlap(Structure target, Structure normal, double margin)
+        protected bool contourOverlap(Structure target, Structure normal, double margin)
         {
             //margin is in cm
             if (target != null && normal != null)
@@ -338,7 +338,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         #endregion
 
         #region TS Structure Creation and Manipulation
-        public override bool createTSStructures()
+        protected override bool createTSStructures()
         {
             UpdateUILabel("Create TS Structures: ");
             ProvideUIUpdate(String.Format("Adding remaining tuning structures to stack!"));
@@ -484,7 +484,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             return false;
         }
 
-        public bool createArmsAvoid(Structure armsAvoid)
+        protected bool createArmsAvoid(Structure armsAvoid)
         {
             ProvideUIUpdate(String.Format("Preparing to contour TS_arms..."));
             //generate arms avoid structures
@@ -662,7 +662,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         #endregion
 
         #region Isocenter Calculation
-        public bool calculateNumIsos()
+        protected bool calculateNumIsos()
         {
             UpdateUILabel("Calculating Number of Isocenters:");
             ProvideUIUpdate("Calculating number of isocenters");

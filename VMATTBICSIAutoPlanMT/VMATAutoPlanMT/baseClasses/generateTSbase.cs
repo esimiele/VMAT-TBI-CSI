@@ -12,27 +12,27 @@ namespace VMATAutoPlanMT.baseClasses
 {
     public class generateTSbase : MTbase
     {
-        public StructureSet selectedSS;
+        protected StructureSet selectedSS;
         public List<string> addedStructures = new List<string> { };
         public List<Tuple<string, string>> optParameters = new List<Tuple<string, string>> { };
-        public bool useFlash = false;
+        protected bool useFlash = false;
         //plan Id, list of isocenter names for this plan
         public List<Tuple<string,List<string>>> isoNames = new List<Tuple<string, List<string>>> { };
 
         #region virtual methods
-        public virtual bool preliminaryChecks()
+        protected virtual bool preliminaryChecks()
         {
             //specific to each case (TBI or CSI)
             return false;
         }
 
-        public virtual bool createTSStructures()
+        protected virtual bool createTSStructures()
         {
             //no virtual method implementation as this code really can't be abstracted
             return false;
         }
 
-        public virtual bool createFlash()
+        protected virtual bool createFlash()
         {
             //no virtual method implementation as this method is really only useful for VMAT TBI as VMAT CSI already has a healthy margin going from CTV->PTV
             return false;
@@ -40,7 +40,7 @@ namespace VMATAutoPlanMT.baseClasses
         #endregion
 
         #region helper functions related to TS generation and manipulation
-        public bool RemoveOldTSStructures(List<Tuple<string, string>> structures)
+        protected bool RemoveOldTSStructures(List<Tuple<string, string>> structures)
         {
             UpdateUILabel("Remove Prior Tuning Structures: ");
             ProvideUIUpdate(0, "Removing prior tuning structures");
@@ -100,7 +100,7 @@ namespace VMATAutoPlanMT.baseClasses
             return false;
         }
 
-        public List<Tuple<string, string, double>> convertHighToLowRes(List<Structure> highRes, List<Tuple<string, string, double>> highResSpareList, List<Tuple<string, string, double>> dataList)
+        protected List<Tuple<string, string, double>> convertHighToLowRes(List<Structure> highRes, List<Tuple<string, string, double>> highResSpareList, List<Tuple<string, string, double>> dataList)
         {
             int count = 0;
             foreach (Structure s in highRes)
@@ -154,7 +154,7 @@ namespace VMATAutoPlanMT.baseClasses
             return dataList;
         }
 
-        public Structure AddTSStructures(Tuple<string, string> itr1)
+        protected Structure AddTSStructures(Tuple<string, string> itr1)
         {
             Structure addedStructure = null;
             string dicomType = itr1.Item1;
@@ -169,7 +169,7 @@ namespace VMATAutoPlanMT.baseClasses
             return addedStructure;
         }
 
-        public bool isUOriginInside(StructureSet ss)
+        protected bool isUOriginInside(StructureSet ss)
         {
             if (!ss.Image.HasUserOrigin || !(ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").IsPointInsideSegment(ss.Image.UserOrigin)))
             {

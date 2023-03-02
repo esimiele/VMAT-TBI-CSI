@@ -2,7 +2,8 @@
 using System.Text;
 using System.Threading;
 using System.Windows.Threading;
-using VMATTBICSIOptLoopMT.MTWorker;
+using VMATTBICSIAutoplanningHelpers.MTWorker;
+using VMATTBICSIOptLoopMT.MTProgressInfo;
 
 namespace VMATTBICSIOptLoopMT.baseClasses
 {

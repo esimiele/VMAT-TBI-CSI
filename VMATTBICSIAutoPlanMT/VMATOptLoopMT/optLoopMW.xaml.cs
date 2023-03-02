@@ -10,6 +10,7 @@ using VMS.TPS.Common.Model.Types;
 using VMATTBICSIOptLoopMT.helpers;
 using VMATTBICSIOptLoopMT.baseClasses;
 using VMATTBICSIAutoplanningHelpers.helpers;
+using VMATTBICSIOptLoopMT.VMAT_CSI;
 
 namespace VMATTBICSIOptLoopMT
 {
@@ -349,7 +350,9 @@ namespace VMATTBICSIOptLoopMT
 
             //start the optimization loop (all saving to the database is performed in the progressWindow class)
             pi.BeginModifications();
-            optimizationLoopBase optLoop = new optimizationLoopBase(data);
+            //use a bit of polymorphism
+            optimizationLoopBase optLoop;
+            optLoop = new VMATCSIOptimization(data);
             optLoop.Execute();
         }
 

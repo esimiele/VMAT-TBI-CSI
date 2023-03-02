@@ -6,19 +6,17 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Threading;
 
-namespace VMATTBICSIOptLoopMT.MTWorker
+namespace VMATTBICSIAutoplanningHelpers.MTWorker
 {
     //separate class to help facilitate multithreading
     public class ESAPIworker
     {
         public bool isError = false;
-        //instance of dataContainer structure to copy the optimization parameters to thread-local memory
         public readonly Dispatcher _dispatcher;
 
         //constructor
         public ESAPIworker()
         {
-            //copy optimization parameters from main thread to new thread
             //copy the dispatcher assigned to the main thread (the optimization loop will run on the main thread)
             _dispatcher = Dispatcher.CurrentDispatcher;
         }

@@ -88,6 +88,8 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="VMAT-CSI\VMATCSIOptimization.cs" />
+    <Compile Include="VMAT-TBI\VMATTBIOptimization.cs" />
     <Page Include="optLoopMW.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -99,19 +101,18 @@
     <Compile Include="baseClasses\MTBase.cs" />
     <Compile Include="helpers\dataContainer.cs" />
     <Compile Include="PlanEvaluation\evalPlanStruct.cs" />
-    <Compile Include="MTWorker\ESAPIworker.cs" />
     <Compile Include="optLoopMW.xaml.cs">
       <DependentUpon>optLoopMW.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Page Include="progressWindow.xaml">
+    <Page Include="MTProgressInfo\progressWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="baseClasses\optimizationLoopBase.cs" />
-    <Compile Include="progressWindow.xaml.cs">
+    <Compile Include="MTProgressInfo\progressWindow.xaml.cs">
       <DependentUpon>progressWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs">

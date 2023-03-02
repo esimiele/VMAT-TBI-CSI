@@ -13,7 +13,7 @@ using System.Runtime.ExceptionServices;
 
 namespace VMATAutoPlanMT.VMAT_CSI
 {
-    class placeBeams_CSI : placeBeamsBase
+    public class placeBeams_CSI : placeBeamsBase
     {
         //plan, list<iso name, number of beams>
         List<Tuple<string, List<Tuple<string, int>>>> planIsoBeamInfo;
@@ -64,7 +64,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             return GeneratePlanList();
         }
 
-        public override List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> GetIsocenterPositions()
+        protected override List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> GetIsocenterPositions()
         {
             UpdateUILabel("Calculating isocenter positions: ");
             ProvideUIUpdate(0, String.Format("Extracting isocenter positions for all plans"));
@@ -239,7 +239,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             return allIsocenters;
         }
 
-        public override bool SetBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
+        protected override bool SetBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
         {
             ProvideUIUpdate(0, String.Format("Preparing to set isocenters for plan: {0}", iso.Item1.Id));
             int calcItems = 3;

@@ -14,29 +14,29 @@ using System.Reflection;
 
 namespace VMATAutoPlanMT.baseClasses
 {
-    class placeBeamsBase : MTbase
+    public class placeBeamsBase : MTbase
     {
-        public bool contourOverlap = false;
-        public bool checkIsoPlacement = false;
+        protected bool contourOverlap = false;
+        protected bool checkIsoPlacement = false;
         public List<ExternalPlanSetup> plans = new List<ExternalPlanSetup> { };
-        public double checkIsoPlacementLimit = 5.0;
+        protected double checkIsoPlacementLimit = 5.0;
         private string courseId;
-        public Course theCourse;
-        public StructureSet selectedSS;
+        protected Course theCourse;
+        protected StructureSet selectedSS;
         //plan ID, target Id, numFx, dosePerFx, cumulative dose
-        public List<Tuple<string, string, int, DoseValue, double>> prescriptions;
-        public string calculationModel = "";
-        public string optimizationModel = "";
-        public string useGPUdose = "";
-        public string useGPUoptimization = "";
-        public string MRrestart = "";
-        public double contourOverlapMargin;
+        protected List<Tuple<string, string, int, DoseValue, double>> prescriptions;
+        protected string calculationModel = "";
+        protected string optimizationModel = "";
+        protected string useGPUdose = "";
+        protected string useGPUoptimization = "";
+        protected string MRrestart = "";
+        protected double contourOverlapMargin;
         public List<Structure> jnxs = new List<Structure> { };
-        public Structure target = null;
-        public int numVMATIsos;
+        protected Structure target = null;
+        protected int numVMATIsos;
 
         #region virtual methods
-        public virtual bool GeneratePlanList()
+        protected virtual bool GeneratePlanList()
         {
             if (CheckExistingCourse()) return true;
             if (CheckExistingPlans()) return true;
@@ -59,7 +59,7 @@ namespace VMATAutoPlanMT.baseClasses
         }
 
         //2-12-2023 to be converted to non-virtual method so TBI uses the same plan checking syntax as CSI
-        public virtual bool CheckExistingPlans()
+        protected virtual bool CheckExistingPlans()
         {
             UpdateUILabel("Checking for existing plans: ");
             int numExistingPlans = 0;
@@ -86,13 +86,13 @@ namespace VMATAutoPlanMT.baseClasses
             return false;
         }
 
-        public virtual bool SetBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> isoLocations)
+        protected virtual bool SetBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> isoLocations)
         {
             //needs to be implemented by deriving class
             return true;
         }
 
-        public virtual List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> GetIsocenterPositions()
+        protected virtual List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> GetIsocenterPositions()
         {
             return new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
         }

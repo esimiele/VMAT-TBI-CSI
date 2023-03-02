@@ -11,7 +11,7 @@ using System.Runtime.ExceptionServices;
 
 namespace VMATAutoPlanMT
 {
-    class placeBeams_TBI : placeBeamsBase
+    public class placeBeams_TBI : placeBeamsBase
     {
         int numIsos;
         int[] numBeams;
@@ -84,7 +84,7 @@ namespace VMATAutoPlanMT
             return false;
         }
 
-        public override bool CheckExistingPlans()
+        protected override bool CheckExistingPlans()
         {
             string planID = prescriptions.First().Item1;
             //6-10-2020 EAS, research system only!
@@ -103,7 +103,7 @@ namespace VMATAutoPlanMT
             return false;
         }
 
-        public override List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> GetIsocenterPositions()
+        protected override List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> GetIsocenterPositions()
         {
             plan = plans.First();
             //List<Tuple<ExternalPlanSetup, List<VVector>>> allIsocenters = new List<Tuple<ExternalPlanSetup, List<VVector>>> { };
@@ -237,7 +237,7 @@ namespace VMATAutoPlanMT
             return allIsocenters;
         }
 
-        public override bool SetBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
+        protected override bool SetBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
         {
             //DRR parameters (dummy parameters to generate DRRs for each field)
             DRRCalculationParameters DRR = new DRRCalculationParameters();

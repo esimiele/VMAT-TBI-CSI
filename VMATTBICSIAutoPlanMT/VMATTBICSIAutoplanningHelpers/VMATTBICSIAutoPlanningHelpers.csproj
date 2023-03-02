@@ -118,6 +118,7 @@
     <Compile Include="helpers\StructureTuningUIHelper.cs" />
     <Compile Include="helpers\TargetsUIHelper.cs" />
     <Compile Include="helpers\templateBuilder.cs" />
+    <Compile Include="MTWorker\ESAPIworker.cs" />
     <Compile Include="Prompts\confirmUI.cs">
       <SubType>Form</SubType>
     </Compile>

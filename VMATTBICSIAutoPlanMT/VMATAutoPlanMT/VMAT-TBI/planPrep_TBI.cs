@@ -14,7 +14,7 @@ using VMATTBICSIAutoplanningHelpers.helpers;
 
 namespace VMATAutoPlanMT
 {
-    class planPrep_TBI : planPrepBase
+    public class planPrep_TBI : planPrepBase
     {
         //common variables
         IEnumerable<ExternalPlanSetup> appaPlan;

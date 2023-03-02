@@ -2,6 +2,7 @@
 using System.Text;
 using System.Threading;
 using System.Windows.Threading;
+using VMATTBICSIAutoplanningHelpers.MTWorker;
 using VMATAutoPlanMT.MTProgressInfo;
 
 namespace VMATAutoPlanMT.baseClasses

@@ -9,7 +9,7 @@ using VMATTBICSIAutoplanningHelpers.Prompts;
 
 namespace VMATAutoPlanMT.baseClasses
 {
-    internal class planPrepBase
+    public class planPrepBase
     {
         public ExternalPlanSetup vmatPlan = null;
         public int numVMATIsos = 0;
