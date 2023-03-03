@@ -111,7 +111,63 @@ namespace VMATTBICSIAutoplanningHelpers.helpers
             return sp;
         }
 
-        public StackPanel addOptVolume(StackPanel theSP, StructureSet selectedSS, Tuple<string, string, double, double, int> listItem, string clearBtnNamePrefix, int clearOptBtnCounter, RoutedEventHandler e, bool addStructureEvenIfNotInSS = false)
+        public StackPanel getObjHeader(double theWidth)
+        {
+            StackPanel sp = new StackPanel();
+            sp.Height = 30;
+            sp.Width = theWidth;
+            sp.Orientation = Orientation.Horizontal;
+            sp.Margin = new Thickness(30, 0, 5, 5);
+
+            Label strName = new Label();
+            strName.Content = "Structure";
+            strName.HorizontalAlignment = HorizontalAlignment.Center;
+            strName.VerticalAlignment = VerticalAlignment.Top;
+            strName.Width = 110;
+            strName.FontSize = 14;
+            strName.Margin = new Thickness(27, 0, 0, 0);
+
+            Label spareType = new Label();
+            spareType.Content = "Constraint";
+            spareType.HorizontalAlignment = HorizontalAlignment.Center;
+            spareType.VerticalAlignment = VerticalAlignment.Top;
+            spareType.Width = 90;
+            spareType.FontSize = 14;
+            spareType.Margin = new Thickness(2, 0, 0, 0);
+
+            Label volLabel = new Label();
+            volLabel.Content = "V (%)";
+            volLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            volLabel.VerticalAlignment = VerticalAlignment.Top;
+            volLabel.Width = 60;
+            volLabel.FontSize = 14;
+            volLabel.Margin = new Thickness(18, 0, 0, 0);
+
+            Label doseLabel = new Label();
+            doseLabel.Content = "Dose";
+            doseLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            doseLabel.VerticalAlignment = VerticalAlignment.Top;
+            doseLabel.Width = 60;
+            doseLabel.FontSize = 14;
+            doseLabel.Margin = new Thickness(5, 0, 0, 0);
+
+            Label unitsLabel = new Label();
+            unitsLabel.Content = "Units";
+            unitsLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            unitsLabel.VerticalAlignment = VerticalAlignment.Top;
+            unitsLabel.Width = 65;
+            unitsLabel.FontSize = 14;
+            unitsLabel.Margin = new Thickness(13, 0, 0, 0);
+
+            sp.Children.Add(strName);
+            sp.Children.Add(spareType);
+            sp.Children.Add(volLabel);
+            sp.Children.Add(doseLabel);
+            sp.Children.Add(unitsLabel);
+            return sp;
+        }
+
+        public StackPanel addOptVolume<T>(StackPanel theSP, StructureSet selectedSS, Tuple<string, string, double, double, T> listItem, string clearBtnNamePrefix, int clearOptBtnCounter, RoutedEventHandler e, bool addStructureEvenIfNotInSS = false)
         {
             StackPanel sp = new StackPanel();
             sp.Height = 30;
@@ -184,16 +240,32 @@ namespace VMATTBICSIAutoplanningHelpers.helpers
             vol_tb.TextAlignment = TextAlignment.Center;
             sp.Children.Add(vol_tb);
 
-            TextBox priority_tb = new TextBox();
-            priority_tb.Name = "priority_tb";
-            priority_tb.Width = 65;
-            priority_tb.Height = sp.Height - 5;
-            priority_tb.HorizontalAlignment = HorizontalAlignment.Left;
-            priority_tb.VerticalAlignment = VerticalAlignment.Top;
-            priority_tb.Margin = new Thickness(5, 5, 0, 0);
-            priority_tb.Text = Convert.ToString(listItem.Item5);
-            priority_tb.TextAlignment = TextAlignment.Center;
-            sp.Children.Add(priority_tb);
+            if(listItem.Item5.GetType() == typeof(int))
+            {
+                TextBox priority_tb = new TextBox();
+                priority_tb.Name = "priority_tb";
+                priority_tb.Width = 65;
+                priority_tb.Height = sp.Height - 5;
+                priority_tb.HorizontalAlignment = HorizontalAlignment.Left;
+                priority_tb.VerticalAlignment = VerticalAlignment.Top;
+                priority_tb.Margin = new Thickness(5, 5, 0, 0);
+                priority_tb.Text = Convert.ToString(listItem.Item5);
+                priority_tb.TextAlignment = TextAlignment.Center;
+                sp.Children.Add(priority_tb);
+            }
+            else
+            {
+                TextBox dvPresentation_tb = new TextBox();
+                dvPresentation_tb.Name = "dvPresentation_tb";
+                dvPresentation_tb.Width = 65;
+                dvPresentation_tb.Height = sp.Height - 5;
+                dvPresentation_tb.HorizontalAlignment = HorizontalAlignment.Left;
+                dvPresentation_tb.VerticalAlignment = VerticalAlignment.Top;
+                dvPresentation_tb.Margin = new Thickness(5, 5, 0, 0);
+                dvPresentation_tb.Text = Convert.ToString(listItem.Item5) == "Absolute" ? "cGy" : "%";
+                dvPresentation_tb.TextAlignment = TextAlignment.Center;
+                sp.Children.Add(dvPresentation_tb);
+            }
 
             Button clearOptStructBtn = new Button();
             clearOptStructBtn.Name = clearBtnNamePrefix + clearOptBtnCounter;

@@ -39,20 +39,9 @@ namespace VMATTBICSIOptLoopMT
         //lower dose limit
         double lowDoseLimit = 0.1;
 
-        //changed PTV_BODY to targetId for the cases where the patient has an appa plan and needs to ts_PTV_VMAT or ts_PTV_FLASH (if flash was used) structure
-        public List<Tuple<string, string, double, double, DoseValuePresentation>> planObjSclero = new List<Tuple<string, string, double, double, DoseValuePresentation>>
-            {
-                //structure, constraint type, dose, relative volume
-                //"<targetId>" will be overwritten with the actual Id of the target (depends if flash was used) 
-                new Tuple<string, string, double, double, DoseValuePresentation>("<targetId>", "Lower", 800.0, 90.0, DoseValuePresentation.Absolute),
-                new Tuple<string, string, double, double, DoseValuePresentation>("<targetId>", "Upper", 810.0, 0.0, DoseValuePresentation.Absolute),
-                new Tuple<string, string, double, double, DoseValuePresentation>("Lungs_Eval", "Mean", 200.0, 0.0, DoseValuePresentation.Absolute),
-                new Tuple<string, string, double, double, DoseValuePresentation>("Kidneys", "Mean", 200.0, 0.0, DoseValuePresentation.Absolute)
-            };
-        //generic plan objectives for all treatment regiments
-        public List<Tuple<string, string, double, double, DoseValuePresentation>> planObjGeneral = new List<Tuple<string, string, double, double, DoseValuePresentation>>
-            {
-                //structure, constraint type, relative dose, relative volume (unless otherwise specified)
+        public List<Tuple<string, string, double, double, DoseValuePresentation>> planObj = new List<Tuple<string, string, double, double, DoseValuePresentation>> 
+        { 
+            //structure, constraint type, relative dose, relative volume (unless otherwise specified)
                 //note, if the constraint type is "mean", the relative volume value is ignored
                 new Tuple<string, string, double, double, DoseValuePresentation>("<targetId>", "Lower", 100.0, 90.0, DoseValuePresentation.Relative),
                 new Tuple<string, string, double, double, DoseValuePresentation>("<targetId>", "Upper", 120.0, 0.0, DoseValuePresentation.Relative),
@@ -63,14 +52,13 @@ namespace VMATTBICSIOptLoopMT
                 new Tuple<string, string, double, double, DoseValuePresentation>("Kidneys", "Mean", 60.0, 0.0, DoseValuePresentation.Relative),
                 new Tuple<string, string, double, double, DoseValuePresentation>("Bowel", "Upper", 105.0, 0.0, DoseValuePresentation.Relative),
                 new Tuple<string, string, double, double, DoseValuePresentation>("Testes", "Upper", 100.0, 0.0, DoseValuePresentation.Absolute), //these doses are in cGy, not percentage!
-                new Tuple<string, string, double, double, DoseValuePresentation>("Testes", "Mean", 25.0, 0.0, DoseValuePresentation.Relative), 
+                new Tuple<string, string, double, double, DoseValuePresentation>("Testes", "Mean", 25.0, 0.0, DoseValuePresentation.Relative),
                 new Tuple<string, string, double, double, DoseValuePresentation>("Ovaries", "Upper", 100.0, 0.0, DoseValuePresentation.Absolute), //these doses are in cGy, not percentage!
-                new Tuple<string, string, double, double, DoseValuePresentation>("Ovaries", "Mean", 25.0, 0.0, DoseValuePresentation.Relative), 
+                new Tuple<string, string, double, double, DoseValuePresentation>("Ovaries", "Mean", 25.0, 0.0, DoseValuePresentation.Relative),
                 new Tuple<string, string, double, double, DoseValuePresentation>("Brain-1cm", "Mean", 75.0, 0.0, DoseValuePresentation.Relative),
                 new Tuple<string, string, double, double, DoseValuePresentation>("Thyroid", "Mean", 75.0, 0.0, DoseValuePresentation.Relative)
-            };
+        };
 
-        public List<Tuple<string, string, double, double, DoseValuePresentation>> planObj = new List<Tuple<string, string, double, double, DoseValuePresentation>> { };
         public List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>
             {
                 new Tuple<string,double,double,double,int,List<Tuple<string, double, string, double>>>("TS_cooler110",110.0,108.0,0.0,80,new List<Tuple<string, double, string, double>>{ }),
@@ -84,8 +72,6 @@ namespace VMATTBICSIOptLoopMT
         ExternalPlanSetup plan;
         StructureSet selectedSS;
         Patient pi = null;
-        int clearOptBtnCounter = 0;
-        bool scleroTrial = false;
         bool runCoverageCheck = false;
         bool runOneMoreOpt = false;
         bool copyAndSavePlanItr = false;
@@ -151,9 +137,11 @@ namespace VMATTBICSIOptLoopMT
                     MessageBox.Show("No plan named _VMAT TBI!");
                     return;
                 }
+                //ensure the correct plan target is selected and all requested objectives have a matching structure that exists in the structure set (needs to be done after structure set has been assinged)
+                planObj = new List<Tuple<string, string, double, double, DoseValuePresentation>>(ConstructPlanObjectives(planObj));
+                PopulateOptimizationTab(optimizationParamSP);
+                PopulatePlanObjectivesTab(planObjectiveParamSP);
 
-                //populate the optimization stackpanel with the optimization parameters that were stored in the VMAT TBI plan
-                populateOptimizationTab();
                 //populate the prescription text boxes with the prescription stored in the VMAT TBI plan
                 populateRx();
                 //set the default parameters for the optimization loop
@@ -171,51 +159,59 @@ namespace VMATTBICSIOptLoopMT
 
         private void getOptFromPlan_Click(object sender, RoutedEventArgs e)
         {
-            if (pi != null && plan != null) populateOptimizationTab();
+            if (pi != null && plan != null) PopulateOptimizationTab(optimizationParamSP);
         }
 
-        private void AddOptimizationConstraint_Click(object sender, RoutedEventArgs e)
+        private void AddItem_Click(object sender, RoutedEventArgs e)
         {
             //add a blank contraint to the list
             if (plan != null)
             {
                 List<Tuple<string, string, double, double, int>> tmp = new List<Tuple<string, string, double, double, int>> { Tuple.Create("--select--", "--select--", 0.0, 0.0, 0) };
-                StackPanel theSP = opt_parameters;
-                if (opt_parameters.Children.Count > 0)
+                (StackPanel, ScrollViewer) SPAndSV = GetSPAndSV(sender as Button);
+                if (SPAndSV.Item1.Children.Count > 0)
                 {
                     OptimizationSetupUIHelper helper = new OptimizationSetupUIHelper();
-                    List<Tuple<string, List<Tuple<string, string, double, double, int>>>> optParametersListList = helper.parseOptConstraints(theSP, false);
+                    List<Tuple<string, List<Tuple<string, string, double, double, int>>>> optParametersListList = helper.parseOptConstraints(SPAndSV.Item1, false);
                     tmp = new List<Tuple<string, string, double, double, int>>(optParametersListList.First().Item2);
                     tmp.Add(Tuple.Create("--select--", "--select--", 0.0, 0.0, 0));
                 }
-                clearAllOptimizationStructs();
-                AddOptimizationConstraintItems(tmp, plan.Id, opt_parameters);
-                optParamScroller.ScrollToBottom();
+                ClearAllItemsFromUIList(SPAndSV.Item1);
+                AddListItemsToUI(tmp, plan.Id, SPAndSV.Item1);
+                SPAndSV.Item2.ScrollToBottom();
             }
         }
 
-        private void clear_optParams_Click(object sender, RoutedEventArgs e) { clearAllOptimizationStructs(); }
-
-        private void ClearOptimizationConstraint_Click(object sender, EventArgs e)
+        private void ClearAllItems_Click(object sender, RoutedEventArgs e) 
         {
-            //same code as in binary plug in
-            Button btn = (Button)sender;
-            int i = 0;
-            int k = 0;
-            foreach (object obj in opt_parameters.Children)
-            {
-                foreach (object obj1 in ((StackPanel)obj).Children) if ((obj1.Equals(btn))) k = i;
-                if (k > 0) break;
-                i++;
-            }
+            ClearAllItemsFromUIList(GetSPAndSV(sender as Button).Item1);
+        }
 
-            //clear entire list if there are only two entries (header + 1 real entry)
-            if (opt_parameters.Children.Count < 3) clearAllOptimizationStructs();
-            else opt_parameters.Children.RemoveAt(k);
+        private void ClearItem_Click(object sender, EventArgs e)
+        {
+            StackPanel theSP = GetSPAndSV(sender as Button).Item1;
+            if (new GeneralUIhelper().clearRow(sender, theSP)) ClearAllItemsFromUIList(theSP);
         }
         #endregion
 
         #region UI manipulation
+        private (StackPanel, ScrollViewer) GetSPAndSV(Button theBTN)
+        {
+            StackPanel theSP;
+            ScrollViewer theScroller;
+            if (theBTN.Name.ToLower().Contains("optimization"))
+            {
+                theSP = optimizationParamSP;
+                theScroller = optimizationParamScroller;
+            }
+            else
+            {
+                theSP = planObjectiveParamSP;
+                theScroller = planObjectiveParamScroller;
+            }
+            return (theSP, theScroller);
+        }
+
         private (ExternalPlanSetup, StructureSet) GetPlanAndStructureSet()
         {
             //grab an instance of the VMAT TBI plan. Return null if it isn't found
@@ -232,9 +228,8 @@ namespace VMATTBICSIOptLoopMT
         {
             //clear all existing content from the main window
             dosePerFx.Text = numFx.Text = Rx.Text = numOptLoops.Text = "";
-            opt_parameters.Children.Clear();
-            clearOptBtnCounter = 0;
-            scleroTrial = false;
+            ClearAllItemsFromUIList(optimizationParamSP);
+            ClearAllItemsFromUIList(planObjectiveParamSP);
         }
 
         private void populateRx()
@@ -243,15 +238,20 @@ namespace VMATTBICSIOptLoopMT
             dosePerFx.Text = plan.DosePerFraction.Dose.ToString();
             numFx.Text = plan.NumberOfFractions.ToString();
             Rx.Text = plan.TotalDose.Dose.ToString();
-            //if the dose per fraction and number of fractions equal 200 cGy and 4, respectively, then this is a scleroderma trial patient. This information will be passed to the optimization loop
-            if (plan.DosePerFraction.Dose == 200.0 && plan.NumberOfFractions == 4) scleroTrial = true;
         }
 
-        private void populateOptimizationTab()
+        private void PopulateOptimizationTab(StackPanel theSP)
         {
             //clear the current list of optimization constraints and ones obtained from the plan to the user
-            clearAllOptimizationStructs();
-            AddOptimizationConstraintItems(new OptimizationSetupUIHelper().ReadConstraintsFromPlan(plan), plan.Id, opt_parameters);
+            ClearAllItemsFromUIList(theSP);
+            AddListItemsToUI(new OptimizationSetupUIHelper().ReadConstraintsFromPlan(plan), plan.Id, theSP);
+        }
+
+        private void PopulatePlanObjectivesTab(StackPanel theSP)
+        {
+            //clear the current list of optimization constraints and ones obtained from the plan to the user
+            ClearAllItemsFromUIList(theSP);
+            AddListItemsToUI(planObj, plan.Id, theSP);
         }
 
         private void AddOptimizationConstraintsHeader(StackPanel theSP)
@@ -259,25 +259,43 @@ namespace VMATTBICSIOptLoopMT
             theSP.Children.Add(new OptimizationSetupUIHelper().getOptHeader(theSP.Width));
         }
 
-        private void AddOptimizationConstraintItems(List<Tuple<string, string, double, double, int>> defaultList, string planId, StackPanel theSP)
+        private void AddPlanObjectivesHeader(StackPanel theSP)
         {
-            int counter = clearOptBtnCounter;
-            string clearBtnNamePrefix = "clearOptConstraintBtn";
+            theSP.Children.Add(new OptimizationSetupUIHelper().getObjHeader(theSP.Width));
+        }
+
+        private void AddListItemsToUI<T>(List<Tuple<string, string, double, double, T>> defaultList, string planId, StackPanel theSP)
+        {
+            int counter = 0;
+            string clearBtnNamePrefix;
             OptimizationSetupUIHelper helper = new OptimizationSetupUIHelper();
             theSP.Children.Add(helper.AddPlanIdtoOptList(theSP, planId));
-            AddOptimizationConstraintsHeader(theSP);
+            if (theSP.Name.ToLower().Contains("optimization"))
+            {
+                clearBtnNamePrefix = "clearOptimizationConstraintBtn";
+                AddOptimizationConstraintsHeader(theSP);
+            }
+            else
+            {
+                clearBtnNamePrefix = "clearPlanObjectiveBtn";
+                AddPlanObjectivesHeader(theSP);
+            }
             for (int i = 0; i < defaultList.Count; i++)
             {
                 counter++;
-                theSP.Children.Add(helper.addOptVolume(theSP, selectedSS, defaultList[i], clearBtnNamePrefix, counter, new RoutedEventHandler(this.ClearOptimizationConstraint_Click), theSP.Name.Contains("template") ? true : false));
+                theSP.Children.Add(helper.addOptVolume(theSP, 
+                                                       selectedSS, 
+                                                       defaultList[i], 
+                                                       clearBtnNamePrefix, 
+                                                       counter, 
+                                                       new RoutedEventHandler(this.ClearItem_Click), 
+                                                       theSP.Name.Contains("template") ? true : false));
             }
         }
 
-        private void clearAllOptimizationStructs()
+        private void ClearAllItemsFromUIList(StackPanel theSP)
         {
-            //same code as in binary plug in
-            clearOptBtnCounter = 0;
-            opt_parameters.Children.Clear();
+            theSP.Children.Clear();
         }
         #endregion
 
@@ -290,7 +308,7 @@ namespace VMATTBICSIOptLoopMT
                 return; 
             }
 
-            if (opt_parameters.Children.Count == 0)
+            if (optimizationParamSP.Children.Count == 0)
             {
                 MessageBox.Show("No optimization parameters present to assign to the VMAT plan!");
                 return;
@@ -313,7 +331,7 @@ namespace VMATTBICSIOptLoopMT
             }
 
             OptimizationSetupUIHelper helper = new OptimizationSetupUIHelper();
-            List<Tuple<string, List<Tuple<string, string, double, double, int>>>> optParametersListList = helper.parseOptConstraints(opt_parameters);
+            List<Tuple<string, List<Tuple<string, string, double, double, int>>>> optParametersListList = helper.parseOptConstraints(optimizationParamSP);
             if (!optParametersListList.Any()) return;
             //determine if flash was used to prep the plan
             if (optParametersListList.Where(x => x.Item2.Where(y => y.Item1.ToLower().Contains("flash")).Any()).Any()) useFlash = true;
@@ -326,7 +344,7 @@ namespace VMATTBICSIOptLoopMT
             copyAndSavePlanItr = copyAndSave.IsChecked.Value;
 
             //construct the actual plan objective array
-            planObj = new List<Tuple<string, string, double, double, DoseValuePresentation>>(ConstructPlanObjectives());
+            planObj = new List<Tuple<string, string, double, double, DoseValuePresentation>>(ConstructPlanObjectives(planObj));
             planDoseInfo = new List<Tuple<string, string, double, string>>(ConstructPlanDoseInfo());
 
             //create a new instance of the structure dataContainer and assign the optimization loop parameters entered by the user to the various data members
@@ -366,21 +384,28 @@ namespace VMATTBICSIOptLoopMT
                 {
                     tmp.Add(Tuple.Create(GetPlanTargetId(), itr.Item2, itr.Item3, itr.Item4));
                 }
-                else tmp.Add(Tuple.Create(itr.Item1, itr.Item2, itr.Item3, itr.Item4));
+                else
+                {
+                    tmp.Add(Tuple.Create(itr.Item1, itr.Item2, itr.Item3, itr.Item4));
+                }
             }
             return tmp;
         }
+           
 
-        private List<Tuple<string, string, double, double, DoseValuePresentation>> ConstructPlanObjectives()
+        private List<Tuple<string, string, double, double, DoseValuePresentation>> ConstructPlanObjectives(List<Tuple<string, string, double, double, DoseValuePresentation>> obj)
         {
             List<Tuple<string, string, double, double, DoseValuePresentation>> tmp = new List<Tuple<string, string, double, double, DoseValuePresentation>> { };
-            foreach(Tuple<string,string,double,double,DoseValuePresentation> obj in (scleroTrial ? planObjSclero : planObjGeneral))
+            foreach(Tuple<string,string,double,double,DoseValuePresentation> itr in obj)
             {
-                if(obj.Item1 == "<targetId>")
+                if(itr.Item1 == "<targetId>")
                 {
-                    tmp.Add(Tuple.Create(GetPlanTargetId(), obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
+                    tmp.Add(Tuple.Create(GetPlanTargetId(), itr.Item2, itr.Item3, itr.Item4, itr.Item5)); 
                 }
-                else tmp.Add(Tuple.Create(obj.Item1, obj.Item2, obj.Item3, obj.Item4, obj.Item5));
+                else
+                {
+                    if (selectedSS.Structures.Any(x => x.Id.ToLower() == itr.Item1.ToLower() && !x.IsEmpty)) tmp.Add(Tuple.Create(itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5));
+                }
             }
             return tmp;
         }
@@ -426,18 +451,11 @@ namespace VMATTBICSIOptLoopMT
                 configTB.Text += Environment.NewLine;
                 configTB.Text += Environment.NewLine;
             }
-            
-            configTB.Text += "---------------------------------------------------------------------------" + Environment.NewLine;
-            configTB.Text += String.Format("Scleroderma trial plan objectives:") + Environment.NewLine;
-            configTB.Text += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -9} |", "structure Id", "constraint type", "dose", "volume (%)", "dose type") + Environment.NewLine;
-            foreach (Tuple<string, string, double, double, DoseValuePresentation> itr in planObjSclero) configTB.Text += String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-9} |" + Environment.NewLine, itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5);
-            configTB.Text += Environment.NewLine;
-            configTB.Text += Environment.NewLine;
 
             configTB.Text += "---------------------------------------------------------------------------" + Environment.NewLine;
-            configTB.Text += String.Format("General plan objectives:") + Environment.NewLine;
+            configTB.Text += String.Format("Plan objectives:") + Environment.NewLine;
             configTB.Text += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -9} |", "structure Id", "constraint type", "dose", "volume (%)", "dose type") + Environment.NewLine;
-            foreach (Tuple<string, string, double, double, DoseValuePresentation> itr in planObjGeneral) configTB.Text += String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-9} |" + Environment.NewLine, itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5);
+            foreach (Tuple<string, string, double, double, DoseValuePresentation> itr in planObj) configTB.Text += String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-9} |" + Environment.NewLine, itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5);
             configTB.Text += Environment.NewLine;
             
             configTB.Text += "---------------------------------------------------------------------------" + Environment.NewLine;
@@ -489,8 +507,7 @@ namespace VMATTBICSIOptLoopMT
                 using (StreamReader reader = new StreamReader(configFile))
                 {
                     string line;
-                    List<Tuple<string, string, double, double, DoseValuePresentation>> planObjSclero_temp = new List<Tuple<string, string, double, double, DoseValuePresentation>> { };
-                    List<Tuple<string, string, double, double, DoseValuePresentation>> planObjGeneral_temp = new List<Tuple<string, string, double, double, DoseValuePresentation>> { };
+                    List<Tuple<string, string, double, double, DoseValuePresentation>> planObj_temp = new List<Tuple<string, string, double, double, DoseValuePresentation>> { };
                     List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures_temp = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> { };
                     List<Tuple<string, string, double, string>> planDoseInfo_temp = new List<Tuple<string, string, double, string>> { };
                     while ((line = reader.ReadLine()) != null)
@@ -531,8 +548,7 @@ namespace VMATTBICSIOptLoopMT
                                             else if (parameter == "run additional optimization") { if (value != "") runAdditionalOptOption = bool.Parse(value); }
                                             else if (parameter == "copy and save each plan") { if (value != "") copyAndSaveOption = bool.Parse(value); }
                                         }
-                                        else if (line.Contains("add scleroderma plan objective")) planObjSclero_temp.Add(parsePlanObjective(line));
-                                        else if (line.Contains("add plan objective")) planObjGeneral_temp.Add(parsePlanObjective(line));
+                                        else if (line.Contains("add plan objective")) planObj_temp.Add(parsePlanObjective(line));
                                         else if (line.Contains("add TS structure")) requestedTSstructures_temp.Add(parseTSstructure(line));
                                         else if (line.Contains("add plan dose info")) planDoseInfo_temp.Add(ParseRequestedPlanDoseInfo(line));
                                     }
@@ -540,8 +556,10 @@ namespace VMATTBICSIOptLoopMT
                             }
                         }
                     }
-                    if (planObjSclero_temp.Any()) planObjSclero = planObjSclero_temp;
-                    if (planObjGeneral_temp.Any()) planObjGeneral = planObjGeneral_temp;
+                    if (planObj_temp.Any())
+                    {
+                        planObj = planObj_temp;
+                    }
                     if (requestedTSstructures_temp.Any()) requestedTSstructures = requestedTSstructures_temp;
                     if (planDoseInfo_temp.Any()) planDoseInfo = planDoseInfo_temp;
                 }

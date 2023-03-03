@@ -201,26 +201,26 @@
                 <TabControl Background="DarkGray" HorizontalAlignment="Left" TabStripPlacement="Left" Margin="0">
                     <TabItem Header="Plan Objectives" BorderThickness="0,1,1,0">
                         <StackPanel Name="OBJ" Width="600" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0">
-                            <Label Content="Plan Objectives" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"></Label>
+                            <Label Content="Plan Objectives" FontSize="16" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"></Label>
                             <Grid Height="25" Width ="520" HorizontalAlignment="Center" Margin="0,5,0,0">
-                                <Button Content="Add Objective" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top"/>
-                                <Button Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top"/>
+                                <Button x:Name="addPlanObjectiveBtn" Content="Add Objective" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="AddItem_Click"/>
+                                <Button x:Name="clearAllObjectivesBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="ClearAllItems_Click"/>
                             </Grid>
-                            <ScrollViewer x:Name="objParamScroller" Height="360" Width="595" Margin="0,10,5,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
-                                <StackPanel Name="obj_parameters" Margin="5"></StackPanel>
+                            <ScrollViewer x:Name="planObjectiveParamScroller" Height="364" Width="595" Margin="0,10,5,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                <StackPanel Name="planObjectiveParamSP" Margin="5"></StackPanel>
                             </ScrollViewer>
                         </StackPanel>
                     </TabItem>
                     <TabItem Header="Optimization Setup" BorderThickness="0,1,1,1">
                         <StackPanel Name="OPT" Width="600" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0">
-                            <Label Content="Optimization Parameters" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"></Label>
+                            <Label Content="Optimization Parameters" FontSize="16" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"></Label>
                             <Grid Height="25" Width ="520" HorizontalAlignment="Center" Margin="0,5,0,0">
-                                <Button Content="Add Constraint" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="AddOptimizationConstraint_Click"/>
+                                <Button x:Name="addOptimizationConstraintBtn" Content="Add Constraint" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="AddItem_Click"/>
                                 <Button Content="Get Constraints From Plan" Width="150" HorizontalAlignment="Center" VerticalAlignment="Top" Click="getOptFromPlan_Click"/>
-                                <Button Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="clear_optParams_Click"/>
+                                <Button x:Name="clearAllOptimizationParamsBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="ClearAllItems_Click"/>
                             </Grid>
-                            <ScrollViewer x:Name="optParamScroller" Height="330" Width="595" Margin="0,10,5,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
-                                <StackPanel Name="opt_parameters" Margin="5"></StackPanel>
+                            <ScrollViewer x:Name="optimizationParamScroller" Height="334" Width="595" Margin="0,10,5,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                <StackPanel Name="optimizationParamSP" Margin="5"></StackPanel>
                             </ScrollViewer>
                             <Button Content="Confirm Constraints and Begin Optimization" FontWeight="Bold" Width="260" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,10,0,0" Click="startOpt_Click"></Button>
                         </StackPanel>
@@ -228,7 +228,7 @@
                     <TabItem Header="Script Configuration" VerticalAlignment="Bottom" BorderThickness="0,1,1,1" Margin="0,0,0,-191">
                         <StackPanel Name="configuration" Width="600" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0">
                             <Label Content="Current Script Configuration" FontSize="16" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
-                            <ScrollViewer x:Name ="configScroller" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="590" Height="373" Margin="0,5,5,0" BorderBrush="Black">
+                            <ScrollViewer x:Name ="configScroller" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="590" Height="372" Margin="0,5,5,0" BorderBrush="Black">
                                 <TextBlock x:Name="configTB" FontSize="12" FontFamily="Courier New" Width="575" Background="White" TextWrapping="Wrap"></TextBlock>
                             </ScrollViewer>
                             <Button x:Name="loadNewConfigFile" Content="Load new configuration file" Width="160" HorizontalAlignment="Center" Margin="0,8,0,0" Click="loadNewConfigFile_Click"></Button>
