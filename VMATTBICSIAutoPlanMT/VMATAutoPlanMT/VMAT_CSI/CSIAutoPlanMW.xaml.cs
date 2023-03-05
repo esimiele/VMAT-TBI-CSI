@@ -1606,19 +1606,19 @@ namespace VMATAutoPlanMT.VMAT_CSI
         private void DisplayConfigurationParameters()
         {
             configTB.Text = "";
-            configTB.Text = String.Format(" {0}", DateTime.Now.ToString()) + System.Environment.NewLine;
-            if (configFile != "") configTB.Text += String.Format(" Configuration file: {0}", configFile) + System.Environment.NewLine + System.Environment.NewLine;
-            else configTB.Text += String.Format(" Configuration file: none") + System.Environment.NewLine + System.Environment.NewLine;
-            configTB.Text += String.Format(" Documentation path: {0}", documentationPath) + System.Environment.NewLine + System.Environment.NewLine;
-            configTB.Text += String.Format(" Image export path: {0}", imgExportPath) + System.Environment.NewLine + System.Environment.NewLine;
-            configTB.Text += String.Format(" Default parameters:") + System.Environment.NewLine;
-            configTB.Text += String.Format(" Image export format: {0}", imgExportFormat) + System.Environment.NewLine;
-            configTB.Text += String.Format(" Contour field ovelap: {0}", contourOverlap) + System.Environment.NewLine;
-            configTB.Text += String.Format(" Contour field overlap margin: {0} cm", contourFieldOverlapMargin) + System.Environment.NewLine;
-            configTB.Text += String.Format(" Available linacs:") + System.Environment.NewLine;
-            foreach (string l in linacs) configTB.Text += string.Format(" {0}", l) + System.Environment.NewLine;
-            configTB.Text += String.Format(" Available photon energies:") + System.Environment.NewLine;
-            foreach (string e in beamEnergies) configTB.Text += string.Format(" {0}", e) + System.Environment.NewLine;
+            configTB.Text = String.Format(" {0}", DateTime.Now.ToString()) + Environment.NewLine;
+            if (configFile != "") configTB.Text += String.Format(" Configuration file: {0}", configFile) + Environment.NewLine + Environment.NewLine;
+            else configTB.Text += String.Format(" Configuration file: none") + Environment.NewLine + Environment.NewLine;
+            configTB.Text += String.Format(" Documentation path: {0}", documentationPath) + Environment.NewLine + Environment.NewLine;
+            configTB.Text += String.Format(" Image export path: {0}", imgExportPath) + Environment.NewLine + Environment.NewLine;
+            configTB.Text += String.Format(" Default parameters:") + Environment.NewLine;
+            configTB.Text += String.Format(" Image export format: {0}", imgExportFormat) + Environment.NewLine;
+            configTB.Text += String.Format(" Contour field ovelap: {0}", contourOverlap) + Environment.NewLine;
+            configTB.Text += String.Format(" Contour field overlap margin: {0} cm", contourFieldOverlapMargin) + Environment.NewLine;
+            configTB.Text += String.Format(" Available linacs:") + Environment.NewLine;
+            foreach (string l in linacs) configTB.Text += string.Format(" {0}", l) + Environment.NewLine;
+            configTB.Text += String.Format(" Available photon energies:") + Environment.NewLine;
+            foreach (string e in beamEnergies) configTB.Text += string.Format(" {0}", e) + Environment.NewLine;
             configTB.Text += String.Format(" Beams per isocenter: ");
             for (int i = 0; i < beamsPerIso.Length; i++)
             {
@@ -1633,86 +1633,86 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 if (i != collRot.Length - 1) configTB.Text += String.Format(", ");
             }
             configTB.Text += System.Environment.NewLine;
-            configTB.Text += String.Format(" Field jaw position (cm) order: ") + System.Environment.NewLine;
-            configTB.Text += String.Format(" (x1,y1,x2,y2)") + System.Environment.NewLine;
-            foreach (VRect<double> j in jawPos) configTB.Text += String.Format(" ({0:0.0},{1:0.0},{2:0.0},{3:0.0})", j.X1 / 10, j.Y1 / 10, j.X2 / 10, j.Y2 / 10) + System.Environment.NewLine;
-            configTB.Text += String.Format(" Photon dose calculation model: {0}", calculationModel) + System.Environment.NewLine;
-            configTB.Text += String.Format(" Use GPU for dose calculation: {0}", useGPUdose) + System.Environment.NewLine;
-            configTB.Text += String.Format(" Photon optimization model: {0}", optimizationModel) + System.Environment.NewLine;
-            configTB.Text += String.Format(" Use GPU for optimization: {0}", useGPUoptimization) + System.Environment.NewLine;
-            configTB.Text += String.Format(" MR level restart at: {0}", MRrestartLevel) + System.Environment.NewLine + System.Environment.NewLine;
+            configTB.Text += String.Format(" Field jaw position (cm) order: ") + Environment.NewLine;
+            configTB.Text += String.Format(" (x1,y1,x2,y2)") + Environment.NewLine;
+            foreach (VRect<double> j in jawPos) configTB.Text += String.Format(" ({0:0.0},{1:0.0},{2:0.0},{3:0.0})", j.X1 / 10, j.Y1 / 10, j.X2 / 10, j.Y2 / 10) + Environment.NewLine;
+            configTB.Text += String.Format(" Photon dose calculation model: {0}", calculationModel) + Environment.NewLine;
+            configTB.Text += String.Format(" Use GPU for dose calculation: {0}", useGPUdose) + Environment.NewLine;
+            configTB.Text += String.Format(" Photon optimization model: {0}", optimizationModel) + Environment.NewLine;
+            configTB.Text += String.Format(" Use GPU for optimization: {0}", useGPUoptimization) + Environment.NewLine;
+            configTB.Text += String.Format(" MR level restart at: {0}", MRrestartLevel) + Environment.NewLine + Environment.NewLine;
 
-            configTB.Text += String.Format(" Requested general tuning structures:") + System.Environment.NewLine;
-            configTB.Text += String.Format("  {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + System.Environment.NewLine;
-            foreach (Tuple<string, string> ts in defaultTS_structures) configTB.Text += String.Format("  {0, -10} | {1, -15} |" + System.Environment.NewLine, ts.Item1, ts.Item2);
-            configTB.Text += System.Environment.NewLine;
+            configTB.Text += String.Format(" Requested general tuning structures:") + Environment.NewLine;
+            configTB.Text += String.Format("  {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + Environment.NewLine;
+            foreach (Tuple<string, string> ts in defaultTS_structures) configTB.Text += String.Format("  {0, -10} | {1, -15} |" + Environment.NewLine, ts.Item1, ts.Item2);
+            configTB.Text += Environment.NewLine;
 
             if (defaultTSStructureManipulations.Any())
             {
-                configTB.Text += String.Format(" Default sparing structures:") + System.Environment.NewLine;
-                configTB.Text += String.Format("  {0, -15} | {1, -26} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + System.Environment.NewLine;
-                foreach (Tuple<string, string, double> itr in defaultTSStructureManipulations) configTB.Text += String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |" + System.Environment.NewLine, itr.Item1, itr.Item2, itr.Item3);
-                configTB.Text += System.Environment.NewLine;
+                configTB.Text += String.Format(" Default sparing structures:") + Environment.NewLine;
+                configTB.Text += String.Format("  {0, -15} | {1, -26} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + Environment.NewLine;
+                foreach (Tuple<string, string, double> itr in defaultTSStructureManipulations) configTB.Text += String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |" + Environment.NewLine, itr.Item1, itr.Item2, itr.Item3);
+                configTB.Text += Environment.NewLine;
             }
-            else configTB.Text += String.Format(" No default sparing structures to list") + System.Environment.NewLine + System.Environment.NewLine;
+            else configTB.Text += String.Format(" No default sparing structures to list") + Environment.NewLine + Environment.NewLine;
 
             foreach (CSIAutoPlanTemplate itr in PlanTemplates.Where(x => x.templateName != "--select--"))
             {
-                configTB.Text += "-----------------------------------------------------------------------------" + System.Environment.NewLine;
+                configTB.Text += "-----------------------------------------------------------------------------" + Environment.NewLine;
 
-                configTB.Text += String.Format(" Template ID: {0}", itr.templateName) + System.Environment.NewLine;
-                configTB.Text += String.Format(" Initial Dose per fraction: {0} cGy", itr.initialRxDosePerFx) + System.Environment.NewLine;
-                configTB.Text += String.Format(" Initial number of fractions: {0}", itr.initialRxNumFx) + System.Environment.NewLine;
-                configTB.Text += String.Format(" Boost Dose per fraction: {0} cGy", itr.boostRxDosePerFx) + System.Environment.NewLine;
-                configTB.Text += String.Format(" Boost number of fractions: {0}", itr.boostRxNumFx) + System.Environment.NewLine;
+                configTB.Text += String.Format(" Template ID: {0}", itr.templateName) + Environment.NewLine;
+                configTB.Text += String.Format(" Initial Dose per fraction: {0} cGy", itr.initialRxDosePerFx) + Environment.NewLine;
+                configTB.Text += String.Format(" Initial number of fractions: {0}", itr.initialRxNumFx) + Environment.NewLine;
+                configTB.Text += String.Format(" Boost Dose per fraction: {0} cGy", itr.boostRxDosePerFx) + Environment.NewLine;
+                configTB.Text += String.Format(" Boost number of fractions: {0}", itr.boostRxNumFx) + Environment.NewLine;
 
                 if (itr.targets.Any())
                 {
-                    configTB.Text += String.Format(" {0} targets:", itr.templateName) + System.Environment.NewLine;
-                    configTB.Text += String.Format("  {0, -15} | {1, -8} | {2, -14} |", "structure Id", "Rx (cGy)", "Plan Id") + System.Environment.NewLine;
-                    foreach (Tuple<string, double, string> tgt in itr.targets) configTB.Text += String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |" + System.Environment.NewLine, tgt.Item1, tgt.Item2, tgt.Item3);
-                    configTB.Text += System.Environment.NewLine;
+                    configTB.Text += String.Format(" {0} targets:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format("  {0, -15} | {1, -8} | {2, -14} |", "structure Id", "Rx (cGy)", "Plan Id") + Environment.NewLine;
+                    foreach (Tuple<string, double, string> tgt in itr.targets) configTB.Text += String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |" + Environment.NewLine, tgt.Item1, tgt.Item2, tgt.Item3);
+                    configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No targets set for template: {0}", itr.templateName) + System.Environment.NewLine + System.Environment.NewLine;
+                else configTB.Text += String.Format(" No targets set for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
 
                 if (itr.TS_structures.Any())
                 {
-                    configTB.Text += String.Format(" {0} additional tuning structures:", itr.templateName) + System.Environment.NewLine;
-                    configTB.Text += String.Format("  {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + System.Environment.NewLine;
-                    foreach (Tuple<string, string> ts in itr.TS_structures) configTB.Text += String.Format("  {0, -10} | {1, -15} |" + System.Environment.NewLine, ts.Item1, ts.Item2);
-                    configTB.Text += System.Environment.NewLine;
+                    configTB.Text += String.Format(" {0} additional tuning structures:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format("  {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + Environment.NewLine;
+                    foreach (Tuple<string, string> ts in itr.TS_structures) configTB.Text += String.Format("  {0, -10} | {1, -15} |" + Environment.NewLine, ts.Item1, ts.Item2);
+                    configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No additional tuning structures for template: {0}", itr.templateName) + System.Environment.NewLine + System.Environment.NewLine;
+                else configTB.Text += String.Format(" No additional tuning structures for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
 
                 if (itr.spareStructures.Any())
                 {
-                    configTB.Text += String.Format(" {0} additional sparing structures:", itr.templateName) + System.Environment.NewLine;
-                    configTB.Text += String.Format("  {0, -15} | {1, -26} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + System.Environment.NewLine;
-                    foreach (Tuple<string, string, double> spare in itr.spareStructures) configTB.Text += String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |" + System.Environment.NewLine, spare.Item1, spare.Item2, spare.Item3);
-                    configTB.Text += System.Environment.NewLine;
+                    configTB.Text += String.Format(" {0} additional sparing structures:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format("  {0, -15} | {1, -26} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + Environment.NewLine;
+                    foreach (Tuple<string, string, double> spare in itr.spareStructures) configTB.Text += String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |" + Environment.NewLine, spare.Item1, spare.Item2, spare.Item3);
+                    configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No additional sparing structures for template: {0}", itr.templateName) + System.Environment.NewLine + System.Environment.NewLine;
+                else configTB.Text += String.Format(" No additional sparing structures for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
 
                 if (itr.init_constraints.Any())
                 {
-                    configTB.Text += String.Format(" {0} template initial plan optimization parameters:", itr.templateName) + System.Environment.NewLine;
-                    configTB.Text += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + System.Environment.NewLine;
-                    foreach (Tuple<string, string, double, double, int> opt in itr.init_constraints) configTB.Text += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
-                    configTB.Text += System.Environment.NewLine;
+                    configTB.Text += String.Format(" {0} template initial plan optimization parameters:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + Environment.NewLine;
+                    foreach (Tuple<string, string, double, double, int> opt in itr.init_constraints) configTB.Text += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
+                    configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No iniital plan optimization constraints for template: {0}", itr.templateName) + System.Environment.NewLine + System.Environment.NewLine;
+                else configTB.Text += String.Format(" No iniital plan optimization constraints for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
 
                 if (itr.bst_constraints.Any())
                 {
-                    configTB.Text += String.Format(" {0} template boost plan optimization parameters:", itr.templateName) + System.Environment.NewLine;
-                    configTB.Text += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + System.Environment.NewLine;
-                    foreach (Tuple<string, string, double, double, int> opt in itr.bst_constraints) configTB.Text += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
+                    configTB.Text += String.Format(" {0} template boost plan optimization parameters:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + Environment.NewLine;
+                    foreach (Tuple<string, string, double, double, int> opt in itr.bst_constraints) configTB.Text += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
                 }
-                else configTB.Text += String.Format(" No boost plan optimization constraints for template: {0}", itr.templateName) + System.Environment.NewLine + System.Environment.NewLine;
+                else configTB.Text += String.Format(" No boost plan optimization constraints for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
 
-                configTB.Text += System.Environment.NewLine;
+                configTB.Text += Environment.NewLine;
             }
-            configTB.Text += "-----------------------------------------------------------------------------" + System.Environment.NewLine;
+            configTB.Text += "-----------------------------------------------------------------------------" + Environment.NewLine;
             configScroller.ScrollToTop();
         }
 
@@ -1727,7 +1727,11 @@ namespace VMATAutoPlanMT.VMAT_CSI
             openFileDialog.InitialDirectory = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\configuration\\";
             openFileDialog.Filter = "ini files (*.ini)|*.ini|All files (*.*)|*.*";
 
-            if (openFileDialog.ShowDialog().Value) { if (!loadConfigurationSettings(openFileDialog.FileName)) DisplayConfigurationParameters(); else MessageBox.Show("Error! Selected file is NOT valid!"); }
+            if (openFileDialog.ShowDialog().Value) 
+            { 
+                if (!loadConfigurationSettings(openFileDialog.FileName)) DisplayConfigurationParameters(); 
+                else MessageBox.Show("Error! Selected file is NOT valid!"); 
+            }
         }
 
         //parse the relevant data in the configuration file
@@ -1737,6 +1741,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //encapsulate everything in a try-catch statment so I can be a bit lazier about data checking of the configuration settings (i.e., if a parameter or value is bad the script won't crash)
             try
             {
+                ConfigurationHelper helper = new ConfigurationHelper();
                 using (StreamReader reader = new StreamReader(configFile))
                 {
                     //setup temporary vectors to hold the parsed data
@@ -1784,13 +1789,13 @@ namespace VMATAutoPlanMT.VMAT_CSI
                                         else if (parameter == "beams per iso")
                                         {
                                             //parse the default requested number of beams per isocenter
-                                            line = cropLine(line, "{");
+                                            line = helper.cropLine(line, "{");
                                             List<int> b = new List<int> { };
                                             //second character should not be the end brace (indicates the last element in the array)
                                             while (line.Substring(1, 1) != "}")
                                             {
                                                 b.Add(int.Parse(line.Substring(0, line.IndexOf(","))));
-                                                line = cropLine(line, ",");
+                                                line = helper.cropLine(line, ",");
                                             }
                                             b.Add(int.Parse(line.Substring(0, line.IndexOf("}"))));
                                             //only override the requested number of beams in the beamsPerIso array  
@@ -1799,13 +1804,13 @@ namespace VMATAutoPlanMT.VMAT_CSI
                                         else if (parameter == "collimator rotations")
                                         {
                                             //parse the default requested number of beams per isocenter
-                                            line = cropLine(line, "{");
+                                            line = helper.cropLine(line, "{");
                                             List<double> c = new List<double> { };
                                             //second character should not be the end brace (indicates the last element in the array)
                                             while (line.Contains(","))
                                             {
                                                 c.Add(double.Parse(line.Substring(0, line.IndexOf(","))));
-                                                line = cropLine(line, ",");
+                                                line = helper.cropLine(line, ",");
                                             }
                                             c.Add(double.Parse(line.Substring(0, line.IndexOf("}"))));
                                             for (int i = 0; i < c.Count(); i++) { if (i < 5) collRot[i] = c.ElementAt(i); }
@@ -1820,30 +1825,30 @@ namespace VMATAutoPlanMT.VMAT_CSI
                                         else if (parameter == "contour field overlap") { if (value != "") contourOverlap = bool.Parse(value); }
                                         else if (parameter == "contour field overlap margin") { if (value != "") contourFieldOverlapMargin = value; }
                                     }
-                                    else if (line.Contains("add default sparing structure")) defaultTSManipulations_temp.Add(parseSparingStructure(line));
-                                    else if (line.Contains("add default TS")) defaultTSstructures_temp.Add(parseTS(line));
+                                    else if (line.Contains("add default sparing structure")) defaultTSManipulations_temp.Add(helper.parseSparingStructure(line));
+                                    else if (line.Contains("add default TS")) defaultTSstructures_temp.Add(helper.parseTS(line));
                                     else if (line.Contains("add linac"))
                                     {
                                         //parse the linacs that should be added. One entry per line
-                                        line = cropLine(line, "{");
+                                        line = helper.cropLine(line, "{");
                                         linac_temp.Add(line.Substring(0, line.IndexOf("}")));
                                     }
                                     else if (line.Contains("add beam energy"))
                                     {
                                         //parse the photon energies that should be added. One entry per line
-                                        line = cropLine(line, "{");
+                                        line = helper.cropLine(line, "{");
                                         energy_temp.Add(line.Substring(0, line.IndexOf("}")));
                                     }
                                     else if (line.Contains("add jaw position"))
                                     {
                                         //parse the default requested number of beams per isocenter
-                                        line = cropLine(line, "{");
+                                        line = helper.cropLine(line, "{");
                                         List<double> tmp = new List<double> { };
                                         //second character should not be the end brace (indicates the last element in the array)
                                         while (line.Contains(","))
                                         {
                                             tmp.Add(double.Parse(line.Substring(0, line.IndexOf(","))));
-                                            line = cropLine(line, ",");
+                                            line = helper.cropLine(line, ",");
                                         }
                                         tmp.Add(double.Parse(line.Substring(0, line.IndexOf("}"))));
                                         if (tmp.Count != 4) MessageBox.Show("Error! Jaw positions not defined correctly!");
@@ -1861,139 +1866,15 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     if (defaultTSManipulations_temp.Any()) defaultTSStructureManipulations = new List<Tuple<string, string, double>>(defaultTSManipulations_temp);
                     if (defaultTSstructures_temp.Any()) defaultTS_structures = new List<Tuple<string, string>>(defaultTSstructures_temp);
                 }
-                foreach (string itr in Directory.GetFiles(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\", "*.ini").OrderBy(x => x)) readTemplatePlan(itr);
+                int count = 1;
+                foreach (string itr in Directory.GetFiles(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\", "*.ini").OrderBy(x => x)) PlanTemplates.Add(helper.readTemplatePlan(itr, count++));
                 return false;
             }
             //let the user know if the data parsing failed
             catch (Exception e) { MessageBox.Show(String.Format("Error could not load configuration file because: {0}\n\nAssuming default parameters", e.Message)); return true; }
         }
 
-        private void readTemplatePlan(string file)
-        {
-            using (StreamReader reader = new StreamReader(file))
-            {
-                int templateCount = 1;
-                string line;
-                while ((line = reader.ReadLine()) != null)
-                {
-                    if (!string.IsNullOrEmpty(line) && line.Substring(0, 1) != "%")
-                    {
-                        if (line.Equals(":begin template case configuration:"))
-                        {
-                            CSIAutoPlanTemplate tempTemplate = new CSIAutoPlanTemplate(templateCount);
-                            List<Tuple<string, string, double>> spareStruct_temp = new List<Tuple<string, string, double>> { };
-                            List<Tuple<string, string>> TSstructures_temp = new List<Tuple<string, string>> { };
-                            List<Tuple<string, string, double, double, int>> initOptConst_temp = new List<Tuple<string, string, double, double, int>> { };
-                            List<Tuple<string, string, double, double, int>> bstOptConst_temp = new List<Tuple<string, string, double, double, int>> { };
-                            List<Tuple<string, double, string>> targets_temp = new List<Tuple<string, double, string>> { };
-                            //parse the data specific to the myeloablative case setup
-                            while (!(line = reader.ReadLine()).Equals(":end template case configuration:"))
-                            {
-                                if (line.Substring(0, 1) != "%")
-                                {
-                                    if (line.Contains("="))
-                                    {
-                                        string parameter = line.Substring(0, line.IndexOf("="));
-                                        string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
-                                        if (parameter == "template name") tempTemplate.templateName = value;
-                                        else if (parameter == "initial dose per fraction") { if (double.TryParse(value, out double initDPF)) tempTemplate.initialRxDosePerFx = initDPF; }
-                                        else if (parameter == "initial num fx") { if (int.TryParse(value, out int initFx)) tempTemplate.initialRxNumFx = initFx; }
-                                        else if (parameter == "boost dose per fraction") { if (double.TryParse(value, out double bstDPF)) tempTemplate.boostRxDosePerFx = bstDPF; }
-                                        else if (parameter == "boost num fx") { if (int.TryParse(value, out int bstFx)) tempTemplate.boostRxNumFx = bstFx; }
-                                    }
-                                    else if (line.Contains("add sparing structure")) spareStruct_temp.Add(parseSparingStructure(line));
-                                    else if (line.Contains("add init opt constraint")) initOptConst_temp.Add(parseOptimizationConstraint(line));
-                                    else if (line.Contains("add boost opt constraint")) bstOptConst_temp.Add(parseOptimizationConstraint(line));
-                                    else if (line.Contains("add TS")) TSstructures_temp.Add(parseTS(line));
-                                    else if (line.Contains("add target")) targets_temp.Add(parseTargets(line));
-                                }
-                            }
-
-                            tempTemplate.spareStructures = new List<Tuple<string, string, double>>(spareStruct_temp);
-                            tempTemplate.TS_structures = new List<Tuple<string, string>>(TSstructures_temp);
-                            tempTemplate.init_constraints = new List<Tuple<string, string, double, double, int>>(initOptConst_temp);
-                            tempTemplate.bst_constraints = new List<Tuple<string, string, double, double, int>>(bstOptConst_temp);
-                            tempTemplate.targets = new List<Tuple<string, double, string>>(targets_temp);
-                            PlanTemplates.Add(tempTemplate);
-                            templateCount++;
-                        }
-                    }
-                }
-                reader.Close();
-            }
-        }
-
-        //very useful helper method to remove everything in the input string 'line' up to a given character 'cropChar'
-        private string cropLine(string line, string cropChar) { return line.Substring(line.IndexOf(cropChar) + 1, line.Length - line.IndexOf(cropChar) - 1); }
-
-        private Tuple<string, string> parseTS(string line)
-        {
-            //known array format --> can take shortcuts in parsing the data
-            //structure id, sparing type, added margin in cm (ignored if sparing type is Dmax ~ Rx Dose)
-            string dicomType = "";
-            string TSstructure = "";
-            line = cropLine(line, "{");
-            dicomType = line.Substring(0, line.IndexOf(","));
-            line = cropLine(line, ",");
-            TSstructure = line.Substring(0, line.IndexOf("}"));
-            return Tuple.Create(dicomType, TSstructure);
-        }
-
-        private Tuple<string, double, string> parseTargets(string line)
-        {
-            //known array format --> can take shortcuts in parsing the data
-            //structure id, sparing type, added margin in cm (ignored if sparing type is Dmax ~ Rx Dose)
-            string structure = "";
-            string planId = "";
-            double val = 0.0;
-            line = cropLine(line, "{");
-            structure = line.Substring(0, line.IndexOf(","));
-            line = cropLine(line, ",");
-            val = double.Parse(line.Substring(0, line.IndexOf(",")));
-            line = cropLine(line, ",");
-            planId = line.Substring(0, line.IndexOf("}"));
-            return Tuple.Create(structure, val, planId);
-        }
-
-        private Tuple<string, string, double> parseSparingStructure(string line)
-        {
-            //known array format --> can take shortcuts in parsing the data
-            //structure id, sparing type, added margin in cm (ignored if sparing type is Dmax ~ Rx Dose)
-            string structure = "";
-            string spareType = "";
-            double val = 0.0;
-            line = cropLine(line, "{");
-            structure = line.Substring(0, line.IndexOf(","));
-            line = cropLine(line, ",");
-            spareType = line.Substring(0, line.IndexOf(","));
-            line = cropLine(line, ",");
-            val = double.Parse(line.Substring(0, line.IndexOf("}")));
-            return Tuple.Create(structure, spareType, val);
-        }
-
-        private Tuple<string, string, double, double, int> parseOptimizationConstraint(string line)
-        {
-            //known array format --> can take shortcuts in parsing the data
-            //structure id, constraint type, dose (cGy), volume (%), priority
-            string structure = "";
-            string constraintType = "";
-            double doseVal = 0.0;
-            double volumeVal = 0.0;
-            int priorityVal = 0;
-            line = cropLine(line, "{");
-            structure = line.Substring(0, line.IndexOf(","));
-            line = cropLine(line, ",");
-            constraintType = line.Substring(0, line.IndexOf(","));
-            line = cropLine(line, ",");
-            doseVal = double.Parse(line.Substring(0, line.IndexOf(",")));
-            line = cropLine(line, ",");
-            volumeVal = double.Parse(line.Substring(0, line.IndexOf(",")));
-            line = cropLine(line, ",");
-            priorityVal = int.Parse(line.Substring(0, line.IndexOf("}")));
-            return Tuple.Create(structure, constraintType, doseVal, volumeVal, priorityVal);
-        }
         #endregion
-
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             //be sure to close the patient before closing the application. Not doing so will result in unclosed timestamps in eclipse

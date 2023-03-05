@@ -150,7 +150,6 @@ namespace VMATTBICSIAutoplanningHelpers.helpers
         public string generateTemplatePreviewText(CSIAutoPlanTemplate prospectiveTemplate)
         {
             string output = "";
-            output = "";
             output += String.Format(" {0}", DateTime.Now.ToString()) + System.Environment.NewLine;
 
             output += String.Format(" Template ID: {0}", prospectiveTemplate.templateName) + System.Environment.NewLine;

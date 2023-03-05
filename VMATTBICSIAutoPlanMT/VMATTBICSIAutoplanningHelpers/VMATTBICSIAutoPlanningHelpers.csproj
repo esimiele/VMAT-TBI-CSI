@@ -110,6 +110,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="helpers\BeamPlacementUIHelper.cs" />
+    <Compile Include="helpers\ConfigurationHelper.cs" />
     <Compile Include="helpers\CTImageExport.cs" />
     <Compile Include="helpers\ExportCTUIHelper.cs" />
     <Compile Include="helpers\GeneralUIhelper.cs" />
@@ -117,7 +118,7 @@
     <Compile Include="helpers\OptimizationSetupUIHelper.cs" />
     <Compile Include="helpers\StructureTuningUIHelper.cs" />
     <Compile Include="helpers\TargetsUIHelper.cs" />
-    <Compile Include="helpers\templateBuilder.cs" />
+    <Compile Include="helpers\TemplateBuilder.cs" />
     <Compile Include="MTWorker\ESAPIworker.cs" />
     <Compile Include="Prompts\confirmUI.cs">
       <SubType>Form</SubType>
@@ -163,6 +164,9 @@
   <ItemGroup>
     <None Include="app.config" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="helpers\PlanObjectiveSetupUIHelper.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
