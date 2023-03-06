@@ -27,6 +27,8 @@ namespace VMATAutoPlanMT.VMAT_CSI
         /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         //point this to the directory holding the documentation files
         string documentationPath = @"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\documentation\";
+        //log file path
+        string logPath = @"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\Research\VMAT-TBI-CSI\log_files\";
         //location where CT images should be exported
         string imgExportPath = @"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\exportedImages\";
         //image export format
@@ -116,7 +118,6 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 ss = args.ElementAt(1);
                 configurationFile = args.ElementAt(2);
             }
-            log = new Logger(@"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\Research\VMAT-TBI-CSI\log_files\", "VMAT CSI", mrn);
             if (app != null)
             {
                 if (string.IsNullOrEmpty(mrn) || string.IsNullOrWhiteSpace(mrn))
@@ -126,11 +127,18 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     e.ShowDialog();
                     if (e.confirm)
                     {
-                        try { if (app != null) pi = app.OpenPatientById(e.value.Text); }
+                        try 
+                        { 
+                            if (app != null) pi = app.OpenPatientById(e.value.Text);
+                            mrn = e.value.Text;
+                        }
                         catch (Exception except) { MessageBox.Show(string.Format("Error! Could not open patient because: {0}! Please try again!", except.Message)); pi = null; }
                     }
-                    else { this.Close(); return; }
-                    log.mrn = e.value.Text;
+                    else 
+                    { 
+                        this.Close(); 
+                        return; 
+                    }
                 }
                 else pi = app.OpenPatientById(mrn);
 
@@ -158,6 +166,8 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //load script configuration and display the settings
             if (configurationFile != "") loadConfigurationSettings(configurationFile);
             DisplayConfigurationParameters();
+            log = new Logger(logPath, "VMAT CSI", mrn);
+            log.mrn = mrn;
             targetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
         }
 
@@ -1625,14 +1635,14 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 configTB.Text += String.Format(" {0}", beamsPerIso.ElementAt(i));
                 if (i != beamsPerIso.Length - 1) configTB.Text += String.Format(", ");
             }
-            configTB.Text += System.Environment.NewLine;
+            configTB.Text += Environment.NewLine;
             configTB.Text += String.Format(" Collimator rotation (deg) order: ");
             for (int i = 0; i < collRot.Length; i++)
             {
                 configTB.Text += String.Format(" {0:0.0}", collRot.ElementAt(i));
                 if (i != collRot.Length - 1) configTB.Text += String.Format(", ");
             }
-            configTB.Text += System.Environment.NewLine;
+            configTB.Text += Environment.NewLine;
             configTB.Text += String.Format(" Field jaw position (cm) order: ") + Environment.NewLine;
             configTB.Text += String.Format(" (x1,y1,x2,y2)") + Environment.NewLine;
             foreach (VRect<double> j in jawPos) configTB.Text += String.Format(" ({0:0.0},{1:0.0},{2:0.0},{3:0.0})", j.X1 / 10, j.Y1 / 10, j.X2 / 10, j.Y2 / 10) + Environment.NewLine;
@@ -1775,6 +1785,14 @@ namespace VMATAutoPlanMT.VMAT_CSI
                                             {
                                                 documentationPath = value;
                                                 if (documentationPath.LastIndexOf("\\") != documentationPath.Length - 1) documentationPath += "\\";
+                                            }
+                                        }
+                                        else if (parameter == "log file path")
+                                        {
+                                            if (Directory.Exists(value))
+                                            {
+                                                logPath = value;
+                                                if (logPath.LastIndexOf("\\") != logPath.Length - 1) logPath += "\\";
                                             }
                                         }
                                         else if (parameter == "img export location")

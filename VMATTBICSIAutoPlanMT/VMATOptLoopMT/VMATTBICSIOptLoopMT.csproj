@@ -88,6 +88,9 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Prompts\SelectPatient.xaml.cs">
+      <DependentUpon>SelectPatient.xaml</DependentUpon>
+    </Compile>
     <Compile Include="VMAT-CSI\VMATCSIOptimization.cs" />
     <Compile Include="VMAT-TBI\VMATTBIOptimization.cs" />
     <Page Include="optLoopMW.xaml">
@@ -106,6 +109,10 @@
       <SubType>Code</SubType>
     </Compile>
     <Page Include="MTProgressInfo\progressWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Prompts\SelectPatient.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

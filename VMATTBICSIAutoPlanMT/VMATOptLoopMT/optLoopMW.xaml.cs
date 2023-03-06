@@ -12,6 +12,7 @@ using VMATTBICSIOptLoopMT.baseClasses;
 using VMATTBICSIAutoplanningHelpers.helpers;
 using VMATTBICSIAutoplanningHelpers.TemplateClasses;
 using VMATTBICSIOptLoopMT.VMAT_CSI;
+using VMATTBICSIOptLoopMT.Prompts;
 using System.Collections.ObjectModel;
 using System.Reflection;
 
@@ -62,6 +63,9 @@ namespace VMATTBICSIOptLoopMT
         bool useFlash = false;
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
         public ObservableCollection<CSIAutoPlanTemplate> PlanTemplates { get; set; }
+        //to be read from the plan prep log files
+        string planType = "";
+        List<string> planUIDs = new List<string> { };
 
         public OptLoopMW(string[] args)
         {
@@ -83,12 +87,8 @@ namespace VMATTBICSIOptLoopMT
                 if (!loadConfigurationSettings(configurationFile)) DisplayConfigurationParameters(); 
             }
             else MessageBox.Show("No configuration file found! Loading default settings!");
-            if (args.Length > 0) 
-            { 
-                MRN.Text = patmrn;
-                OpenPatient(patmrn);
-                OpenPatient_Click(new object(), new RoutedEventArgs()); 
-            }
+            if (args.Length > 0) OpenPatient(patmrn);
+            else LoadPatient();
         }
 
         #region help and info buttons
@@ -109,17 +109,37 @@ namespace VMATTBICSIOptLoopMT
         #endregion
 
         #region button events
-        private void OpenPatient_Click(object sender, RoutedEventArgs e)
+        private void SelectPatient_Click(object sender, RoutedEventArgs e)
+        {
+            LoadPatient();
+        }
+
+        private void LoadPatient()
         {
             //open the patient with the user-entered MRN number
-            clearEverything();
-            OpenPatient(MRN.Text);
+            SelectPatient sp = new SelectPatient(logFilePath);
+            sp.ShowDialog();
+            if (sp.selectionMade)
+            {
+                (string mrn, string fullLogName) = sp.GetPatientMRN();
+                if (!string.IsNullOrEmpty(mrn))
+                {
+                    if (!string.IsNullOrEmpty(fullLogName)) LoadLogFile(fullLogName);
+                    OpenPatient(mrn);
+                }
+                else MessageBox.Show(String.Format("Entered MRN: {0} is invalid! Please re-enter and try again", mrn));
+                selectPatientBtn.Background = System.Windows.Media.Brushes.DarkGray;
+            }
+            else if (pi == null) selectPatientBtn.Background = System.Windows.Media.Brushes.PaleVioletRed;
         }
+
+        
 
         private void OpenPatient(string pat_mrn)
         {
             try
             {
+                clearEverything();
                 app.ClosePatient();
                 pi = app.OpenPatientById(pat_mrn);
                 //grab instances of the course and VMAT tbi plans that were created using the binary plug in script. This is explicitly here to let the user know if there is a problem with the course OR plan
@@ -218,6 +238,11 @@ namespace VMATTBICSIOptLoopMT
             if (pi == null) return;
             CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
             if (selectedTemplate == null) return;
+            UpdateSelectedTemplate(selectedTemplate);
+        }
+
+        private void UpdateSelectedTemplate(CSIAutoPlanTemplate selectedTemplate)
+        {
             if (selectedTemplate.templateName != "--select--")
             {
                 ClearAllItemsFromUIList(planObjectiveParamSP);
@@ -683,7 +708,7 @@ namespace VMATTBICSIOptLoopMT
                             }
                         }
                     }
-                    
+                    reader.Close();
                 }
                 int count = 1;
                 foreach (string itr in Directory.GetFiles(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\", "*.ini").OrderBy(x => x))
@@ -693,6 +718,53 @@ namespace VMATTBICSIOptLoopMT
                 return false;
             }
             catch (Exception e) { MessageBox.Show(String.Format("Error could not load configuration file because: {0}\n\nAssuming default parameters", e.Message)); return true; }
+        }
+
+        private void LoadLogFile(string fullLogName)
+        {
+            try
+            {
+                CSIAutoPlanTemplate template = null;
+                using (StreamReader reader = new StreamReader(fullLogName))
+                {
+                    string line;
+                    while (!(line = reader.ReadLine()).Equals("Optimization constraints:"))
+                    {
+                        if (!string.IsNullOrEmpty(line))
+                        {
+                            //useful info on this line
+                            if (line.Contains("="))
+                            {
+                                string parameter = line.Substring(0, line.IndexOf("="));
+                                string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
+                                if (parameter == "plan type")
+                                {
+                                    planType = value;
+                                }
+                                else if (parameter == "template")
+                                {
+                                    //fix me!
+                                    template = PlanTemplates.FirstOrDefault(x => x.templateName == value);
+                                    //if(template != null)
+                                    //{
+                                    //    templateList.SelectedItem = template;
+                                    //}
+                                }
+                            }
+                            else if (line.Contains("plan UIDs:"))
+                            {
+                                line = reader.ReadLine().Trim();
+                                while (!string.IsNullOrEmpty(line))
+                                {
+                                    planUIDs.Add(line);
+                                    line = reader.ReadLine().Trim();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e) { MessageBox.Show(String.Format("Error could not load log file because: {0}\n\n", e.Message));}
         }
         #endregion
 
