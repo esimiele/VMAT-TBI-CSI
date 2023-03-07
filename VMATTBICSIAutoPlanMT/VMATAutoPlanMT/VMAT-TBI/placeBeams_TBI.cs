@@ -6,11 +6,12 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATAutoPlanMT.baseClasses;
 using VMATAutoPlanMT.Prompts;
+using VMATTBICSIAutoplanningHelpers.Prompts;
 using System.Runtime.ExceptionServices;
 
 namespace VMATAutoPlanMT
 {
-    class placeBeams_TBI : placeBeamsBase
+    public class placeBeams_TBI : placeBeamsBase
     {
         int numIsos;
         int[] numBeams;
@@ -79,11 +80,11 @@ namespace VMATAutoPlanMT
         [HandleProcessCorruptedStateExceptions]
         public override bool Run()
         {
-            checkExistingPlans();
+            CheckExistingPlans();
             return false;
         }
 
-        public override bool checkExistingPlans()
+        protected override bool CheckExistingPlans()
         {
             string planID = prescriptions.First().Item1;
             //6-10-2020 EAS, research system only!
@@ -102,7 +103,7 @@ namespace VMATAutoPlanMT
             return false;
         }
 
-        public override List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> getIsocenterPositions()
+        protected override List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> GetIsocenterPositions()
         {
             plan = plans.First();
             //List<Tuple<ExternalPlanSetup, List<VVector>>> allIsocenters = new List<Tuple<ExternalPlanSetup, List<VVector>>> { };
@@ -236,7 +237,7 @@ namespace VMATAutoPlanMT
             return allIsocenters;
         }
 
-        public override bool setBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
+        protected override bool SetBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
         {
             //DRR parameters (dummy parameters to generate DRRs for each field)
             DRRCalculationParameters DRR = new DRRCalculationParameters();

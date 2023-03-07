@@ -1,11 +1,19 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.4.33122.133
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30621.155
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VMATTBICSIAutoPlanMT", "VMATAutoPlanMT\VMATTBICSIAutoPlanMT.csproj", "{D708CC35-888E-4FE5-B9C6-B858B9BA0015}"
+	ProjectSection(ProjectDependencies) = postProject
+		{B3FBF7B5-9E18-43BA-B40F-144682A3956E} = {B3FBF7B5-9E18-43BA-B40F-144682A3956E}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VMATTBICSIOptLoopMT", "VMATOptLoopMT\VMATTBICSIOptLoopMT.csproj", "{0D8218FD-0F0D-4370-8402-4A8730032EFF}"
+	ProjectSection(ProjectDependencies) = postProject
+		{B3FBF7B5-9E18-43BA-B40F-144682A3956E} = {B3FBF7B5-9E18-43BA-B40F-144682A3956E}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VMATTBICSIAutoPlanningHelpers", "VMATTBICSIAutoplanningHelpers\VMATTBICSIAutoPlanningHelpers.csproj", "{B3FBF7B5-9E18-43BA-B40F-144682A3956E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,6 +39,14 @@ Global
 		{0D8218FD-0F0D-4370-8402-4A8730032EFF}.Release|Any CPU.Build.0 = Release|Any CPU
 		{0D8218FD-0F0D-4370-8402-4A8730032EFF}.Release|x64.ActiveCfg = Release|x64
 		{0D8218FD-0F0D-4370-8402-4A8730032EFF}.Release|x64.Build.0 = Release|x64
+		{B3FBF7B5-9E18-43BA-B40F-144682A3956E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3FBF7B5-9E18-43BA-B40F-144682A3956E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3FBF7B5-9E18-43BA-B40F-144682A3956E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B3FBF7B5-9E18-43BA-B40F-144682A3956E}.Debug|x64.Build.0 = Debug|Any CPU
+		{B3FBF7B5-9E18-43BA-B40F-144682A3956E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3FBF7B5-9E18-43BA-B40F-144682A3956E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B3FBF7B5-9E18-43BA-B40F-144682A3956E}.Release|x64.ActiveCfg = Release|Any CPU
+		{B3FBF7B5-9E18-43BA-B40F-144682A3956E}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

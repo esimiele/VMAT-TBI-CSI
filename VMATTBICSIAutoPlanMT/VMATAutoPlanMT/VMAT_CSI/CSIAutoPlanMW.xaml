@@ -169,12 +169,6 @@
                 </Grid>
 
                 <Grid Width="250" Height="140" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,60,440,0">
-                    <!--<Label Content="Reduced dose (Rx = 1200 cGy):" HorizontalAlignment="Right" Margin="0,5,50,0" VerticalAlignment="Top"/>
-                    <Label Content="Initial Rx = 2340 cGy, Boost = 3060 cGy:" HorizontalAlignment="Right" Margin="0,35,50,0" VerticalAlignment="Top"/>
-                    <Label Content="Initial Rx = 3600 cGy, Boost = 1800 cGy:" HorizontalAlignment="Right" Margin="0,65,50,0" VerticalAlignment="Top"/>
-                    <CheckBox x:Name="reduceDose_chkbox" HorizontalAlignment="Right" Margin="0,11,28,0" VerticalAlignment="Top" Checked="reduceDose_chkbox_Checked" Unchecked="reduceDose_chkbox_Checked"/>
-                    <CheckBox x:Name="noBoost_chkbox" HorizontalAlignment="Right" Margin="0,41,28,0" VerticalAlignment="Top" Checked="noBoost_chkbox_Checked" Unchecked="noBoost_chkbox_Checked"/>
-                    <CheckBox x:Name="boost_chkbox" HorizontalAlignment="Right" Margin="0,71,28,0" VerticalAlignment="Top" Checked="boost_chkbox_Checked" Unchecked="boost_chkbox_Checked"/>-->
                     <Label Content="Plan Templates" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,10,0"></Label>
                     <ListBox x:Name="templateList" ItemsSource="{Binding PlanTemplates}" VerticalAlignment="Bottom" HorizontalContentAlignment="Center" Height="110" DisplayMemberPath="templateName" Margin="0" SelectionChanged="Templates_SelectionChanged">
                     </ListBox>

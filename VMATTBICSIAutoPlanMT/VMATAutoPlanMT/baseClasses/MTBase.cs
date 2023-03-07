@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
 using System.Windows.Threading;
+using VMATTBICSIAutoplanningHelpers.MTWorker;
 using VMATAutoPlanMT.MTProgressInfo;
 
 namespace VMATAutoPlanMT.baseClasses
@@ -12,26 +11,56 @@ namespace VMATAutoPlanMT.baseClasses
     {
         private Dispatcher _dispatch;
         private MTProgress _pw;
-        public void MTBase()
-        { 
-        }
-        public void SetDispatcherAndUIInstance(Dispatcher d, MTProgress p)
-        {
-            _dispatch = d;
-            _pw = p;
-        }
+        private StringBuilder  _logOutput;
+        public StringBuilder GetLogOutput() { return _logOutput; }
 
         public virtual bool Run()
         {
             return false;
         }
 
-        public void UpdateUILabel(string message) { _dispatch.BeginInvoke((Action)(() => { _pw.UpdateLabel(message); })); }
+        public bool Execute()
+        {
+            ESAPIworker slave = new ESAPIworker();
+            //create a new frame (multithreading jargon)
+            DispatcherFrame frame = new DispatcherFrame();
+            slave.RunOnNewThread(() =>
+            {
+                //pass the progress window the newly created thread and this instance of the optimizationLoop class.
+                MTProgress pw = new MTProgress();
+                pw.setCallerClass(slave, this);
+                pw.ShowDialog();
 
-        public void ProvideUIUpdate(int percentComplete, string message) { _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(percentComplete, message); })); }
+                //tell the code to hold until the progress window closes.
+                frame.Continue = false;
+            });
+            Dispatcher.PushFrame(frame);
+            return slave.isError;
+        }
 
-        public void ProvideUIUpdate(int percentComplete) { _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(percentComplete); })); }
+        public void SetDispatcherAndUIInstance(Dispatcher d, MTProgress p)
+        {
+            _dispatch = d;
+            _pw = p;
+            _logOutput = new StringBuilder();
+        }
 
-        public void ProvideUIUpdate(string message) { _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(message); })); }
+        public void UpdateUILabel(string message) 
+        { 
+            _logOutput.AppendLine(message); 
+            _dispatch.BeginInvoke((Action)(() => { _pw.UpdateLabel(message); })); 
+        }
+
+        public void ProvideUIUpdate(int percentComplete, string message = "", bool fail = false) 
+        {
+            if(!string.IsNullOrEmpty(message)) _logOutput.AppendLine(message);
+            _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(percentComplete, message, fail); })); 
+        }
+
+        public void ProvideUIUpdate(string message, bool fail = false) 
+        {
+            _logOutput.AppendLine(message);
+            _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(message, fail); })); 
+        }
     }
 }

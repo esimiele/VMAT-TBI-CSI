@@ -12,74 +12,35 @@ namespace VMATAutoPlanMT.baseClasses
 {
     public class generateTSbase : MTbase
     {
-        public StructureSet selectedSS;
+        protected StructureSet selectedSS;
         public List<string> addedStructures = new List<string> { };
         public List<Tuple<string, string>> optParameters = new List<Tuple<string, string>> { };
-        public bool useFlash = false;
+        protected bool useFlash = false;
         //plan Id, list of isocenter names for this plan
         public List<Tuple<string,List<string>>> isoNames = new List<Tuple<string, List<string>>> { };
-        
 
-        public generateTSbase()
-        {
-
-        }
-
-        public virtual bool PerformStructureGeneration()
-        {
-            return false;
-        }
-
-        public virtual bool Execute()
-        {
-            ESAPIworker slave = new ESAPIworker();
-            //create a new frame (multithreading jargon)
-            DispatcherFrame frame = new DispatcherFrame();
-            slave.RunOnNewThread(() =>
-            {
-                //pass the progress window the newly created thread and this instance of the optimizationLoop class.
-                MTProgress pw = new MTProgress();
-                pw.setCallerClass(slave, this);
-                pw.ShowDialog();
-
-                //tell the code to hold until the progress window closes.
-                frame.Continue = false;
-            });
-            Dispatcher.PushFrame(frame);
-            
-            return slave.isError;
-        }
-
-        public virtual bool preliminaryChecks()
+        #region virtual methods
+        protected virtual bool preliminaryChecks()
         {
             //specific to each case (TBI or CSI)
             return false;
         }
 
-        public bool isUOriginInside(StructureSet ss)
-        {
-            if (!ss.Image.HasUserOrigin || !(ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").IsPointInsideSegment(ss.Image.UserOrigin)))
-            {
-                //MessageBox.Show("Did you forget to set the user origin? \nUser origin is NOT inside body contour! \nPlease fix and try again!");
-                ProvideUIUpdate("Did you forget to set the user origin? \nUser origin is NOT inside body contour! \nPlease fix and try again!");
-                return true;
-            }
-            return false;
-        }
-
-        public virtual bool createTSStructures()
+        protected virtual bool createTSStructures()
         {
             //no virtual method implementation as this code really can't be abstracted
             return false;
         }
 
-        public virtual bool createFlash()
+        protected virtual bool createFlash()
         {
             //no virtual method implementation as this method is really only useful for VMAT TBI as VMAT CSI already has a healthy margin going from CTV->PTV
             return false;
         }
+        #endregion
 
-        public virtual bool RemoveOldTSStructures(List<Tuple<string,string>> structures)
+        #region helper functions related to TS generation and manipulation
+        protected bool RemoveOldTSStructures(List<Tuple<string, string>> structures)
         {
             UpdateUILabel("Remove Prior Tuning Structures: ");
             ProvideUIUpdate(0, "Removing prior tuning structures");
@@ -102,22 +63,19 @@ namespace VMATAutoPlanMT.baseClasses
                         }
                         else
                         {
-                            ProvideUIUpdate(0, String.Format("Error! {0} can't be removed from the structure set!", itr.Item2));
-                            //MessageBox.Show(String.Format("Error! \n{0} can't be removed from the structure set!", tmp.Id));
+                            ProvideUIUpdate(0, String.Format("Error! {0} can't be removed from the structure set!", itr.Item2), true);
                             return true;
                         }
 
                         if (!selectedSS.CanAddStructure(itr.Item1, itr.Item2))
                         {
-                            ProvideUIUpdate(0, String.Format("Error! {0} can't be added the structure set!", itr.Item2));
-                            //MessageBox.Show(String.Format("Error! \n{0} can't be added to the structure set!", itr.Item2));
+                            ProvideUIUpdate(0, String.Format("Error! {0} can't be added the structure set!", itr.Item2), true);
                             return true;
                         }
                     }
                     else
                     {
-                        ProvideUIUpdate(0, String.Format("{0} is of DICOM type 'None'! ESAPI can't operate on DICOM type 'None'", itr.Item2));
-                        //MessageBox.Show(String.Format("Error! \n{0} is of DICOM type 'None'! \nESAPI can't operate on DICOM type 'None'", itr.Item2));
+                        ProvideUIUpdate(0, String.Format("{0} is of DICOM type 'None'! ESAPI can't operate on DICOM type 'None'", itr.Item2), true);
                         return true;
                     }
                 }
@@ -139,11 +97,10 @@ namespace VMATAutoPlanMT.baseClasses
                 }
             }
             ProvideUIUpdate(100, String.Format("Prior tuning structures successfully removed!"));
-
             return false;
         }
 
-        public virtual List<Tuple<string,string,double>> convertHighToLowRes(List<Structure> highRes, List<Tuple<string, string, double>> highResSpareList, List<Tuple<string,string,double>> dataList)
+        protected List<Tuple<string, string, double>> convertHighToLowRes(List<Structure> highRes, List<Tuple<string, string, double>> highResSpareList, List<Tuple<string, string, double>> dataList)
         {
             int count = 0;
             foreach (Structure s in highRes)
@@ -167,7 +124,7 @@ namespace VMATAutoPlanMT.baseClasses
                 if (selectedSS.CanAddStructure("CONTROL", newName)) lowRes = selectedSS.AddStructure("CONTROL", newName);
                 else
                 {
-                    MessageBox.Show(String.Format("Error! Cannot add new structure: {0}!\nCorrect this issue and try again!", newName.Substring(0, 16)));
+                    ProvideUIUpdate(String.Format("Error! Cannot add new structure: {0}!\nCorrect this issue and try again!", newName), true);
                     return new List<Tuple<string, string, double>> { };
                 }
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Added low-res structure: {0}", newName));
@@ -183,7 +140,6 @@ namespace VMATAutoPlanMT.baseClasses
                     {
                         if (lowRes.IsPointInsideSegment(points[i][0]) || lowRes.IsPointInsideSegment(points[i][points[i].GetLength(0) - 1]) || lowRes.IsPointInsideSegment(points[i][(int)(points[i].GetLength(0) / 2)])) lowRes.SubtractContourOnImagePlane(points[i], slice);
                         else lowRes.AddContourOnImagePlane(points[i], slice);
-                        //data += System.Environment.NewLine;
                     }
                 }
 
@@ -198,7 +154,7 @@ namespace VMATAutoPlanMT.baseClasses
             return dataList;
         }
 
-        public virtual Structure AddTSStructures(Tuple<string, string> itr1)
+        protected Structure AddTSStructures(Tuple<string, string> itr1)
         {
             Structure addedStructure = null;
             string dicomType = itr1.Item1;
@@ -209,8 +165,19 @@ namespace VMATAutoPlanMT.baseClasses
                 addedStructures.Add(structName);
                 optParameters.Add(Tuple.Create(structName, ""));
             }
-            else MessageBox.Show(String.Format("Can't add {0} to the structure set!", structName));
+            else ProvideUIUpdate(String.Format("Can't add {0} to the structure set!", structName));
             return addedStructure;
         }
+
+        protected bool isUOriginInside(StructureSet ss)
+        {
+            if (!ss.Image.HasUserOrigin || !(ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").IsPointInsideSegment(ss.Image.UserOrigin)))
+            {
+                ProvideUIUpdate("Did you forget to set the user origin? \nUser origin is NOT inside body contour! \nPlease fix and try again!", true);
+                return true;
+            }
+            return false;
+        }
+        #endregion
     }
 }

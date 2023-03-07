@@ -8,6 +8,8 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATAutoPlanMT.baseClasses;
 using VMATAutoPlanMT.Prompts;
+using VMATTBICSIAutoplanningHelpers.Prompts;
+using VMATTBICSIAutoplanningHelpers.helpers;
 
 namespace VMATAutoPlanMT.VMAT_CSI
 {

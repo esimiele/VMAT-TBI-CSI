@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{0D8218FD-0F0D-4370-8402-4A8730032EFF}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>VMATTBI_optLoopMT</RootNamespace>
-    <AssemblyName>VMATTBI_optLoopMT</AssemblyName>
+    <RootNamespace>VMATTBICSIOptLoopMT</RootNamespace>
+    <AssemblyName>VMATTBICSIOptLoopMT</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -36,7 +36,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
-    <OutputPath>bin\x64\Debug\</OutputPath>
+    <OutputPath>..\..\bin\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <DebugType>full</DebugType>
     <PlatformTarget>x64</PlatformTarget>
@@ -88,6 +88,11 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Prompts\SelectPatient.xaml.cs">
+      <DependentUpon>SelectPatient.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="VMAT-CSI\VMATCSIOptimization.cs" />
+    <Compile Include="VMAT-TBI\VMATTBIOptimization.cs" />
     <Page Include="optLoopMW.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -96,24 +101,25 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="confirmUI.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="confirmUI.Designer.cs">
-      <DependentUpon>confirmUI.cs</DependentUpon>
-    </Compile>
+    <Compile Include="baseClasses\MTBase.cs" />
+    <Compile Include="helpers\dataContainer.cs" />
+    <Compile Include="PlanEvaluation\evalPlanStruct.cs" />
     <Compile Include="optLoopMW.xaml.cs">
       <DependentUpon>optLoopMW.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Page Include="progressWindow.xaml">
+    <Page Include="MTProgressInfo\progressWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Prompts\SelectPatient.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="optimizationLoop.cs" />
-    <Compile Include="progressWindow.xaml.cs">
+    <Compile Include="baseClasses\optimizationLoopBase.cs" />
+    <Compile Include="MTProgressInfo\progressWindow.xaml.cs">
       <DependentUpon>progressWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs">
@@ -129,9 +135,6 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
-    <EmbeddedResource Include="confirmUI.resx">
-      <DependentUpon>confirmUI.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -149,6 +152,12 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\StanfordMedicine1.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\VMATTBICSIAutoplanningHelpers\VMATTBICSIAutoPlanningHelpers.csproj">
+      <Project>{b3fbf7b5-9e18-43ba-b40f-144682a3956e}</Project>
+      <Name>VMATTBICSIAutoPlanningHelpers</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

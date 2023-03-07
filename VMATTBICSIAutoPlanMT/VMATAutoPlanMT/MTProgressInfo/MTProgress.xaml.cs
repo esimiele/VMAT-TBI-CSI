@@ -1,25 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
-using VMATAutoPlanMT.VMAT_CSI;
-using VMS.TPS.Common.Model.API;
-using VMS.TPS.Common.Model.Types;
 using System.Windows.Threading;
-using VMATAutoPlanMT.helpers;
-using System.Windows.Media.Media3D;
+using VMATTBICSIAutoplanningHelpers.MTWorker;
 using VMATAutoPlanMT.baseClasses;
-using System.Reflection;
-
 
 namespace VMATAutoPlanMT.MTProgressInfo
 {
@@ -56,19 +41,35 @@ namespace VMATAutoPlanMT.MTProgressInfo
             });
         }
 
-        public void UpdateLabel(string message) { theLabel.Text = message; }
-
-        public void provideUpdate(int percentComplete, string message)
-        {
-            progress.Value = percentComplete;
-            progressTB.Text += message + System.Environment.NewLine;
-            scroller.ScrollToBottom();
-            //updateLogFile(message);
+        public void UpdateLabel(string message) 
+        { 
+            theLabel.Text = message; 
         }
 
-        public void provideUpdate(int percentComplete) { progress.Value = percentComplete; }
+        public void provideUpdate(int percentComplete, string message = "", bool fail = false)
+        {
+            if(fail) FailEvent();
+            progress.Value = percentComplete;
+            if(!string.IsNullOrEmpty(message))
+            {
+                progressTB.Text += message + Environment.NewLine;
+                scroller.ScrollToBottom();
+            }
+        }
 
-        public void provideUpdate(string message) { progressTB.Text += message + System.Environment.NewLine; scroller.ScrollToBottom(); }
+        public void provideUpdate(string message, bool fail = false) 
+        {
+            if(fail) FailEvent();
+            progressTB.Text += message + Environment.NewLine;
+            scroller.ScrollToBottom(); 
+        }
+
+        private void FailEvent()
+        {
+            progress.Background = Brushes.Red;
+            progress.Foreground = Brushes.Red;
+            UpdateLabel("FAILED!");
+        }
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e) { SizeToContent = SizeToContent.WidthAndHeight; }
     }

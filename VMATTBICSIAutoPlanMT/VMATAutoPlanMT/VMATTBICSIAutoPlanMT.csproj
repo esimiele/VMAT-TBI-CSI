@@ -125,30 +125,10 @@
     <Compile Include="baseClasses\MTBase.cs" />
     <Compile Include="baseClasses\generateTSbase.cs" />
     <Compile Include="baseClasses\planPrepBase.cs" />
-    <Compile Include="helpers\BeamPlacementUIHelper.cs" />
-    <Compile Include="helpers\CTImageExport.cs" />
-    <Compile Include="helpers\ExportCTUIHelper.cs" />
-    <Compile Include="helpers\OptimizationSetupUIHelper.cs" />
-    <Compile Include="MTProgressInfo\ESAPIworker.cs" />
+    <Compile Include="Logging\Logger.cs" />
     <Compile Include="MTProgressInfo\MTProgress.xaml.cs">
       <DependentUpon>MTProgress.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Prompts\SaveDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Prompts\SaveDialog.Designer.cs">
-      <DependentUpon>SaveDialog.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Prompts\selectItem.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Prompts\selectItem.Designer.cs">
-      <DependentUpon>selectItem.cs</DependentUpon>
-    </Compile>
-    <Page Include="helpers\Window1.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
     <Page Include="MTProgressInfo\MTProgress.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -165,27 +145,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Prompts\confirmUI.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Prompts\confirmUI.Designer.cs">
-      <DependentUpon>confirmUI.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Prompts\enterMissingInfo.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Prompts\enterMissingInfo.Designer.cs">
-      <DependentUpon>enterMissingInfo.cs</DependentUpon>
-    </Compile>
-    <Compile Include="helpers\StructureTuningUIHelper.cs" />
-    <Compile Include="helpers\TargetsUIHelper.cs" />
-    <Compile Include="helpers\TemplateBuilder.cs" />
-    <Compile Include="helpers\GeneralUIhelper.cs" />
-    <Compile Include="helpers\Window1.xaml.cs">
-      <DependentUpon>Window1.xaml</DependentUpon>
-    </Compile>
     <Compile Include="Launcher\launchVMATTBICSIautoPlan.cs" />
-    <Compile Include="VMAT_CSI\autoPlanTemplate.cs" />
     <Compile Include="VMAT_CSI\generateTS_CSI.cs" />
     <Compile Include="VMAT_CSI\placeBeams_CSI.cs" />
     <Compile Include="VMAT_CSI\planPrep_CSI.cs" />
@@ -196,7 +156,6 @@
     <Compile Include="Prompts\selectOption.Designer.cs">
       <DependentUpon>selectOption.cs</DependentUpon>
     </Compile>
-    <Compile Include="helpers\isoNameHelper.cs" />
     <Compile Include="baseClasses\placeBeamsBase.cs" />
     <Compile Include="VMAT_CSI\CSIAutoPlanMW.xaml.cs">
       <DependentUpon>CSIAutoPlanMW.xaml</DependentUpon>
@@ -222,24 +181,12 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
-    <EmbeddedResource Include="Prompts\confirmUI.resx">
-      <DependentUpon>confirmUI.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Prompts\enterMissingInfo.resx">
-      <DependentUpon>enterMissingInfo.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Prompts\SaveDialog.resx">
-      <DependentUpon>SaveDialog.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="Prompts\selectOption.resx">
       <DependentUpon>selectOption.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Prompts\selectItem.resx">
-      <DependentUpon>selectItem.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
@@ -263,7 +210,12 @@
   <ItemGroup>
     <Resource Include="Images\Stanford.png" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\VMATTBICSIAutoplanningHelpers\VMATTBICSIAutoPlanningHelpers.csproj">
+      <Project>{b3fbf7b5-9e18-43ba-b40f-144682a3956e}</Project>
+      <Name>VMATTBICSIAutoPlanningHelpers</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>copy "$(ProjectDir)Launcher\*" "$(ProjectDir)$(OutDir)"
