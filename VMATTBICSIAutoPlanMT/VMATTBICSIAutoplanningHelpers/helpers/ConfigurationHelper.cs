@@ -184,11 +184,11 @@ namespace VMATTBICSIAutoplanningHelpers.helpers
         {
             //type (Dmax or V), dose value for volume constraint (N/A for Dmax), equality or inequality, volume (%) or dose (%)
             List<Tuple<string, double, string, double>> constraints = new List<Tuple<string, double, string, double>> { };
-            string structure = "";
-            double lowDoseLevel = 0.0;
-            double upperDoseLevel = 0.0;
-            double volumeVal = 0.0;
-            int priority = 0;
+            string structure;
+            double lowDoseLevel;
+            double upperDoseLevel;
+            double volumeVal;
+            int priority;
             try
             {
                 line = cropLine(line, "{");
@@ -251,10 +251,10 @@ namespace VMATTBICSIAutoplanningHelpers.helpers
 
         public Tuple<string, string, double, double, DoseValuePresentation> ParsePlanObjective(string line)
         {
-            string structure = "";
-            string constraintType = "";
-            double doseVal = 0.0;
-            double volumeVal = 0.0;
+            string structure;
+            string constraintType;
+            double doseVal;
+            double volumeVal;
             DoseValuePresentation dvp;
             line = cropLine(line, "{");
             structure = line.Substring(0, line.IndexOf(","));
@@ -270,5 +270,24 @@ namespace VMATTBICSIAutoplanningHelpers.helpers
             return Tuple.Create(structure, constraintType, doseVal, volumeVal, dvp);
         }
 
+        public Tuple<string,string,int,double,double> ParsePrescriptionsFromLogFile(string line)
+        {
+            string planId;
+            string targetId;
+            int numFx;
+            double dosePerFx;
+            double RxDose;
+            line = cropLine(line, "{");
+            planId = line.Substring(0, line.IndexOf(","));
+            line = cropLine(line, ",");
+            targetId = line.Substring(0, line.IndexOf(","));
+            line = cropLine(line, ",");
+            numFx = int.Parse(line.Substring(0, line.IndexOf(",")));
+            line = cropLine(line, ",");
+            dosePerFx = double.Parse(line.Substring(0, line.IndexOf(",")));
+            line = cropLine(line, ",");
+            RxDose = double.Parse(line.Substring(0, line.IndexOf("}")));
+            return Tuple.Create(planId, targetId, numFx, dosePerFx, RxDose);
+        }
     }
 }

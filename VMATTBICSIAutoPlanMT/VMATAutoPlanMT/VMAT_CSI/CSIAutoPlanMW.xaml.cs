@@ -118,6 +118,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 ss = args.ElementAt(1);
                 configurationFile = args.ElementAt(2);
             }
+            log = new Logger(logPath, "VMAT CSI", mrn);
             if (app != null)
             {
                 if (string.IsNullOrEmpty(mrn) || string.IsNullOrWhiteSpace(mrn))
@@ -131,6 +132,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                         { 
                             if (app != null) pi = app.OpenPatientById(e.value.Text);
                             mrn = e.value.Text;
+                            log.mrn = mrn;
                         }
                         catch (Exception except) { MessageBox.Show(string.Format("Error! Could not open patient because: {0}! Please try again!", except.Message)); pi = null; }
                     }
@@ -150,8 +152,13 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 {
                     //SSID is combobox defined in UI.xaml
                     foreach (StructureSet s in pi.StructureSets.OrderByDescending(x => x.HistoryDateTime)) SSID.Items.Add(s.Id);
+
                     //SSID default is the current structure set in the context
-                    if (!string.IsNullOrEmpty(ss)) { selectedSS = pi.StructureSets.FirstOrDefault(x => x.Id == ss); SSID.Text = selectedSS.Id; }
+                    if (!string.IsNullOrEmpty(ss)) 
+                    { 
+                        selectedSS = pi.StructureSets.FirstOrDefault(x => x.Id == ss); 
+                        SSID.Text = selectedSS.Id; 
+                    }
                     else MessageBox.Show("Warning! No structure set in context! Please select a structure set at the top of the GUI!");
                     new ExportCTUIHelper().populateCTImageSets(pi.StructureSets.Where(x => x != selectedSS).ToList(), selectedSS, CTimage_sp);
 
@@ -166,8 +173,6 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //load script configuration and display the settings
             if (configurationFile != "") loadConfigurationSettings(configurationFile);
             DisplayConfigurationParameters();
-            log = new Logger(logPath, "VMAT CSI", mrn);
-            log.mrn = mrn;
             targetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
         }
 
@@ -932,8 +937,8 @@ namespace VMATAutoPlanMT.VMAT_CSI
             if (contourOverlap_chkbox.IsChecked.Value) PopulateOptimizationTab(opt_parameters);
             beamPlacementTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             optimizationSetupTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
-            //list the plan UIDs in ascending order
-            foreach (ExternalPlanSetup itr in VMATplans.OrderBy(x => x.TotalDose.Dose)) log.planUIDs.Add(itr.UID);
+            //list the plan UIDs by creation date (initial always gets created first, then boost)
+            foreach (ExternalPlanSetup itr in VMATplans.OrderBy(x => x.CreationDateTime)) log.planUIDs.Add(itr.UID);
         }
         #endregion
 
@@ -1067,6 +1072,8 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 List<string> planIds = new List<string> { };
                 foreach (ExternalPlanSetup itr in thePlans) planIds.Add(itr.Id);
                 PopulateOptimizationTab(opt_parameters, null, true, planIds);
+                //list the plan UIDs in ascending order
+                foreach (ExternalPlanSetup itr in thePlans.OrderBy(x => x.CreationDateTime)) log.planUIDs.Add(itr.UID);
             }
         }
 
@@ -1165,12 +1172,12 @@ namespace VMATAutoPlanMT.VMAT_CSI
             if (!prescriptions.Any()) return;
             ExternalPlanSetup thePlan = null;
             if (!VMATplans.Any()) return;
-            if (VMATplans.Count > 0)
+            if (VMATplans.Count > 1)
             {
                 selectItem SUI = new selectItem();
                 SUI.title.Text = "Please selct a plan to add a constraint!";
                 foreach (ExternalPlanSetup itr in VMATplans) SUI.itemCombo.Items.Add(itr.Id);
-                SUI.itemCombo.Items.Add("Both");
+                //SUI.itemCombo.Items.Add("Both");
                 SUI.itemCombo.SelectedIndex = 0;
                 SUI.ShowDialog();
                 if (SUI.confirm) thePlan = VMATplans.FirstOrDefault(x => x.Id == SUI.itemCombo.SelectedItem.ToString());
@@ -1201,6 +1208,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 }
                 else
                 {
+                    //nothing in the optimization setup UI. Populate constraints with constraints from selected template
                     CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
                     if(selectedTemplate != null)
                     {

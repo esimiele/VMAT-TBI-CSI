@@ -47,10 +47,8 @@ namespace VMATAutoPlanMT.Logging
         public List<Tuple<string, string, double>> structureManipulations { get; set; }
         //plan Id, list of isocenter names for this plan
         public List<Tuple<string, List<string>>> isoNames { get; set; }
-
         //plan generation and beam placement
         public List<string> planUIDs { get; set; }
-
         //optimization setup
         //plan ID, <structure, constraint type, dose cGy, volume %, priority>
         public List<Tuple<string, List<Tuple<string, string, double, double, int>>>> optimizationConstraints { get; set; }
@@ -86,7 +84,7 @@ namespace VMATAutoPlanMT.Logging
             sb.AppendLine(String.Format(""));
             sb.AppendLine(String.Format("prescriptions:"));
 
-            foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions) sb.AppendLine(String.Format("    {{{0},{1},{2},{3},{4}}}",itr.Item1,itr.Item2,itr.Item3,itr.Item4,itr.Item5));
+            foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions) sb.AppendLine(String.Format("    {{{0},{1},{2},{3},{4}}}",itr.Item1,itr.Item2,itr.Item3,itr.Item4.Dose,itr.Item5));
             sb.AppendLine(String.Format(""));
 
             sb.AppendLine(String.Format("Added structures:"));

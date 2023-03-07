@@ -10,6 +10,7 @@ using VMS.TPS.Common.Model.Types;
 using VMATTBICSIOptLoopMT.helpers;
 using VMATTBICSIOptLoopMT.baseClasses;
 using VMATTBICSIAutoplanningHelpers.helpers;
+using VMATTBICSIAutoplanningHelpers.Prompts;
 using VMATTBICSIAutoplanningHelpers.TemplateClasses;
 using VMATTBICSIOptLoopMT.VMAT_CSI;
 using VMATTBICSIOptLoopMT.Prompts;
@@ -54,7 +55,7 @@ namespace VMATTBICSIOptLoopMT
         public List<Tuple<string, string, double, string>> planDoseInfo = new List<Tuple<string, string, double, string>> { };
 
         VMS.TPS.Common.Model.API.Application app = VMS.TPS.Common.Model.API.Application.CreateApplication();
-        ExternalPlanSetup plan;
+        List<ExternalPlanSetup> plans;
         StructureSet selectedSS;
         Patient pi = null;
         bool runCoverageCheck = false;
@@ -63,9 +64,12 @@ namespace VMATTBICSIOptLoopMT
         bool useFlash = false;
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
         public ObservableCollection<CSIAutoPlanTemplate> PlanTemplates { get; set; }
+        public CSIAutoPlanTemplate selectedTemplate;
         //to be read from the plan prep log files
         string planType = "";
         List<string> planUIDs = new List<string> { };
+        //plan id, target id, num fx, dose per fx, cumulative rx for this target
+        List<Tuple<string, string, int, double, double>> prescriptions = new List<Tuple<string, string, int, double, double>> { };
 
         public OptLoopMW(string[] args)
         {
@@ -108,12 +112,7 @@ namespace VMATTBICSIOptLoopMT
         }
         #endregion
 
-        #region button events
-        private void SelectPatient_Click(object sender, RoutedEventArgs e)
-        {
-            LoadPatient();
-        }
-
+        #region load and open patient
         private void LoadPatient()
         {
             //open the patient with the user-entered MRN number
@@ -121,19 +120,25 @@ namespace VMATTBICSIOptLoopMT
             sp.ShowDialog();
             if (sp.selectionMade)
             {
+                string currentMRN;
+                if (pi != null) currentMRN = pi.Id;
+                else currentMRN = "-1";
                 (string mrn, string fullLogName) = sp.GetPatientMRN();
                 if (!string.IsNullOrEmpty(mrn))
                 {
-                    if (!string.IsNullOrEmpty(fullLogName)) LoadLogFile(fullLogName);
-                    OpenPatient(mrn);
+                    if(!string.Equals(mrn,currentMRN))
+                    {
+                        planUIDs = new List<string> { };
+                        if (!string.IsNullOrEmpty(fullLogName)) LoadLogFile(fullLogName);
+                        OpenPatient(mrn);
+                        if (selectedTemplate != null) templateList.SelectedItem = selectedTemplate;
+                    }
                 }
                 else MessageBox.Show(String.Format("Entered MRN: {0} is invalid! Please re-enter and try again", mrn));
                 selectPatientBtn.Background = System.Windows.Media.Brushes.DarkGray;
             }
             else if (pi == null) selectPatientBtn.Background = System.Windows.Media.Brushes.PaleVioletRed;
         }
-
-        
 
         private void OpenPatient(string pat_mrn)
         {
@@ -144,10 +149,10 @@ namespace VMATTBICSIOptLoopMT
                 pi = app.OpenPatientById(pat_mrn);
                 //grab instances of the course and VMAT tbi plans that were created using the binary plug in script. This is explicitly here to let the user know if there is a problem with the course OR plan
                 //Course c = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat tbi");
-                (plan, selectedSS) = GetStructureSetAndPlans();
-                if (plan == null)
+                (plans, selectedSS) = GetStructureSetAndPlans();
+                if (!plans.Any())
                 {
-                    MessageBox.Show("No plan named _VMAT TBI!");
+                    MessageBox.Show("No plans found!");
                     return;
                 }
                 //ensure the correct plan target is selected and all requested objectives have a matching structure that exists in the structure set (needs to be done after structure set has been assinged)
@@ -168,56 +173,76 @@ namespace VMATTBICSIOptLoopMT
                 MessageBox.Show("No such patient exists!");
             }
         }
+        #endregion
+
+        #region button events
+        private void SelectPatient_Click(object sender, RoutedEventArgs e)
+        {
+            LoadPatient();
+        }
 
         private void getOptFromPlan_Click(object sender, RoutedEventArgs e)
         {
-            if (pi != null && plan != null) PopulateOptimizationTab(optimizationParamSP);
+            if (pi != null && plans.Any()) PopulateOptimizationTab(optimizationParamSP);
         }
 
         private void AddItem_Click(object sender, RoutedEventArgs e)
         {
-            //add a blank contraint to the list
-            if (plan != null)
+            if (!plans.Any()) return;
+            (StackPanel, ScrollViewer) SPAndSV = GetSPAndSV(sender as Button);
+            if(SPAndSV.Item1.Name.ToLower().Contains("optimization"))
             {
-                (StackPanel, ScrollViewer) SPAndSV = GetSPAndSV(sender as Button);
-                if(SPAndSV.Item1.Name.ToLower().Contains("optimization"))
+                ExternalPlanSetup thePlan = null;
+                if (plans.Count > 1)
                 {
-                    List<Tuple<string, string, double, double, int>> tmp = new List<Tuple<string, string, double, double, int>> { Tuple.Create("--select--", "--select--", 0.0, 0.0, 0) };
-                    List<List<Tuple<string, string, double, double, int>>> tmpList = new List<List<Tuple<string, string, double, double, int>>> { };
-                    if (SPAndSV.Item1.Children.Count > 0)
+                    selectItem SUI = new selectItem();
+                    SUI.title.Text = "Please selct a plan to add a constraint!";
+                    foreach (ExternalPlanSetup itr in plans) SUI.itemCombo.Items.Add(itr.Id);
+                    //SUI.itemCombo.Items.Add("Both");
+                    SUI.itemCombo.SelectedIndex = 0;
+                    SUI.ShowDialog();
+                    if (SUI.confirm) thePlan = plans.FirstOrDefault(x => x.Id == SUI.itemCombo.SelectedItem.ToString());
+                    else return;
+                    if (thePlan == null) { MessageBox.Show("Plan not found! Exiting!"); return; }
+                }
+                else thePlan = plans.First();
+
+                List<Tuple<string, string, double, double, int>> tmp = new List<Tuple<string, string, double, double, int>> { Tuple.Create("--select--", "--select--", 0.0, 0.0, 0) };
+                List<List<Tuple<string, string, double, double, int>>> tmpList = new List<List<Tuple<string, string, double, double, int>>> { };
+                if (SPAndSV.Item1.Children.Count > 0)
+                {
+                    OptimizationSetupUIHelper helper = new OptimizationSetupUIHelper();
+                    List<Tuple<string, List<Tuple<string, string, double, double, int>>>> optParametersListList = helper.parseOptConstraints(SPAndSV.Item1, false);
+                    foreach (Tuple<string, List<Tuple<string, string, double, double, int>>> itr in optParametersListList)
                     {
-                        OptimizationSetupUIHelper helper = new OptimizationSetupUIHelper();
-                        List<Tuple<string, List<Tuple<string, string, double, double, int>>>> optParametersListList = helper.parseOptConstraints(SPAndSV.Item1, false);
-                        foreach (Tuple<string, List<Tuple<string, string, double, double, int>>> itr in optParametersListList)
+                        if (itr.Item1 == thePlan.Id)
                         {
-                            if (itr.Item1 == plan.Id)
-                            {
-                                tmp = new List<Tuple<string, string, double, double, int>>(itr.Item2);
-                                tmp.Add(Tuple.Create("--select--", "--select--", 0.0, 0.0, 0));
-                                tmpList.Add(tmp);
-                            }
-                            else tmpList.Add(itr.Item2);
+                            tmp = new List<Tuple<string, string, double, double, int>>(itr.Item2);
+                            tmp.Add(Tuple.Create("--select--", "--select--", 0.0, 0.0, 0));
+                            tmpList.Add(tmp);
                         }
+                        else tmpList.Add(itr.Item2);
                     }
-                    else
-                    {
-                        tmpList.Add(tmp);
-                    }
-                    ClearAllItemsFromUIList(SPAndSV.Item1);
-                    foreach (List<Tuple<string, string, double, double, int>> itr in tmpList) AddListItemsToUI(itr, plan.Id, SPAndSV.Item1);
                 }
                 else
                 {
-                    List<Tuple<string, string, double, double, DoseValuePresentation>> tmp = new List<Tuple<string, string, double, double, DoseValuePresentation>> 
-                    { 
-                        Tuple.Create("--select--", "--select--", 0.0, 0.0, DoseValuePresentation.Relative) 
-                    };
-                    AddListItemsToUI(tmp, plan.Id, SPAndSV.Item1); 
-                    planObjectiveHeader.Background = System.Windows.Media.Brushes.ForestGreen;
-                    optimizationSetupHeader.Background = System.Windows.Media.Brushes.PaleVioletRed;
+                    tmpList.Add(tmp);
                 }
-                SPAndSV.Item2.ScrollToBottom();
+                ClearAllItemsFromUIList(SPAndSV.Item1);
+                int count = 0;
+                foreach (List<Tuple<string, string, double, double, int>> itr in tmpList) AddListItemsToUI(itr, plans.ElementAt(count++).Id, SPAndSV.Item1);
             }
+            else
+            {
+                List<Tuple<string, string, double, double, DoseValuePresentation>> tmp = new List<Tuple<string, string, double, double, DoseValuePresentation>> 
+                { 
+                    Tuple.Create("--select--", "--select--", 0.0, 0.0, DoseValuePresentation.Relative) 
+                };
+                AddListItemsToUI(tmp, "", SPAndSV.Item1); 
+                planObjectiveHeader.Background = System.Windows.Media.Brushes.ForestGreen;
+                optimizationSetupHeader.Background = System.Windows.Media.Brushes.PaleVioletRed;
+            }
+            SPAndSV.Item2.ScrollToBottom();
         }
 
         private void ClearAllItems_Click(object sender, RoutedEventArgs e) 
@@ -236,16 +261,17 @@ namespace VMATTBICSIOptLoopMT
         private void Templates_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (pi == null) return;
-            CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
+            selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
             if (selectedTemplate == null) return;
-            UpdateSelectedTemplate(selectedTemplate);
+            UpdateSelectedTemplate();
         }
 
-        private void UpdateSelectedTemplate(CSIAutoPlanTemplate selectedTemplate)
+        private void UpdateSelectedTemplate()
         {
-            if (selectedTemplate.templateName != "--select--")
+            if (selectedTemplate != null && selectedSS != null)
             {
                 ClearAllItemsFromUIList(planObjectiveParamSP);
+                //requires a structure set to properly function
                 planObj = new List<Tuple<string, string, double, double, DoseValuePresentation>>(ConstructPlanObjectives(selectedTemplate.planObj));
                 PopulatePlanObjectivesTab(planObjectiveParamSP);
                 planDoseInfo = new List<Tuple<string, string, double, string>>(selectedTemplate.planDoseInfo);
@@ -285,21 +311,35 @@ namespace VMATTBICSIOptLoopMT
             return (theSP, theScroller);
         }
 
-        private (ExternalPlanSetup, StructureSet) GetStructureSetAndPlans()
+        private (List<ExternalPlanSetup>, StructureSet) GetStructureSetAndPlans()
         {
+            List<ExternalPlanSetup> thePlans = new List<ExternalPlanSetup> { };
+            StructureSet ss = null;
             //grab an instance of the VMAT TBI plan. Return null if it isn't found
-            if (pi == null) return (null, null);
+            if (pi == null) return (thePlans, ss);
             //Course c = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat tbi");
-            Course c = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat csi");
-            if (c == null) return (null, null);
-
-            ExternalPlanSetup thePlan = c.ExternalPlanSetups.FirstOrDefault(x => x.Id.ToLower() == "csi-init");
-            return (thePlan, thePlan.StructureSet);
+            if(planUIDs.Any())
+            {
+                //should automatically be in order in terms of cumulative Rx (lowest to highest)
+                foreach(string uid in planUIDs)
+                {
+                    ExternalPlanSetup tmp = pi.Courses.SelectMany(x => x.ExternalPlanSetups).FirstOrDefault(x => x.UID == uid);
+                    if(tmp != null) thePlans.Add(tmp);
+                }
+            }
+            //Course c = pi.Courses.FirstOrDefault(x => x.Id.ToLower().Contains("vmat csi"))
+            //if (c == null) return (thePlans, null);
+            
+            //ExternalPlanSetup thePlan = c.ExternalPlanSetups.FirstOrDefault(x => x.Id.ToLower() == "csi-init");
+            return (thePlans, ss);
         }
 
         private void clearEverything()
         {
             //clear all existing content from the main window
+            templateList.UnselectAll();
+            selectedSS = null;
+            plans = new List<ExternalPlanSetup> { };
             initDosePerFxTB.Text = initNumFxTB.Text = initRxTB.Text = numOptLoops.Text = "";
             ClearAllItemsFromUIList(optimizationParamSP);
             ClearAllItemsFromUIList(planObjectiveParamSP);
@@ -308,23 +348,30 @@ namespace VMATTBICSIOptLoopMT
         private void populateRx()
         {
             //populate the prescription text boxes
-            initDosePerFxTB.Text = plan.DosePerFraction.Dose.ToString();
-            initNumFxTB.Text = plan.NumberOfFractions.ToString();
-            initRxTB.Text = plan.TotalDose.Dose.ToString();
+            initDosePerFxTB.Text = plans.First().DosePerFraction.Dose.ToString();
+            initNumFxTB.Text = plans.First().NumberOfFractions.ToString();
+            initRxTB.Text = plans.First().TotalDose.Dose.ToString();
+            //boost plan
+            if(plans.Count > 1)
+            {
+                boostDosePerFxTB.Text = plans.Last().DosePerFraction.Dose.ToString();
+                boostNumFxTB.Text = plans.Last().NumberOfFractions.ToString();
+                boostRxTB.Text = plans.Last().TotalDose.Dose.ToString();
+            }
         }
 
         private void PopulateOptimizationTab(StackPanel theSP)
         {
             //clear the current list of optimization constraints and ones obtained from the plan to the user
             ClearAllItemsFromUIList(theSP);
-            AddListItemsToUI(new OptimizationSetupUIHelper().ReadConstraintsFromPlan(plan), plan.Id, theSP);
+            foreach(ExternalPlanSetup itr in plans) AddListItemsToUI(new OptimizationSetupUIHelper().ReadConstraintsFromPlan(itr), itr.Id, theSP);
         }
 
         private void PopulatePlanObjectivesTab(StackPanel theSP)
         {
             //clear the current list of optimization constraints and ones obtained from the plan to the user
             ClearAllItemsFromUIList(theSP);
-            AddListItemsToUI(planObj, plan.Id, theSP);
+            AddListItemsToUI(planObj, "", theSP);
         }
 
         private void AddOptimizationConstraintsHeader(StackPanel theSP)
@@ -382,9 +429,9 @@ namespace VMATTBICSIOptLoopMT
         #region start optimization
         private void startOpt_Click(object sender, RoutedEventArgs e)
         {
-            if (plan == null) 
+            if (!plans.Any()) 
             { 
-                MessageBox.Show("No plan or course found!"); 
+                MessageBox.Show("No plans found!"); 
                 return; 
             }
 
@@ -421,6 +468,24 @@ namespace VMATTBICSIOptLoopMT
             //determine if flash was used to prep the plan
             if (optParametersListList.Where(x => x.Item2.Where(y => y.Item1.ToLower().Contains("flash")).Any()).Any()) useFlash = true;
 
+            //assign optimization constraints
+            pi.BeginModifications();
+            OptimizationSetupUIHelper helper = new OptimizationSetupUIHelper();
+            foreach (Tuple<string, List<Tuple<string, string, double, double, int>>> itr in optParametersListList)
+            {
+                ExternalPlanSetup thePlan = null;
+                //additional check if the plan was not found in the list of VMATplans
+                thePlan = plans.FirstOrDefault(x => x.Id == itr.Item1);
+                if (thePlan != null)
+                {
+                    if (thePlan.OptimizationSetup.Objectives.Count() > 0)
+                    {
+                        foreach (OptimizationObjective o in thePlan.OptimizationSetup.Objectives) thePlan.OptimizationSetup.RemoveObjective(o);
+                    }
+                    helper.AssignOptConstraints(itr.Item2, thePlan, true, 0.0);
+                }
+            }
+
             //does the user want to run the initial dose coverage check?
             runCoverageCheck = runCoverageCk.IsChecked.Value;
             //does the user want to run one additional optimization to reduce hotspots?
@@ -433,7 +498,7 @@ namespace VMATTBICSIOptLoopMT
 
             //create a new instance of the structure dataContainer and assign the optimization loop parameters entered by the user to the various data members
             dataContainer data = new dataContainer();
-            data.construct(plan, 
+            data.construct(plans, 
                            optParametersListList.First().Item2, 
                            objectives, 
                            requestedTSstructures, 
@@ -451,7 +516,6 @@ namespace VMATTBICSIOptLoopMT
                            app);
 
             //start the optimization loop (all saving to the database is performed in the progressWindow class)
-            pi.BeginModifications();
             //use a bit of polymorphism
             optimizationLoopBase optLoop;
             optLoop = new VMATCSIOptimization(data);
@@ -480,15 +544,18 @@ namespace VMATTBICSIOptLoopMT
         private List<Tuple<string, string, double, double, DoseValuePresentation>> ConstructPlanObjectives(List<Tuple<string, string, double, double, DoseValuePresentation>> obj)
         {
             List<Tuple<string, string, double, double, DoseValuePresentation>> tmp = new List<Tuple<string, string, double, double, DoseValuePresentation>> { };
-            foreach(Tuple<string,string,double,double,DoseValuePresentation> itr in obj)
+            if(selectedSS != null)
             {
-                if(itr.Item1 == "<targetId>")
+                foreach (Tuple<string, string, double, double, DoseValuePresentation> itr in obj)
                 {
-                    tmp.Add(Tuple.Create(GetPlanTargetId(), itr.Item2, itr.Item3, itr.Item4, itr.Item5)); 
-                }
-                else
-                {
-                    if (selectedSS.Structures.Any(x => x.Id.ToLower() == itr.Item1.ToLower() && !x.IsEmpty)) tmp.Add(Tuple.Create(itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5));
+                    if (itr.Item1 == "<targetId>")
+                    {
+                        tmp.Add(Tuple.Create(GetPlanTargetId(), itr.Item2, itr.Item3, itr.Item4, itr.Item5));
+                    }
+                    else
+                    {
+                        if (selectedSS.Structures.Any(x => x.Id.ToLower() == itr.Item1.ToLower() && !x.IsEmpty)) tmp.Add(Tuple.Create(itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5));
+                    }
                 }
             }
             return tmp;
@@ -503,7 +570,7 @@ namespace VMATTBICSIOptLoopMT
         }
         #endregion
 
-        #region script configuration
+        #region script and configuration
         private void DisplayConfigurationParameters()
         {
             configTB.Text = "";
@@ -724,7 +791,6 @@ namespace VMATTBICSIOptLoopMT
         {
             try
             {
-                CSIAutoPlanTemplate template = null;
                 using (StreamReader reader = new StreamReader(fullLogName))
                 {
                     string line;
@@ -743,21 +809,24 @@ namespace VMATTBICSIOptLoopMT
                                 }
                                 else if (parameter == "template")
                                 {
-                                    //fix me!
-                                    template = PlanTemplates.FirstOrDefault(x => x.templateName == value);
-                                    //if(template != null)
-                                    //{
-                                    //    templateList.SelectedItem = template;
-                                    //}
+                                    //plan objectives will be updated in OpenPatient method
+                                    selectedTemplate = PlanTemplates.FirstOrDefault(x => x.templateName == value);
+                                    //templateList.SelectedItem = selectedTemplate;
+                                }
+                            }
+                            else if (line.Contains("prescriptions:"))
+                            {
+                                ConfigurationHelper helper = new ConfigurationHelper();
+                                while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
+                                {
+                                    prescriptions.Add(helper.ParsePrescriptionsFromLogFile(line));
                                 }
                             }
                             else if (line.Contains("plan UIDs:"))
                             {
-                                line = reader.ReadLine().Trim();
-                                while (!string.IsNullOrEmpty(line))
+                                while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {
                                     planUIDs.Add(line);
-                                    line = reader.ReadLine().Trim();
                                 }
                             }
                         }

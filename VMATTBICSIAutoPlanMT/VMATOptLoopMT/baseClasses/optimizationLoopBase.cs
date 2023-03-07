@@ -745,7 +745,8 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         protected void removeCoolHeatStructures(ExternalPlanSetup plan)
         {
             StructureSet ss = plan.StructureSet;
-            foreach (Structure itr in ss.Structures.Where(x => x.Id.ToLower().Contains("ts_cooler") || x.Id.ToLower().Contains("ts_heater")))
+            List<Structure> coolerHeater = ss.Structures.Where(x => x.Id.ToLower().Contains("ts_cooler") || x.Id.ToLower().Contains("ts_heater")).ToList();
+            foreach (Structure itr in coolerHeater)
             {
                 if (ss.CanRemoveStructure(itr)) ss.RemoveStructure(itr);
                 else ProvideUIUpdate(String.Format("Warning! Cannot remove {0} from the structure set! Skipping!", itr.Id));

@@ -4,6 +4,7 @@ using System.Threading;
 using System.Windows.Threading;
 using VMATTBICSIAutoplanningHelpers.MTWorker;
 using VMATTBICSIOptLoopMT.MTProgressInfo;
+using System.IO;
 
 namespace VMATTBICSIOptLoopMT.baseClasses
 {
@@ -12,6 +13,8 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         private Dispatcher _dispatch;
         protected progressWindow _pw;
         private StringBuilder  _logOutput;
+        protected string logPath;
+        protected string fileName;
         public StringBuilder GetLogOutput() { return _logOutput; }
 
         public virtual bool Run()
@@ -42,6 +45,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         {
             _dispatch = d;
             _pw = p;
+            _dispatch.BeginInvoke((Action)(() => { _pw.InitializeLogFile(logPath, fileName); }));
             _logOutput = new StringBuilder();
         }
 

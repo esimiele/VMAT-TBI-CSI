@@ -13,6 +13,7 @@ namespace VMATTBICSIOptLoopMT.helpers
     {
         //data members
         public Application app;
+        public List<ExternalPlanSetup> plans;
         public ExternalPlanSetup plan;
         public string id;
         public int numOptimizations;
@@ -31,7 +32,7 @@ namespace VMATTBICSIOptLoopMT.helpers
         public bool isDemo;
         public string logFilePath;
         //simple method to automatically assign/initialize the above data members
-        public void construct(ExternalPlanSetup p, 
+        public void construct(List<ExternalPlanSetup> p, 
                               List<Tuple<string, string, double, double, int>> param, 
                               List<Tuple<string, string, double, double, DoseValuePresentation>> objectives, 
                               List<Tuple<string, double, double, double, int, 
@@ -52,8 +53,9 @@ namespace VMATTBICSIOptLoopMT.helpers
             optParams = new List<Tuple<string, string, double, double, int>> { };
             optParams = param;
 
-            plan = p;
-            id = plan.Course.Patient.Id;
+            plans = new List<ExternalPlanSetup>(p);
+            if (plans.Count == 1) plan = plans.First();
+            id = plans.First().Course.Patient.Id;
             numOptimizations = numOpt;
 
             //log file path

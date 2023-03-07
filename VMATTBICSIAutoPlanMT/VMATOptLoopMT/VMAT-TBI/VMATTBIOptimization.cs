@@ -17,6 +17,8 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
         public VMATTBIOptimization(dataContainer _d)
         {
             _data = _d;
+            logPath = _data.logFilePath + "\\optimization\\";
+            fileName = logPath + _data.id + ".txt";
         }
 
         public override bool Run()

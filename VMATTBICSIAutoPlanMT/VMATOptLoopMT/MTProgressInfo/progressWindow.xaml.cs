@@ -24,10 +24,10 @@ namespace VMATTBICSIOptLoopMT.MTProgressInfo
         //used to copy the instances of the background thread and the optimizationLoop class
         ESAPIworker slave;
         MTbase callerClass;
-        //string to hold the patient MRN number
-        string id = "";
         //path to where the log files should be written
         string logPath = "";
+        //filename
+        string fileName = "";
         //get instances of the stopwatch and dispatch timer to report how long the calculation takes at each reporting interval
         Stopwatch sw = new Stopwatch();
         DispatcherTimer dt = new DispatcherTimer();
@@ -129,6 +129,13 @@ namespace VMATTBICSIOptLoopMT.MTProgressInfo
             canClose = true;
         }
 
+        public void InitializeLogFile(string path, string name)
+        {
+            logPath = path;
+            fileName = name;
+            if (!Directory.Exists(logPath)) Directory.CreateDirectory(logPath);
+        }
+
         private void updateLogFile(string output)
         {
             //this is here to check if the directory and file already exist. An alternative method would be to create a streamwriter in the constructor of this class, but because this program runs for several hours and I have no
@@ -137,7 +144,6 @@ namespace VMATTBICSIOptLoopMT.MTProgressInfo
             if (Directory.Exists(logPath))
             {
                 output += Environment.NewLine;
-                string fileName = logPath + id + ".txt";
                 File.AppendAllText(fileName, output);
             }
         }
