@@ -317,7 +317,6 @@ namespace VMATTBICSIOptLoopMT
             StructureSet ss = null;
             //grab an instance of the VMAT TBI plan. Return null if it isn't found
             if (pi == null) return (thePlans, ss);
-            //Course c = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat tbi");
             if(planUIDs.Any())
             {
                 //should automatically be in order in terms of cumulative Rx (lowest to highest)
@@ -327,10 +326,52 @@ namespace VMATTBICSIOptLoopMT
                     if(tmp != null) thePlans.Add(tmp);
                 }
             }
-            //Course c = pi.Courses.FirstOrDefault(x => x.Id.ToLower().Contains("vmat csi"))
-            //if (c == null) return (thePlans, null);
-            
-            //ExternalPlanSetup thePlan = c.ExternalPlanSetups.FirstOrDefault(x => x.Id.ToLower() == "csi-init");
+            else
+            {
+                //simple logic to try and guess which plans are which
+                Course theCourse = null;
+                List<Course> courses = pi.Courses.Where(x => x.Id.ToLower().Contains("vmat csi") || x.Id.ToLower().Contains("vmat tbi")).ToList();
+                if (!courses.Any()) return (thePlans, ss);
+                if (courses.Count > 1)
+                {
+                    selectItem SI = new selectItem();
+                    SI.title.Text = "Please a course:";
+                    foreach (Course itr in courses) SI.itemCombo.Items.Add(itr.Id);
+                    SI.itemCombo.SelectedIndex = 0;
+                    SI.ShowDialog();
+                    if (!SI.confirm) return (thePlans, ss);
+                    theCourse = courses.FirstOrDefault(x => x.Id == SI.itemCombo.SelectedItem.ToString());
+                }
+                else theCourse = courses.First();
+                if (theCourse.Id.ToLower().Contains("csi"))
+                {
+                    planType = "VMAT CSI";
+                    planTypeLabel.Content = "VMAT CSI";
+                }
+                else
+                {
+                    planType = "VMAT TBI";
+                    planTypeLabel.Content = "VMAT TBI";
+                }
+
+                thePlans = theCourse.ExternalPlanSetups.OrderBy(x => x.CreationDateTime).ToList();
+                if (thePlans.Count > 2)
+                {
+                    MessageBox.Show(String.Format("Error! More than two plans found in course: {0}! Unable to determine which plan(s) should be used for optimization! Exiting!", theCourse.Id));
+                    thePlans = new List<ExternalPlanSetup> { };
+                }
+                else if (thePlans.Count < 1)
+                {
+                    MessageBox.Show(String.Format("Error! No plans found in course: {0}! Unable to determine which plan(s) should be used for optimization! Exiting!", theCourse.Id));
+                }
+                else if (thePlans.Count == 2 && (thePlans.First().StructureSet != thePlans.Last().StructureSet))
+                {
+                    MessageBox.Show(String.Format("Error! Structure set in first plan ({0}) is not the same as the structure set in second plan ({1})! Exiting!", thePlans.First().Id, thePlans.Last().Id));
+                    thePlans = new List<ExternalPlanSetup> { };
+                }
+            }
+            if (thePlans.Any()) ss = thePlans.First().StructureSet;
+
             return (thePlans, ss);
         }
 
@@ -454,6 +495,11 @@ namespace VMATTBICSIOptLoopMT
             if(planNorm < 0.0 || planNorm > 100.0)
             {
                 MessageBox.Show("Error! Target normalization is is either < 0% or > 100% \nExiting!");
+                return;
+            }
+            if(numOptimizations < 1)
+            {
+                MessageBox.Show("Number of requested optimizations needs to be greater than or equal to 1.\nExiting!");
                 return;
             }
 
@@ -806,6 +852,7 @@ namespace VMATTBICSIOptLoopMT
                                 if (parameter == "plan type")
                                 {
                                     planType = value;
+                                    planTypeLabel.Content = planType;
                                 }
                                 else if (parameter == "template")
                                 {

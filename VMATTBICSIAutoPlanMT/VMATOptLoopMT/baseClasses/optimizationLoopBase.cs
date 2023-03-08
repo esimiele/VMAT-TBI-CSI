@@ -14,6 +14,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
     public class optimizationLoopBase : MTbase
     {
         protected dataContainer _data;
+        protected bool _checkSupportStructures = false;
 
         #region print run setup, failed message, plan dose info, etc.
         protected void PrintFailedMessage(string optorcalc, string reason = "")
@@ -174,9 +175,9 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         #endregion
 
         #region preliminary checks
-        public bool preliminaryChecks(ExternalPlanSetup plan)
+        //only need to be done once per optimization loop
+        protected bool PreliminaryChecksSSAndImage(StructureSet ss, List<string> targetIDs)
         {
-            StructureSet ss = plan.StructureSet;
             //check if the user assigned the imaging device Id. If not, the optimization will crash with no error
             if (ss.Image.Series.ImagingDeviceId == "")
             {
@@ -187,36 +188,25 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             //is the user origin inside the body?
             if (!ss.Image.HasUserOrigin || !(ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").IsPointInsideSegment(ss.Image.UserOrigin)))
             {
-                ProvideUIUpdate(String.Format("Did you forget to set the user origin?" + Environment.NewLine + "User origin is NOT inside body contour!" + Environment.NewLine + "Please fix and try again!"),true);
+                ProvideUIUpdate(String.Format("Did you forget to set the user origin?" + Environment.NewLine + "User origin is NOT inside body contour!" + Environment.NewLine + "Please fix and try again!"), true);
                 return true;
             }
 
-            //are there beams in the plan?
-            if (plan.Beams.Count() == 0)
+            foreach(string itr in targetIDs)
             {
-                ProvideUIUpdate("No beams present in the VMAT TBI plan!", true);
-                return true;
+                if(!ss.Structures.Any(x => x.Id.ToLower() == itr && !x.IsEmpty))
+                {
+                    ProvideUIUpdate(String.Format("Error! Target: {0} is missing from structure set or empty! Please fix and try again!", itr), true);
+                    return true;
+                }
             }
+            return false;
+        }
 
-            //check each beam to ensure the isoposition is rounded-off to the nearest 5mm
-            foreach (Beam b in plan.Beams) if(CheckIsocenterPositions(ss.Image.DicomToUser(b.IsocenterPosition, plan), b.Id)) return true;
-
-            //ensure the ptv structures are NOT null
-            //if (ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_body") == null || ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_vmat") == null)
-            //{
-            //    MessageBox.Show("Error! Target structure(s) not found!");
-            //    return true;
-            //}
-            if (ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_csi") == null)
-            {
-                MessageBox.Show("Error! Target structure(s) not found!");
-                return true;
-            }
-
+        protected bool PreliminaryChecksCouch(StructureSet ss)
+        {
             //grab all couch structures including couch surface, rails, etc. Also grab the matchline and spinning manny couch (might not be present depending on the size of the patient)
             List<Structure> couchAndRails = ss.Structures.Where(x => x.Id.ToLower().Contains("couch") || x.Id.ToLower().Contains("rail")).ToList();
-            Structure matchline = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "matchline");
-            Structure spinningManny = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinmannysurface" || x.Id.ToLower() == "couchmannysurfac");
 
             //check to see if the couch and rail structures are present in the structure set. If not, let the user know as an FYI. At this point, the user can choose to stop the optimization loop and add the couch structures
             if (!couchAndRails.Any())
@@ -231,6 +221,17 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                 }
             }
 
+            //now check if the couch and spinning manny structures are present on the first and last slices of the CT image
+            if ((couchAndRails.Any() && couchAndRails.Where(x => !x.IsEmpty).Any()) &&
+                (couchAndRails.Where(x => x.GetContoursOnImagePlane(0).Any()).Any() || couchAndRails.Where(x => x.GetContoursOnImagePlane(ss.Image.ZSize - 1).Any()).Any())) _checkSupportStructures = true;
+
+            return false;
+        }
+
+        protected bool PreliminaryChecksSpinningManny(StructureSet ss)
+        {
+            Structure spinningManny = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinmannysurface" || x.Id.ToLower() == "couchmannysurfac");
+            Structure matchline = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "matchline");
             //check if there is a matchline contour. If so, is it empty?
             if (matchline != null && !matchline.IsEmpty)
             {
@@ -244,120 +245,130 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                     if (!CUI.confirm) return true;
                 }
             }
+            if ((spinningManny != null && !spinningManny.IsEmpty) && (spinningManny.GetContoursOnImagePlane(0).Any() || spinningManny.GetContoursOnImagePlane(ss.Image.ZSize - 1).Any())) _checkSupportStructures = true;
 
-            //now check if the couch and spinning manny structures are present on the first and last slices of the CT image
-            bool checkSupportStruct = false;
-            if ((couchAndRails.Any() && couchAndRails.Where(x => !x.IsEmpty).Any()) && (couchAndRails.Where(x => x.GetContoursOnImagePlane(0).Any()).Any() || couchAndRails.Where(x => x.GetContoursOnImagePlane(ss.Image.ZSize - 1).Any()).Any())) checkSupportStruct = true;
-            if (!checkSupportStruct && (spinningManny != null && !spinningManny.IsEmpty) && (spinningManny.GetContoursOnImagePlane(0).Any() || spinningManny.GetContoursOnImagePlane(ss.Image.ZSize - 1).Any())) checkSupportStruct = true;
-            if (checkSupportStruct)
+            return false;
+        }
+
+        protected bool CheckSupportStructures(List<Course> courses, StructureSet ss)
+        {
+            //couch structures found on first and last slices of CT image. Ask the user if they want to remove the contours for these structures on these image slices
+            //We've found that eclipse will throw warning messages after each dose calculation if the couch structures are on the last slices of the CT image. The reason is because a beam could exit the support
+            //structure (i.e., the couch) through the end of the couch thus exiting the CT image altogether. Eclipse warns that you are transporting radiation through a structure at the end of the CT image, which
+            //defines the world volume (i.e., outside this volume, the radiation transport is killed)
+            confirmUI CUI = new confirmUI();
+            CUI.message.Text = String.Format("I found couch contours on the first or last slices of the CT image!") + Environment.NewLine + Environment.NewLine +
+                                                "Do you want to remove them?!" + Environment.NewLine + "(The script will be less likely to throw warnings)";
+            CUI.ShowDialog();
+            //remove all applicable contours on the first and last CT slices
+            if (CUI.confirm)
             {
-                //couch structures found on first and last slices of CT image. Ask the user if they want to remove the contours for these structures on these image slices
-                //We've found that eclipse will throw warning messages after each dose calculation if the couch structures are on the last slices of the CT image. The reason is because a beam could exit the support
-                //structure (i.e., the couch) through the end of the couch thus exiting the CT image altogether. Eclipse warns that you are transporting radiation through a structure at the end of the CT image, which
-                //defines the world volume (i.e., outside this volume, the radiation transport is killed)
-                confirmUI CUI = new confirmUI();
-                CUI.message.Text = String.Format("I found couch contours on the first or last slices of the CT image!") + Environment.NewLine + Environment.NewLine + 
-                                                 "Do you want to remove them?!" + Environment.NewLine + "(The script will be less likely to throw warnings)";
-                CUI.ShowDialog();
-                //remove all applicable contours on the first and last CT slices
-                if (CUI.confirm)
+                //If dose has been calculated for this plan, need to clear the dose in this and any and all plans that reference this structure set
+                //check to see if this structure set is used in any other calculated plans
+                string message = "The following plans have dose calculated and use the same structure set:" + Environment.NewLine;
+                List<ExternalPlanSetup> otherPlans = new List<ExternalPlanSetup> { };
+                foreach (Course c in courses)
                 {
-                    bool recalcDose = false;
-
-                    //If dose has been calculated for this plan, need to clear the dose in this and any and all plans that reference this structure set
-                    //check to see if this structure set is used in any other calculated plans
-                    string message = "The following plans have dose calculated and use the same structure set:" + Environment.NewLine;
-                    List<ExternalPlanSetup> otherPlans = new List<ExternalPlanSetup> { };
-                    foreach (Course c in plan.Course.Patient.Courses)
+                    foreach (ExternalPlanSetup p in c.ExternalPlanSetups)
                     {
-                        foreach (ExternalPlanSetup p in c.ExternalPlanSetups)
+                        if (p.IsDoseValid && p.StructureSet == ss)
                         {
-                            if (p.IsDoseValid && p.StructureSet == ss)
-                            {
-                                message += String.Format("Course: {0}, Plan: {1}", c.Id, p.Id) + Environment.NewLine;
-                                otherPlans.Add(p);
-                            }
-                        }
-                    }
-
-                    if (plan.IsDoseValid || otherPlans.Count > 0)
-                    {
-                        message += Environment.NewLine + "I need to reset the dose matrix, crop the structures, then re-calculate the dose." + Environment.NewLine + "Continue?!";
-                        //8-15-2020 dumbass way around the whole "dose has been calculated, you can't change anything!" issue.
-                        CUI = new confirmUI();
-                        CUI.message.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-                        CUI.message.Text = message;
-                        CUI.ShowDialog();
-                        //the user dosen't want to continue
-                        if (!CUI.confirm) return true;
-                        else
-                        {
-                            //reset the calculation models for all plans that have calculated dose and share this structure set (inherently wipes the dose)
-                            if (otherPlans.Where(x => x != plan).Any()) recalcDose = true;
-                            foreach (ExternalPlanSetup p in otherPlans)
-                            {
-                                string calcModel = p.GetCalculationModel(CalculationType.PhotonVolumeDose);
-                                p.ClearCalculationModel(CalculationType.PhotonVolumeDose);
-                                p.SetCalculationModel(CalculationType.PhotonVolumeDose, calcModel);
-                            }
-                        }
-                    }
-                    foreach (Structure s in couchAndRails)
-                    {
-                        //check to ensure the structure is actually contoured (otherwise you will likely get an error if the structure is null)
-                        if (!s.IsEmpty)
-                        {
-                            s.ClearAllContoursOnImagePlane(0);
-                            s.ClearAllContoursOnImagePlane(ss.Image.ZSize - 1);
-                        }
-                    }
-                    if (spinningManny != null && !spinningManny.IsEmpty)
-                    {
-                        spinningManny.ClearAllContoursOnImagePlane(0);
-                        spinningManny.ClearAllContoursOnImagePlane(ss.Image.ZSize - 1);
-                    }
-                    if(recalcDose)
-                    {
-                        //recalculate dose for each plan that requires it for the current course only!
-                        foreach (ExternalPlanSetup p in otherPlans)
-                        {
-                            if (p != plan && p.Course == plan.Course)
-                            {
-                                p.CalculateDose();
-                            }
+                            message += String.Format("Course: {0}, Plan: {1}", c.Id, p.Id) + Environment.NewLine;
+                            otherPlans.Add(p);
                         }
                     }
                 }
+
+                if (otherPlans.Count > 0)
+                {
+                    message += Environment.NewLine + "I need to reset the dose matrix, crop the structures, then re-calculate the dose." + Environment.NewLine + "Continue?!";
+                    //8-15-2020 dumbass way around the whole "dose has been calculated, you can't change anything!" issue.
+                    CUI = new confirmUI();
+                    CUI.message.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+                    CUI.message.Text = message;
+                    CUI.ShowDialog();
+                    //the user dosen't want to continue
+                    if (!CUI.confirm) return true;
+                    else
+                    {
+                        List<ExternalPlanSetup> planRecalcList = new List<ExternalPlanSetup> { };
+                        foreach (ExternalPlanSetup itr in otherPlans) if (!_data.plans.Where(x => x == itr).Any()) planRecalcList.Add(itr);
+
+                        //reset dose matrix for ALL plans
+                        ResetDoseMatrix(otherPlans);
+                        //crop the couch structures
+                        CropCouchStructures(ss);
+                        //only recalculate dose for all plans that are not currently up for optimization
+                        ReCalculateDose(planRecalcList);
+                    }
+                }
+            }
+            return false;
+        }
+
+        private void ResetDoseMatrix(List<ExternalPlanSetup> plans)
+        {
+            foreach (ExternalPlanSetup p in plans)
+            {
+                string calcModel = p.GetCalculationModel(CalculationType.PhotonVolumeDose);
+                p.ClearCalculationModel(CalculationType.PhotonVolumeDose);
+                p.SetCalculationModel(CalculationType.PhotonVolumeDose, calcModel);
+            }
+        }
+
+        private bool CropCouchStructures(StructureSet ss)
+        {
+            foreach (Structure s in ss.Structures.Where(x => x.Id.ToLower().Contains("couch") || x.Id.ToLower().Contains("rail")))
+            {
+                //check to ensure the structure is actually contoured (otherwise you will likely get an error if the structure is null)
+                if (!s.IsEmpty)
+                {
+                    s.ClearAllContoursOnImagePlane(0);
+                    s.ClearAllContoursOnImagePlane(ss.Image.ZSize - 1);
+                }
+            }
+            Structure spinningManny = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinmannysurface" || x.Id.ToLower() == "couchmannysurfac");
+            if (spinningManny != null && !spinningManny.IsEmpty)
+            {
+                spinningManny.ClearAllContoursOnImagePlane(0);
+                spinningManny.ClearAllContoursOnImagePlane(ss.Image.ZSize - 1);
+            }
+            return false;
+        }
+
+        private void ReCalculateDose(List<ExternalPlanSetup> plans)
+        {
+            //recalculate dose for each plan that requires it
+            foreach (ExternalPlanSetup p in plans)
+            {
+                p.CalculateDose();
+            }
+        }
+        
+        protected bool PreliminaryChecksPlans(ExternalPlanSetup plan)
+        {
+            if (plan.Beams.Count() == 0)
+            {
+                ProvideUIUpdate("No beams present in the VMAT TBI plan!", true);
+                return true;
             }
 
-            //turn on jaw tracking
+            //check each beam to ensure the isoposition is rounded-off to the nearest 5mm
+            foreach (Beam b in plan.Beams) if(CheckIsocenterPositions(plan.StructureSet.Image.DicomToUser(b.IsocenterPosition, plan), b.Id)) return true;
+
+            //turn on jaw tracking if available
             try { plan.OptimizationSetup.UseJawTracking = true; }
             catch (Exception e) { ProvideUIUpdate($"{e.Message}\nCannot set jaw tracking for this machine! Jaw tracking will not be enabled!"); }
             //set auto NTO priority to zero (i.e., shut it off)
             plan.OptimizationSetup.AddAutomaticNormalTissueObjective(0.0);
             //be sure to set the dose value presentation to absolute! This is important for plan evaluation in the evaluateAndUpdatePlan method below
             plan.DoseValuePresentation = DoseValuePresentation.Absolute;
-
-            if (GetAbortStatus())
-            {
-                KillOptimizationLoop();
-                return true;
-            }
             return false;
         }
-        #endregion
 
-        #region optimization loop
-        protected virtual bool RunOptimizationLoop()
+        private bool CheckIsocenterPositions(VVector pos, string beamId)
         {
-            return false;
-        }
-        #endregion
-
-        #region helper functions
-        protected bool CheckIsocenterPositions(VVector pos, string beamId)
-        {
-            for(int i = 0; i < 3; i++)
+            for (int i = 0; i < 3; i++)
             {
                 //check that isocenter positions are rounded to the nearest 5 mm
                 //ProvideUIUpdate(String.Format("i, pos[i], pos[i] % 1, beam id \n{0}, {1}, {2}, {3}", i, pos[i], Math.Abs(pos[i]) % 5, beamId));
@@ -370,7 +381,16 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             }
             return false;
         }
+        #endregion
 
+        #region optimization loop
+        protected virtual bool RunOptimizationLoop()
+        {
+            return false;
+        }
+        #endregion
+
+        #region helper functions during optimization
         protected bool OptimizePlan(bool isDemo, OptimizationOptionsVMAT options, ExternalPlanSetup plan, VMS.TPS.Common.Model.API.Application app)
         {
             if(isDemo) Thread.Sleep(3000);

@@ -26,26 +26,125 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             try
             {
                 SetAbortUIStatus("Runnning");
+                //preliminary checks
                 PrintRunSetupInfo();
-                if (preliminaryChecks(_data.plan)) return true;
+                if (PreliminaryChecksSSAndImage(_data.selectedSS, new List<string> { })) return true;
+                if (PreliminaryChecksCouch(_data.selectedSS)) return true;
+                if (_checkSupportStructures)
+                {
+                    if(CheckSupportStructures(_data.plans.First().Course.Patient.Courses.ToList(), _data.selectedSS)) return true;
+                }
+                foreach(ExternalPlanSetup itr in _data.plans) if (PreliminaryChecksPlans(itr)) return true;
 
-                if (_data.numOptimizations < 1)
-                {
-                    UpdateConstraints(_data.optParams, _data.plan);
-                    ProvideUIUpdate(100);
-                }
-                else
-                {
-                    if (RunOptimizationLoop()) return true;
-                }
+                if (RunOptimizationLoop()) return true;
                 OptimizationLoopFinished();
             }
             catch (Exception e) { ProvideUIUpdate(String.Format("{0}", e.Message), true); return true; }
             return false;
         }
 
-        #region optimization loop
+        private int[,,] GetArray(EvaluationDose e)
+        {
+            int[,,] array = new int[e.XSize, e.YSize, e.ZSize];
+            int totalslices = e.ZSize;
+            for(int i = 0; i < totalslices; i++)
+            {
+                int[,] tmpArray = new int[e.XSize, e.YSize];
+                e.GetVoxels(i, tmpArray);
+                for (int j = 0; j < e.XSize; j++)
+                {
+                    //int[] array1row = Enumerable.Range(0, array1.GetLength(1)).Select(x => array1[j, x]).ToArray();
+                    //int[] array2row = Enumerable.Range(0, array2.GetLength(1)).Select(x => array2[j, x]).ToArray();
+                    //int[] sum = array1row.Zip(array2row, (x, y) => x + y).ToArray();
+                    for (int k = 0; k < e.YSize; k++)
+                    {
+                        //sumArray[j, k] = sum[k];
+                        array[j, k, i] = tmpArray[j, k];
+                    }
+
+                }
+            }
+            return array;
+        }
+
         protected override bool RunOptimizationLoop()
+        {
+            //need to determine if we only need to optimize one plan (or an initial and boost plan)
+            //if (_data.plans.Count == 1) if(RunOptimizationLoopInitialPlanOnly()) return true;
+            //else
+            //{
+            //create evaluation plan
+            ExternalPlanSetup evalPlan = _data.plan.Course.AddExternalPlanSetup(_data.selectedSS);
+            evalPlan.Id = "Eval Plan";
+            evalPlan.CopyEvaluationDose(_data.plans.First().Dose);
+            EvaluationDose e1 = evalPlan.DoseAsEvaluationDose;
+            int[,,] array1 = GetArray(e1);
+            ProvideUIUpdate(String.Format("Retrieved eval doses for initial"));
+
+            //if (e1 == null)
+            //{
+            //    ProvideUIUpdate("e1 is null", true);
+            //    return true;
+            //}
+            evalPlan.CopyEvaluationDose(_data.plans.Last().Dose);
+            EvaluationDose e2 = evalPlan.DoseAsEvaluationDose;
+            int[,,] array2 = GetArray(e2);
+            ProvideUIUpdate(String.Format("Retrieved eval doses for boost"));
+
+            //if (e2 == null)
+            //{
+            //    ProvideUIUpdate("e2 is null", true);
+            //    return true;
+            //}
+            EvaluationDose summed = evalPlan.CreateEvaluationDose();
+            if (summed == null)
+            {
+                ProvideUIUpdate("summed is null", true);
+                return true;
+            }
+            int totalslices = e1.ZSize;
+            for (int i = 0; i < totalslices; i++)
+            {
+                ProvideUIUpdate((int)(100 * (i + 1) / totalslices), String.Format("Summing eval doses from slice: {0}", i));
+                int[,] sumArray = new int[e1.XSize, e1.YSize];
+                //int[,] array1 = new int[e1.XSize, e1.YSize];
+                //int[,] array2 = new int[e1.XSize,e1.YSize];
+                //e1.GetVoxels(i, array1);
+                //e2.GetVoxels(i, array2);
+                for(int j = 0; j < e1.XSize; j++)
+                {
+                    //int[] array1row = Enumerable.Range(0, array1.GetLength(1)).Select(x => array1[j, x]).ToArray();
+                    //int[] array2row = Enumerable.Range(0, array2.GetLength(1)).Select(x => array2[j, x]).ToArray();
+                    //int[] sum = array1row.Zip(array2row, (x, y) => x + y).ToArray();
+                    for (int k = 0; k < e1.YSize; k++)
+                    {
+                        //sumArray[j, k] = sum[k];
+                        sumArray[j, k] = array1[j,k,i] + array2[j,k,i];
+                    }
+
+                }
+                try
+                {
+                    summed.SetVoxels(i, sumArray);
+                }
+                catch (Exception e) { ProvideUIUpdate(e.Message, true); return true; }
+            }
+            ProvideUIUpdate(String.Format("{0}", summed.DoseMax3D));
+            ProvideUIUpdate(String.Format("{0}", evalPlan.Dose.DoseMax3D));
+            double maxDose = (evalPlan.Dose.DoseMax3D.Dose * _data.plan.TotalDose.Dose) / 100;
+            ProvideUIUpdate(String.Format("{0}", maxDose));
+            ProvideUIUpdate(String.Format("{0}", _data.plan.Course.PlanSetups.First().Dose.DoseMax3D.Dose / maxDose));
+            ProvideUIUpdate(String.Format(" Brain V5000cGy {0:0.0}%", evalPlan.GetVolumeAtDose(_data.selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "brain"),new DoseValue(100*(5000.0/1200.0), DoseValue.DoseUnit.Percent),VolumePresentation.Relative)));
+            _data.app.SaveModifications();
+            //if (e1 == null) ProvideUIUpdate("Eval dose is null", true);
+            //else ProvideUIUpdate($"{e1.Id} is not null");
+            //EvaluationDose e2 = _data.plans.Last().DoseAsEvaluationDose;
+            //}
+            return false;
+        }
+
+        #region initial plan only optimization loop
+        private bool RunOptimizationLoopInitialPlanOnly()
         {
             int percentCompletion = 0;
             int calcItems = 100;
@@ -183,6 +282,13 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
 
             ProvideUIUpdate(100, Environment.NewLine + " Finished!");
             if (!_data.isDemo && _data.oneMoreOpt) _data.app.SaveModifications();
+            return false;
+        }
+        #endregion
+
+        #region sequential plans optimization loop
+        private bool RunSequentialPlansOptimizationLoop()
+        {
             return false;
         }
         #endregion

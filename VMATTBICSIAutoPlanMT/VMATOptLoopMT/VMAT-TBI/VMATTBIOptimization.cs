@@ -27,7 +27,16 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             {
                 SetAbortUIStatus("Runnning");
                 PrintRunSetupInfo();
-                if (preliminaryChecks(_data.plan)) return true;
+                //preliminary checks
+                PrintRunSetupInfo();
+                if (PreliminaryChecksSSAndImage(_data.selectedSS, new List<string> { })) return true;
+                if (PreliminaryChecksCouch(_data.selectedSS)) return true;
+                if (PreliminaryChecksSpinningManny(_data.selectedSS)) return true;
+                if (_checkSupportStructures)
+                {
+                    if (CheckSupportStructures(_data.plans.First().Course.Patient.Courses.ToList(), _data.selectedSS)) return true;
+                }
+                foreach (ExternalPlanSetup itr in _data.plans) if (PreliminaryChecksPlans(itr)) return true;
 
                 if (_data.isDemo || !_data.runCoverageCheck) ProvideUIUpdate(" Skipping coverage check! Moving on to optimization loop!");
                 else
@@ -35,15 +44,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                     if (RunCoverageCheck(_data.optParams, _data.plan, _data.relativeDose, _data.targetVolCoverage, _data.useFlash)) return true;
                     ProvideUIUpdate(" Coverage check completed! Commencing optimization loop!");
                 }
-                if (_data.numOptimizations < 1)
-                {
-                    UpdateConstraints(_data.optParams, _data.plan);
-                    ProvideUIUpdate(100);
-                }
-                else
-                {
-                    if (RunOptimizationLoop()) return true;
-                }
+                if (RunOptimizationLoop()) return true;
                 OptimizationLoopFinished();
             }
             catch (Exception e) { ProvideUIUpdate(String.Format("{0}", e.Message), true); return true; }
@@ -51,7 +52,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
         }
 
         #region coverage check
-        protected bool RunCoverageCheck(List<Tuple<string, string, double, double, int>> optParams, ExternalPlanSetup plan, double relativeDose, double targetVolCoverage, bool useFlash)
+        private bool RunCoverageCheck(List<Tuple<string, string, double, double, int>> optParams, ExternalPlanSetup plan, double relativeDose, double targetVolCoverage, bool useFlash)
         {
             ProvideUIUpdate(" Running coverage check..." + Environment.NewLine);
             //zero all optimization objectives except those in the target
@@ -174,7 +175,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                 if (!_data.isDemo && _data.copyAndSavePlanItr && (_data.oneMoreOpt || ((count + 1) != _data.numOptimizations))) CopyAndSavePlan(_data.plan, count);
 
                 //print the results of the quality check for this optimization
-                string optResults = Environment.NewLine + GetOptimizationResultsHeader();
+                ProvideUIUpdate(Environment.NewLine + GetOptimizationResultsHeader());
                 int index = 0;
                 //structure, dvh data, current dose obj, dose diff^2, cost, current priority, priority difference
                 foreach (Tuple<Structure, DVHData, double, double, double, int> itr in e.diffPlanOpt)
@@ -183,10 +184,9 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                     //grab the structure id from the optParams list (better to work with string literals rather than trying to access the structure id through the structure object instance in the diffPlanOpt data structure)
                     id = _data.optParams.ElementAt(index).Item1;
                     //"structure Id", "constraint type", "dose diff^2 (cGy^2)", "current priority", "cost", "cost (%)"
-                    optResults += String.Format(" {0, -15} | {1, -16} | {2, -20:N1} | {3, -16} | {4, -12:N1} | {5, -9:N1} |" + Environment.NewLine, id, _data.optParams.ElementAt(index).Item2, itr.Item4, itr.Item6, itr.Item5, 100 * itr.Item5 / e.totalCostPlanOpt);
+                    ProvideUIUpdate(String.Format(" {0, -15} | {1, -16} | {2, -20:N1} | {3, -16} | {4, -12:N1} | {5, -9:N1} |", id, _data.optParams.ElementAt(index).Item2, itr.Item4, itr.Item6, itr.Item5, 100 * itr.Item5 / e.totalCostPlanOpt));
                     index++;
                 }
-                ProvideUIUpdate(optResults);
 
                 PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, _data.plan);
 
@@ -210,10 +210,10 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                 }
 
                 //print the updated optimization objectives to the user
-                string newObj = Environment.NewLine + GetOptimizationObjectivesHeader();
+                ProvideUIUpdate(Environment.NewLine + GetOptimizationObjectivesHeader());
                 foreach (Tuple<string, string, double, double, int> itr in e.updatedObj)
-                    newObj += String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5);
-                ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), newObj);
+                    ProvideUIUpdate(String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5));
+                ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems));
 
                 //update the optimization constraints in the plan
                 UpdateConstraints(e.updatedObj, _data.plan);

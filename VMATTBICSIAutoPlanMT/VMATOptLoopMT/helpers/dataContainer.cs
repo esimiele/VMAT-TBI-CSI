@@ -15,6 +15,7 @@ namespace VMATTBICSIOptLoopMT.helpers
         public Application app;
         public List<ExternalPlanSetup> plans;
         public ExternalPlanSetup plan;
+        public StructureSet selectedSS;
         public string id;
         public int numOptimizations;
         public double targetVolCoverage;
@@ -54,7 +55,8 @@ namespace VMATTBICSIOptLoopMT.helpers
             optParams = param;
 
             plans = new List<ExternalPlanSetup>(p);
-            if (plans.Count == 1) plan = plans.First();
+            plan = plans.First();
+            selectedSS = plans.First().StructureSet;
             id = plans.First().Course.Patient.Id;
             numOptimizations = numOpt;
 
