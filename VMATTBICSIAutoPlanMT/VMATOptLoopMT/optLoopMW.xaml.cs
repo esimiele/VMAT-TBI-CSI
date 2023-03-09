@@ -13,6 +13,7 @@ using VMATTBICSIAutoplanningHelpers.helpers;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 using VMATTBICSIAutoplanningHelpers.TemplateClasses;
 using VMATTBICSIOptLoopMT.VMAT_CSI;
+using VMATTBICSIOptLoopMT.VMAT_TBI;
 using VMATTBICSIOptLoopMT.Prompts;
 using System.Collections.ObjectModel;
 using System.Reflection;
@@ -545,6 +546,7 @@ namespace VMATTBICSIOptLoopMT
             //create a new instance of the structure dataContainer and assign the optimization loop parameters entered by the user to the various data members
             dataContainer data = new dataContainer();
             data.construct(plans, 
+                           prescriptions,
                            optParametersListList.First().Item2, 
                            objectives, 
                            requestedTSstructures, 
@@ -564,7 +566,8 @@ namespace VMATTBICSIOptLoopMT
             //start the optimization loop (all saving to the database is performed in the progressWindow class)
             //use a bit of polymorphism
             optimizationLoopBase optLoop;
-            optLoop = new VMATCSIOptimization(data);
+            if(string.Equals(planType,"VMAT CSI")) optLoop = new VMATCSIOptimization(data);
+            else optLoop = new VMATTBIOptimization(data);
             optLoop.Execute();
         }
 

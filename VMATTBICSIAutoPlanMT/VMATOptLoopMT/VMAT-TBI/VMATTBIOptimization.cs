@@ -87,7 +87,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Dose calculated for coverage check, normalizing plan!");
 
             //normalize plan
-            normalizePlan(plan, relativeDose, targetVolCoverage, useFlash);
+            normalizePlan(plan, GetTargetForPlan(_data.selectedSS, "", useFlash), relativeDose, targetVolCoverage);
             if (GetAbortStatus())
             {
                 KillOptimizationLoop();
@@ -149,7 +149,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
 
                 //normalize
-                normalizePlan(_data.plan, _data.relativeDose, _data.targetVolCoverage, _data.useFlash);
+                normalizePlan(_data.plan, GetTargetForPlan(_data.selectedSS, "", _data.useFlash), _data.relativeDose, _data.targetVolCoverage);
                 if (GetAbortStatus())
                 {
                     KillOptimizationLoop();
@@ -241,7 +241,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}" + Environment.NewLine, GetElapsedTime()));
 
                 //normalize
-                normalizePlan(_data.plan, _data.relativeDose, _data.targetVolCoverage, _data.useFlash);
+                normalizePlan(_data.plan, GetTargetForPlan(_data.selectedSS, "", _data.useFlash), _data.relativeDose, _data.targetVolCoverage);
 
                 //print requested additional info about the plan
                 PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, _data.plan);
@@ -280,7 +280,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                     ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Dose calculated, normalizing plan!");
                     ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
                     //"trick" the normalizePlan method into thinking we are not using flash. Therefore, it will normalize to TS_PTV_VMAT instead of TS_PTV_FLASH (i.e., set useFlash to false)
-                    normalizePlan(_data.plan, _data.relativeDose, _data.targetVolCoverage, false);
+                    normalizePlan(_data.plan, GetTargetForPlan(_data.selectedSS, "", false), _data.relativeDose, _data.targetVolCoverage);
                 }
             }
             ProvideUIUpdate(100, Environment.NewLine + " Finished!");

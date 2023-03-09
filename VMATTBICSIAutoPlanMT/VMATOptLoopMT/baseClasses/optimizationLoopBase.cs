@@ -495,16 +495,37 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             }
         }
 
-        public void normalizePlan(ExternalPlanSetup plan, double relativeDose, double targetVolCoverage, bool useFlash)
+        //planId, targetId
+        protected List<Tuple<string, string>> GetPlanTargetList(List<Tuple<string, string, int, double, double>> list)
+        {
+            List<Tuple<string, string>> plansTargets = new List<Tuple<string, string>> { };
+            if (!list.Any()) return plansTargets;
+            List<Tuple<string, string, int, double, double>> tmpList = list.OrderBy(x => x.Item5).ToList();
+            string tmpTarget = tmpList.First().Item2;
+            string tmpPlan = tmpList.First().Item1;
+            foreach(Tuple<string,string,int,double,double> itr in tmpList)
+            {
+                //check if this is the start of a new plan, if so, the the previous target was the highest dose target in the previous plan
+                if(!string.Equals(itr.Item1, tmpPlan))
+                {
+                    plansTargets.Add(Tuple.Create<string,string>(tmpPlan, tmpTarget));
+                    tmpPlan = itr.Item1;
+                }
+                tmpTarget = itr.Item2;
+            }
+            plansTargets.Add(Tuple.Create<string, string>(tmpPlan, tmpTarget));
+            foreach (Tuple<string, string> itr in plansTargets) ProvideUIUpdate(String.Format("{0}, {1}", itr.Item1, itr.Item2));
+
+            return plansTargets;
+        }
+
+        public bool normalizePlan(ExternalPlanSetup plan, Structure target, double relativeDose, double targetVolCoverage)
         {
             //in demo mode, dose might not be calculated for the plan
-            if (!plan.IsDoseValid) return;
+            if (!plan.IsDoseValid) return true;
+            if (target == null || target.IsEmpty) return true;
             //how to normalize a plan in the ESAPI workspace:
             //reference: https://github.com/VarianAPIs/Varian-Code-Samples/blob/master/webinars%20%26%20workshops/Research%20Symposium%202015/Eclipse%20Scripting%20API/Projects/AutomatedPlanningDemo/PlanGeneration.cs
-            Structure target;
-            //if (!useFlash) target = plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_vmat");
-            if (useFlash) target = plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_flash");
-            else target = plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_csi");
             plan.PlanNormalizationValue = 100.0;
             //absolute dose
             double RxDose = plan.TotalDose.Dose;
@@ -519,9 +540,28 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             {
                 //get the dose that does cover the targetVolCoverage of the target volume and scale the dose distribution by the ratio of that dose to the relative prescription dose
                 dv = plan.GetDoseAtVolume(target, targetVolCoverage, VolumePresentation.Relative, DoseValuePresentation.Absolute);
-                plan.PlanNormalizationValue = 100.0 * dv.Dose / (relativeDose * RxDose / 100);
+                double normValue = 100.0 * dv.Dose / (relativeDose * RxDose / 100);
+                if (normValue < 0.01 || normValue > 10000.0) return true;
+                plan.PlanNormalizationValue = normValue;
                 //MessageBox.Show(String.Format("{0}, {1}, {2}", dv, plan.PlanNormalizationValue, plan.Dose.DoseMax3D.Dose));
             }
+            return false;
+        }
+
+        protected Structure GetTargetForPlan(StructureSet ss, string targetId, bool useFlash)
+        {
+            Structure target = null;
+            if(string.IsNullOrEmpty(targetId))
+            {
+                //if (!useFlash) target = plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_vmat");
+                if (useFlash) target = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_flash");
+                else target = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_csi");
+            }
+            else
+            {
+                target = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == targetId);
+            }
+            return target;
         }
         #endregion
 

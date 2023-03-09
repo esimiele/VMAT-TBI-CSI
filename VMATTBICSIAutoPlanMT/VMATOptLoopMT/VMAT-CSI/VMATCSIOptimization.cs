@@ -43,103 +43,129 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             return false;
         }
 
-        private int[,,] GetArray(EvaluationDose e)
+        #region plan sum
+        private ExternalPlanSetup CreatePlanSum(StructureSet ss, List<ExternalPlanSetup> thePlans)
         {
-            int[,,] array = new int[e.XSize, e.YSize, e.ZSize];
-            int totalslices = e.ZSize;
-            for(int i = 0; i < totalslices; i++)
+            //create evaluation plan
+            ExternalPlanSetup evalPlan = null;
+            ExternalPlanSetup initialPlan = thePlans.First();
+            if (initialPlan.Course.CanAddPlanSetup(ss))
             {
-                int[,] tmpArray = new int[e.XSize, e.YSize];
-                e.GetVoxels(i, tmpArray);
-                for (int j = 0; j < e.XSize; j++)
+                evalPlan = initialPlan.Course.AddExternalPlanSetup(ss);
+                if(!initialPlan.Course.ExternalPlanSetups.Any(x => x.Id == "Eval Plan")) evalPlan.Id = "Eval Plan";
+                else evalPlan.Id = "Eval Plan1";
+                ProvideUIUpdate(String.Format("Successfully created evaluation plan (plan sum): {0}", evalPlan.Id));
+                ProvideUIUpdate(String.Format("Assigning prescription to plan sum: {0}", evalPlan.Id));
+                int totalFx = 0;
+                foreach (ExternalPlanSetup itr in thePlans) totalFx += (int)itr.NumberOfFractions;
+                //assumes dose per fraction is the same between the initial and boost plans
+                evalPlan.SetPrescription(totalFx, initialPlan.DosePerFraction, 1.0);
+                evalPlan.DoseValuePresentation = DoseValuePresentation.Absolute;
+                ProvideUIUpdate(String.Format("Prescription:"));
+                ProvideUIUpdate(String.Format("    Dose per fraction: {0} cGy/fx", evalPlan.DosePerFraction.Dose));
+                ProvideUIUpdate(String.Format("    Number of fractions: {0}", evalPlan.NumberOfFractions));
+                ProvideUIUpdate(String.Format("    Total dose: {0} cGy", evalPlan.TotalDose.Dose));
+            }
+            else
+            {
+                ProvideUIUpdate("Error! Could not create plan sum!", true);
+            }
+            return evalPlan;
+        }
+
+        private bool BuildPlanSum(ExternalPlanSetup evalPlan, List<ExternalPlanSetup> thePlans)
+        {
+            //grab the initial and boost plans
+            ExternalPlanSetup initialPlan = thePlans.First();
+            ExternalPlanSetup boostPlan = thePlans.Last();
+            ProvideUIUpdate(String.Format("Building plan sum from: {0} and {1}!", initialPlan.Id, boostPlan.Id));
+            int zSize = initialPlan.Dose.ZSize;
+            int[][,] summedDoses = CreateSummedDoseArray(zSize, evalPlan, initialPlan, boostPlan);
+            AssignSummedDoseToEvalPlan(evalPlan, summedDoses, zSize);
+            return false;
+        }
+
+        private int[][,] CreateSummedDoseArray(int totalSlices, ExternalPlanSetup sum, ExternalPlanSetup initialPlan, ExternalPlanSetup boostPlan)
+        {
+            ProvideUIUpdate("Summing the dose distributions from initial and boost plans");
+            int xSize = initialPlan.Dose.XSize;
+            int ySize = initialPlan.Dose.YSize;
+            double initialScaleFactor = 100 * initialPlan.TotalDose.Dose / (sum.TotalDose.Dose * initialPlan.PlanNormalizationValue);
+            double boostScaleFactor = 100 * boostPlan.TotalDose.Dose / (sum.TotalDose.Dose * boostPlan.PlanNormalizationValue);
+            int[][,] sumArray = new int[totalSlices][,];
+            for (int i = 0; i < totalSlices; i++)
+            {
+                ProvideUIUpdate((int)(100 * (i + 1) / totalSlices), String.Format("Summing doses from slice: {0}", i));
+                //need to initialize jagged array before using
+                sumArray[i] = new int[xSize, ySize];
+                //get dose arrays from initial and boost plans (better to use more memory and initialize two arrays rather than putting this in a loop to limit the
+                //number of times we iterate over the entire image slices
+                int[,] array1 = GetDoseArray(sum.CopyEvaluationDose(initialPlan.Dose), i);
+                int[,] array2 = GetDoseArray(sum.CopyEvaluationDose(boostPlan.Dose), i);
+                for (int j = 0; j < xSize; j++)
                 {
+                    //fancy linq methods to sum entire rows at once
                     //int[] array1row = Enumerable.Range(0, array1.GetLength(1)).Select(x => array1[j, x]).ToArray();
                     //int[] array2row = Enumerable.Range(0, array2.GetLength(1)).Select(x => array2[j, x]).ToArray();
                     //int[] sum = array1row.Zip(array2row, (x, y) => x + y).ToArray();
-                    for (int k = 0; k < e.YSize; k++)
+                    for (int k = 0; k < ySize; k++)
                     {
-                        //sumArray[j, k] = sum[k];
-                        array[j, k, i] = tmpArray[j, k];
+                        sumArray[i][j, k] = (int)(array1[j, k] * initialScaleFactor) + (int)(array2[j, k] * boostScaleFactor);
                     }
-
                 }
             }
-            return array;
+            ProvideUIUpdate("Finished summing the dose distributions.");
+            return sumArray;
         }
 
-        protected override bool RunOptimizationLoop()
+        private int[,] GetDoseArray(EvaluationDose e, int slice)
         {
-            //need to determine if we only need to optimize one plan (or an initial and boost plan)
-            //if (_data.plans.Count == 1) if(RunOptimizationLoopInitialPlanOnly()) return true;
-            //else
-            //{
-            //create evaluation plan
-            ExternalPlanSetup evalPlan = _data.plan.Course.AddExternalPlanSetup(_data.selectedSS);
-            evalPlan.Id = "Eval Plan";
-            evalPlan.CopyEvaluationDose(_data.plans.First().Dose);
-            EvaluationDose e1 = evalPlan.DoseAsEvaluationDose;
-            int[,,] array1 = GetArray(e1);
-            ProvideUIUpdate(String.Format("Retrieved eval doses for initial"));
+            int[,] buffer = new int[e.XSize, e.YSize];
+            e.GetVoxels(slice, buffer);
+            return buffer;
+        }
 
-            //if (e1 == null)
-            //{
-            //    ProvideUIUpdate("e1 is null", true);
-            //    return true;
-            //}
-            evalPlan.CopyEvaluationDose(_data.plans.Last().Dose);
-            EvaluationDose e2 = evalPlan.DoseAsEvaluationDose;
-            int[,,] array2 = GetArray(e2);
-            ProvideUIUpdate(String.Format("Retrieved eval doses for boost"));
-
-            //if (e2 == null)
-            //{
-            //    ProvideUIUpdate("e2 is null", true);
-            //    return true;
-            //}
+        private bool AssignSummedDoseToEvalPlan(ExternalPlanSetup evalPlan, int[][,] summedDoses, int totalSlices)
+        {
+            //testing 3/9/23
+            //max dose and structure DVHs are within 0.1% between evaluation plan and true plan sum
+            //this needs to be done outside the above loop because as soon as we call createevaluationdose, it will wipe anything we have assigned to the eval plan thus far
+            ProvideUIUpdate(String.Format("Assigning summed doses to eval plan: {0}", evalPlan.Id));
             EvaluationDose summed = evalPlan.CreateEvaluationDose();
             if (summed == null)
             {
                 ProvideUIUpdate("summed is null", true);
                 return true;
             }
-            int totalslices = e1.ZSize;
-            for (int i = 0; i < totalslices; i++)
+            try
             {
-                ProvideUIUpdate((int)(100 * (i + 1) / totalslices), String.Format("Summing eval doses from slice: {0}", i));
-                int[,] sumArray = new int[e1.XSize, e1.YSize];
-                //int[,] array1 = new int[e1.XSize, e1.YSize];
-                //int[,] array2 = new int[e1.XSize,e1.YSize];
-                //e1.GetVoxels(i, array1);
-                //e2.GetVoxels(i, array2);
-                for(int j = 0; j < e1.XSize; j++)
+                for (int i = 0; i < totalSlices; i++)
                 {
-                    //int[] array1row = Enumerable.Range(0, array1.GetLength(1)).Select(x => array1[j, x]).ToArray();
-                    //int[] array2row = Enumerable.Range(0, array2.GetLength(1)).Select(x => array2[j, x]).ToArray();
-                    //int[] sum = array1row.Zip(array2row, (x, y) => x + y).ToArray();
-                    for (int k = 0; k < e1.YSize; k++)
-                    {
-                        //sumArray[j, k] = sum[k];
-                        sumArray[j, k] = array1[j,k,i] + array2[j,k,i];
-                    }
-
+                    summed.SetVoxels(i, summedDoses[i]);
                 }
-                try
-                {
-                    summed.SetVoxels(i, sumArray);
-                }
-                catch (Exception e) { ProvideUIUpdate(e.Message, true); return true; }
             }
-            ProvideUIUpdate(String.Format("{0}", summed.DoseMax3D));
-            ProvideUIUpdate(String.Format("{0}", evalPlan.Dose.DoseMax3D));
-            double maxDose = (evalPlan.Dose.DoseMax3D.Dose * _data.plan.TotalDose.Dose) / 100;
-            ProvideUIUpdate(String.Format("{0}", maxDose));
-            ProvideUIUpdate(String.Format("{0}", _data.plan.Course.PlanSetups.First().Dose.DoseMax3D.Dose / maxDose));
-            ProvideUIUpdate(String.Format(" Brain V5000cGy {0:0.0}%", evalPlan.GetVolumeAtDose(_data.selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "brain"),new DoseValue(100*(5000.0/1200.0), DoseValue.DoseUnit.Percent),VolumePresentation.Relative)));
+            catch (Exception e) 
+            { 
+                ProvideUIUpdate(e.Message, true); 
+                return true; 
+            }
+            ProvideUIUpdate(String.Format("Finished assigning summed doses to eval plan: {0}", evalPlan.Id));
+            return false;
+        }
+        #endregion
+
+        protected override bool RunOptimizationLoop()
+        {
+            //need to determine if we only need to optimize one plan (or an initial and boost plan)
+            if (_data.plans.Count == 1)
+            {
+                if (RunOptimizationLoopInitialPlanOnly()) return true;
+            }
+            else
+            {
+                if(RunSequentialPlansOptimizationLoop()) return true;
+            }
             _data.app.SaveModifications();
-            //if (e1 == null) ProvideUIUpdate("Eval dose is null", true);
-            //else ProvideUIUpdate($"{e1.Id} is not null");
-            //EvaluationDose e2 = _data.plans.Last().DoseAsEvaluationDose;
-            //}
             return false;
         }
 
@@ -182,7 +208,8 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
 
                 //normalize
-                normalizePlan(_data.plan, _data.relativeDose, _data.targetVolCoverage, _data.useFlash);
+                normalizePlan(_data.plan, GetTargetForPlan(_data.selectedSS, "", _data.useFlash), _data.relativeDose, _data.targetVolCoverage);
+
                 if (GetAbortStatus())
                 {
                     KillOptimizationLoop();
@@ -274,7 +301,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}" + Environment.NewLine, GetElapsedTime()));
 
                 //normalize
-                normalizePlan(_data.plan, _data.relativeDose, _data.targetVolCoverage, _data.useFlash);
+                normalizePlan(_data.plan, GetTargetForPlan(_data.selectedSS, "", _data.useFlash), _data.relativeDose, _data.targetVolCoverage);
 
                 //print requested additional info about the plan
                 PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, _data.plan);
@@ -289,6 +316,46 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
         #region sequential plans optimization loop
         private bool RunSequentialPlansOptimizationLoop()
         {
+            List<Tuple<string, string>> plansTargets = GetPlanTargetList(_data.prescriptions);
+            if(!plansTargets.Any())
+            {
+                ProvideUIUpdate("Error! Prescriptions are missing! Cannot determine the appropriate target for each plan! Exiting!", true);
+                return true;
+            }
+            int percentCompletion = 0;
+            int calcItems = 100;
+            //first need to create a plan sum
+            ExternalPlanSetup evalPlan = CreatePlanSum(_data.selectedSS, _data.plans);
+            if (evalPlan == null) return true;
+
+            ProvideUIUpdate(" Starting optimization loop!");
+            int count = 0;
+            while(count < _data.numOptimizations)
+            {
+                ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), String.Format(" Iteration {0}:", count + 1));
+                ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
+
+                foreach (ExternalPlanSetup itr in _data.plans)
+                {
+                    ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), String.Format(" Optimizing plan: {0}!", itr.Id));
+                    if (OptimizePlan(_data.isDemo, new OptimizationOptionsVMAT(OptimizationIntermediateDoseOption.NoIntermediateDose, ""), itr, _data.app)) return true;
+                    ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Optimization finished! Calculating dose!");
+                    if (CalculateDose(_data.isDemo, itr, _data.app)) return true;
+                    ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Dose calculated, normalizing plan!");
+                    //normalize
+                    normalizePlan(itr, GetTargetForPlan(_data.selectedSS, plansTargets.FirstOrDefault(x => x.Item1 == itr.Id).Item2, _data.useFlash), _data.relativeDose, _data.targetVolCoverage);
+                    if (GetAbortStatus())
+                    {
+                        KillOptimizationLoop();
+                        return true;
+                    }
+                    ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), String.Format(" Plan normalized!"));
+                    ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
+                }
+                if (BuildPlanSum(evalPlan, _data.plans)) return true;
+                count++;
+            }
+
             return false;
         }
         #endregion
