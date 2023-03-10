@@ -3,12 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
+using System.Windows.Threading;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIOptLoopMT.PlanEvaluation;
 using VMATTBICSIOptLoopMT.baseClasses;
 using VMATTBICSIOptLoopMT.helpers;
+using VMATTBICSIAutoplanningHelpers.MTWorker;
+using System.Windows;
+using System.IO;
+using System.Runtime.CompilerServices;
+using System.Diagnostics;
 
 namespace VMATTBICSIOptLoopMT.VMAT_CSI
 {
@@ -337,6 +342,18 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
 
                 foreach (ExternalPlanSetup itr in _data.plans)
                 {
+                    //string exeName = "ParallelTest";
+                    //string path = AppExePath(exeName);
+                    //if (!string.IsNullOrEmpty(path))
+                    //{
+                    //    ProcessStartInfo p = new ProcessStartInfo(path);
+                    //    p.Arguments = String.Format("{0} {1}", _data.id, itr.UID);
+                    //    Process.Start(p);
+                    //}
+                    //else ProvideUIUpdate("Executable path was empty");
+                    //Testing t = new Testing(_data.isDemo, itr);
+                    //Thread worker = new Thread(t.Run);
+                    //worker.Start(t);
                     ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), String.Format(" Optimizing plan: {0}!", itr.Id));
                     if (OptimizePlan(_data.isDemo, new OptimizationOptionsVMAT(OptimizationIntermediateDoseOption.NoIntermediateDose, ""), itr, _data.app)) return true;
                     ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Optimization finished! Calculating dose!");
@@ -352,12 +369,68 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                     ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), String.Format(" Plan normalized!"));
                     ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
                 }
+                
                 if (BuildPlanSum(evalPlan, _data.plans)) return true;
                 count++;
             }
 
             return false;
         }
+
+        private string AppExePath(string exeName)
+        {
+            return FirstExePathIn(Path.GetDirectoryName(GetSourceFilePath()), exeName);
+        }
+
+        private string FirstExePathIn(string dir, string exeName)
+        {
+            return Directory.GetFiles(dir, "*.exe").FirstOrDefault(x => x.Contains(exeName));
+        }
+
+        private string GetSourceFilePath([CallerFilePath] string sourceFilePath = "")
+        {
+            return @"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\Research\VMAT-TBI-CSI\bin\";
+        }
+
         #endregion
+    }
+
+    public class Testing
+    {
+        private ExternalPlanSetup _plan;
+        private bool _demo;
+        public Testing(bool d, ExternalPlanSetup p)
+        {
+            _demo = d;
+            _plan = p;
+        }
+
+        public void Run(object o)
+        {
+            Testing t = (Testing)o;
+            CalculateDose(t._demo, t._plan);
+        }
+
+        public bool CalculateDose(bool isDemo, ExternalPlanSetup plan)
+        {
+            if (isDemo) Thread.Sleep(3000);
+            else
+            {
+                string id = plan.Id;
+                MessageBox.Show(id);
+                //try
+                //{
+                //    CalculationResult calcRes = plan.CalculateDose();
+                //}
+                //catch (Exception except)
+                //{
+                //    MessageBox.Show(except.Message);
+                //    //PrintFailedMessage("Dose calculation", except.Message);
+                //    return true;
+                //}
+            }
+           
+            return false;
+        }
     }
 }

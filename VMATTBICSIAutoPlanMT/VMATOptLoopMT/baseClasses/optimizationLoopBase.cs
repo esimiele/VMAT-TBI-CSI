@@ -396,7 +396,6 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             if(isDemo) Thread.Sleep(3000);
             else
             {
-                //optimize with intermediate dose (AAA algorithm).
                 try
                 {
                     OptimizerResult optRes = plan.OptimizeVMAT(options);
@@ -422,12 +421,11 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             return false;
         }
 
-        protected bool CalculateDose(bool isDemo, ExternalPlanSetup plan, VMS.TPS.Common.Model.API.Application app)
+        public bool CalculateDose(bool isDemo, ExternalPlanSetup plan, VMS.TPS.Common.Model.API.Application app)
         {
             if (isDemo) Thread.Sleep(3000);
             else
             {
-                //calculate dose
                 try
                 {
                     CalculationResult calcRes = plan.CalculateDose();
