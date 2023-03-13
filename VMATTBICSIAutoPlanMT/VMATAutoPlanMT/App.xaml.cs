@@ -21,14 +21,13 @@ namespace VMATAutoPlanMT
             Window mw;
             List<string> theArguments = new List<string> { };
             for(int i = 0; i < e.Args.Length; i++) theArguments.Add(e.Args[i]);
+            theArguments.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\General_configuration.ini");
             if (SO.isVMATTBI) 
             { 
-                theArguments.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_TBI_config.ini"); 
                 mw = new TBIAutoPlanMW(theArguments); 
             }
             else if (SO.isVMATCSI) 
             { 
-                theArguments.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_CSI_config.ini"); 
                 mw = new VMAT_CSI.CSIAutoPlanMW(theArguments);
             } 
             else return;

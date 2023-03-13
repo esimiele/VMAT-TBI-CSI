@@ -139,9 +139,6 @@ namespace VMATTBICSIOptLoopMT.MTProgressInfo
 
         private void updateLogFile(string output)
         {
-            //this is here to check if the directory and file already exist. An alternative method would be to create a streamwriter in the constructor of this class, but because this program runs for several hours and I have no
-            //control over the shared drive, there may be a situation where the streamwriter is created and wants to write to the file after a few hours and (for whatever reason) the directory/file is gone. In this case, it would likely
-            //crash the program
             if (Directory.Exists(logPath))
             {
                 output += Environment.NewLine;

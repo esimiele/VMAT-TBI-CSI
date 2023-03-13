@@ -10,7 +10,6 @@ using System.Diagnostics;
 using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.Reflection;
-using VMATAutoPlanMT.Prompts;
 using VMATAutoPlanMT.Logging;
 using VMATTBICSIAutoplanningHelpers.TemplateClasses;
 using VMATTBICSIAutoplanningHelpers.helpers;
@@ -110,14 +109,16 @@ namespace VMATAutoPlanMT.VMAT_CSI
             catch (Exception e) { MessageBox.Show(String.Format("Warning! Could not generate Aria application instance because: {0}", e.Message)); }
             string mrn = "";
             string ss = "";
-            string configurationFile = "";
-            if (args.Count == 1) configurationFile = args.ElementAt(0);
+            List<string> configurationFiles = new List<string> { };
+            if (args.Count == 1) configurationFiles.Add(args.ElementAt(0));
             else
             {
                 mrn = args.ElementAt(0);
                 ss = args.ElementAt(1);
-                configurationFile = args.ElementAt(2);
+                configurationFiles.Add(args.ElementAt(2));
             }
+            configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_CSI_config.ini");
+
             log = new Logger(logPath, "VMAT CSI", mrn);
             if (app != null)
             {
@@ -171,7 +172,11 @@ namespace VMATAutoPlanMT.VMAT_CSI
             templateBuildOptionCB.Items.Add("Existing template");
             templateBuildOptionCB.Items.Add("Current parameters");
             //load script configuration and display the settings
-            if (configurationFile != "") loadConfigurationSettings(configurationFile);
+            if (configurationFiles.Any())
+            {
+                foreach(string itr in configurationFiles) loadConfigurationSettings(itr);
+            }
+            LoadPlanTemplates();
             DisplayConfigurationParameters();
             targetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
         }
@@ -939,6 +944,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             optimizationSetupTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             //list the plan UIDs by creation date (initial always gets created first, then boost)
             foreach (ExternalPlanSetup itr in VMATplans.OrderBy(x => x.CreationDateTime)) log.planUIDs.Add(itr.UID);
+            isModified = true;
         }
         #endregion
 
@@ -1634,9 +1640,9 @@ namespace VMATAutoPlanMT.VMAT_CSI
             configTB.Text += String.Format(" Contour field ovelap: {0}", contourOverlap) + Environment.NewLine;
             configTB.Text += String.Format(" Contour field overlap margin: {0} cm", contourFieldOverlapMargin) + Environment.NewLine;
             configTB.Text += String.Format(" Available linacs:") + Environment.NewLine;
-            foreach (string l in linacs) configTB.Text += string.Format(" {0}", l) + Environment.NewLine;
+            foreach (string l in linacs) configTB.Text += string.Format("     {0}", l) + Environment.NewLine;
             configTB.Text += String.Format(" Available photon energies:") + Environment.NewLine;
-            foreach (string e in beamEnergies) configTB.Text += string.Format(" {0}", e) + Environment.NewLine;
+            foreach (string e in beamEnergies) configTB.Text += string.Format("     {0}", e) + Environment.NewLine;
             configTB.Text += String.Format(" Beams per isocenter: ");
             for (int i = 0; i < beamsPerIso.Length; i++)
             {
@@ -1652,18 +1658,22 @@ namespace VMATAutoPlanMT.VMAT_CSI
             }
             configTB.Text += Environment.NewLine;
             configTB.Text += String.Format(" Field jaw position (cm) order: ") + Environment.NewLine;
-            configTB.Text += String.Format(" (x1,y1,x2,y2)") + Environment.NewLine;
-            foreach (VRect<double> j in jawPos) configTB.Text += String.Format(" ({0:0.0},{1:0.0},{2:0.0},{3:0.0})", j.X1 / 10, j.Y1 / 10, j.X2 / 10, j.Y2 / 10) + Environment.NewLine;
+            configTB.Text += String.Format("     (x1,y1,x2,y2)") + Environment.NewLine;
+            foreach (VRect<double> j in jawPos) configTB.Text += String.Format("     ({0:0.0},{1:0.0},{2:0.0},{3:0.0})", j.X1 / 10, j.Y1 / 10, j.X2 / 10, j.Y2 / 10) + Environment.NewLine;
             configTB.Text += String.Format(" Photon dose calculation model: {0}", calculationModel) + Environment.NewLine;
             configTB.Text += String.Format(" Use GPU for dose calculation: {0}", useGPUdose) + Environment.NewLine;
             configTB.Text += String.Format(" Photon optimization model: {0}", optimizationModel) + Environment.NewLine;
             configTB.Text += String.Format(" Use GPU for optimization: {0}", useGPUoptimization) + Environment.NewLine;
             configTB.Text += String.Format(" MR level restart at: {0}", MRrestartLevel) + Environment.NewLine + Environment.NewLine;
 
-            configTB.Text += String.Format(" Requested general tuning structures:") + Environment.NewLine;
-            configTB.Text += String.Format("  {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + Environment.NewLine;
-            foreach (Tuple<string, string> ts in defaultTS_structures) configTB.Text += String.Format("  {0, -10} | {1, -15} |" + Environment.NewLine, ts.Item1, ts.Item2);
-            configTB.Text += Environment.NewLine;
+            if (defaultTS_structures.Any())
+            {
+                configTB.Text += String.Format(" Requested general tuning structures:") + Environment.NewLine;
+                configTB.Text += String.Format("  {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + Environment.NewLine;
+                foreach (Tuple<string, string> ts in defaultTS_structures) configTB.Text += String.Format("  {0, -10} | {1, -15} |" + Environment.NewLine, ts.Item1, ts.Item2);
+                configTB.Text += Environment.NewLine;
+            }
+            else configTB.Text += String.Format(" No general tuning structures requested!") + Environment.NewLine + Environment.NewLine;
 
             if (defaultTSStructureManipulations.Any())
             {
@@ -1742,7 +1752,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //PlanTemplates = new ObservableCollection<CSIAutoPlanTemplate> { new CSIAutoPlanTemplate("--select--") };
             //PlanTemplates.Add(new CSIAutoPlanTemplate("--select--"));
             OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.InitialDirectory = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\configuration\\";
+            openFileDialog.InitialDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\";
             openFileDialog.Filter = "ini files (*.ini)|*.ini|All files (*.*)|*.*";
 
             if (openFileDialog.ShowDialog().Value) 
@@ -1772,115 +1782,108 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
                     while ((line = reader.ReadLine()) != null)
                     {
-                        //start actually reading the data when you find the begin plugin configuration tag
-                        if (line.Equals(":begin plugin configuration:"))
+                        //this line contains useful information (i.e., it is not a comment)
+                        if (!string.IsNullOrEmpty(line) && line.Substring(0, 1) != "%")
                         {
-                            while (!(line = reader.ReadLine()).Equals(":end plugin configuration:"))
+                            //useful info on this line in the format of parameter=value
+                            //parse parameter and value separately using '=' as the delimeter
+                            if (line.Contains("="))
                             {
-                                //this line contains useful information (i.e., it is not a comment)
-                                if (!string.IsNullOrEmpty(line) && line.Substring(0, 1) != "%")
+                                //default configuration parameters
+                                string parameter = line.Substring(0, line.IndexOf("="));
+                                string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
+                                if (parameter == "documentation path")
                                 {
-                                    //useful info on this line in the format of parameter=value
-                                    //parse parameter and value separately using '=' as the delimeter
-                                    if (line.Contains("="))
+                                    if (Directory.Exists(value))
                                     {
-                                        //default configuration parameters
-                                        string parameter = line.Substring(0, line.IndexOf("="));
-                                        string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
-                                        if (parameter == "documentation path")
-                                        {
-                                            if (Directory.Exists(value))
-                                            {
-                                                documentationPath = value;
-                                                if (documentationPath.LastIndexOf("\\") != documentationPath.Length - 1) documentationPath += "\\";
-                                            }
-                                        }
-                                        else if (parameter == "log file path")
-                                        {
-                                            if (Directory.Exists(value))
-                                            {
-                                                logPath = value;
-                                                if (logPath.LastIndexOf("\\") != logPath.Length - 1) logPath += "\\";
-                                            }
-                                        }
-                                        else if (parameter == "img export location")
-                                        {
-                                            if (Directory.Exists(value))
-                                            {
-                                                imgExportPath = value;
-                                                if (imgExportPath.LastIndexOf("\\") != imgExportPath.Length - 1) imgExportPath += "\\";
-                                            }
-                                            else MessageBox.Show(String.Format("Warning! {0} does NOT exist!", value));
-                                        }
-                                        else if (parameter == "beams per iso")
-                                        {
-                                            //parse the default requested number of beams per isocenter
-                                            line = helper.cropLine(line, "{");
-                                            List<int> b = new List<int> { };
-                                            //second character should not be the end brace (indicates the last element in the array)
-                                            while (line.Substring(1, 1) != "}")
-                                            {
-                                                b.Add(int.Parse(line.Substring(0, line.IndexOf(","))));
-                                                line = helper.cropLine(line, ",");
-                                            }
-                                            b.Add(int.Parse(line.Substring(0, line.IndexOf("}"))));
-                                            //only override the requested number of beams in the beamsPerIso array  
-                                            for (int i = 0; i < b.Count(); i++) { if (i < beamsPerIso.Count()) beamsPerIso[i] = b.ElementAt(i); }
-                                        }
-                                        else if (parameter == "collimator rotations")
-                                        {
-                                            //parse the default requested number of beams per isocenter
-                                            line = helper.cropLine(line, "{");
-                                            List<double> c = new List<double> { };
-                                            //second character should not be the end brace (indicates the last element in the array)
-                                            while (line.Contains(","))
-                                            {
-                                                c.Add(double.Parse(line.Substring(0, line.IndexOf(","))));
-                                                line = helper.cropLine(line, ",");
-                                            }
-                                            c.Add(double.Parse(line.Substring(0, line.IndexOf("}"))));
-                                            for (int i = 0; i < c.Count(); i++) { if (i < 5) collRot[i] = c.ElementAt(i); }
-                                        }
-                                        else if (parameter == "img export format") { if (value == "dcm" || value == "png") imgExportFormat = value; else MessageBox.Show("Only png and dcm image formats are supported for export!"); }
-                                        else if (parameter == "use GPU for dose calculation") useGPUdose = value;
-                                        else if (parameter == "use GPU for optimization") useGPUoptimization = value;
-                                        else if (parameter == "MR level restart") MRrestartLevel = value;
-                                        //other parameters that should be updated
-                                        else if (parameter == "calculation model") { if (value != "") calculationModel = value; }
-                                        else if (parameter == "optimization model") { if (value != "") optimizationModel = value; }
-                                        else if (parameter == "contour field overlap") { if (value != "") contourOverlap = bool.Parse(value); }
-                                        else if (parameter == "contour field overlap margin") { if (value != "") contourFieldOverlapMargin = value; }
-                                    }
-                                    else if (line.Contains("add default sparing structure")) defaultTSManipulations_temp.Add(helper.parseSparingStructure(line));
-                                    else if (line.Contains("add default TS")) defaultTSstructures_temp.Add(helper.parseTS(line));
-                                    else if (line.Contains("add linac"))
-                                    {
-                                        //parse the linacs that should be added. One entry per line
-                                        line = helper.cropLine(line, "{");
-                                        linac_temp.Add(line.Substring(0, line.IndexOf("}")));
-                                    }
-                                    else if (line.Contains("add beam energy"))
-                                    {
-                                        //parse the photon energies that should be added. One entry per line
-                                        line = helper.cropLine(line, "{");
-                                        energy_temp.Add(line.Substring(0, line.IndexOf("}")));
-                                    }
-                                    else if (line.Contains("add jaw position"))
-                                    {
-                                        //parse the default requested number of beams per isocenter
-                                        line = helper.cropLine(line, "{");
-                                        List<double> tmp = new List<double> { };
-                                        //second character should not be the end brace (indicates the last element in the array)
-                                        while (line.Contains(","))
-                                        {
-                                            tmp.Add(double.Parse(line.Substring(0, line.IndexOf(","))));
-                                            line = helper.cropLine(line, ",");
-                                        }
-                                        tmp.Add(double.Parse(line.Substring(0, line.IndexOf("}"))));
-                                        if (tmp.Count != 4) MessageBox.Show("Error! Jaw positions not defined correctly!");
-                                        else jawPos_temp.Add(new VRect<double>(tmp.ElementAt(0), tmp.ElementAt(1), tmp.ElementAt(2), tmp.ElementAt(3)));
+                                        documentationPath = value;
+                                        if (documentationPath.LastIndexOf("\\") != documentationPath.Length - 1) documentationPath += "\\";
                                     }
                                 }
+                                else if (parameter == "log file path")
+                                {
+                                    if (Directory.Exists(value))
+                                    {
+                                        logPath = value;
+                                        if (logPath.LastIndexOf("\\") != logPath.Length - 1) logPath += "\\";
+                                    }
+                                }
+                                else if (parameter == "img export location")
+                                {
+                                    if (Directory.Exists(value))
+                                    {
+                                        imgExportPath = value;
+                                        if (imgExportPath.LastIndexOf("\\") != imgExportPath.Length - 1) imgExportPath += "\\";
+                                    }
+                                    else MessageBox.Show(String.Format("Warning! {0} does NOT exist!", value));
+                                }
+                                else if (parameter == "beams per iso")
+                                {
+                                    //parse the default requested number of beams per isocenter
+                                    line = helper.cropLine(line, "{");
+                                    List<int> b = new List<int> { };
+                                    //second character should not be the end brace (indicates the last element in the array)
+                                    while (line.Substring(1, 1) != "}")
+                                    {
+                                        b.Add(int.Parse(line.Substring(0, line.IndexOf(","))));
+                                        line = helper.cropLine(line, ",");
+                                    }
+                                    b.Add(int.Parse(line.Substring(0, line.IndexOf("}"))));
+                                    //only override the requested number of beams in the beamsPerIso array  
+                                    for (int i = 0; i < b.Count(); i++) { if (i < beamsPerIso.Count()) beamsPerIso[i] = b.ElementAt(i); }
+                                }
+                                else if (parameter == "collimator rotations")
+                                {
+                                    //parse the default requested number of beams per isocenter
+                                    line = helper.cropLine(line, "{");
+                                    List<double> c = new List<double> { };
+                                    //second character should not be the end brace (indicates the last element in the array)
+                                    while (line.Contains(","))
+                                    {
+                                        c.Add(double.Parse(line.Substring(0, line.IndexOf(","))));
+                                        line = helper.cropLine(line, ",");
+                                    }
+                                    c.Add(double.Parse(line.Substring(0, line.IndexOf("}"))));
+                                    for (int i = 0; i < c.Count(); i++) { if (i < 5) collRot[i] = c.ElementAt(i); }
+                                }
+                                else if (parameter == "img export format") { if (value == "dcm" || value == "png") imgExportFormat = value; else MessageBox.Show("Only png and dcm image formats are supported for export!"); }
+                                else if (parameter == "use GPU for dose calculation") useGPUdose = value;
+                                else if (parameter == "use GPU for optimization") useGPUoptimization = value;
+                                else if (parameter == "MR level restart") MRrestartLevel = value;
+                                //other parameters that should be updated
+                                else if (parameter == "calculation model") { if (value != "") calculationModel = value; }
+                                else if (parameter == "optimization model") { if (value != "") optimizationModel = value; }
+                                else if (parameter == "contour field overlap") { if (value != "") contourOverlap = bool.Parse(value); }
+                                else if (parameter == "contour field overlap margin") { if (value != "") contourFieldOverlapMargin = value; }
+                            }
+                            else if (line.Contains("add default sparing structure")) defaultTSManipulations_temp.Add(helper.parseSparingStructure(line));
+                            else if (line.Contains("add default TS")) defaultTSstructures_temp.Add(helper.parseTS(line));
+                            else if (line.Contains("add linac"))
+                            {
+                                //parse the linacs that should be added. One entry per line
+                                line = helper.cropLine(line, "{");
+                                linac_temp.Add(line.Substring(0, line.IndexOf("}")));
+                            }
+                            else if (line.Contains("add beam energy"))
+                            {
+                                //parse the photon energies that should be added. One entry per line
+                                line = helper.cropLine(line, "{");
+                                energy_temp.Add(line.Substring(0, line.IndexOf("}")));
+                            }
+                            else if (line.Contains("add jaw position"))
+                            {
+                                //parse the default requested number of beams per isocenter
+                                line = helper.cropLine(line, "{");
+                                List<double> tmp = new List<double> { };
+                                //second character should not be the end brace (indicates the last element in the array)
+                                while (line.Contains(","))
+                                {
+                                    tmp.Add(double.Parse(line.Substring(0, line.IndexOf(","))));
+                                    line = helper.cropLine(line, ",");
+                                }
+                                tmp.Add(double.Parse(line.Substring(0, line.IndexOf("}"))));
+                                if (tmp.Count != 4) MessageBox.Show("Error! Jaw positions not defined correctly!");
+                                else jawPos_temp.Add(new VRect<double>(tmp.ElementAt(0), tmp.ElementAt(1), tmp.ElementAt(2), tmp.ElementAt(3)));
                             }
                         }
                     }
@@ -1892,12 +1895,32 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     if (defaultTSManipulations_temp.Any()) defaultTSStructureManipulations = new List<Tuple<string, string, double>>(defaultTSManipulations_temp);
                     if (defaultTSstructures_temp.Any()) defaultTS_structures = new List<Tuple<string, string>>(defaultTSstructures_temp);
                 }
-                int count = 1;
-                foreach (string itr in Directory.GetFiles(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\", "*.ini").OrderBy(x => x)) PlanTemplates.Add(helper.readTemplatePlan(itr, count++));
+                
                 return false;
             }
             //let the user know if the data parsing failed
-            catch (Exception e) { MessageBox.Show(String.Format("Error could not load configuration file because: {0}\n\nAssuming default parameters", e.Message)); return true; }
+            catch (Exception e) 
+            { 
+                MessageBox.Show(String.Format("Error could not load configuration file because: {0}\n\nAssuming default parameters", e.Message)); 
+                return true; 
+            }
+        }
+
+        private bool LoadPlanTemplates()
+        {
+            int count = 1;
+            ConfigurationHelper helper = new ConfigurationHelper();
+            try
+            {
+                foreach (string itr in Directory.GetFiles(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\CSI\\", "*.ini").OrderBy(x => x)) PlanTemplates.Add(helper.readTemplatePlan(itr, count++));
+
+            }
+            catch(Exception e)
+            {
+                MessageBox.Show(String.Format("Error could not load plan template file because: {0}", e.Message));
+                return true;
+            }
+            return false;
         }
 
         #endregion
@@ -1912,10 +1935,12 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 SD.ShowDialog();
                 if (SD.save) app.SaveModifications();
                 if (!autoSave && !SD.save) log.AppendLogOutput("Modifications NOT saved to database!");
-                else log.AppendLogOutput("Modifications saved to database!");
+                else
+                {
+                    log.AppendLogOutput("Modifications saved to database!");
+                    log.Dump();
+                }
             }
-            else log.AppendLogOutput("No changes made to database objects!");
-            log.Dump();
             if (app != null)
             {
                 if (pi != null) app.ClosePatient();

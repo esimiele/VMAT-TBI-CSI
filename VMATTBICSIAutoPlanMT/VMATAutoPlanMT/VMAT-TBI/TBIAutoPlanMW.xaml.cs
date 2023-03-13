@@ -2,17 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
+using System.Reflection;
 using System.Windows.Controls;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.IO;
 using System.Diagnostics;
 using Microsoft.Win32;
-using System.Windows.Threading;
-using System.Threading;
 using VMATTBICSIAutoplanningHelpers.helpers;
 using VMATTBICSIAutoplanningHelpers.Prompts;
-using VMATAutoPlanMT.Prompts;
 
 namespace VMATAutoPlanMT
 {
@@ -195,14 +193,16 @@ namespace VMATAutoPlanMT
             catch (Exception e) { MessageBox.Show(String.Format("Warning! Could not generate Aria application instance because: {0}", e.Message)); }
             string mrn = "";
             string ss = "";
-            string configurationFile = "";
-            if (args.Count == 1) configurationFile = args.ElementAt(0);
+            List<string> configurationFiles = new List<string> { };
+            if (args.Count == 1) configurationFiles.Add(args.ElementAt(0));
             else
             {
                 mrn = args.ElementAt(0);
                 ss = args.ElementAt(1);
-                configurationFile = args.ElementAt(2);
+                configurationFiles.Add(args.ElementAt(2));
             }
+            configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_TBI_config.ini");
+
             if (app != null)
             {
                 if (string.IsNullOrEmpty(mrn) || string.IsNullOrWhiteSpace(mrn))
@@ -232,7 +232,7 @@ namespace VMATAutoPlanMT
             }
 
             //load script configuration and display the settings
-            if (configurationFile != "") loadConfigurationSettings(configurationFile);
+            if (configurationFiles.Any()) foreach(string itr in configurationFiles) loadConfigurationSettings(itr);
             displayConfigurationParameters();
 
             //pre-populate the flash comboxes (set global flash as default)
@@ -1259,158 +1259,152 @@ namespace VMATAutoPlanMT
 
                     while ((line = reader.ReadLine()) != null)
                     {
-                        //start actually reading the data when you find the begin plugin configuration tag
-                        if (line.Equals(":begin plugin configuration:"))
+                        
+                        //this line contains useful information (i.e., it is not a comment)
+                        if (!string.IsNullOrEmpty(line) && line.Substring(0, 1) != "%")
                         {
-                            while (!(line = reader.ReadLine()).Equals(":end plugin configuration:"))
+                            //useful info on this line in the format of parameter=value
+                            //parse parameter and value separately using '=' as the delimeter
+                            if (line.Contains("="))
                             {
-                                //this line contains useful information (i.e., it is not a comment)
-                                if (!string.IsNullOrEmpty(line) && line.Substring(0, 1) != "%")
+                                //default configuration parameters
+                                string parameter = line.Substring(0, line.IndexOf("="));
+                                string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
+                                //check if it's a double value
+                                if (double.TryParse(value, out double result))
                                 {
-                                    //useful info on this line in the format of parameter=value
-                                    //parse parameter and value separately using '=' as the delimeter
-                                    if (line.Contains("="))
+                                    if (parameter == "default flash margin") defaultFlashMargin = result.ToString();
+                                    else if (parameter == "default target margin") defaultTargetMargin = result.ToString();
+                                }
+                                else if (parameter == "documentation path")
+                                {
+                                    documentationPath = value;
+                                    if (documentationPath.LastIndexOf("\\") != documentationPath.Length - 1) documentationPath += "\\";
+                                }
+                                else if (parameter == "beams per iso")
+                                {
+                                    //parse the default requested number of beams per isocenter
+                                    line = cropLine(line, "{");
+                                    List<int> b = new List<int> { };
+                                    //second character should not be the end brace (indicates the last element in the array)
+                                    while (line.Substring(1, 1) != "}")
                                     {
-                                        //default configuration parameters
-                                        string parameter = line.Substring(0, line.IndexOf("="));
-                                        string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
-                                        //check if it's a double value
-                                        if (double.TryParse(value, out double result))
-                                        {
-                                            if (parameter == "default flash margin") defaultFlashMargin = result.ToString();
-                                            else if (parameter == "default target margin") defaultTargetMargin = result.ToString();
-                                        }
-                                        else if (parameter == "documentation path")
-                                        {
-                                            documentationPath = value;
-                                            if (documentationPath.LastIndexOf("\\") != documentationPath.Length - 1) documentationPath += "\\";
-                                        }
-                                        else if (parameter == "beams per iso")
-                                        {
-                                            //parse the default requested number of beams per isocenter
-                                            line = cropLine(line, "{");
-                                            List<int> b = new List<int> { };
-                                            //second character should not be the end brace (indicates the last element in the array)
-                                            while (line.Substring(1, 1) != "}")
-                                            {
-                                                b.Add(int.Parse(line.Substring(0, line.IndexOf(","))));
-                                                line = cropLine(line, ",");
-                                            }
-                                            b.Add(int.Parse(line.Substring(0, line.IndexOf("}"))));
-                                            //only override the requested number of beams in the beamsPerIso array  
-                                            for (int i = 0; i < b.Count(); i++) { if (i < beamsPerIso.Count()) beamsPerIso[i] = b.ElementAt(i); }
-                                        }
-                                        else if (parameter == "collimator rotations")
-                                        {
-                                            //parse the default requested number of beams per isocenter
-                                            line = cropLine(line, "{");
-                                            List<double> c = new List<double> { };
-                                            //second character should not be the end brace (indicates the last element in the array)
-                                            while (line.Contains(","))
-                                            {
-                                                c.Add(double.Parse(line.Substring(0, line.IndexOf(","))));
-                                                line = cropLine(line, ",");
-                                            }
-                                            c.Add(double.Parse(line.Substring(0, line.IndexOf("}"))));
-                                            for (int i = 0; i < c.Count(); i++) { if (i < 5) collRot[i] = c.ElementAt(i); }
-                                        }
-                                        else if (parameter == "use GPU for dose calculation") useGPUdose = value;
-                                        else if (parameter == "use GPU for optimization") useGPUoptimization = value;
-                                        else if (parameter == "MR level restart") MRrestartLevel = value;
-                                        //other parameters that should be updated
-                                        else if (parameter == "use flash by default") useFlashByDefault = bool.Parse(value);
-                                        else if (parameter == "default flash type") { if (value != "") defaultFlashType = value; }
-                                        else if (parameter == "calculation model") { if (value != "") calculationModel = value; }
-                                        else if (parameter == "optimization model") { if (value != "") optimizationModel = value; }
-                                        else if (parameter == "contour field overlap") { if (value != "") contourOverlap = bool.Parse(value); }
-                                        else if (parameter == "contour field overlap margin") { if (value != "") contourFieldOverlapMargin = value; }
+                                        b.Add(int.Parse(line.Substring(0, line.IndexOf(","))));
+                                        line = cropLine(line, ",");
                                     }
-                                    else if (line.Contains("add default sparing structure")) defaultSpareStruct_temp.Add(parseSparingStructure(line));
-                                    else if (line.Contains("add TS")) TSstructures_temp.Add(parseTS(line));
-                                    else if (line.Contains("add sclero TS")) scleroTSstructures_temp.Add(parseTS(line));
-                                    else if (line.Contains("add linac"))
+                                    b.Add(int.Parse(line.Substring(0, line.IndexOf("}"))));
+                                    //only override the requested number of beams in the beamsPerIso array  
+                                    for (int i = 0; i < b.Count(); i++) { if (i < beamsPerIso.Count()) beamsPerIso[i] = b.ElementAt(i); }
+                                }
+                                else if (parameter == "collimator rotations")
+                                {
+                                    //parse the default requested number of beams per isocenter
+                                    line = cropLine(line, "{");
+                                    List<double> c = new List<double> { };
+                                    //second character should not be the end brace (indicates the last element in the array)
+                                    while (line.Contains(","))
                                     {
-                                        //parse the linacs that should be added. One entry per line
-                                        line = cropLine(line, "{");
-                                        linac_temp.Add(line.Substring(0, line.IndexOf("}")));
+                                        c.Add(double.Parse(line.Substring(0, line.IndexOf(","))));
+                                        line = cropLine(line, ",");
                                     }
-                                    else if (line.Contains("add beam energy"))
+                                    c.Add(double.Parse(line.Substring(0, line.IndexOf("}"))));
+                                    for (int i = 0; i < c.Count(); i++) { if (i < 5) collRot[i] = c.ElementAt(i); }
+                                }
+                                else if (parameter == "use GPU for dose calculation") useGPUdose = value;
+                                else if (parameter == "use GPU for optimization") useGPUoptimization = value;
+                                else if (parameter == "MR level restart") MRrestartLevel = value;
+                                //other parameters that should be updated
+                                else if (parameter == "use flash by default") useFlashByDefault = bool.Parse(value);
+                                else if (parameter == "default flash type") { if (value != "") defaultFlashType = value; }
+                                else if (parameter == "calculation model") { if (value != "") calculationModel = value; }
+                                else if (parameter == "optimization model") { if (value != "") optimizationModel = value; }
+                                else if (parameter == "contour field overlap") { if (value != "") contourOverlap = bool.Parse(value); }
+                                else if (parameter == "contour field overlap margin") { if (value != "") contourFieldOverlapMargin = value; }
+                            }
+                            else if (line.Contains("add default sparing structure")) defaultSpareStruct_temp.Add(parseSparingStructure(line));
+                            else if (line.Contains("add TS")) TSstructures_temp.Add(parseTS(line));
+                            else if (line.Contains("add sclero TS")) scleroTSstructures_temp.Add(parseTS(line));
+                            else if (line.Contains("add linac"))
+                            {
+                                //parse the linacs that should be added. One entry per line
+                                line = cropLine(line, "{");
+                                linac_temp.Add(line.Substring(0, line.IndexOf("}")));
+                            }
+                            else if (line.Contains("add beam energy"))
+                            {
+                                //parse the photon energies that should be added. One entry per line
+                                line = cropLine(line, "{");
+                                energy_temp.Add(line.Substring(0, line.IndexOf("}")));
+                            }
+                            else if (line.Contains("add jaw position"))
+                            {
+                                //parse the default requested number of beams per isocenter
+                                line = cropLine(line, "{");
+                                List<double> tmp = new List<double> { };
+                                //second character should not be the end brace (indicates the last element in the array)
+                                while (line.Contains(","))
+                                {
+                                    tmp.Add(double.Parse(line.Substring(0, line.IndexOf(","))));
+                                    line = cropLine(line, ",");
+                                }
+                                tmp.Add(double.Parse(line.Substring(0, line.IndexOf("}"))));
+                                if (tmp.Count != 4) MessageBox.Show("Error! Jaw positions not defined correctly!");
+                                else jawPos_temp.Add(new VRect<double>(tmp.ElementAt(0), tmp.ElementAt(1), tmp.ElementAt(2), tmp.ElementAt(3)));
+                            }
+                            else if (line.Equals(":begin scleroderma case configuration:"))
+                            {
+                                //parse the data specific to the scleroderma trial case setup
+                                while (!(line = reader.ReadLine()).Equals(":end scleroderma case configuration:"))
+                                {
+                                    if (line.Substring(0, 1) != "%")
                                     {
-                                        //parse the photon energies that should be added. One entry per line
-                                        line = cropLine(line, "{");
-                                        energy_temp.Add(line.Substring(0, line.IndexOf("}")));
-                                    }
-                                    else if (line.Contains("add jaw position"))
-                                    {
-                                        //parse the default requested number of beams per isocenter
-                                        line = cropLine(line, "{");
-                                        List<double> tmp = new List<double> { };
-                                        //second character should not be the end brace (indicates the last element in the array)
-                                        while (line.Contains(","))
+                                        if (line.Contains("="))
                                         {
-                                            tmp.Add(double.Parse(line.Substring(0, line.IndexOf(","))));
-                                            line = cropLine(line, ",");
+                                            string parameter = line.Substring(0, line.IndexOf("="));
+                                            string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
+                                            if (parameter == "dose per fraction") { if (double.TryParse(value, out double result)) scleroDosePerFx = result; }
+                                            else if (parameter == "num fx") { if (int.TryParse(value, out int fxResult)) scleroNumFx = fxResult; }
                                         }
-                                        tmp.Add(double.Parse(line.Substring(0, line.IndexOf("}"))));
-                                        if (tmp.Count != 4) MessageBox.Show("Error! Jaw positions not defined correctly!");
-                                        else jawPos_temp.Add(new VRect<double>(tmp.ElementAt(0), tmp.ElementAt(1), tmp.ElementAt(2), tmp.ElementAt(3)));
+                                        else if (line.Contains("add sparing structure")) scleroSpareStruct_temp.Add(parseSparingStructure(line));
+                                        else if (line.Contains("add opt constraint")) optConstDefaultSclero_temp.Add(parseOptimizationConstraint(line));
                                     }
-                                    else if (line.Equals(":begin scleroderma case configuration:"))
+                                }
+                            }
+                            else if (line.Equals(":begin myeloablative case configuration:"))
+                            {
+                                //parse the data specific to the myeloablative case setup
+                                while (!(line = reader.ReadLine()).Equals(":end myeloablative case configuration:"))
+                                {
+                                    if (line.Substring(0, 1) != "%")
                                     {
-                                        //parse the data specific to the scleroderma trial case setup
-                                        while (!(line = reader.ReadLine()).Equals(":end scleroderma case configuration:"))
+                                        if (line.Contains("="))
                                         {
-                                            if (line.Substring(0, 1) != "%")
-                                            {
-                                                if (line.Contains("="))
-                                                {
-                                                    string parameter = line.Substring(0, line.IndexOf("="));
-                                                    string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
-                                                    if (parameter == "dose per fraction") { if (double.TryParse(value, out double result)) scleroDosePerFx = result; }
-                                                    else if (parameter == "num fx") { if (int.TryParse(value, out int fxResult)) scleroNumFx = fxResult; }
-                                                }
-                                                else if (line.Contains("add sparing structure")) scleroSpareStruct_temp.Add(parseSparingStructure(line));
-                                                else if (line.Contains("add opt constraint")) optConstDefaultSclero_temp.Add(parseOptimizationConstraint(line));
-                                            }
+                                            string parameter = line.Substring(0, line.IndexOf("="));
+                                            string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
+                                            if (parameter == "dose per fraction") { if (double.TryParse(value, out double result)) myeloDosePerFx = result; }
+                                            else if (parameter == "num fx") { if (int.TryParse(value, out int fxResult)) myeloNumFx = fxResult; }
                                         }
+                                        else if (line.Contains("add sparing structure")) myeloSpareStruct_temp.Add(parseSparingStructure(line));
+                                        else if (line.Contains("add opt constraint")) optConstDefaultMyelo_temp.Add(parseOptimizationConstraint(line));
                                     }
-                                    else if (line.Equals(":begin myeloablative case configuration:"))
+                                }
+                            }
+                            else if (line.Equals(":begin nonmyeloablative case configuration:"))
+                            {
+                                //parse the data specific to the non-myeloablative case setup
+                                while (!(line = reader.ReadLine()).Equals(":end nonmyeloablative case configuration:"))
+                                {
+                                    if (line.Substring(0, 1) != "%")
                                     {
-                                        //parse the data specific to the myeloablative case setup
-                                        while (!(line = reader.ReadLine()).Equals(":end myeloablative case configuration:"))
+                                        if (line.Contains("="))
                                         {
-                                            if (line.Substring(0, 1) != "%")
-                                            {
-                                                if (line.Contains("="))
-                                                {
-                                                    string parameter = line.Substring(0, line.IndexOf("="));
-                                                    string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
-                                                    if (parameter == "dose per fraction") { if (double.TryParse(value, out double result)) myeloDosePerFx = result; }
-                                                    else if (parameter == "num fx") { if (int.TryParse(value, out int fxResult)) myeloNumFx = fxResult; }
-                                                }
-                                                else if (line.Contains("add sparing structure")) myeloSpareStruct_temp.Add(parseSparingStructure(line));
-                                                else if (line.Contains("add opt constraint")) optConstDefaultMyelo_temp.Add(parseOptimizationConstraint(line));
-                                            }
+                                            string parameter = line.Substring(0, line.IndexOf("="));
+                                            string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
+                                            if (parameter == "dose per fraction") { if (double.TryParse(value, out double result)) nonmyeloDosePerFx = result; }
+                                            else if (parameter == "num fx") { if (int.TryParse(value, out int fxResult)) nonmyeloNumFx = fxResult; }
                                         }
-                                    }
-                                    else if (line.Equals(":begin nonmyeloablative case configuration:"))
-                                    {
-                                        //parse the data specific to the non-myeloablative case setup
-                                        while (!(line = reader.ReadLine()).Equals(":end nonmyeloablative case configuration:"))
-                                        {
-                                            if (line.Substring(0, 1) != "%")
-                                            {
-                                                if (line.Contains("="))
-                                                {
-                                                    string parameter = line.Substring(0, line.IndexOf("="));
-                                                    string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
-                                                    if (parameter == "dose per fraction") { if (double.TryParse(value, out double result)) nonmyeloDosePerFx = result; }
-                                                    else if (parameter == "num fx") { if (int.TryParse(value, out int fxResult)) nonmyeloNumFx = fxResult; }
-                                                }
-                                                else if (line.Contains("add sparing structure")) nonmyeloSpareStruct_temp.Add(parseSparingStructure(line));
-                                                else if (line.Contains("add opt constraint")) optConstDefaultNonMyelo_temp.Add(parseOptimizationConstraint(line));
-                                            }
-                                        }
+                                        else if (line.Contains("add sparing structure")) nonmyeloSpareStruct_temp.Add(parseSparingStructure(line));
+                                        else if (line.Contains("add opt constraint")) optConstDefaultNonMyelo_temp.Add(parseOptimizationConstraint(line));
                                     }
                                 }
                             }

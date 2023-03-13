@@ -10,10 +10,10 @@ namespace VMATTBICSIOptLoopMT.baseClasses
     {
         private Dispatcher _dispatch;
         protected progressWindow _pw;
-        private StringBuilder  _logOutput;
+        //private StringBuilder  _logOutput;
         protected string logPath;
         protected string fileName;
-        public StringBuilder GetLogOutput() { return _logOutput; }
+        //public StringBuilder GetLogOutput() { return _logOutput; }
 
         public virtual bool Run()
         {
@@ -43,25 +43,26 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         {
             _dispatch = d;
             _pw = p;
+            //perform logging on progress window UI thread
             _dispatch.BeginInvoke((Action)(() => { _pw.InitializeLogFile(logPath, fileName); }));
-            _logOutput = new StringBuilder();
+            //_logOutput = new StringBuilder();
         }
 
         protected void SetAbortUIStatus(string message)
         {
-            if (!string.IsNullOrEmpty(message)) _logOutput.AppendLine(message);
+            //if (!string.IsNullOrEmpty(message)) _logOutput.AppendLine(message);
             _dispatch.BeginInvoke((Action)(() => { _pw.abortStatus.Text = message; }));
         }
 
         protected void ProvideUIUpdate(int percentComplete, string message = "", bool fail = false) 
         {
-            if(!string.IsNullOrEmpty(message)) _logOutput.AppendLine(message);
+            //if(!string.IsNullOrEmpty(message)) _logOutput.AppendLine(message);
             _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(percentComplete, message, fail); })); 
         }
 
         protected void ProvideUIUpdate(string message, bool fail = false) 
         {
-            _logOutput.AppendLine(message);
+            //_logOutput.AppendLine(message);
             _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(message, fail); })); 
         }
 
@@ -77,6 +78,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
 
         protected void OptimizationLoopFinished()
         {
+            ProvideUIUpdate(100, Environment.NewLine + " Finished!");
             _dispatch.BeginInvoke((Action)(() => { _pw.isFinished = true;  _pw.setAbortStatus(); }));
         }
 

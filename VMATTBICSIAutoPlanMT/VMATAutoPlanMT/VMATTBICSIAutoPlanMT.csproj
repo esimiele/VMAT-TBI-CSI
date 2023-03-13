@@ -193,13 +193,6 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
-    <None Include="_configuration\VMAT_CSI_config.ini" />
-    <None Include="_configuration\VMAT_TBI_config.ini" />
-    <None Include="_planTemplates\CSI\CSI_mediumRisk.ini" />
-    <None Include="_planTemplates\CSI\CSI_reduceDose.ini" />
-    <None Include="_planTemplates\CSI\CSI_regimen1.ini" />
-    <None Include="_planTemplates\CSI\CSI_regimen2.ini" />
-    <None Include="_planTemplates\TBI\TBI_regimen1.ini" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -219,16 +212,22 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>copy "$(ProjectDir)Launcher\*" "$(ProjectDir)$(OutDir)"
-copy "$(ProjectDir)_configuration\*" "$(ProjectDir)$(OutDir)\configuration"
-copy "$(ProjectDir)_planTemplates\CSI\*" "$(ProjectDir)$(OutDir)\templates"
-copy "$(ProjectDir)_planTemplates\TBI\*" "$(ProjectDir)$(OutDir)\templates"</PostBuildEvent>
+copy "$(SolutionDir)_configuration\*" "$(ProjectDir)$(OutDir)\configuration"
+copy "$(SolutionDir)_planTemplates\CSI\*" "$(ProjectDir)$(OutDir)\templates\CSI"
+copy "$(SolutionDir)_planTemplates\TBI\*" "$(ProjectDir)$(OutDir)\templates\TBI"</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent>if NOT EXIST "$(ProjectDir)$(OutDir)\configuration\" (
 mkdir "$(ProjectDir)$(OutDir)\configuration\"
 )
-if NOT EXIST "$(ProjectDir)$(OutDir)templates\" (
-mkdir "$(ProjectDir)$(OutDir)\templates\"
+if NOT EXIST "$(ProjectDir)$(OutDir)templates\CSI\" (
+mkdir "$(ProjectDir)$(OutDir)\templates\CSI\"
+)
+if NOT EXIST "$(ProjectDir)$(OutDir)templates\TBI\" (
+mkdir "$(ProjectDir)$(OutDir)\templates\TBI\"
+)
+if NOT EXIST "$(ProjectDir)$(OutDir)..\log_files\" (
+mkdir "$(ProjectDir)$(OutDir)..\log_files\"
 )</PreBuildEvent>
   </PropertyGroup>
 </Project>

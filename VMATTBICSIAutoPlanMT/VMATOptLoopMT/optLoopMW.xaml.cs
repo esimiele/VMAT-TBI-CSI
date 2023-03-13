@@ -66,6 +66,7 @@ namespace VMATTBICSIOptLoopMT
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
         public ObservableCollection<CSIAutoPlanTemplate> PlanTemplates { get; set; }
         public CSIAutoPlanTemplate selectedTemplate;
+        string selectedTemplateName = "";
         //to be read from the plan prep log files
         string planType = "";
         List<string> planUIDs = new List<string> { };
@@ -78,22 +79,24 @@ namespace VMATTBICSIOptLoopMT
             PlanTemplates = new ObservableCollection<CSIAutoPlanTemplate>() { new CSIAutoPlanTemplate("--select--") };
             DataContext = this;
             string patmrn = "";
-            string configurationFile = "";
+            List<string> configurationFiles = new List<string> { Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\General_configuration.ini" };
             for (int i = 0; i < args.Length; i++)
             {
                 if (i == 0) patmrn = args[i];
-                if (i == 1) configurationFile = args[i];
+                if (i == 1) configurationFiles.Add(args[i]);
             }
-            //if (args.Length == 0) configurationFile = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_TBI_config.ini";
-            if (args.Length == 0) configurationFile = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_CSI_config.ini";
-
-            if (File.Exists(configurationFile)) 
-            { 
-                if (!loadConfigurationSettings(configurationFile)) DisplayConfigurationParameters(); 
+            
+            foreach(string itr in configurationFiles)
+            {
+                if (File.Exists(itr))
+                {
+                    loadConfigurationSettings(itr);
+                }
             }
-            else MessageBox.Show("No configuration file found! Loading default settings!");
+            
             if (args.Length > 0) OpenPatient(patmrn);
             else LoadPatient();
+            DisplayConfigurationParameters();
         }
 
         #region help and info buttons
@@ -130,9 +133,18 @@ namespace VMATTBICSIOptLoopMT
                     if(!string.Equals(mrn,currentMRN))
                     {
                         planUIDs = new List<string> { };
-                        if (!string.IsNullOrEmpty(fullLogName)) LoadLogFile(fullLogName);
+                        if (!string.IsNullOrEmpty(fullLogName))
+                        {
+                            LoadLogFile(fullLogName);
+                        }
+
+                        string planTypeSpecificConfigurationSettings;
+                        if (planType.Contains("CSI")) planTypeSpecificConfigurationSettings = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_CSI_config.ini";
+                        else planTypeSpecificConfigurationSettings = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_TBI_config.ini";
+                        loadConfigurationSettings(planTypeSpecificConfigurationSettings);
+
                         OpenPatient(mrn);
-                        if (selectedTemplate != null) templateList.SelectedItem = selectedTemplate;
+                        LoadTemplatePlanChoices(planType);
                     }
                 }
                 else MessageBox.Show(String.Format("Entered MRN: {0} is invalid! Please re-enter and try again", mrn));
@@ -161,12 +173,7 @@ namespace VMATTBICSIOptLoopMT
 
                 //populate the prescription text boxes with the prescription stored in the VMAT TBI plan
                 populateRx();
-                //set the default parameters for the optimization loop
-                runCoverageCk.IsChecked = runCoverageCheckOption;
-                numOptLoops.Text = defautlNumOpt;
-                runAdditionalOpt.IsChecked = runAdditionalOptOption;
-                copyAndSave.IsChecked = copyAndSaveOption;
-                targetNormTB.Text = defaultPlanNorm;
+
                 planObjectiveHeader.Background = System.Windows.Media.Brushes.PaleVioletRed;
             }
             catch
@@ -753,13 +760,20 @@ namespace VMATTBICSIOptLoopMT
                 else configTB.Text += String.Format(" No requested heater/cooler structures for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
             }
             configScroller.ScrollToTop();
+
+            //set the default parameters for the optimization loop
+            runCoverageCk.IsChecked = runCoverageCheckOption;
+            numOptLoops.Text = defautlNumOpt;
+            runAdditionalOpt.IsChecked = runAdditionalOptOption;
+            copyAndSave.IsChecked = copyAndSaveOption;
+            targetNormTB.Text = defaultPlanNorm;
         }
 
         private void loadNewConfigFile_Click(object sender, RoutedEventArgs e)
         {
             configFile = "";
             OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.InitialDirectory = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\configuration\\";
+            openFileDialog.InitialDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\";
             openFileDialog.Filter = "ini files (*.ini)|*.ini|All files (*.*)|*.*";
 
             if (openFileDialog.ShowDialog().Value) 
@@ -775,7 +789,6 @@ namespace VMATTBICSIOptLoopMT
         private bool loadConfigurationSettings(string file)
         {
             configFile = file;
-            ConfigurationHelper helper = new ConfigurationHelper();
             try
             {
                 using (StreamReader reader = new StreamReader(configFile))
@@ -785,55 +798,68 @@ namespace VMATTBICSIOptLoopMT
                     {
                         if (!string.IsNullOrEmpty(line) && line.Substring(0, 1) != "%")
                         {
-                            //start actually reading data when you find the begin executable configuration tab
-                            if (line.Equals(":begin executable configuration:"))
-                            {
-                                while (!(line = reader.ReadLine()).Equals(":end executable configuration:"))
+                                //useful info on this line
+                                if (line.Contains("="))
                                 {
-                                    if (!string.IsNullOrEmpty(line) && line.Substring(0, 1) != "%")
+                                    string parameter = line.Substring(0, line.IndexOf("="));
+                                    string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
+                                    if (double.TryParse(value, out double result))
                                     {
-                                        //useful info on this line
-                                        if (line.Contains("="))
-                                        {
-                                            string parameter = line.Substring(0, line.IndexOf("="));
-                                            string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
-                                            if (double.TryParse(value, out double result))
-                                            {
-                                                if (parameter == "default number of optimizations") defautlNumOpt = value;
-                                                else if (parameter == "default plan normalization") defaultPlanNorm = value;
-                                                else if (parameter == "decision threshold") threshold = result;
-                                                else if (parameter == "relative lower dose limit") lowDoseLimit = result;
-                                            }
-                                            else if (parameter == "documentation path")
-                                            {
-                                                documentationPath = value;
-                                                if (documentationPath.LastIndexOf("\\") != documentationPath.Length - 1) documentationPath += "\\";
-                                            }
-                                            else if (parameter == "log file path")
-                                            {
-                                                logFilePath = value;
-                                                if (logFilePath.LastIndexOf("\\") != logFilePath.Length - 1) logFilePath += "\\";
-                                            }
-                                            else if (parameter == "demo") { if (value != "") demo = bool.Parse(value); }
-                                            else if (parameter == "run coverage check") { if (value != "") runCoverageCheckOption = bool.Parse(value); }
-                                            else if (parameter == "run additional optimization") { if (value != "") runAdditionalOptOption = bool.Parse(value); }
-                                            else if (parameter == "copy and save each plan") { if (value != "") copyAndSaveOption = bool.Parse(value); }
-                                        }
+                                        if (parameter == "default number of optimizations") defautlNumOpt = value;
+                                        else if (parameter == "default plan normalization") defaultPlanNorm = value;
+                                        else if (parameter == "decision threshold") threshold = result;
+                                        else if (parameter == "relative lower dose limit") lowDoseLimit = result;
                                     }
+                                    else if (parameter == "documentation path")
+                                    {
+                                        documentationPath = value;
+                                        if (documentationPath.LastIndexOf("\\") != documentationPath.Length - 1) documentationPath += "\\";
+                                    }
+                                    else if (parameter == "log file path")
+                                    {
+                                        logFilePath = value;
+                                        if (logFilePath.LastIndexOf("\\") != logFilePath.Length - 1) logFilePath += "\\";
+                                    }
+                                    else if (parameter == "demo") { if (value != "") demo = bool.Parse(value); }
+                                    else if (parameter == "run coverage check") { if (value != "") runCoverageCheckOption = bool.Parse(value); }
+                                    else if (parameter == "run additional optimization") { if (value != "") runAdditionalOptOption = bool.Parse(value); }
+                                    else if (parameter == "copy and save each plan") { if (value != "") copyAndSaveOption = bool.Parse(value); }
                                 }
-                            }
                         }
                     }
                     reader.Close();
                 }
-                int count = 1;
-                foreach (string itr in Directory.GetFiles(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\", "*.ini").OrderBy(x => x))
-                {
-                    PlanTemplates.Add(helper.readTemplatePlan(itr, count++));
-                }
+                
                 return false;
             }
             catch (Exception e) { MessageBox.Show(String.Format("Error could not load configuration file because: {0}\n\nAssuming default parameters", e.Message)); return true; }
+        }
+
+        private void LoadTemplatePlanChoices(string type)
+        {
+            ConfigurationHelper helper = new ConfigurationHelper();
+            int count = 1;
+            SearchOption option = SearchOption.AllDirectories;
+            string path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\";
+            PlanTemplates.Clear();
+            if (!string.IsNullOrEmpty(type))
+            {
+                if (type.Contains("CSI")) path += "CSI\\";
+                else path += "TBI\\";
+            }
+            try
+            {
+                foreach (string itr in Directory.GetFiles(path, "*.ini", option).OrderBy(x => x))
+                {
+                    PlanTemplates.Add(helper.readTemplatePlan(itr, count++));
+                }
+            }
+            catch(Exception e)
+            {
+                MessageBox.Show(String.Format("Error could not load plan template file because: {0}!", e.Message));
+            }
+            selectedTemplate = PlanTemplates.FirstOrDefault(x => x.templateName == selectedTemplateName);
+            if (selectedTemplate != null) templateList.SelectedItem = selectedTemplate;
         }
 
         private void LoadLogFile(string fullLogName)
@@ -860,8 +886,7 @@ namespace VMATTBICSIOptLoopMT
                                 else if (parameter == "template")
                                 {
                                     //plan objectives will be updated in OpenPatient method
-                                    selectedTemplate = PlanTemplates.FirstOrDefault(x => x.templateName == value);
-                                    //templateList.SelectedItem = selectedTemplate;
+                                    selectedTemplateName = value;
                                 }
                             }
                             else if (line.Contains("prescriptions:"))

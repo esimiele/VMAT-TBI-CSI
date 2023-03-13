@@ -14,7 +14,6 @@ namespace VMATTBICSIOptLoopMT.helpers
         //data members
         public Application app;
         public List<ExternalPlanSetup> plans;
-        public ExternalPlanSetup plan;
         public StructureSet selectedSS;
         public string id;
         public int numOptimizations;
@@ -54,7 +53,6 @@ namespace VMATTBICSIOptLoopMT.helpers
                               Application a)
         {
             plans = new List<ExternalPlanSetup>(p);
-            plan = plans.First();
             selectedSS = plans.First().StructureSet;
             id = plans.First().Course.Patient.Id;
             numOptimizations = numOpt;

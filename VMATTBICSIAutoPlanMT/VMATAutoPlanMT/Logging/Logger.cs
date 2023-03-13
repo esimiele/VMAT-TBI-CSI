@@ -72,8 +72,11 @@ namespace VMATAutoPlanMT.Logging
 
         public bool Dump()
         {
-            if (!Directory.Exists(logPath + "\\preparation\\")) Directory.CreateDirectory(logPath + "\\preparation\\");
-            string fileName = logPath + "\\preparation\\" + mrn + ".txt";
+            string type = "CSI";
+            if (planType.Contains("TBI")) type = "TBI";
+
+            if (!Directory.Exists(logPath + "\\preparation\\" + type + "\\")) Directory.CreateDirectory(logPath + "\\preparation\\" + type + "\\");
+            string fileName = logPath + "\\preparation\\" + type + "\\" + mrn + ".txt";
 
             StringBuilder sb = new StringBuilder();
             sb.AppendLine(String.Format(DateTime.Now.ToString()));
