@@ -43,7 +43,7 @@ namespace VMATAutoPlanMT.MTProgressInfo
 
         public void UpdateLabel(string message) 
         { 
-            theLabel.Text = message; 
+            taskLabel.Text = message; 
         }
 
         public void provideUpdate(int percentComplete, string message = "", bool fail = false)

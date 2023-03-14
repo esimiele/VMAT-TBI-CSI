@@ -1,19 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Windows.Threading;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIOptLoopMT.PlanEvaluation;
 using VMATTBICSIOptLoopMT.baseClasses;
 using VMATTBICSIOptLoopMT.helpers;
-using VMATTBICSIAutoplanningHelpers.MTWorker;
-using System.Windows;
-using System.IO;
-using System.Runtime.CompilerServices;
-using System.Diagnostics;
 
 namespace VMATTBICSIOptLoopMT.VMAT_CSI
 {
@@ -25,6 +17,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
         {
             _data = _d;
             InitializeLogPathAndName();
+            CalculateNumberOfItemsToComplete();
         }
 
         public override bool Run()
@@ -34,19 +27,30 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 SetAbortUIStatus("Runnning");
                 PrintRunSetupInfo(_data.plans);
                 //preliminary checks
+                UpdateUILabel("Preliminary checks:");
+                ProvideUIUpdate("Performing preliminary checks now:");
                 if (PreliminaryChecksSSAndImage(_data.selectedSS, GetAllTargets(_data.prescriptions))) return true;
                 if (PreliminaryChecksCouch(_data.selectedSS)) return true;
                 if (_checkSupportStructures)
                 {
                     if(CheckSupportStructures(_data.plans.First().Course.Patient.Courses.ToList(), _data.selectedSS)) return true;
                 }
-                foreach(ExternalPlanSetup itr in _data.plans) if (PreliminaryChecksPlans(itr)) return true;
+                if (PreliminaryChecksPlans(_data.plans)) return true;
 
                 if (RunOptimizationLoop(_data.plans)) return true;
                 OptimizationLoopFinished();
             }
             catch (Exception e) { ProvideUIUpdate(String.Format("{0}", e.Message), true); return true; }
             return false;
+        }
+
+        protected override void CalculateNumberOfItemsToComplete()
+        {
+            overallCalcItems = 3;
+            overallCalcItems += _data.plans.Count;
+            int optLoopItems = 5 * _data.numOptimizations * _data.plans.Count;
+            if (_data.oneMoreOpt) optLoopItems += 3;
+            overallCalcItems += optLoopItems;
         }
 
         #region plan sum
@@ -81,6 +85,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
 
         private bool BuildPlanSum(ExternalPlanSetup evalPlan, List<ExternalPlanSetup> thePlans)
         {
+            UpdateUILabel("Build plan sum:");
             //grab the initial and boost plans
             ExternalPlanSetup initialPlan = thePlans.First();
             ExternalPlanSetup boostPlan = thePlans.Last();
@@ -101,7 +106,8 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             int[][,] sumArray = new int[totalSlices][,];
             for (int i = 0; i < totalSlices; i++)
             {
-                ProvideUIUpdate((int)(100 * (i + 1) / totalSlices), String.Format("Summing doses from slice: {0}", i));
+                ProvideUIUpdate((int)(100 * (i + 1) / totalSlices));
+                if((i+1) % 10 == 0) ProvideUIUpdate(String.Format("Summing doses from slice: {0}", i + 1));
                 //need to initialize jagged array before using
                 sumArray[i] = new int[xSize, ySize];
                 //get dose arrays from initial and boost plans (better to use more memory and initialize two arrays rather than putting this in a loop to limit the
@@ -165,6 +171,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
         {
             if (_data.oneMoreOpt)
             {
+                UpdateUILabel("One more optimization:");
                 if (RunOneMoreOptionizationToLowerHotspots(plans)) return true;
                 if (BuildPlanSum(evalPlan, plans)) return true;
             }
@@ -180,8 +187,8 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 ProvideUIUpdate("Error! Prescriptions are missing! Cannot determine the appropriate target for each plan! Exiting!", true);
                 return true;
             }
-            percentCompletion = 0;
-            calcItems = 100;
+            int percentComplete = 0;
+            int calcItems = 5 * plans.Count() * _data.numOptimizations;
             //first need to create a plan sum
             evalPlan = CreatePlanSum(_data.selectedSS, plans);
             if (evalPlan == null) return true;
@@ -190,7 +197,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             int count = 0;
             while(count < _data.numOptimizations)
             {
-                ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), String.Format(" Iteration {0}:", count + 1));
+                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format(" Iteration {0}:", count + 1));
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
 
                 foreach (ExternalPlanSetup itr in plans)
@@ -207,11 +214,11 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                     //Testing t = new Testing(_data.isDemo, itr);
                     //Thread worker = new Thread(t.Run);
                     //worker.Start(t);
-                    ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), String.Format(" Optimizing plan: {0}!", itr.Id));
+                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format(" Optimizing plan: {0}!", itr.Id));
                     if (OptimizePlan(_data.isDemo, new OptimizationOptionsVMAT(OptimizationIntermediateDoseOption.NoIntermediateDose, ""), itr, _data.app)) return true;
-                    ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Optimization finished! Calculating dose!");
+                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Optimization finished! Calculating dose!");
                     if (CalculateDose(_data.isDemo, itr, _data.app)) return true;
-                    ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Dose calculated, normalizing plan!");
+                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Dose calculated, normalizing plan!");
                     //normalize
                     normalizePlan(itr, GetTargetForPlan(_data.selectedSS, plansTargets.FirstOrDefault(x => x.Item1 == itr.Id).Item2, _data.useFlash), _data.relativeDose, _data.targetVolCoverage);
                     if (GetAbortStatus())
@@ -219,7 +226,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                         KillOptimizationLoop();
                         return true;
                     }
-                    ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), String.Format(" Plan normalized!"));
+                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format(" Plan normalized!"));
                     ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
                 }
                 

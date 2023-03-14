@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIOptLoopMT.baseClasses;
 using VMATTBICSIOptLoopMT.helpers;
-using VMATTBICSIOptLoopMT.PlanEvaluation;
 
 namespace VMATTBICSIOptLoopMT.VMAT_TBI
 {
@@ -34,7 +30,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                 {
                     if (CheckSupportStructures(_data.plans.First().Course.Patient.Courses.ToList(), _data.selectedSS)) return true;
                 }
-                foreach (ExternalPlanSetup itr in _data.plans) if (PreliminaryChecksPlans(itr)) return true;
+                if (PreliminaryChecksPlans(_data.plans)) return true;
 
                 if (_data.isDemo || !_data.runCoverageCheck) ProvideUIUpdate(" Skipping coverage check! Moving on to optimization loop!");
                 else
@@ -51,6 +47,16 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             }
             catch (Exception e) { ProvideUIUpdate(String.Format("{0}", e.Message), true); return true; }
             return false;
+        }
+
+        protected override void CalculateNumberOfItemsToComplete()
+        {
+            overallCalcItems = 4;
+            overallCalcItems += _data.plans.Count;
+            if (_data.runCoverageCheck) overallCalcItems += 4 * _data.plans.Count;
+            int optLoopItems = 6 * _data.numOptimizations * _data.plans.Count;
+            if (_data.oneMoreOpt) optLoopItems += 3;
+            overallCalcItems += optLoopItems;
         }
 
         #region coverage check
@@ -129,7 +135,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
 
         private bool RemoveFlashAndRecalc(List<ExternalPlanSetup> plans)
         {
-            ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), String.Format(Environment.NewLine + " Removing flash, recalculating dose, and renormalizing to TS_PTV_VMAT!"));
+            ProvideUIUpdate((int)(100 * (++overallPercentCompletion) / overallCalcItems), String.Format(Environment.NewLine + " Removing flash, recalculating dose, and renormalizing to TS_PTV_VMAT!"));
             ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
 
             Structure bolus = _data.selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "bolus_flash");
@@ -160,10 +166,10 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                 foreach (ExternalPlanSetup itr in plansWithCalcDose)
                 {
                     CalculateDose(_data.isDemo, itr, _data.app);
-                    ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Dose calculated, normalizing plan!");
+                    ProvideUIUpdate((int)(100 * (++overallPercentCompletion) / overallCalcItems), " Dose calculated, normalizing plan!");
                     ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
                     normalizePlan(itr, GetTargetForPlan(_data.selectedSS, "", false), _data.relativeDose, _data.targetVolCoverage);
-                    ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Plan normalized!");
+                    ProvideUIUpdate((int)(100 * (++overallPercentCompletion) / overallCalcItems), " Plan normalized!");
                 }
             }
             return false;

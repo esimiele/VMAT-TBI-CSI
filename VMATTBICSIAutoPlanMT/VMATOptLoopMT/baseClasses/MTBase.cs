@@ -54,6 +54,11 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             _dispatch.BeginInvoke((Action)(() => { _pw.abortStatus.Text = message; }));
         }
 
+        public void UpdateUILabel(string message)
+        {
+            _dispatch.BeginInvoke((Action)(() => { _pw.UpdateLabel(message); }));
+        }
+
         protected void ProvideUIUpdate(int percentComplete, string message = "", bool fail = false) 
         {
             //if(!string.IsNullOrEmpty(message)) _logOutput.AppendLine(message);
@@ -64,6 +69,11 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         {
             //_logOutput.AppendLine(message);
             _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(message, fail); })); 
+        }
+
+        protected void UpdateOverallProgress(int percentComplete)
+        {
+            _dispatch.BeginInvoke((Action)(() => { _pw.updateOverallProgress(percentComplete); }));
         }
 
         protected bool GetAbortStatus()

@@ -1748,9 +1748,6 @@ namespace VMATAutoPlanMT.VMAT_CSI
         {
             //load a configuration file different from the default in the executing assembly folder
             configFile = "";
-            //PlanTemplates.Clear();
-            //PlanTemplates = new ObservableCollection<CSIAutoPlanTemplate> { new CSIAutoPlanTemplate("--select--") };
-            //PlanTemplates.Add(new CSIAutoPlanTemplate("--select--"));
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.InitialDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\";
             openFileDialog.Filter = "ini files (*.ini)|*.ini|All files (*.*)|*.*";
