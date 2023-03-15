@@ -9,7 +9,8 @@ using VMS.TPS.Common.Model.Types;
 using System.IO;
 using System.Diagnostics;
 using Microsoft.Win32;
-using VMATTBICSIAutoplanningHelpers.helpers;
+using VMATTBICSIAutoplanningHelpers.Helpers;
+using VMATTBICSIAutoplanningHelpers.UIHelpers;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 
 namespace VMATAutoPlanMT
@@ -693,7 +694,7 @@ namespace VMATAutoPlanMT
                 if (!optParameters.Where(x => x.Item1.ToLower().Contains("brain")).Any()) beamsPerIso[0]++;
                 numIsos += tmp - numVMATIsos;
                 numVMATIsos = tmp;
-                isoNames = new List<string>(new isoNameHelper().getIsoNames(numVMATIsos, numIsos));
+                isoNames = new List<string>(new IsoNameHelper().getIsoNames(numVMATIsos, numIsos));
                 populateBeamsTab();
             }
         }

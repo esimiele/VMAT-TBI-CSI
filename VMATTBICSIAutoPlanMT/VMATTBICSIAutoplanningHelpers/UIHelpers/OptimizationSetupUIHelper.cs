@@ -6,7 +6,7 @@ using System.Windows.Controls;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 
-namespace VMATTBICSIAutoplanningHelpers.helpers
+namespace VMATTBICSIAutoplanningHelpers.UIHelpers
 {
     public class OptimizationSetupUIHelper
     {

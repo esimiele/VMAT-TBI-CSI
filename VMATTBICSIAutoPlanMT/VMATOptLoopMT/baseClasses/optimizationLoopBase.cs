@@ -7,6 +7,7 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIOptLoopMT.PlanEvaluation;
 using VMATTBICSIOptLoopMT.helpers;
+using VMATTBICSIAutoplanningHelpers.Helpers;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 
 namespace VMATTBICSIOptLoopMT.baseClasses
@@ -31,11 +32,6 @@ namespace VMATTBICSIOptLoopMT.baseClasses
              * per opt CSI sequential --> (opt, dose calc, norm, eval, update) x 2
              * additional opt
              */
-        }
-
-        protected virtual void CalculateNumberOfItemsToComplete()
-        {
-
         }
 
         #region print run setup, failed message, plan dose info, etc.
@@ -526,7 +522,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}" + Environment.NewLine, GetElapsedTime()));
 
                 //normalize
-                normalizePlan(itr, GetTargetForPlan(_data.selectedSS, "", _data.useFlash), _data.relativeDose, _data.targetVolCoverage);
+                normalizePlan(itr, new TargetsHelper().GetTargetForPlan(_data.selectedSS, "", _data.useFlash), _data.relativeDose, _data.targetVolCoverage);
                 UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
                 ProvideUIUpdate(" Plan normalized!");
 
@@ -574,7 +570,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
 
                 //normalize
-                normalizePlan(plan, GetTargetForPlan(_data.selectedSS, "", _data.useFlash), _data.relativeDose, _data.targetVolCoverage);
+                normalizePlan(plan, new TargetsHelper().GetTargetForPlan(_data.selectedSS, "", _data.useFlash), _data.relativeDose, _data.targetVolCoverage);
 
                 if (GetAbortStatus())
                 {
@@ -778,41 +774,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         }
         #endregion
 
-        #region normalization and retrive targets
-        //planId, targetId
-        protected List<Tuple<string, string>> GetPlanTargetList(List<Tuple<string, string, int, double, double>> list)
-        {
-            List<Tuple<string, string>> plansTargets = new List<Tuple<string, string>> { };
-            if (!list.Any()) return plansTargets;
-            List<Tuple<string, string, int, double, double>> tmpList = list.OrderBy(x => x.Item5).ToList();
-            string tmpTarget = tmpList.First().Item2;
-            string tmpPlan = tmpList.First().Item1;
-            foreach (Tuple<string, string, int, double, double> itr in tmpList)
-            {
-                //check if this is the start of a new plan, if so, the the previous target was the highest dose target in the previous plan
-                if (!string.Equals(itr.Item1, tmpPlan))
-                {
-                    plansTargets.Add(Tuple.Create<string, string>(tmpPlan, tmpTarget));
-                    tmpPlan = itr.Item1;
-                }
-                tmpTarget = itr.Item2;
-            }
-            plansTargets.Add(Tuple.Create<string, string>(tmpPlan, tmpTarget));
-            foreach (Tuple<string, string> itr in plansTargets) ProvideUIUpdate(String.Format("{0}, {1}", itr.Item1, itr.Item2));
-
-            return plansTargets;
-        }
-
-        protected List<string> GetAllTargets(List<Tuple<string, string, int, double, double>> list)
-        {
-            List<string> targets = new List<string> { };
-            foreach (Tuple<string, string, int, double, double> itr in list)
-            {
-                targets.Add(itr.Item2);
-            }
-            return targets;
-        }
-
+        #region normalization
         public bool normalizePlan(ExternalPlanSetup plan, Structure target, double relativeDose, double targetVolCoverage)
         {
             //in demo mode, dose might not be calculated for the plan
@@ -842,22 +804,6 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
             return false;
         }
-
-        protected Structure GetTargetForPlan(StructureSet ss, string targetId, bool useFlash)
-        {
-            Structure target = null;
-            if (string.IsNullOrEmpty(targetId))
-            {
-                //if (!useFlash) target = plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_vmat");
-                if (useFlash) target = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_flash");
-                else target = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_csi");
-            }
-            else
-            {
-                target = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == targetId);
-            }
-            return target;
-        }
         #endregion
 
         //**********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************
@@ -866,12 +812,13 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         public evalPlanStruct evaluateAndUpdatePlan(ExternalPlanSetup plan, List<Tuple<string, string, double, double, int>> optParams, List<Tuple<string, string, double, double, DoseValuePresentation>> planObj, 
                                                 List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures, double threshold, double lowDoseLimit, bool finalOptimization)
         {
+            ProvideUIUpdate("Constructed evaluation data structure");
             //create a new data structure to hold the results of the plan quality evaluation
             evalPlanStruct e = new evalPlanStruct();
             e.construct();
 
             //get current optimization objectives from plan (we could use the optParams list, but we want the actual instances of the OptimizationObjective class so we can get the results from each objective)
-            IEnumerable<OptimizationObjective> currentObj = plan.OptimizationSetup.Objectives;
+            List<OptimizationObjective> currentObj = plan.OptimizationSetup.Objectives.ToList();
 
             //counter to record the number of plan objective met
             int numPass = 0;
@@ -897,29 +844,22 @@ namespace VMATTBICSIOptLoopMT.baseClasses
 
                     //NOTE: THERE MAY BE CASES WHERE A STRUCTURE MIGHT HAVE A PLAN OBJECTIVE, BUT NOT AN OPTIMIZATION OBJECTIVE(e.g., ovaries). Check if the structure of interest also has an optimization objective. If so, this indicates the user actually wanted to spare this
                     //structure for this plan and we should increment the number of comparisons counter. In addition, we need to copy the objective priority from the optimization objective if there is one
-                    if (optParams.FirstOrDefault(x => x.Item1.ToLower() == (itr.Item1.ToLower() + "_lowres")) != null || optParams.FirstOrDefault(x => x.Item1.ToLower() == itr.Item1.ToLower()) != null)
+                    if (optParams.FirstOrDefault(x => x.Item1.ToLower() == s.Id) != null)
                     {
                         //If so, do a three-way comparison to find the correct optimization objective for this plan objective (compare based structureId, constraint type, and constraint volume). These three objectives will remain constant
                         //throughout the optimization process whereas the dose constraint will vary
-                        IEnumerable<Tuple<string, string, double, double, int>> copyOpt = from p in optParams
-                                                                                          where p.Item1.ToLower() == (itr.Item1.ToLower() + "_lowres")
-                                                                                          where p.Item2.ToLower() == (itr.Item2.ToLower() + "_lowres")
-                                                                                          where p.Item4 == itr.Item4
-                                                                                          select p;
-
-                        if (copyOpt.ElementAtOrDefault(0) == null) copyOpt = from p in optParams
-                                                                             where p.Item1.ToLower() == itr.Item1.ToLower()
-                                                                             where p.Item2.ToLower() == itr.Item2.ToLower()
-                                                                             where p.Item4 == itr.Item4
-                                                                             select p;
+                        Tuple<string, string, double, double, int> copyOpt = (Tuple<string, string, double, double, int>)(from p in optParams
+                                                                                                                          where p.Item1.ToLower() == s.Id.ToLower()
+                                                                                                                          where p.Item2.ToLower() == itr.Item2.ToLower()
+                                                                                                                          where p.Item4 == itr.Item4
+                                                                                                                          select p);
 
                         //If the appropriate constraint was found, calculate the cost as the (dose diff)^2 * priority. Also 
-                        if (copyOpt.ElementAtOrDefault(0) != null) optPriority = copyOpt.ElementAtOrDefault(0).Item5;
+                        if (copyOpt != null) optPriority = copyOpt.Item5;
                         //if no exact constraint was found, leave the priority at zero (per Nataliya's instructions)
                         //increment the number of comparisons since an optimization constraint was found
                         numComparisons++;
                     }
-                    //else MessageBox.Show(itr.Item1);
 
                     //similar code as above
                     if (itr.Item2.ToLower() == "upper")
@@ -1044,7 +984,6 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                 // output += String.Format("{0}, {1}, {2}, {3}, {4}, {5}\n", optParams.ElementAt(count).Item1, optParams.ElementAt(count).Item2, newDose, optParams.ElementAt(count).Item4, newPriority, relative_cost);
                 count++;
             }
-            //MessageBox.Show(output);
 
             //update cooler and heater structures for optimization
             //first remove existing structures

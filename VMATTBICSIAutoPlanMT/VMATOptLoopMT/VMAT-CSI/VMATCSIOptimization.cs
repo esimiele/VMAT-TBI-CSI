@@ -6,6 +6,7 @@ using VMS.TPS.Common.Model.Types;
 using VMATTBICSIOptLoopMT.PlanEvaluation;
 using VMATTBICSIOptLoopMT.baseClasses;
 using VMATTBICSIOptLoopMT.helpers;
+using VMATTBICSIAutoplanningHelpers.Helpers;
 
 namespace VMATTBICSIOptLoopMT.VMAT_CSI
 {
@@ -29,7 +30,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 //preliminary checks
                 UpdateUILabel("Preliminary checks:");
                 ProvideUIUpdate("Performing preliminary checks now:");
-                if (PreliminaryChecksSSAndImage(_data.selectedSS, GetAllTargets(_data.prescriptions))) return true;
+                if (PreliminaryChecksSSAndImage(_data.selectedSS, new TargetsHelper().GetAllTargets(_data.prescriptions))) return true;
                 if (PreliminaryChecksCouch(_data.selectedSS)) return true;
                 if (_checkSupportStructures)
                 {
@@ -44,7 +45,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             return false;
         }
 
-        protected override void CalculateNumberOfItemsToComplete()
+        protected void CalculateNumberOfItemsToComplete()
         {
             overallCalcItems = 3;
             overallCalcItems += _data.plans.Count;
@@ -181,7 +182,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
         protected override bool RunSequentialPlansOptimizationLoop(List<ExternalPlanSetup> plans)
         {
             //a requirement for sequentional optimization
-            List<Tuple<string, string>> plansTargets = GetPlanTargetList(_data.prescriptions);
+            List<Tuple<string, string>> plansTargets = new TargetsHelper().GetPlanTargetList(_data.prescriptions);
             if(!plansTargets.Any())
             {
                 ProvideUIUpdate("Error! Prescriptions are missing! Cannot determine the appropriate target for each plan! Exiting!", true);
@@ -220,7 +221,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                     if (CalculateDose(_data.isDemo, itr, _data.app)) return true;
                     ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Dose calculated, normalizing plan!");
                     //normalize
-                    normalizePlan(itr, GetTargetForPlan(_data.selectedSS, plansTargets.FirstOrDefault(x => x.Item1 == itr.Id).Item2, _data.useFlash), _data.relativeDose, _data.targetVolCoverage);
+                    normalizePlan(itr, new TargetsHelper().GetTargetForPlan(_data.selectedSS, plansTargets.FirstOrDefault(x => x.Item1 == itr.Id).Item2, _data.useFlash), _data.relativeDose, _data.targetVolCoverage);
                     if (GetAbortStatus())
                     {
                         KillOptimizationLoop();

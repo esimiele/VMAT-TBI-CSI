@@ -4,10 +4,9 @@ using System.Linq;
 using System.Windows.Controls;
 using System.Windows;
 using VMS.TPS.Common.Model.API;
-using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoplanningHelpers.TemplateClasses;
 
-namespace VMATTBICSIAutoplanningHelpers.helpers
+namespace VMATTBICSIAutoplanningHelpers.Helpers
 {
     public class TemplateBuilder
     {

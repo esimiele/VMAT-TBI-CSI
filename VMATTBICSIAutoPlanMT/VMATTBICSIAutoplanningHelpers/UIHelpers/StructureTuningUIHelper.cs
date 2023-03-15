@@ -5,7 +5,7 @@ using VMS.TPS.Common.Model.API;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace VMATTBICSIAutoplanningHelpers.helpers
+namespace VMATTBICSIAutoplanningHelpers.UIHelpers
 {
     public class StructureTuningUIHelper
     {

@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace VMATTBICSIAutoplanningHelpers.helpers
+namespace VMATTBICSIAutoplanningHelpers.Helpers
 {
-    public class isoNameHelper
+    public class IsoNameHelper
     {
         public List<string> getIsoNames(int numVMATIsos, int numIsos, bool isCSI = false)
         {

@@ -9,7 +9,8 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIOptLoopMT.helpers;
 using VMATTBICSIOptLoopMT.baseClasses;
-using VMATTBICSIAutoplanningHelpers.helpers;
+using VMATTBICSIAutoplanningHelpers.Helpers;
+using VMATTBICSIAutoplanningHelpers.UIHelpers;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 using VMATTBICSIAutoplanningHelpers.TemplateClasses;
 using VMATTBICSIOptLoopMT.VMAT_CSI;
@@ -28,7 +29,7 @@ namespace VMATTBICSIOptLoopMT
         string documentationPath = @"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\Research\VMAT_TBI\documentation\";
         //default number of optimizations to perform
         string defautlNumOpt = "3";
-        //default plan normalization (i.e., PTV100% = 90%) 
+        //default plan normaliBzation (i.e., PTV100% = 90%) 
         string defaultPlanNorm = "90";
         //run coverage check
         bool runCoverageCheckOption = false;
@@ -45,7 +46,7 @@ namespace VMATTBICSIOptLoopMT
         //lower dose limit
         double lowDoseLimit = 0.1;
 
-        //structure, constraint type, relative dose, relative volume (unless otherwise specified)
+        //structure, constraint type, dose, relative volume, dose value presentation (unless otherwise specified)
         //note, if the constraint type is "mean", the relative volume value is ignored
         public List<Tuple<string, string, double, double, DoseValuePresentation>> planObj = new List<Tuple<string, string, double, double, DoseValuePresentation>> { };
 
@@ -71,7 +72,7 @@ namespace VMATTBICSIOptLoopMT
         string planType = "";
         List<string> planUIDs = new List<string> { };
         //plan id, target id, num fx, dose per fx, cumulative rx for this target
-        List<Tuple<string, string, int, double, double>> prescriptions = new List<Tuple<string, string, int, double, double>> { };
+        List<Tuple<string, string, int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
 
         public OptLoopMW(string[] args)
         {

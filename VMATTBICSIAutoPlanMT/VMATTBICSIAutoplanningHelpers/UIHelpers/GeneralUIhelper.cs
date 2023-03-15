@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using VMS.TPS.Common.Model.API;
-using VMS.TPS.Common.Model.Types;
-using System.Windows.Controls;
-using System.Windows;
+﻿using System.Windows.Controls;
 
-namespace VMATTBICSIAutoplanningHelpers.helpers
+namespace VMATTBICSIAutoplanningHelpers.UIHelpers
 {
     public class GeneralUIhelper
     {

@@ -12,7 +12,8 @@ using System.Collections.ObjectModel;
 using System.Reflection;
 using VMATAutoPlanMT.Logging;
 using VMATTBICSIAutoplanningHelpers.TemplateClasses;
-using VMATTBICSIAutoplanningHelpers.helpers;
+using VMATTBICSIAutoplanningHelpers.Helpers;
+using VMATTBICSIAutoplanningHelpers.UIHelpers;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 
 namespace VMATAutoPlanMT.VMAT_CSI

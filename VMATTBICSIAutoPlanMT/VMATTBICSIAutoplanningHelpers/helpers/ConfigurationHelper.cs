@@ -2,13 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using VMATTBICSIAutoplanningHelpers.TemplateClasses;
 using VMS.TPS.Common.Model.Types;
 
-namespace VMATTBICSIAutoplanningHelpers.helpers
+namespace VMATTBICSIAutoplanningHelpers.Helpers
 {
     public class ConfigurationHelper
     {
@@ -270,7 +268,7 @@ namespace VMATTBICSIAutoplanningHelpers.helpers
             return Tuple.Create(structure, constraintType, doseVal, volumeVal, dvp);
         }
 
-        public Tuple<string,string,int,double,double> ParsePrescriptionsFromLogFile(string line)
+        public Tuple<string,string,int,DoseValue,double> ParsePrescriptionsFromLogFile(string line)
         {
             string planId;
             string targetId;
@@ -287,7 +285,7 @@ namespace VMATTBICSIAutoplanningHelpers.helpers
             dosePerFx = double.Parse(line.Substring(0, line.IndexOf(",")));
             line = cropLine(line, ",");
             RxDose = double.Parse(line.Substring(0, line.IndexOf("}")));
-            return Tuple.Create(planId, targetId, numFx, dosePerFx, RxDose);
+            return Tuple.Create(planId, targetId, numFx, new DoseValue(dosePerFx, DoseValue.DoseUnit.cGy), RxDose);
         }
     }
 }

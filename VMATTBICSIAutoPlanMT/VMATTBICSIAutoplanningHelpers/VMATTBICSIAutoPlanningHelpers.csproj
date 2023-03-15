@@ -109,16 +109,17 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="helpers\BeamPlacementUIHelper.cs" />
-    <Compile Include="helpers\ConfigurationHelper.cs" />
-    <Compile Include="helpers\CTImageExport.cs" />
-    <Compile Include="helpers\ExportCTUIHelper.cs" />
-    <Compile Include="helpers\GeneralUIhelper.cs" />
-    <Compile Include="helpers\isoNameHelper.cs" />
-    <Compile Include="helpers\OptimizationSetupUIHelper.cs" />
-    <Compile Include="helpers\StructureTuningUIHelper.cs" />
-    <Compile Include="helpers\TargetsUIHelper.cs" />
-    <Compile Include="helpers\TemplateBuilder.cs" />
+    <Compile Include="Helpers\TargetsHelper.cs" />
+    <Compile Include="UIHelpers\BeamPlacementUIHelper.cs" />
+    <Compile Include="Helpers\ConfigurationHelper.cs" />
+    <Compile Include="Helpers\CTImageExport.cs" />
+    <Compile Include="UIHelpers\ExportCTUIHelper.cs" />
+    <Compile Include="UIHelpers\GeneralUIhelper.cs" />
+    <Compile Include="Helpers\IsoNameHelper.cs" />
+    <Compile Include="UIHelpers\OptimizationSetupUIHelper.cs" />
+    <Compile Include="UIHelpers\StructureTuningUIHelper.cs" />
+    <Compile Include="UIHelpers\TargetsUIHelper.cs" />
+    <Compile Include="Helpers\TemplateBuilder.cs" />
     <Compile Include="MTWorker\ESAPIworker.cs" />
     <Compile Include="Prompts\confirmUI.cs">
       <SubType>Form</SubType>
@@ -166,7 +167,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="helpers\PlanObjectiveSetupUIHelper.cs" />
+    <Compile Include="UIHelpers\PlanObjectiveSetupUIHelper.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
