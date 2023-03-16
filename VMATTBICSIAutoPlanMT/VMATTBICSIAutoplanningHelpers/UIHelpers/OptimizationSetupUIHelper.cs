@@ -34,6 +34,15 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return defaultList;
         }
 
+        public bool RemoveOptimizationConstraintsFromPLan(ExternalPlanSetup plan)
+        {
+            if (plan.OptimizationSetup.Objectives.Count() > 0)
+            {
+                foreach (OptimizationObjective o in plan.OptimizationSetup.Objectives) plan.OptimizationSetup.RemoveObjective(o);
+            }
+            return false;
+        }
+
         public StackPanel AddPlanIdtoOptList(StackPanel theSP, string id)
         {
             StackPanel sp = new StackPanel();

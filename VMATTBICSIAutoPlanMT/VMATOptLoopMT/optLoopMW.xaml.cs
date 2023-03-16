@@ -533,10 +533,7 @@ namespace VMATTBICSIOptLoopMT
                 thePlan = plans.FirstOrDefault(x => x.Id == itr.Item1);
                 if (thePlan != null)
                 {
-                    if (thePlan.OptimizationSetup.Objectives.Count() > 0)
-                    {
-                        foreach (OptimizationObjective o in thePlan.OptimizationSetup.Objectives) thePlan.OptimizationSetup.RemoveObjective(o);
-                    }
+                    helper.RemoveOptimizationConstraintsFromPLan(thePlan);
                     helper.AssignOptConstraints(itr.Item2, thePlan, true, 0.0);
                 }
             }
@@ -555,7 +552,6 @@ namespace VMATTBICSIOptLoopMT
             dataContainer data = new dataContainer();
             data.construct(plans, 
                            prescriptions,
-                           optParametersListList.First().Item2, 
                            objectives, 
                            requestedTSstructures, 
                            planDoseInfo,

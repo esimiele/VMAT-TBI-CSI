@@ -232,6 +232,9 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 }
                 
                 if (BuildPlanSum(evalPlan, plans)) return true;
+
+                foreach (ExternalPlanSetup itr in plans) EvaluateAndUpdatePlan(evalPlan, _data.planObj, (_data.oneMoreOpt && ((count + 1) == _data.numOptimizations)));
+
                 count++;
             }
 

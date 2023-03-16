@@ -6,6 +6,7 @@ using VMS.TPS.Common.Model.Types;
 using VMATTBICSIOptLoopMT.baseClasses;
 using VMATTBICSIOptLoopMT.helpers;
 using VMATTBICSIAutoplanningHelpers.Helpers;
+using VMATTBICSIAutoplanningHelpers.UIHelpers;
 
 namespace VMATTBICSIOptLoopMT.VMAT_TBI
 {
@@ -38,7 +39,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                 {
                     foreach (ExternalPlanSetup itr in _data.plans)
                     {
-                        if (RunCoverageCheck(_data.optParams, itr, _data.relativeDose, _data.targetVolCoverage, _data.useFlash)) return true;
+                        if (RunCoverageCheck(itr, _data.relativeDose, _data.targetVolCoverage, _data.useFlash)) return true;
                         ProvideUIUpdate(String.Format(" Coverage check for plan {0} completed!",itr.Id));
                     }
                 }
@@ -61,17 +62,16 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
         }
 
         #region coverage check
-        private bool RunCoverageCheck(List<Tuple<string, string, double, double, int>> optParams, ExternalPlanSetup plan, double relativeDose, double targetVolCoverage, bool useFlash)
+        private bool RunCoverageCheck(ExternalPlanSetup plan, double relativeDose, double targetVolCoverage, bool useFlash)
         {
             ProvideUIUpdate(" Running coverage check..." + Environment.NewLine);
             //zero all optimization objectives except those in the target
+            List<Tuple<string, string, double, double, int>> optParams = new OptimizationSetupUIHelper().ReadConstraintsFromPlan(plan);
             List<Tuple<string, string, double, double, int>> targetOnlyObj = new List<Tuple<string, string, double, double, int>> { };
 
             ProvideUIUpdate(GetOptimizationObjectivesHeader());
-
             int percentCompletion = 0;
             int calcItems = 5;
-
             foreach (Tuple<string, string, double, double, int> opt in optParams)
             {
                 int priority = 0;

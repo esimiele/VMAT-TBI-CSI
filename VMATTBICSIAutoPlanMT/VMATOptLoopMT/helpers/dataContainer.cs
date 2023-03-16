@@ -24,7 +24,6 @@ namespace VMATTBICSIOptLoopMT.helpers
         public bool copyAndSavePlanItr;
         public bool useFlash;
         public List<Tuple<string, string, int, DoseValue, double>> prescriptions;
-        public List<Tuple<string, string, double, double, int>> optParams;
         public List<Tuple<string, string, double, double, DoseValuePresentation>> planObj;
         public List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures;
         public List<Tuple<string, string, double, string>> requestedPlanDoseInfo;
@@ -35,7 +34,6 @@ namespace VMATTBICSIOptLoopMT.helpers
         //simple method to automatically assign/initialize the above data members
         public void construct(List<ExternalPlanSetup> p, 
                               List<Tuple<string, string, int, DoseValue, double>> presc,
-                              List<Tuple<string, string, double, double, int>> param, 
                               List<Tuple<string, string, double, double, DoseValuePresentation>> objectives, 
                               List<Tuple<string, double, double, double, int, 
                               List<Tuple<string, double, string, double>>>> RTS,
@@ -79,7 +77,6 @@ namespace VMATTBICSIOptLoopMT.helpers
             app = a;
 
             prescriptions = presc;
-            optParams = param;
             planObj = objectives;
             requestedTSstructures = RTS;
             requestedPlanDoseInfo = info;

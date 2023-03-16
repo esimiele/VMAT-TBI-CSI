@@ -103,7 +103,7 @@
     </Compile>
     <Compile Include="baseClasses\MTBase.cs" />
     <Compile Include="helpers\dataContainer.cs" />
-    <Compile Include="PlanEvaluation\evalPlanStruct.cs" />
+    <Compile Include="PlanEvaluation\EvalPlanStruct.cs" />
     <Compile Include="optLoopMW.xaml.cs">
       <DependentUpon>optLoopMW.xaml</DependentUpon>
       <SubType>Code</SubType>
