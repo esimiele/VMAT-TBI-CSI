@@ -53,7 +53,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             }
             else
             {
-                target = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == targetId);
+                target = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == targetId.ToLower());
             }
             return target;
         }

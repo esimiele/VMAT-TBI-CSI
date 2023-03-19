@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using VMS.TPS.Common.Model.API;
 
 namespace VMATTBICSIOptLoopMT.PlanEvaluation
@@ -22,6 +19,8 @@ namespace VMATTBICSIOptLoopMT.PlanEvaluation
         public double totalCostPlanObj;
         //did plan meet all plan objectives?
         public bool allObjectivesMet;
+        //bool to indicate plan evaluation failed or the user killed the optimization loop while evaluation was going on
+        public bool wasKilled;
         //simple constructure method to initialize the data members. Need to have this here because you can't initialize data members directly within a data structure
         public void Construct()
         {
@@ -33,6 +32,7 @@ namespace VMATTBICSIOptLoopMT.PlanEvaluation
             //vector to hold the updated optimization objectives (following adjustment in the evaluateAndUpdatePlan method)
             updatedObj = new List<Tuple<string, string, double, double, int>> { };
             allObjectivesMet = false;
+            wasKilled = false;
         }
     }
 }
