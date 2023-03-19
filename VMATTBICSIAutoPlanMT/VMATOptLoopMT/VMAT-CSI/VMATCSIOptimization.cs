@@ -7,6 +7,7 @@ using VMATTBICSIOptLoopMT.PlanEvaluation;
 using VMATTBICSIOptLoopMT.baseClasses;
 using VMATTBICSIOptLoopMT.helpers;
 using VMATTBICSIAutoplanningHelpers.Helpers;
+using VMATTBICSIAutoplanningHelpers.UIHelpers;
 
 namespace VMATTBICSIOptLoopMT.VMAT_CSI
 {
@@ -221,7 +222,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                     if (CalculateDose(_data.isDemo, itr, _data.app)) return true;
                     ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Dose calculated, normalizing plan!");
                     //normalize
-                    normalizePlan(itr, new TargetsHelper().GetTargetForPlan(_data.selectedSS, plansTargets.FirstOrDefault(x => x.Item1 == itr.Id).Item2, _data.useFlash), _data.relativeDose, _data.targetVolCoverage);
+                    NormalizePlan(itr, new TargetsHelper().GetTargetForPlan(_data.selectedSS, plansTargets.FirstOrDefault(x => x.Item1 == itr.Id).Item2, _data.useFlash), _data.relativeDose, _data.targetVolCoverage);
                     if (GetAbortStatus())
                     {
                         KillOptimizationLoop();
@@ -233,11 +234,48 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 
                 if (BuildPlanSum(evalPlan, plans)) return true;
 
-                foreach (ExternalPlanSetup itr in plans) EvaluateAndUpdatePlan(evalPlan, _data.planObj, (_data.oneMoreOpt && ((count + 1) == _data.numOptimizations)));
+                if (EvaluatePlanSumQuality(evalPlan, _data.planObj))
+                {
+                    ProvideUIUpdate(String.Format("All plan objectives met for plan sum: {0}! Exiting!", evalPlan.Id));
+                    return false;
+                }
+                else
+                {
+                    ProvideUIUpdate("All plan objectives NOT met! Adjusting optimization parameters!");
+                    foreach (ExternalPlanSetup itr in plans)
+                    {
+                        List<Tuple<string, string, double, double, int>> optParams = new OptimizationSetupUIHelper().ReadConstraintsFromPlan(itr);
+                        EvalPlanStruct e = EvaluatePlanSumComponentPlans(itr, optParams);
 
+                        if (e.wasKilled) return true;
+                        
+                    }
+                }
                 count++;
             }
+            return false;
+        }
 
+        private EvalPlanStruct EvaluatePlanSumComponentPlans(ExternalPlanSetup plan, List<Tuple<string, string, double, double, int>> optParams)
+        {
+            EvalPlanStruct e = new EvalPlanStruct();
+            e.Construct(); 
+            (double, List<Tuple<Structure, DVHData, double, double, double, int>>) optimizationObjectiveEvaluation = EvaluateResultVsOptimizationConstraints(plan, optParams);
+            e.totalCostPlanOpt = optimizationObjectiveEvaluation.Item1;
+            e.diffPlanOpt = optimizationObjectiveEvaluation.Item2;
+            e.updatedObj = DetermineNewOptimizationObjectives(plan, e.diffPlanOpt, e.totalCostPlanOpt, optParams);
+            return e;
+        }
+
+        private bool EvaluatePlanSumQuality(ExternalPlanSetup plan, List<Tuple<string, string, double, double, DoseValuePresentation>> planObj)
+        {
+            UpdateUILabel(String.Format("Plan sum evaluation: {0}", plan.Id));
+            ProvideUIUpdate(String.Format("Parsing optimization objectives from plan: {0}", plan.Id));
+            List<Tuple<string, string, double, double, int>> optParams = new OptimizationSetupUIHelper().ReadConstraintsFromPlan(plan);
+            //get current optimization objectives from plan (we could use the optParams list, but we want the actual instances of the OptimizationObjective class so we can get the results from each objective)
+            (int, int, double, List<Tuple<Structure, DVHData, double, double>>) planObjectiveEvaluation = EvaluateResultVsPlanObjectives(plan, planObj, optParams);
+            //all constraints met, exiting
+            if (planObjectiveEvaluation.Item1 == planObjectiveEvaluation.Item2) return true;
             return false;
         }
 

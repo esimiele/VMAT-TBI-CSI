@@ -525,7 +525,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}" + Environment.NewLine, GetElapsedTime()));
 
                 //normalize
-                normalizePlan(itr, new TargetsHelper().GetTargetForPlan(_data.selectedSS, "", _data.useFlash), _data.relativeDose, _data.targetVolCoverage);
+                NormalizePlan(itr, new TargetsHelper().GetTargetForPlan(_data.selectedSS, "", _data.useFlash), _data.relativeDose, _data.targetVolCoverage);
                 UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
                 ProvideUIUpdate(" Plan normalized!");
 
@@ -551,30 +551,25 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             int count = 0;
             while (count < _data.numOptimizations)
             {
-                UpdateUILabel("Optimization:");
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format(" Iteration {0}:", count + 1));
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
                 if (OptimizePlan(_data.isDemo, new OptimizationOptionsVMAT(OptimizationIntermediateDoseOption.NoIntermediateDose, ""), plan, _data.app)) return true;
 
-                UpdateUILabel("Dose calculation:");
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Optimization finished! Calculating intermediate dose!");
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
                 if (CalculateDose(_data.isDemo, plan, _data.app)) return true;
 
-                UpdateUILabel("Optimization:");
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Dose calculated! Continuing optimization!");
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
                 if (OptimizePlan(_data.isDemo, new OptimizationOptionsVMAT(OptimizationOption.ContinueOptimizationWithPlanDoseAsIntermediateDose, ""), plan, _data.app)) return true;
 
-                UpdateUILabel("Dose calculation:");
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Optimization finished! Calculating dose!");
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
                 if (CalculateDose(_data.isDemo, plan, _data.app)) return true;
 
-                UpdateUILabel("Normalization:");
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Dose calculated, normalizing plan!");
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
-                normalizePlan(plan, new TargetsHelper().GetTargetForPlan(_data.selectedSS, "", _data.useFlash), _data.relativeDose, _data.targetVolCoverage);
+                NormalizePlan(plan, new TargetsHelper().GetTargetForPlan(_data.selectedSS, "", _data.useFlash), _data.relativeDose, _data.targetVolCoverage);
 
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Plan normalized! Evaluating plan quality and updating constraints!"); ;
                 //evaluate the new plan for quality and make any adjustments to the optimization parameters
@@ -657,6 +652,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             if(isDemo) Thread.Sleep(3000);
             else
             {
+                UpdateUILabel("Optimization:");
                 try
                 {
                     OptimizerResult optRes = plan.OptimizeVMAT(options);
@@ -688,6 +684,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             if (isDemo) Thread.Sleep(3000);
             else
             {
+                UpdateUILabel("Dose calculation:");
                 try
                 {
                     CalculationResult calcRes = plan.CalculateDose();
@@ -751,7 +748,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             return false;
         }
 
-        protected void UpdateConstraints(List<Tuple<string, string, double, double, int>> obj, ExternalPlanSetup plan)
+        protected bool UpdateConstraints(List<Tuple<string, string, double, double, int>> obj, ExternalPlanSetup plan)
         {
             int percentComplete = 0;
             int calcItems = plan.OptimizationSetup.Objectives.Count() + obj.Count();
@@ -770,17 +767,19 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                 if (opt.Item2.ToLower() == "upper") plan.OptimizationSetup.AddPointObjective(plan.StructureSet.Structures.First(x => x.Id == opt.Item1), OptimizationObjectiveOperator.Upper, new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item4, opt.Item5);
                 else if (opt.Item2.ToLower() == "lower") plan.OptimizationSetup.AddPointObjective(plan.StructureSet.Structures.First(x => x.Id == opt.Item1), OptimizationObjectiveOperator.Lower, new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item4, opt.Item5);
                 else if (opt.Item2.ToLower() == "mean") plan.OptimizationSetup.AddMeanDoseObjective(plan.StructureSet.Structures.First(x => x.Id == opt.Item1), new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item5);
-                else if (opt.Item2.ToLower() == "exact") MessageBox.Show("Script not setup to handle exact dose constraints! Skipping");
+                else if (opt.Item2.ToLower() == "exact") ProvideUIUpdate("Warning! Script not setup to handle exact dose constraints! Skipping");
                 else ProvideUIUpdate("Constraint type not recognized! Skipping!");
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems));
             }
             UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
+            return false;
         }
         #endregion
 
         #region normalization
-        public bool normalizePlan(ExternalPlanSetup plan, Structure target, double relativeDose, double targetVolCoverage)
+        public bool NormalizePlan(ExternalPlanSetup plan, Structure target, double relativeDose, double targetVolCoverage)
         {
+                UpdateUILabel("Normalization:");
             //in demo mode, dose might not be calculated for the plan
             if (!plan.IsDoseValid) return true;
             if (target == null || target.IsEmpty) return true;
@@ -793,7 +792,6 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             DoseValue dv = new DoseValue(relativeDose * RxDose / 100, DoseValue.DoseUnit.cGy);
             //get current coverage of the RxDose
             double coverage = plan.GetVolumeAtDose(target, dv, VolumePresentation.Relative);
-            //MessageBox.Show(String.Format("{0}, {1}", dv, coverage));
 
             //if the current coverage doesn't equal the desired coverage, then renormalize the plan
             if (coverage != targetVolCoverage)
@@ -801,9 +799,12 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                 //get the dose that does cover the targetVolCoverage of the target volume and scale the dose distribution by the ratio of that dose to the relative prescription dose
                 dv = plan.GetDoseAtVolume(target, targetVolCoverage, VolumePresentation.Relative, DoseValuePresentation.Absolute);
                 double normValue = 100.0 * dv.Dose / (relativeDose * RxDose / 100);
-                if (normValue < 0.01 || normValue > 10000.0) return true;
+                if (normValue < 0.01 || normValue > 10000.0)
+                {
+                    ProvideUIUpdate(String.Format("Calculated plan normalization value ({0}%) is outside of acceptable range: 0.01% - 10000.0%! Exiting", normValue), true);
+                    return true;
+                }
                 plan.PlanNormalizationValue = normValue;
-                //MessageBox.Show(String.Format("{0}, {1}, {2}", dv, plan.PlanNormalizationValue, plan.Dose.DoseMax3D.Dose));
             }
             UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
             return false;
@@ -813,7 +814,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         #region plan evaluation
         protected EvalPlanStruct EvaluateAndUpdatePlan(ExternalPlanSetup plan, List<Tuple<string, string, double, double, DoseValuePresentation>> planObj, bool finalOptimization)
         {
-            UpdateUILabel("Plan(s) evaluation:");
+            UpdateUILabel(String.Format("Plan evaluation: {0}", plan.Id));
             ProvideUIUpdate("Constructed evaluation data structure");
             //create a new data structure to hold the results of the plan quality evaluation
             EvalPlanStruct e = new EvalPlanStruct();
@@ -822,7 +823,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             ProvideUIUpdate(String.Format("Parsing optimization objectives from plan: {0}", plan.Id));
             List<Tuple<string, string, double, double, int>> optParams = new OptimizationSetupUIHelper().ReadConstraintsFromPlan(plan);
             //get current optimization objectives from plan (we could use the optParams list, but we want the actual instances of the OptimizationObjective class so we can get the results from each objective)
-            (int, int, double, List<Tuple<Structure, DVHData, double, double>>) planObjectiveEvaluation = EvaluateResultVsPlanObjectives(plan, _data.planObj, optParams);
+            (int, int, double, List<Tuple<Structure, DVHData, double, double>>) planObjectiveEvaluation = EvaluateResultVsPlanObjectives(plan, planObj, optParams);
 
             if (GetAbortStatus())
             {
@@ -837,7 +838,6 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             if (planObjectiveEvaluation.Item1 == planObjectiveEvaluation.Item2)
             {
                 e.allObjectivesMet = true;
-                e.wasKilled = true; 
                 return e;
             }
             ProvideUIUpdate("All plan objectives NOT met! Adjusting optimization parameters!");
@@ -864,6 +864,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
 
             (bool, List<Tuple<string, string, double, double, int>>) result = UpdateHeaterCoolerStructures(plan, finalOptimization);
 
+            //did the user abort the program while updating the heater and cooler structures
             if(result.Item1)
             {
                 //user killed operation while generating heater and cooler structures
@@ -873,6 +874,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             }
             e.updatedObj.AddRange(result.Item2);
             
+            UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
             return e;
         }
 
@@ -999,7 +1001,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             return diff;
         }
 
-        protected List<Tuple<string, string, double, double, int>> DetermineNewOptimizationObjectives(ExternalPlanSetup plan, List<Tuple<Structure, DVHData, double, double, double, int>> diffPlanOpt, double totalCostOptimizationConstraints, List<Tuple<string, string, double, double, int>> optParams)
+        protected virtual List<Tuple<string, string, double, double, int>> DetermineNewOptimizationObjectives(ExternalPlanSetup plan, List<Tuple<Structure, DVHData, double, double, double, int>> diffPlanOpt, double totalCostOptimizationConstraints, List<Tuple<string, string, double, double, int>> optParams)
         {
             ProvideUIUpdate("Determining new optimization objectives for next iteration");
             //not all plan objectives were met and now we need to do some investigative work to find out what failed and by how much
@@ -1063,7 +1065,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             int calcItems = 2 +_data.requestedTSstructures.Count();
             //update cooler and heater structures for optimization
             //first remove existing structures
-            removeCoolHeatStructures(plan);
+            RemoveCoolHeatStructures(plan);
 
             //list to hold info related to optimization constraints for any added heater and cooler structures
             List<Tuple<string, string, double, double, int>> addedTSstructures = new List<Tuple<string, string, double, double, int>> { };
@@ -1093,9 +1095,9 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                 {
                     ProvideUIUpdate(String.Format("All conditions met for: {0}! Adding to structure set!", itr.Item1));
                     //cooler
-                    if (itr.Item1.Contains("cooler")) TSstructure = generateCooler(plan, itr.Item2 / 100, itr.Item3 / 100, itr.Item4, itr.Item1, itr.Item5);
+                    if (itr.Item1.Contains("cooler")) TSstructure = GenerateCooler(plan, itr.Item2 / 100, itr.Item3 / 100, itr.Item4, itr.Item1, itr.Item5);
                     //heater
-                    else TSstructure = generateHeater(plan, target, itr.Item2 / 100, itr.Item3 / 100, itr.Item4, itr.Item1, itr.Item5);
+                    else TSstructure = GenerateHeater(plan, target, itr.Item2 / 100, itr.Item3 / 100, itr.Item4, itr.Item1, itr.Item5);
                     if (TSstructure != null) addedTSstructures.Add(TSstructure);
                 }
                 else ProvideUIUpdate(String.Format("All conditions NOT met for: {0}! Skipping!", itr.Item1));
@@ -1108,6 +1110,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         {
             if (constraints.Any())
             {
+                //if any conditions were requested for a particular heater or cooler structure, ensure all of the conditions were met prior to adding the heater/cooler structure
                 foreach (Tuple<string, double, string, double> itr in constraints)
                 {
                     if (itr.Item1.Contains("Dmax"))
@@ -1133,10 +1136,10 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             return true;
         }
 
-        protected void removeCoolHeatStructures(ExternalPlanSetup plan)
+        protected void RemoveCoolHeatStructures(ExternalPlanSetup plan)
         {
             ProvideUIUpdate("Removing existing heater and cooler structures");
-            StructureSet ss = plan.StructureSet;
+            StructureSet ss = _data.selectedSS;
             List<Structure> coolerHeater = ss.Structures.Where(x => x.Id.ToLower().Contains("ts_cooler") || x.Id.ToLower().Contains("ts_heater")).ToList();
             int percentComplete = 0;
             int calcItems = coolerHeater.Count();
@@ -1148,7 +1151,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             }
         }
 
-        protected Tuple<string, string, double, double, int> generateCooler(ExternalPlanSetup plan, double doseLevel, double requestedDoseConstraint, double volume, string name, int priority)
+        protected Tuple<string, string, double, double, int> GenerateCooler(ExternalPlanSetup plan, double doseLevel, double requestedDoseConstraint, double volume, string name, int priority)
         {
             ProvideUIUpdate(String.Format("Generating cooler structure: {0} now", name));
             //create an empty optiization objective
@@ -1172,7 +1175,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             return cooler;
         }
 
-        protected Tuple<string, string, double, double, int> generateHeater(ExternalPlanSetup plan, Structure target, double doseLevelLow, double doseLevelHigh, double volume, string name, int priority)
+        protected Tuple<string, string, double, double, int> GenerateHeater(ExternalPlanSetup plan, Structure target, double doseLevelLow, double doseLevelHigh, double volume, string name, int priority)
         {
             ProvideUIUpdate(String.Format("Generating heater structure: {0} now", name));
             //similar to the generateCooler method
