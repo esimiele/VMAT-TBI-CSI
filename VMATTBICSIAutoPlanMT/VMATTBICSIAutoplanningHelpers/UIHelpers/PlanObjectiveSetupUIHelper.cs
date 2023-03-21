@@ -127,7 +127,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
                         return new List<Tuple<string, string, double, double, DoseValuePresentation>> { };
                     }
                     //if the row of data passes the above checks, add it the optimization parameter list
-                    else tmp.Add(Tuple.Create(structure, constraintType, dose, vol, presentation));
+                    else tmp.Add(Tuple.Create(structure, constraintType, Math.Round(dose, 3, MidpointRounding.AwayFromZero), Math.Round(vol, 3, MidpointRounding.AwayFromZero), presentation));
                     //reset the values of the variables used to parse the data
                     firstCombo = true;
                     txtbxNum = 1;

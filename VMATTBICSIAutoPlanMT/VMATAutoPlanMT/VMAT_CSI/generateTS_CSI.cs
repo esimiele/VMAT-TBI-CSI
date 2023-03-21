@@ -429,13 +429,13 @@ namespace VMATAutoPlanMT.VMAT_CSI
             {
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Adding TS to added structures: {0}", itr.Item2));
                 //if those structures have NOT been added to the added structure list, go ahead and add them to stack
-                if (addedStructures.FirstOrDefault(x => x.ToLower() == itr.Item2) == null) AddTSStructures(itr);
+                if (!addedStructures.Where(x => x.ToLower() == itr.Item2).Any()) AddTSStructures(itr);
             }
 
             ProvideUIUpdate(100, String.Format("Finished adding tuning structures!"));
             ProvideUIUpdate(0, String.Format("Contouring tuning structures!"));
             //now contour the various structures
-            foreach (string itr in addedStructures)
+            foreach (string itr in addedStructures.Where(x => !x.ToLower().Contains("ctv") && !x.ToLower().Contains("ptv")))
             {
                 counter = 0;
                 ProvideUIUpdate(0, String.Format("Contouring TS: {0}", itr));
@@ -538,7 +538,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     //leave margin as 0.3 cm outer by default
                     if(ContourPRVVolume(addedStructure.Id.Substring(0, addedStructure.Id.LastIndexOf("_")), addedStructure, 0.3)) return true;
                 }
-                else if (!(itr.ToLower().Contains("ptv")))
+                else
                 {
                     if (ContourInnerOuterStructure(addedStructure, ref counter)) return true;
                 }

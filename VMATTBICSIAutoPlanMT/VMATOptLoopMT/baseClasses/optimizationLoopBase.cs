@@ -7,7 +7,7 @@ using System.Diagnostics;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIOptLoopMT.PlanEvaluation;
-using VMATTBICSIOptLoopMT.helpers;
+using VMATTBICSIOptLoopMT.Helpers;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 using VMATTBICSIAutoplanningHelpers.UIHelpers;
 using VMATTBICSIAutoplanningHelpers.Prompts;
@@ -54,7 +54,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             Structure structure;
             List<Structure> planStructures = _data.selectedSS.Structures.ToList();
             
-            string message = " Additional plan infomation: " + Environment.NewLine;
+            ProvideUIUpdate(String.Format(Environment.NewLine + " Additional infomation for plan: {0}" + Environment.NewLine, plan.Id));
             foreach(Tuple<string,string,double,string> itr in requestedInfo)
             {
                 if(itr.Item1.Contains("<plan>"))
@@ -109,13 +109,14 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         {
             string optimizationLoopSetupInfo = String.Format(" ---------------------------------------------------------------------------------------------------------" + Environment.NewLine +
                                         " Date: {0}" + Environment.NewLine +
+                                        " Plan type: {1}" + Environment.NewLine +
                                         " Optimization loop settings:" + Environment.NewLine +
-                                        " Run coverage check: {1}" + Environment.NewLine +
-                                        " Max number of optimizations: {2}" + Environment.NewLine +
-                                        " Run additional optimization to lower hotspots: {3}" + Environment.NewLine +
-                                        " Copy and save each optimized plan: {4}" + Environment.NewLine +
+                                        " Run coverage check: {2}" + Environment.NewLine +
+                                        " Max number of optimizations: {3}" + Environment.NewLine +
+                                        " Run additional optimization to lower hotspots: {4}" + Environment.NewLine +
+                                        " Copy and save each optimized plan: {5}" + Environment.NewLine +
                                         " Plan normalization:" + Environment.NewLine,
-                                        DateTime.Now, _data.runCoverageCheck, _data.numOptimizations, _data.oneMoreOpt, _data.copyAndSavePlanItr);
+                                        DateTime.Now, _data.planType, _data.runCoverageCheck, _data.numOptimizations, _data.oneMoreOpt, _data.copyAndSavePlanItr);
 
             foreach(ExternalPlanSetup itr in plans)
             {
@@ -141,6 +142,16 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                 ProvideUIUpdate(String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-9} |", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5));
             }
             ProvideUIUpdate(Environment.NewLine);
+        }
+
+        protected void PrintPlanOptimizationConstraints(string planId, List<Tuple<string, string, double, double, int>> constraints, int calcItems, ref int percentComplete)
+        {
+            ProvideUIUpdate(GetOptimizationObjectivesHeader(planId));
+            foreach (Tuple<string, string, double, double, int> itr in constraints)
+            {
+                ProvideUIUpdate(String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5));
+            }
+            ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " ");
         }
 
         protected void PrintRequestedTSStructures()
@@ -180,18 +191,18 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             }
         }
 
-        protected string GetOptimizationObjectivesHeader()
+        protected string GetOptimizationObjectivesHeader(string planId)
         {
-            string optObjHeader = " Updated optimization constraints:" + Environment.NewLine;
+            string optObjHeader = Environment.NewLine + String.Format("Updated optimization constraints for plan: {0}", planId) + Environment.NewLine;
             optObjHeader += " -------------------------------------------------------------------------" + Environment.NewLine;
             optObjHeader += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |" + Environment.NewLine, "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority");
             optObjHeader += " -------------------------------------------------------------------------";
             return optObjHeader;
         }
 
-        protected string GetOptimizationResultsHeader()
+        protected string GetOptimizationResultsHeader(string planId)
         {
-            string optResHeader = " Results of optimization:" + Environment.NewLine;
+            string optResHeader = String.Format(" Results of optimization for plan: {0}" + Environment.NewLine, planId);
             optResHeader += " ---------------------------------------------------------------------------------------------------------" + Environment.NewLine;
             optResHeader += String.Format(" {0, -15} | {1, -16} | {2, -20} | {3, -16} | {4, -12} | {5, -9} |" + Environment.NewLine, "structure Id", "constraint type", "dose diff^2 (cGy^2)", "current priority", "cost", "cost (%)");
             optResHeader += " ---------------------------------------------------------------------------------------------------------";
@@ -516,18 +527,18 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                 UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
 
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Optimization finished! Calculating dose!");
-                ProvideUIUpdate(String.Format(" Elapsed time: {0}" + Environment.NewLine, GetElapsedTime()));
+                ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
 
                 if (CalculateDose(_data.isDemo, itr, _data.app)) return true;
                 UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
 
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Dose calculated, normalizing plan!");
-                ProvideUIUpdate(String.Format(" Elapsed time: {0}" + Environment.NewLine, GetElapsedTime()));
+                ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
 
                 //normalize
-                NormalizePlan(itr, new TargetsHelper().GetTargetForPlan(_data.selectedSS, "", _data.useFlash), _data.relativeDose, _data.targetVolCoverage);
+                NormalizePlan(itr, new TargetsHelper().GetTargetForPlan(_data.selectedSS, null, _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
                 UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
-                ProvideUIUpdate(" Plan normalized!");
+                ProvideUIUpdate(String.Format(" {0} normalized!", itr.Id));
 
                 //print requested additional info about the plan
                 PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, itr);
@@ -551,6 +562,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             int count = 0;
             while (count < _data.numOptimizations)
             {
+                bool isFinalOpt = (_data.oneMoreOpt && ((count + 1) == _data.numOptimizations));
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format(" Iteration {0}:", count + 1));
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
                 if (OptimizePlan(_data.isDemo, new OptimizationOptionsVMAT(OptimizationIntermediateDoseOption.NoIntermediateDose, ""), plan, _data.app)) return true;
@@ -569,11 +581,11 @@ namespace VMATTBICSIOptLoopMT.baseClasses
 
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Dose calculated, normalizing plan!");
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
-                NormalizePlan(plan, new TargetsHelper().GetTargetForPlan(_data.selectedSS, "", _data.useFlash), _data.relativeDose, _data.targetVolCoverage);
+                NormalizePlan(plan, new TargetsHelper().GetTargetForPlan(_data.selectedSS, "", _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
 
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Plan normalized! Evaluating plan quality and updating constraints!"); ;
                 //evaluate the new plan for quality and make any adjustments to the optimization parameters
-                EvalPlanStruct e = EvaluateAndUpdatePlan(plan, _data.planObj, (_data.oneMoreOpt && ((count + 1) == _data.numOptimizations)));
+                EvalPlanStruct e = EvaluateAndUpdatePlan(plan, _data.planObj, isFinalOpt);
                 
                 if (e.wasKilled) return true;
                 else if (e.allObjectivesMet)
@@ -591,45 +603,14 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                 //the same plan!
                 if (!_data.isDemo && _data.copyAndSavePlanItr && (_data.oneMoreOpt || ((count + 1) != _data.numOptimizations))) CopyAndSavePlan(plan, count);
 
-                //print the results of the quality check for this optimization
-                ProvideUIUpdate(Environment.NewLine + GetOptimizationResultsHeader());
-                List<Tuple<string, string, double, double, int>> optParams = new OptimizationSetupUIHelper().ReadConstraintsFromPlan(plan);
-                int index = 0;
-                //structure, dvh data, current dose obj, dose diff^2, cost, current priority, priority difference
-                foreach (Tuple<Structure, DVHData, double, double, double, int> itr in e.diffPlanOpt)
-                {
-                    //"structure Id", "constraint type", "dose diff^2 (cGy^2)", "current priority", "cost", "cost (%)"
-                    ProvideUIUpdate(String.Format(" {0, -15} | {1, -16} | {2, -20:N1} | {3, -16} | {4, -12:N1} | {5, -9:N1} |", 
-                                                    itr.Item1.Id, optParams.ElementAt(index).Item2, itr.Item4, itr.Item6, itr.Item5, 100 * itr.Item5 / e.totalCostPlanOpt));
-                    index++;
-                }
-
-                PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, plan);
+                PrintPlanOptimizationResultVsConstraints(plan, new OptimizationSetupUIHelper().ReadConstraintsFromPlan(plan), e.diffPlanOpt, e.totalCostPlanOpt);
 
                 //really crank up the priority and lower the dose objective on the cooler on the last iteration of the optimization loop
                 //this is basically here to avoid having to call op.updateConstraints a second time (if this batch of code was placed outside of the loop)
-                if (_data.oneMoreOpt && ((count + 1) == _data.numOptimizations))
-                {
-                    //go through the current list of optimization objects and add all of them to finalObj vector. ADD COMMENTS!
-                    List<Tuple<string, string, double, double, int>> finalObj = new List<Tuple<string, string, double, double, int>> { };
-                    foreach (Tuple<string, string, double, double, int> itr in e.updatedObj)
-                    {
-                        //get maximum priority and assign it to the cooler structure to really push the hotspot down. Also lower dose objective
-                        if (itr.Item1.ToLower().Contains("ts_cooler"))
-                        {
-                            finalObj.Add(new Tuple<string, string, double, double, int>(itr.Item1, itr.Item2, 0.98 * itr.Item3, itr.Item4, Math.Max(itr.Item5, (int)(0.9 * (double)e.updatedObj.Max(x => x.Item5)))));
-                        }
-                        else finalObj.Add(itr);
-                    }
-                    //set e.updatedObj to be equal to finalObj
-                    e.updatedObj = finalObj;
-                }
+                if (isFinalOpt) e.updatedObj = IncreaseOptConstraintPrioritiesForFinalOpt(e.updatedObj);
 
-                //print the updated optimization objectives to the user
-                ProvideUIUpdate(Environment.NewLine + GetOptimizationObjectivesHeader());
-                foreach (Tuple<string, string, double, double, int> itr in e.updatedObj)
-                    ProvideUIUpdate(String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5));
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems));
+                //print updated optimization constraints
+                PrintPlanOptimizationConstraints(plan.Id, e.updatedObj, calcItems, ref percentComplete);
 
                 //update the optimization constraints in the plan
                 UpdateConstraints(e.updatedObj, plan);
@@ -638,6 +619,40 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                 count++;
             }
             return false;
+        }
+
+        protected List<Tuple<string, string, double, double, int>> IncreaseOptConstraintPrioritiesForFinalOpt(List<Tuple<string, string, double, double, int>> updatedOpt)
+        {
+            //go through the current list of optimization objects and add all of them to finalObj vector. ADD COMMENTS!
+            List<Tuple<string, string, double, double, int>> finalObj = new List<Tuple<string, string, double, double, int>> { };
+            double maxPriority = (double)updatedOpt.Max(x => x.Item5); 
+            foreach (Tuple<string, string, double, double, int> itr in updatedOpt)
+            {
+                //get maximum priority and assign it to the cooler structure to really push the hotspot down. Also lower dose objective
+                if (itr.Item1.ToLower().Contains("ts_cooler"))
+                {
+                    finalObj.Add(new Tuple<string, string, double, double, int>(itr.Item1, itr.Item2, 0.98 * itr.Item3, itr.Item4, Math.Max(itr.Item5, (int)(0.9 * maxPriority))));
+                }
+                else finalObj.Add(itr);
+            }
+            return finalObj;
+        }
+
+        protected bool PrintPlanOptimizationResultVsConstraints(ExternalPlanSetup plan, List<Tuple<string, string, double, double, int>> optParams, List<Tuple<Structure, DVHData, double, double, double, int>> diffPlanOpt, double totalCostPlanOpt)
+        {
+            //print the results of the quality check for this optimization
+            ProvideUIUpdate(GetOptimizationResultsHeader(plan.Id));
+            int index = 0;
+            //structure, dvh data, current dose obj, dose diff^2, cost, current priority, priority difference
+            foreach (Tuple<Structure, DVHData, double, double, double, int> itr in diffPlanOpt)
+            {
+                //"structure Id", "constraint type", "dose diff^2 (cGy^2)", "current priority", "cost", "cost (%)"
+                ProvideUIUpdate(String.Format(" {0, -15} | {1, -16} | {2, -20:N1} | {3, -16} | {4, -12:N1} | {5, -9:N1} |",
+                                                itr.Item1.Id, optParams.ElementAt(index).Item2, itr.Item4, itr.Item6, itr.Item5, 100 * itr.Item5 / totalCostPlanOpt));
+                index++;
+            }
+
+            PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, plan); return false;
         }
 
         protected virtual bool RunSequentialPlansOptimizationLoop(List<ExternalPlanSetup> plans)
@@ -649,10 +664,10 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         #region helper functions during optimization
         protected bool OptimizePlan(bool isDemo, OptimizationOptionsVMAT options, ExternalPlanSetup plan, VMS.TPS.Common.Model.API.Application app)
         {
-            if(isDemo) Thread.Sleep(3000);
+            UpdateUILabel("Optimization:");
+            if (isDemo) Thread.Sleep(3000);
             else
             {
-                UpdateUILabel("Optimization:");
                 try
                 {
                     OptimizerResult optRes = plan.OptimizeVMAT(options);
@@ -667,9 +682,9 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                     PrintFailedMessage("Optimization", except.Message);
                     return true;
                 }
-                UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
                 app.SaveModifications();
             }
+            UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
             //check if user wants to stop
             if (GetAbortStatus())
             {
@@ -681,10 +696,10 @@ namespace VMATTBICSIOptLoopMT.baseClasses
 
         public bool CalculateDose(bool isDemo, ExternalPlanSetup plan, VMS.TPS.Common.Model.API.Application app)
         {
+            UpdateUILabel("Dose calculation:");
             if (isDemo) Thread.Sleep(3000);
             else
             {
-                UpdateUILabel("Dose calculation:");
                 try
                 {
                     CalculationResult calcRes = plan.CalculateDose();
@@ -699,9 +714,9 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                     PrintFailedMessage("Dose calculation", except.Message);
                     return true;
                 }
-                UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
                 app.SaveModifications();
             }
+            UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
             //check if user wants to stop
             if (GetAbortStatus())
             {
@@ -713,6 +728,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
 
         protected bool CopyAndSavePlan(ExternalPlanSetup plan, int count)
         {
+            UpdateUILabel("Copy and save plan:");
             Course c = plan.Course;
             //this copies the plan and the dose!
             ExternalPlanSetup newPlan = (ExternalPlanSetup)c.CopyPlanSetup(plan);
@@ -732,7 +748,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             int priority;
             
             UpdateUILabel("Initialize constraints:");
-            ProvideUIUpdate(Environment.NewLine + GetOptimizationObjectivesHeader());
+            ProvideUIUpdate(GetOptimizationObjectivesHeader(plan.Id));
             foreach (Tuple<string, string, double, double, int> opt in originalOptObj)
             {
                 //leave the PTV priorities at their original values (i.e., 100)
@@ -742,6 +758,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                 optObj.Add(Tuple.Create(opt.Item1, opt.Item2, opt.Item3, opt.Item4, priority));
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.Item1, opt.Item2, opt.Item3, opt.Item4, priority));
             }
+            ProvideUIUpdate(" ");
             UpdateConstraints(optObj, plan);
 
             UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
@@ -779,7 +796,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         #region normalization
         public bool NormalizePlan(ExternalPlanSetup plan, Structure target, double relativeDose, double targetVolCoverage)
         {
-                UpdateUILabel("Normalization:");
+            UpdateUILabel("Normalization:");
             //in demo mode, dose might not be calculated for the plan
             if (!plan.IsDoseValid) return true;
             if (target == null || target.IsEmpty) return true;
@@ -815,7 +832,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         protected EvalPlanStruct EvaluateAndUpdatePlan(ExternalPlanSetup plan, List<Tuple<string, string, double, double, DoseValuePresentation>> planObj, bool finalOptimization)
         {
             UpdateUILabel(String.Format("Plan evaluation: {0}", plan.Id));
-            ProvideUIUpdate("Constructed evaluation data structure");
+            ProvideUIUpdate(Environment.NewLine + "Constructed evaluation data struct!");
             //create a new data structure to hold the results of the plan quality evaluation
             EvalPlanStruct e = new EvalPlanStruct();
             e.Construct();
@@ -911,23 +928,30 @@ namespace VMATTBICSIOptLoopMT.baseClasses
 
                     //NOTE: THERE MAY BE CASES WHERE A STRUCTURE MIGHT HAVE A PLAN OBJECTIVE, BUT NOT AN OPTIMIZATION OBJECTIVE(e.g., ovaries). Check if the structure of interest also has an optimization objective. If so, this indicates the user actually wanted to spare this
                     //structure for this plan and we should increment the number of comparisons counter. In addition, we need to copy the objective priority from the optimization objective if there is one
-                    if (optParams.FirstOrDefault(x => x.Item1.ToLower() == s.Id) != null)
-                    {
-                        //If so, do a three-way comparison to find the correct optimization objective for this plan objective (compare based structureId, constraint type, and constraint volume). These three objectives will remain constant
-                        //throughout the optimization process whereas the dose constraint will vary
-                        IEnumerable<Tuple<string, string, double, double, int>> copyOpt = (from p in optParams
-                                                                                                where p.Item1.ToLower() == s.Id.ToLower()
-                                                                                                where p.Item2.ToLower() == itr.Item2.ToLower()
-                                                                                                where p.Item4 == itr.Item4
-                                                                                                select p);
+                    //If so, do a three-way comparison to find the correct optimization objective for this plan objective (compare based structureId, constraint type, and constraint volume). These three objectives will remain constant
+                    //throughout the optimization process whereas the dose constraint will vary
+                    IEnumerable<Tuple<string, string, double, double, int>> copyOpt = (from p in optParams
+                                                                                        where p.Item1.ToLower() == s.Id.ToLower()
+                                                                                        where p.Item2.ToLower() == itr.Item2.ToLower()
+                                                                                        where p.Item4 == itr.Item4
+                                                                                        select p);
+                    //IEnumerable<Tuple<string, string, double, double, int>> copyOpt = optParams.Where(x => x.Item1.ToLower() == s.Id.ToLower() && x.Item2.ToLower() == itr.Item2.ToLower());
 
-                        //If the appropriate constraint was found, calculate the cost as the (dose diff)^2 * priority. Also 
-                        if (copyOpt != null) optPriority = copyOpt.First().Item5;
-                        //if no exact constraint was found, leave the priority at zero (per Nataliya's instructions)
+                    //foreach(Tuple<string, string, double, double, int> t in copyOpt)
+                    //{
+                    //    ProvideUIUpdate(String.Format("({0},{1},{2},{3},{4})", t.Item1, t.Item2, t.Item3, t.Item4, t.Item5));
+                    //}
+
+                    //If the appropriate constraint was found, calculate the cost as the (dose diff)^2 * priority 
+                    if (copyOpt.Any())
+                    {
+                        optPriority = copyOpt.First().Item5;
+                        ProvideUIUpdate(String.Format("Corresponding optimization objective found for plan objective: ({0},{1},{2},{3},{4})", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5.ToString()));
                         //increment the number of comparisons since an optimization constraint was found
                         numComparisons++;
                     }
-                    else ProvideUIUpdate(String.Format("No corresponding optimization objective found for plan objective: {0}", itr.Item1));
+                    //if no exact constraint was found, leave the priority at zero (per Nataliya's instructions)
+                    else ProvideUIUpdate(String.Format("No corresponding optimization objective found for plan objective: ({0},{1},{2},{3},{4})", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5.ToString()));
 
                     diff = GetDifferenceFromGoal(plan, itr, s, dvh);
                     if (diff <= 0.0)
@@ -1057,8 +1081,9 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         #endregion
 
         #region heaters and cooler structure generation removal
-        private (bool, List<Tuple<string, string, double, double, int>>) UpdateHeaterCoolerStructures(ExternalPlanSetup plan, bool isFinalOptimization)
+        protected virtual (bool, List<Tuple<string, string, double, double, int>>) UpdateHeaterCoolerStructures(ExternalPlanSetup plan, bool isFinalOptimization)
         {
+            UpdateUILabel("Update TS heaters & coolers:");
             bool wasKilled = false;
             ProvideUIUpdate("Updating heater and cooler tuning structures for next iteration");
             int percentComplete = 0;
@@ -1078,7 +1103,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                 wasKilled = true;
                 return (wasKilled, addedTSstructures);
             }
-            Structure target = new TargetsHelper().GetTargetForPlan(_data.selectedSS, plansTargets.FirstOrDefault(x => x.Item1 == plan.Id).Item2, _data.useFlash);
+            Structure target = new TargetsHelper().GetTargetForPlan(_data.selectedSS, plansTargets.FirstOrDefault(x => x.Item1 == plan.Id).Item2, _data.useFlash, _data.planType);
             if (target == null)
             {
                 ProvideUIUpdate(String.Format("Error! Target structure not found for plan: {0}! Exiting!", plan.Id));
@@ -1101,6 +1126,11 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                     if (TSstructure != null) addedTSstructures.Add(TSstructure);
                 }
                 else ProvideUIUpdate(String.Format("All conditions NOT met for: {0}! Skipping!", itr.Item1));
+                if(GetAbortStatus())
+                {
+                    wasKilled = true;
+                    return (wasKilled, addedTSstructures);
+                }
             }
             ProvideUIUpdate(100, String.Format("Elapsed time: {0}", GetElapsedTime()));
             return (wasKilled, addedTSstructures);

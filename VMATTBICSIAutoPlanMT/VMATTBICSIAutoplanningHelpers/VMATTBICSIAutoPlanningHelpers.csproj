@@ -109,6 +109,7 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Helpers\PlanTypeEnum.cs" />
     <Compile Include="Helpers\TargetsHelper.cs" />
     <Compile Include="UIHelpers\BeamPlacementUIHelper.cs" />
     <Compile Include="Helpers\ConfigurationHelper.cs" />

@@ -42,13 +42,18 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             return targets;
         }
 
-        public Structure GetTargetForPlan(StructureSet ss, string targetId, bool useFlash)
+        public Structure GetTargetForPlan(StructureSet ss, string targetId, bool useFlash, PlanType type)
         {
             Structure target = null;
             if (string.IsNullOrEmpty(targetId))
             {
-                //if (!useFlash) target = plan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_vmat");
-                if (useFlash) target = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_flash");
+                //case where no targetId is supplied --> use default target for all plans
+                if(type == PlanType.VMAT_TBI)
+                {
+                    //flash should only be present for vmat tbi plans
+                    if (useFlash) target = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_flash");
+                    else target = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_vmat");
+                }
                 else target = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_csi");
             }
             else

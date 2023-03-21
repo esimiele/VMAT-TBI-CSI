@@ -4,7 +4,7 @@ using System.Linq;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIOptLoopMT.baseClasses;
-using VMATTBICSIOptLoopMT.helpers;
+using VMATTBICSIOptLoopMT.Helpers;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 using VMATTBICSIAutoplanningHelpers.UIHelpers;
 
@@ -69,7 +69,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             List<Tuple<string, string, double, double, int>> optParams = new OptimizationSetupUIHelper().ReadConstraintsFromPlan(plan);
             List<Tuple<string, string, double, double, int>> targetOnlyObj = new List<Tuple<string, string, double, double, int>> { };
 
-            ProvideUIUpdate(GetOptimizationObjectivesHeader());
+            ProvideUIUpdate(GetOptimizationObjectivesHeader(plan.Id));
             int percentCompletion = 0;
             int calcItems = 5;
             foreach (Tuple<string, string, double, double, int> opt in optParams)
@@ -96,7 +96,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Dose calculated for coverage check, normalizing plan!");
 
             //normalize plan
-            NormalizePlan(plan, new TargetsHelper().GetTargetForPlan(_data.selectedSS, "", useFlash), relativeDose, targetVolCoverage);
+            NormalizePlan(plan, new TargetsHelper().GetTargetForPlan(_data.selectedSS, "", useFlash, _data.planType), relativeDose, targetVolCoverage);
             if (GetAbortStatus())
             {
                 KillOptimizationLoop();
@@ -130,7 +130,6 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             {
                 if (RemoveFlashAndRecalc(plans)) return true;
             }
-            ProvideUIUpdate(100, Environment.NewLine + " Finished!");
             return false;
         }
 
@@ -169,7 +168,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                     CalculateDose(_data.isDemo, itr, _data.app);
                     ProvideUIUpdate((int)(100 * (++overallPercentCompletion) / overallCalcItems), " Dose calculated, normalizing plan!");
                     ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
-                    NormalizePlan(itr, new TargetsHelper().GetTargetForPlan(_data.selectedSS, "", false), _data.relativeDose, _data.targetVolCoverage);
+                    NormalizePlan(itr, new TargetsHelper().GetTargetForPlan(_data.selectedSS, "", false, _data.planType), _data.relativeDose, _data.targetVolCoverage);
                     ProvideUIUpdate((int)(100 * (++overallPercentCompletion) / overallCalcItems), " Plan normalized!");
                 }
             }

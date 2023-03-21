@@ -5,7 +5,7 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIOptLoopMT.PlanEvaluation;
 using VMATTBICSIOptLoopMT.baseClasses;
-using VMATTBICSIOptLoopMT.helpers;
+using VMATTBICSIOptLoopMT.Helpers;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 using VMATTBICSIAutoplanningHelpers.UIHelpers;
 
@@ -109,7 +109,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             for (int i = 0; i < totalSlices; i++)
             {
                 ProvideUIUpdate((int)(100 * (i + 1) / totalSlices));
-                if((i+1) % 10 == 0) ProvideUIUpdate(String.Format("Summing doses from slice: {0}", i + 1));
+                if((i + 1) % 10 == 0) ProvideUIUpdate(String.Format("Summing doses from slice: {0}", i + 1));
                 //need to initialize jagged array before using
                 sumArray[i] = new int[xSize, ySize];
                 //get dose arrays from initial and boost plans (better to use more memory and initialize two arrays rather than putting this in a loop to limit the
@@ -175,7 +175,13 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             {
                 UpdateUILabel("One more optimization:");
                 if (RunOneMoreOptionizationToLowerHotspots(plans)) return true;
-                if (BuildPlanSum(evalPlan, plans)) return true;
+
+                if (plans.Count() > 1)
+                {
+                    UpdateUILabel("Create plan sum:");
+                    if (BuildPlanSum(evalPlan, plans)) return true;
+                    PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, evalPlan);
+                }
             }
             return false;
         }
@@ -199,6 +205,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             int count = 0;
             while(count < _data.numOptimizations)
             {
+                bool isFinalOpt = (_data.oneMoreOpt && ((count + 1) == _data.numOptimizations));
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format(" Iteration {0}:", count + 1));
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
 
@@ -222,7 +229,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                     if (CalculateDose(_data.isDemo, itr, _data.app)) return true;
                     ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Dose calculated, normalizing plan!");
                     //normalize
-                    NormalizePlan(itr, new TargetsHelper().GetTargetForPlan(_data.selectedSS, plansTargets.FirstOrDefault(x => x.Item1 == itr.Id).Item2, _data.useFlash), _data.relativeDose, _data.targetVolCoverage);
+                    NormalizePlan(itr, new TargetsHelper().GetTargetForPlan(_data.selectedSS, plansTargets.FirstOrDefault(x => x.Item1 == itr.Id).Item2, _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
                     if (GetAbortStatus())
                     {
                         KillOptimizationLoop();
@@ -233,6 +240,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 }
                 
                 if (BuildPlanSum(evalPlan, plans)) return true;
+                PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, evalPlan);
 
                 if (EvaluatePlanSumQuality(evalPlan, _data.planObj))
                 {
@@ -241,19 +249,47 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 }
                 else
                 {
-                    ProvideUIUpdate("All plan objectives NOT met! Adjusting optimization parameters!");
+                    ProvideUIUpdate("All plan objectives NOT met! Updating heater and cooler structures!");
+                    (bool, List<Tuple<string, string, double, double, int>>) result = UpdateHeaterCoolerStructures(evalPlan, isFinalOpt);
+                    //did the user abort the program while updating the heater and cooler structures
+                    if (result.Item1)
+                    {
+                        //user killed operation while generating heater and cooler structures
+                        KillOptimizationLoop();
+                        return true;
+                    }
                     foreach (ExternalPlanSetup itr in plans)
                     {
+                        ProvideUIUpdate(String.Format("Adjusting optimization parameters for plan: {0}!", itr.Id));
                         List<Tuple<string, string, double, double, int>> optParams = new OptimizationSetupUIHelper().ReadConstraintsFromPlan(itr);
+                        ProvideUIUpdate(String.Format("Evaluating quality of plan: {0}!", itr.Id));
                         EvalPlanStruct e = EvaluatePlanSumComponentPlans(itr, optParams);
-
                         if (e.wasKilled) return true;
-                        
+
+                        PrintPlanOptimizationResultVsConstraints(itr, optParams, e.diffPlanOpt, e.totalCostPlanOpt);
+
+                        ProvideUIUpdate(String.Format("Scaling optimization parameters for heater cooler structures for plan: {0}!", itr.Id));
+                        e.updatedObj.AddRange(ScaleHeaterCoolerOptConstraints(itr.TotalDose.Dose, evalPlan.TotalDose.Dose, result.Item2));
+
+                        if(isFinalOpt) e.updatedObj = IncreaseOptConstraintPrioritiesForFinalOpt(e.updatedObj);
+
+                        PrintPlanOptimizationConstraints(itr.Id, e.updatedObj, calcItems, ref percentComplete);
+                        UpdateConstraints(e.updatedObj, itr);
                     }
                 }
                 count++;
             }
             return false;
+        }
+
+        private List<Tuple<string, string, double, double, int>> ScaleHeaterCoolerOptConstraints(double planTotalDose, double sumTotalDose, List<Tuple<string, string, double, double, int>> originalConstraints)
+        {
+            List<Tuple<string, string, double, double, int>> updatedOpt = new List<Tuple<string, string, double, double, int>> { };
+            foreach(Tuple<string,string,double,double,int> itr in originalConstraints)
+            {
+                updatedOpt.Add(Tuple.Create(itr.Item1, itr.Item2, itr.Item3 * planTotalDose / sumTotalDose, itr.Item4, itr.Item5));
+            }
+            return updatedOpt;
         }
 
         private EvalPlanStruct EvaluatePlanSumComponentPlans(ExternalPlanSetup plan, List<Tuple<string, string, double, double, int>> optParams)
