@@ -201,6 +201,8 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             evalPlan = CreatePlanSum(_data.selectedSS, plans);
             if (evalPlan == null) return true;
 
+            foreach (ExternalPlanSetup itr in plans) InitializeOptimizationConstriants(itr);
+
             ProvideUIUpdate(" Starting optimization loop!");
             int count = 0;
             while(count < _data.numOptimizations)

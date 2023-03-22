@@ -1103,7 +1103,9 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                 wasKilled = true;
                 return (wasKilled, addedTSstructures);
             }
-            Structure target = new TargetsHelper().GetTargetForPlan(_data.selectedSS, plansTargets.FirstOrDefault(x => x.Item1 == plan.Id).Item2, _data.useFlash, _data.planType);
+            string targetId = "";
+            if (plansTargets.Where(x => x.Item1 == plan.Id).Any()) targetId = plansTargets.FirstOrDefault(x => x.Item1 == plan.Id).Item2;
+            Structure target = new TargetsHelper().GetTargetForPlan(_data.selectedSS, targetId, _data.useFlash, _data.planType);
             if (target == null)
             {
                 ProvideUIUpdate(String.Format("Error! Target structure not found for plan: {0}! Exiting!", plan.Id));
