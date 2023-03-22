@@ -845,7 +845,7 @@ namespace VMATTBICSIOptLoopMT
             {
                 foreach (string itr in Directory.GetFiles(path, "*.ini", option).OrderBy(x => x))
                 {
-                    PlanTemplates.Add(helper.readTemplatePlan(itr, count++));
+                    PlanTemplates.Add(helper.ReadTemplatePlan(itr, count++));
                 }
             }
             catch(Exception e)

@@ -10,7 +10,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
 {
     public class ConfigurationHelper
     {
-        public CSIAutoPlanTemplate readTemplatePlan(string file, int count)
+        public CSIAutoPlanTemplate ReadTemplatePlan(string file, int count)
         {
             CSIAutoPlanTemplate tempTemplate = new CSIAutoPlanTemplate(count);
             using (StreamReader reader = new StreamReader(file))
@@ -47,11 +47,11 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
                                         else if (parameter == "boost dose per fraction") { if (double.TryParse(value, out double bstDPF)) tempTemplate.boostRxDosePerFx = bstDPF; }
                                         else if (parameter == "boost num fx") { if (int.TryParse(value, out int bstFx)) tempTemplate.boostRxNumFx = bstFx; }
                                     }
-                                    else if (line.Contains("add sparing structure")) spareStruct_temp.Add(parseSparingStructure(line));
-                                    else if (line.Contains("add init opt constraint")) initOptConst_temp.Add(parseOptimizationConstraint(line));
-                                    else if (line.Contains("add boost opt constraint")) bstOptConst_temp.Add(parseOptimizationConstraint(line));
-                                    else if (line.Contains("add TS")) TSstructures_temp.Add(parseTS(line));
-                                    else if (line.Contains("add target")) targets_temp.Add(parseTargets(line));
+                                    else if (line.Contains("add sparing structure")) spareStruct_temp.Add(ParseSparingStructure(line));
+                                    else if (line.Contains("add init opt constraint")) initOptConst_temp.Add(ParseOptimizationConstraint(line));
+                                    else if (line.Contains("add boost opt constraint")) bstOptConst_temp.Add(ParseOptimizationConstraint(line));
+                                    else if (line.Contains("add TS")) TSstructures_temp.Add(ParseTS(line));
+                                    else if (line.Contains("add target")) targets_temp.Add(ParseTargets(line));
                                     else if (line.Contains("add optimization TS structure")) requestedTSstructures_temp.Add(ParseTSstructure(line));
                                     else if (line.Contains("add plan objective")) planObj_temp.Add(ParsePlanObjective(line));
                                     else if (line.Contains("add plan dose info")) planDoseInfo_temp.Add(ParseRequestedPlanDoseInfo(line));
@@ -75,54 +75,54 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
         }
 
         //very useful helper method to remove everything in the input string 'line' up to a given character 'cropChar'
-        public string cropLine(string line, string cropChar) { return line.Substring(line.IndexOf(cropChar) + 1, line.Length - line.IndexOf(cropChar) - 1); }
+        public string CropLine(string line, string cropChar) { return line.Substring(line.IndexOf(cropChar) + 1, line.Length - line.IndexOf(cropChar) - 1); }
 
-        public Tuple<string, string> parseTS(string line)
+        public Tuple<string, string> ParseTS(string line)
         {
             //known array format --> can take shortcuts in parsing the data
             //structure id, sparing type, added margin in cm (ignored if sparing type is Dmax ~ Rx Dose)
             string dicomType;
             string TSstructure;
-            line = cropLine(line, "{");
+            line = CropLine(line, "{");
             dicomType = line.Substring(0, line.IndexOf(","));
-            line = cropLine(line, ",");
+            line = CropLine(line, ",");
             TSstructure = line.Substring(0, line.IndexOf("}"));
             return Tuple.Create(dicomType, TSstructure);
         }
 
-        public Tuple<string, double, string> parseTargets(string line)
+        public Tuple<string, double, string> ParseTargets(string line)
         {
             //known array format --> can take shortcuts in parsing the data
             //structure id, sparing type, added margin in cm (ignored if sparing type is Dmax ~ Rx Dose)
             string structure;
             string planId;
             double val = 0.0;
-            line = cropLine(line, "{");
+            line = CropLine(line, "{");
             structure = line.Substring(0, line.IndexOf(","));
-            line = cropLine(line, ",");
+            line = CropLine(line, ",");
             val = double.Parse(line.Substring(0, line.IndexOf(",")));
-            line = cropLine(line, ",");
+            line = CropLine(line, ",");
             planId = line.Substring(0, line.IndexOf("}"));
             return Tuple.Create(structure, val, planId);
         }
 
-        public Tuple<string, string, double> parseSparingStructure(string line)
+        public Tuple<string, string, double> ParseSparingStructure(string line)
         {
             //known array format --> can take shortcuts in parsing the data
             //structure id, sparing type, added margin in cm (ignored if sparing type is Dmax ~ Rx Dose)
             string structure;
             string spareType;
-            double val = 0.0;
-            line = cropLine(line, "{");
+            double val;
+            line = CropLine(line, "{");
             structure = line.Substring(0, line.IndexOf(","));
-            line = cropLine(line, ",");
+            line = CropLine(line, ",");
             spareType = line.Substring(0, line.IndexOf(","));
-            line = cropLine(line, ",");
+            line = CropLine(line, ",");
             val = double.Parse(line.Substring(0, line.IndexOf("}")));
             return Tuple.Create(structure, spareType, val);
         }
 
-        public Tuple<string, string, double, double, int> parseOptimizationConstraint(string line)
+        public Tuple<string, string, double, double, int> ParseOptimizationConstraint(string line)
         {
             //known array format --> can take shortcuts in parsing the data
             //structure id, constraint type, dose (cGy), volume (%), priority
@@ -131,24 +131,24 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             double doseVal;
             double volumeVal;
             int priorityVal;
-            line = cropLine(line, "{");
+            line = CropLine(line, "{");
             structure = line.Substring(0, line.IndexOf(","));
-            line = cropLine(line, ",");
+            line = CropLine(line, ",");
             constraintType = line.Substring(0, line.IndexOf(","));
-            line = cropLine(line, ",");
+            line = CropLine(line, ",");
             doseVal = double.Parse(line.Substring(0, line.IndexOf(",")));
-            line = cropLine(line, ",");
+            line = CropLine(line, ",");
             volumeVal = double.Parse(line.Substring(0, line.IndexOf(",")));
-            line = cropLine(line, ",");
+            line = CropLine(line, ",");
             priorityVal = int.Parse(line.Substring(0, line.IndexOf("}")));
             return Tuple.Create(structure, constraintType, doseVal, volumeVal, priorityVal);
         }
 
         public Tuple<string, string, double, string> ParseRequestedPlanDoseInfo(string line)
         {
-            line = cropLine(line, "{");
+            line = CropLine(line, "{");
             string structure = line.Substring(0, line.IndexOf(","));
-            line = cropLine(line, ",");
+            line = CropLine(line, ",");
             string constraintType;
             double doseVal = 0.0;
             string representation;
@@ -161,17 +161,17 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
                 else
                 {
                     constraintType = "D";
-                    constraintTypeTmp = cropLine(constraintTypeTmp, "D");
+                    constraintTypeTmp = CropLine(constraintTypeTmp, "D");
                     doseVal = double.Parse(constraintTypeTmp);
                 }
             }
             else
             {
                 constraintType = "V";
-                constraintTypeTmp = cropLine(constraintTypeTmp, "V");
+                constraintTypeTmp = CropLine(constraintTypeTmp, "V");
                 doseVal = double.Parse(constraintTypeTmp);
             }
-            line = cropLine(line, ",");
+            line = CropLine(line, ",");
             if (line.Contains("Relative")) representation = "Relative";
             else representation = "Absolute";
 
@@ -189,17 +189,17 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             int priority;
             try
             {
-                line = cropLine(line, "{");
+                line = CropLine(line, "{");
                 structure = line.Substring(0, line.IndexOf(","));
-                line = cropLine(line, ",");
+                line = CropLine(line, ",");
                 lowDoseLevel = double.Parse(line.Substring(0, line.IndexOf(",")));
-                line = cropLine(line, ",");
+                line = CropLine(line, ",");
                 upperDoseLevel = double.Parse(line.Substring(0, line.IndexOf(",")));
-                line = cropLine(line, ",");
+                line = CropLine(line, ",");
                 volumeVal = double.Parse(line.Substring(0, line.IndexOf(",")));
-                line = cropLine(line, ",");
+                line = CropLine(line, ",");
                 priority = int.Parse(line.Substring(0, line.IndexOf(",")));
-                line = cropLine(line, "{");
+                line = CropLine(line, "{");
 
                 while (!string.IsNullOrEmpty(line) && line.Substring(0, 1) != "}")
                 {
@@ -211,15 +211,15 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
                     {
                         //only add for final optimization (i.e., one more optimization requested where current calculated dose is used as intermediate)
                         constraintType = "finalOpt";
-                        if (!line.Contains(",")) line = cropLine(line, "}");
-                        else line = cropLine(line, ",");
+                        if (!line.Contains(",")) line = CropLine(line, "}");
+                        else line = CropLine(line, ",");
                     }
                     else
                     {
                         if (line.Substring(0, 1) == "V")
                         {
                             constraintType = "V";
-                            line = cropLine(line, "V");
+                            line = CropLine(line, "V");
                             int index = 0;
                             while (line.ElementAt(index).ToString() != ">" && line.ElementAt(index).ToString() != "<") index++;
                             doseVal = double.Parse(line.Substring(0, index));
@@ -228,15 +228,15 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
                         else
                         {
                             constraintType = "Dmax";
-                            line = cropLine(line, "x");
+                            line = CropLine(line, "x");
                         }
                         inequality = line.Substring(0, 1);
 
-                        if (!line.Contains(",")) { queryVal = double.Parse(line.Substring(1, line.IndexOf("}") - 1)); line = cropLine(line, "}"); }
+                        if (!line.Contains(",")) { queryVal = double.Parse(line.Substring(1, line.IndexOf("}") - 1)); line = CropLine(line, "}"); }
                         else
                         {
                             queryVal = double.Parse(line.Substring(1, line.IndexOf(",") - 1));
-                            line = cropLine(line, ",");
+                            line = CropLine(line, ",");
                         }
                     }
                     constraints.Add(Tuple.Create(constraintType, doseVal, inequality, queryVal));
@@ -254,15 +254,15 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             double doseVal;
             double volumeVal;
             DoseValuePresentation dvp;
-            line = cropLine(line, "{");
+            line = CropLine(line, "{");
             structure = line.Substring(0, line.IndexOf(","));
-            line = cropLine(line, ",");
+            line = CropLine(line, ",");
             constraintType = line.Substring(0, line.IndexOf(","));
-            line = cropLine(line, ",");
+            line = CropLine(line, ",");
             doseVal = double.Parse(line.Substring(0, line.IndexOf(",")));
-            line = cropLine(line, ",");
+            line = CropLine(line, ",");
             volumeVal = double.Parse(line.Substring(0, line.IndexOf(",")));
-            line = cropLine(line, ",");
+            line = CropLine(line, ",");
             if (line.Contains("Relative")) dvp = DoseValuePresentation.Relative;
             else dvp = DoseValuePresentation.Absolute;
             return Tuple.Create(structure, constraintType, doseVal, volumeVal, dvp);
@@ -275,15 +275,15 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             int numFx;
             double dosePerFx;
             double RxDose;
-            line = cropLine(line, "{");
+            line = CropLine(line, "{");
             planId = line.Substring(0, line.IndexOf(","));
-            line = cropLine(line, ",");
+            line = CropLine(line, ",");
             targetId = line.Substring(0, line.IndexOf(","));
-            line = cropLine(line, ",");
+            line = CropLine(line, ",");
             numFx = int.Parse(line.Substring(0, line.IndexOf(",")));
-            line = cropLine(line, ",");
+            line = CropLine(line, ",");
             dosePerFx = double.Parse(line.Substring(0, line.IndexOf(",")));
-            line = cropLine(line, ",");
+            line = CropLine(line, ",");
             RxDose = double.Parse(line.Substring(0, line.IndexOf("}")));
             return Tuple.Create(planId, targetId, numFx, new DoseValue(dosePerFx, DoseValue.DoseUnit.cGy), RxDose);
         }
