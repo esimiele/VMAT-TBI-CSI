@@ -619,17 +619,17 @@ namespace VMATAutoPlanMT
             //boolean operations on structures of two different resolutions, code was added to the generateTS class to automatically convert these structures to low resolution with the name of
             // '<original structure Id>_lowRes'. When these structures are converted to low resolution, the updateSparingList flag in the generateTS class is set to true to tell this class that the 
             //structure sparing list needs to be updated with the new low resolution structures.
-            if (generate.updateSparingList)
+            if (generate.GetUpdateSparingListStatus())
             {
                 clear_spare_list();
                 //update the structure sparing list in this class and update the structure sparing list displayed to the user in TS Generation tab
-                structureSpareList = generate.spareStructList;
+                structureSpareList = generate.GetSparingList();
                 add_sp_volumes(selectedSS, structureSpareList);
             }
-            if (generate.optParameters.Count() > 0) optParameters = generate.optParameters;
+            optParameters = generate.GetOptParameters();
             numIsos = generate.numIsos;
             numVMATIsos = generate.numVMATIsos;
-            isoNames = generate.isoNames.First().Item2;
+            isoNames = generate.GetIsoNames().First().Item2;
 
             //get prescription
             if (double.TryParse(dosePerFx.Text, out double dose_perFx) && int.TryParse(numFx.Text, out int numFractions)) prescription = Tuple.Create(numFractions, new DoseValue(dose_perFx, DoseValue.DoseUnit.cGy));

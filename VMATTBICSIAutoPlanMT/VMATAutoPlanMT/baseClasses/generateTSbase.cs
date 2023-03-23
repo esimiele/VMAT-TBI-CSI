@@ -3,24 +3,30 @@ using System.Collections.Generic;
 using System.Linq;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using System.Windows.Forms;
 using System.Windows.Media.Media3D;
-using VMATAutoPlanMT.MTProgressInfo;
-using System.Windows.Threading;
 
 namespace VMATAutoPlanMT.baseClasses
 {
     public class generateTSbase : MTbase
     {
+        public List<Tuple<string, List<string>>> GetIsoNames() { return isoNames; }
+        public List<string> GetAddedStructures() { return addedStructures; }
+        public List<Tuple<string, string>> GetOptParameters() { return optParameters; }
+        public List<Tuple<string, string, double>> GetSparingList() { return spareStructList; }
+        public bool GetUpdateSparingListStatus() { return updateSparingList; }
+
         protected StructureSet selectedSS;
-        public List<string> addedStructures = new List<string> { };
-        public List<Tuple<string, string>> optParameters = new List<Tuple<string, string>> { };
+        //structure, sparing type, added margin
+        protected List<Tuple<string, string, double>> spareStructList;
+        protected List<string> addedStructures = new List<string> { };
+        protected List<Tuple<string, string>> optParameters = new List<Tuple<string, string>> { };
         protected bool useFlash = false;
         //plan Id, list of isocenter names for this plan
-        public List<Tuple<string,List<string>>> isoNames = new List<Tuple<string, List<string>>> { };
+        protected List<Tuple<string,List<string>>> isoNames = new List<Tuple<string, List<string>>> { };
+        protected bool updateSparingList = false;
 
         #region virtual methods
-        protected virtual bool preliminaryChecks()
+        protected virtual bool PreliminaryChecks()
         {
             //specific to each case (TBI or CSI)
             return false;

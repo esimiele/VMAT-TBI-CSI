@@ -32,6 +32,31 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             return plansTargets;
         }
 
+        //planId, targetId
+        public List<Tuple<string, string>> GetPlanTargetList(List<Tuple<string, double, string>> targetList)
+        {
+            //for this list, item1 is the target, item 2 is the cumulated dose (cGy), and item 3 is the plan
+            List<Tuple<string, string>> plansTargets = new List<Tuple<string, string>> { };
+            if (!targetList.Any()) return plansTargets;
+            //sort by cumulative dose to targets
+            List<Tuple<string, double, string>> tmpList = targetList.OrderBy(x => x.Item2).ToList();
+            string tmpTarget = tmpList.First().Item1;
+            string tmpPlan = tmpList.First().Item3;
+
+            foreach (Tuple<string, double, string> itr in tmpList)
+            {
+                //check if this is the start of a new plan, if so, the the previous target was the highest dose target in the previous plan
+                if (!string.Equals(itr.Item3, tmpPlan))
+                {
+                    plansTargets.Add(Tuple.Create<string, string>(tmpPlan, tmpTarget));
+                    tmpPlan = itr.Item3;
+                }
+                tmpTarget = itr.Item1;
+            }
+            plansTargets.Add(Tuple.Create<string, string>(tmpPlan, tmpTarget));
+            return plansTargets;
+        }
+
         public List<string> GetAllTargets(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
         {
             List<string> targets = new List<string> { };

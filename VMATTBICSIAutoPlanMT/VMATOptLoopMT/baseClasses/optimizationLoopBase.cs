@@ -957,9 +957,14 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                     if (diff <= 0.0)
                     {
                         //objective was met. Increment the counter for the number of objecives met
+                        ProvideUIUpdate(String.Format("Objective met for: ({0},{1},{2},{3},{4})", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5.ToString()));
                         numPass++;
                     }
-                    else cost = diff * diff * optPriority;
+                    else
+                    {
+                        cost = diff * diff * optPriority;
+                        ProvideUIUpdate(String.Format("Objective NOT met for: ({0},{1},{2},{3},{4})", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5.ToString()));
+                    }
 
                     //add this comparison to the list and increment the running total of the cost for the plan objectives
                     differenceFromPlanObj.Add(Tuple.Create(s, dvh, diff * diff, cost));

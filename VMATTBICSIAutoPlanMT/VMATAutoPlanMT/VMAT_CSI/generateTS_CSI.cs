@@ -13,26 +13,28 @@ using System.Runtime.ExceptionServices;
 namespace VMATAutoPlanMT.VMAT_CSI
 {
     public class generateTS_CSI : generateTSbase
-    { 
-        //structure, sparing type, added margin
-        public List<Tuple<string, string, double>> spareStructList;
+    {
+        //planId, lower dose target id, manipulation target id, operation
+        public List<Tuple<string, string, List<Tuple<string, string>>>> GetTargetManipulations() { return targetManipulations; }
+        
         //DICOM types
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
         protected List<Tuple<string, string>> TS_structures;
         List<Tuple<string, double, string>> targets;
         List<Tuple<string, string, int, DoseValue, double>> prescriptions;
-        protected int numIsos;
-        protected int numVMATIsos;
-        public bool updateSparingList = false;
+        List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations = new List<Tuple<string, string, List<Tuple<string, string>>>> { };
+        bool autoCropTargets;
+        int numVMATIsos;
 
-        public generateTS_CSI(List<Tuple<string, string>> ts, List<Tuple<string, string, double>> list, List<Tuple<string, double, string>> targs, List<Tuple<string,string,int,DoseValue,double>> presc, StructureSet ss)
+        public generateTS_CSI(List<Tuple<string, string>> ts, List<Tuple<string, string, double>> list, List<Tuple<string, double, string>> targs, List<Tuple<string,string,int,DoseValue,double>> presc, StructureSet ss, bool cropTargets)
         {
             TS_structures = new List<Tuple<string, string>>(ts);
             spareStructList = new List<Tuple<string, string, double>>(list);
             targets = new List<Tuple<string, double, string>>(targs);
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(presc);
             selectedSS = ss;
+            autoCropTargets = cropTargets;
         }
 
         #region Run Control
@@ -43,7 +45,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             try
             {
                 isoNames.Clear();
-                if (preliminaryChecks()) return true;
+                if (PreliminaryChecks()) return true;
                 if (UnionLRStructures()) return true;
                 if (spareStructList.Any()) if (CheckHighResolution()) return true;
                 //remove all only ts structures NOT including targets
@@ -52,6 +54,10 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 //if (createTargetStructures()) return true;
                 if (createTSStructures()) return true;
                 if (performTSStructureManipulation()) return true;
+                if(autoCropTargets)
+                {
+                    if (CropTargets()) return true;
+                }
                 if (calculateNumIsos()) return true;
                 UpdateUILabel("Finished!");
                 ProvideUIUpdate(100, "Finished Structure Tuning!");
@@ -62,7 +68,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         #endregion
 
         #region Preliminary Checks and Structure Unioning
-        protected override bool preliminaryChecks()
+        protected override bool PreliminaryChecks()
         {
             UpdateUILabel("Performing Preliminary Checks: ");
             int calcItems = 2;
@@ -768,6 +774,57 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     }
                 }
                 else ProvideUIUpdate(String.Format("No TS manipulations requested!"));
+            }
+            return false;
+        }
+
+        private bool CropTargets()
+        {
+            UpdateUILabel("Crop Targets:");
+            if (prescriptions.Count() < 2) return false;
+            int percentComplete = 0;
+            int calcItems = prescriptions.Count() + 1;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), "Sorting prscriptions by cumulative dose");
+            //sort by cumulative Rx to the targets (item 2)
+            List<Tuple<string, string, int, DoseValue, double>> sortedPrescriptions = prescriptions.OrderBy(x => x.Item5).ToList();
+            for(int i = 0; i < sortedPrescriptions.Count() - 1; i++)
+            {
+                string targetId = String.Format("TS_{0}",sortedPrescriptions.ElementAt(i).Item2);
+                Structure target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == targetId.ToLower());
+                List<Tuple<string, string>> tmp = new List<Tuple<string, string>> { };
+                ProvideUIUpdate(String.Format("Retrieving target: {0}", targetId));
+                if (target != null)
+                {
+                    for(int j = i + 1; j < sortedPrescriptions.Count(); j++)
+                    {
+                        Structure baseTarget = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == sortedPrescriptions.ElementAt(j).Item2.ToLower());
+                        ProvideUIUpdate(String.Format("Retrieving base target: {0}", baseTarget.Id));
+                        if (baseTarget != null)
+                        {
+                            ProvideUIUpdate(String.Format("Cropping lower dose target ({0}) from high dose target ({1})", target.Id, baseTarget.Id));
+                            string cropName = String.Format("{0}crop", targetId);
+                            if (cropName.Length > 16) cropName = cropName.Substring(0, 16);
+                            Structure cropStructure =  AddTSStructures(new Tuple<string, string>("CONTROL", cropName));
+                            if(cropStructure == null) return true;
+                            cropStructure.SegmentVolume = target.Margin(0.0);
+                            cropTargetFromStructure(cropStructure, baseTarget, 0.0);
+                            tmp.Add(Tuple.Create(cropName, "crop"));
+
+                            string overlapName = String.Format("{0}over", targetId);
+                            if (overlapName.Length > 16) overlapName = overlapName.Substring(0, 16);
+                            ProvideUIUpdate(String.Format("Contouring overlap between lower dose target ({0}) from high dose target ({1})", target.Id, baseTarget.Id));
+                            Structure overlapStructure =  AddTSStructures(new Tuple<string, string>("CONTROL", overlapName));
+                            if (overlapStructure == null) return true;
+                            overlapStructure.SegmentVolume = target.Margin(0.0);
+                            contourOverlap(overlapStructure, baseTarget, 0.0);
+                            tmp.Add(Tuple.Create(overlapName, "overlap"));
+                        }
+                        else ProvideUIUpdate(String.Format("Could not retrieve base target: {0}", targetId));
+                    }
+                    targetManipulations.Add(Tuple.Create(sortedPrescriptions.ElementAt(i).Item1, target.Id, tmp));
+                }
+                else ProvideUIUpdate(String.Format("Could not retrieve ts target: {0}", targetId));
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));
             }
             return false;
         }
