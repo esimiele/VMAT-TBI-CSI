@@ -6,21 +6,28 @@ namespace VMATTBICSIAutoplanningHelpers.TemplateClasses
 {
     public class CSIAutoPlanTemplate
     {
-        public string templateName { get; set; }
+        public string TemplateName 
+        {
+            get { return templateName; }
+            set { templateName = value; } 
+        }
         public double initialRxDosePerFx = 0.1;
         public int initialRxNumFx = 1;
         public double boostRxDosePerFx = 0.1;
         public int boostRxNumFx = 1;
 
+        private string templateName;
         //structure ID, Rx dose, plan Id
         public List<Tuple<string, double, string>> targets = new List<Tuple<string, double, string>> { };
         //structure ID, sparing type, margin
-        public List<Tuple<string, string, double>> spareStructures = new List<Tuple<string, string, double>> { };
+        public List<Tuple<string, string, double>> TSManipulations = new List<Tuple<string, string, double>> { };
         //structure, constraint type, dose cGy, volume %, priority
         public List<Tuple<string, string, double, double, int>> init_constraints = new List<Tuple<string, string, double, double, int>> { };
         public List<Tuple<string, string, double, double, int>> bst_constraints = new List<Tuple<string, string, double, double, int>> { };
+        //list of structures that should be cropped from targets and overlap with targets also contoured. these manipulations will be used to update the optimization constraints for all targets
+        public List<string> cropAndOverlapStructures = new List<string> { };
         //DICOM type, structure ID
-        public List<Tuple<string, string>> TS_structures = new List<Tuple<string, string>> { };
+        public List<Tuple<string, string>> createTSStructures = new List<Tuple<string, string>> { };
         // plan objectives (ONLY ONE PER TEMPLATE!)
         public List<Tuple<string, string, double, double, DoseValuePresentation>> planObj = new List<Tuple<string, string, double, double, DoseValuePresentation>> { };
         //requested items to be printed after each successful iteration of the optimization loop

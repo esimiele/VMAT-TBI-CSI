@@ -33,8 +33,6 @@ namespace VMATAutoPlanMT.VMAT_CSI
         string imgExportPath = @"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\exportedImages\";
         //image export format
         string imgExportFormat = "png";
-        //option to automatically crop lower dose targets from higher dose targets
-        bool autoCropTargets = false;
         //treatment units and associated photon beam energies
         List<string> linacs = new List<string> { "LA16", "LA17" };
         List<string> beamEnergies = new List<string> { "6X"};
@@ -238,13 +236,13 @@ namespace VMATAutoPlanMT.VMAT_CSI
             initNumFxTB.Text = "";
             boostDosePerFxTB.Text = "";
             boostNumFxTB.Text = "";
-            if (selectedTemplate.templateName != "--select--")
+            if (selectedTemplate.TemplateName != "--select--")
             {
                 setInitPresciptionInfo(selectedTemplate.initialRxDosePerFx, selectedTemplate.initialRxNumFx);
                 if (selectedTemplate.boostRxDosePerFx != 0.1 && selectedTemplate.boostRxNumFx != 1) setBoostPrescriptionInfo(selectedTemplate.boostRxDosePerFx, selectedTemplate.boostRxNumFx);
                 ClearAllCurrentParameters();
                 LoadTemplateDefaults();
-                log.template = selectedTemplate.templateName;
+                log.template = selectedTemplate.TemplateName;
             }
             else
             {
@@ -566,7 +564,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         private void AddDefaultTuningStructures_Click(object sender, RoutedEventArgs e)
         {
             List<Tuple<string, string>> tmp = new List<Tuple<string, string>>(defaultTS_structures);
-            if (templateList.SelectedItem != null) foreach (Tuple<string, string> itr in ((CSIAutoPlanTemplate)templateList.SelectedItem).TS_structures) tmp.Add(itr);
+            if (templateList.SelectedItem != null) foreach (Tuple<string, string> itr in ((CSIAutoPlanTemplate)templateList.SelectedItem).createTSStructures) tmp.Add(itr);
             //populate the comboboxes
             AddTuningStructureVolumes(tmp, TSGenerationSP);
             TSGenerationScroller.ScrollToBottom();
@@ -734,7 +732,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //copy the sparing structures in the defaultSpareStruct list to a temporary vector
             List<Tuple<string, string, double>> templateSpareList = new List<Tuple<string, string, double>>(defaultTSStructureManipulations);
             //add the case-specific sparing structures to the temporary list
-            if (templateList.SelectedItem != null) templateSpareList = new List<Tuple<string, string, double>>(AddTemplateSpecificStructureManipulations((templateList.SelectedItem as CSIAutoPlanTemplate).spareStructures, templateSpareList));
+            if (templateList.SelectedItem != null) templateSpareList = new List<Tuple<string, string, double>>(AddTemplateSpecificStructureManipulations((templateList.SelectedItem as CSIAutoPlanTemplate).TSManipulations, templateSpareList));
             if (!templateSpareList.Any()) { MessageBox.Show("No default tuning structure manipulations contained in the selected template!"); return; }
 
             string missOutput = "";
@@ -816,9 +814,10 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //get sparing structure and tuning structure lists from the UI
             List<Tuple<string, string, double>> structureSpareList = new StructureTuningUIHelper().parseSpareStructList(structureManipulationSP);
             List<Tuple<string, string>> TS_structures = new List<Tuple<string, string>>(new TemplateBuilder().parseTSStructureList(TSGenerationSP));
+            List<string> cropAndOverlapStructs = new List<string>((templateList.SelectedItem as CSIAutoPlanTemplate).cropAndOverlapStructures);
 
             //create an instance of the generateTS_CSI class, passing the tuning structure list, structure sparing list, targets, prescriptions, and the selected structure set
-            generateTS_CSI generate = new generateTS_CSI(TS_structures, structureSpareList, targets, prescriptions, selectedSS, autoCropTargets);
+            generateTS_CSI generate = new generateTS_CSI(TS_structures, structureSpareList, targets, prescriptions, selectedSS, cropAndOverlapStructs);
             pi.BeginModifications();
             bool result = generate.Execute();
             //grab the log output regardless if it passes or fails
@@ -869,12 +868,12 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     if(!string.Equals(itr.Item1,tmpPlanId))
                     {
                         //new plan, update the list
-                        tmpList.AddRange(currentList.FirstOrDefault(x => x.Item1 == itr.Item1).Item2.Where(y => y.Item1 != tmpTargetId));
+                        tmpList.AddRange(currentList.FirstOrDefault(x => x.Item1 == tmpPlanId).Item2.Where(y => y.Item1 != tmpTargetId));
                         updatedList.Add(Tuple.Create(tmpPlanId, new List<Tuple<string, string, double, double, int>>(tmpList)));
                         tmpList = new List<Tuple<string, string, double, double, int>> { };
                         tmpPlanId = itr.Item1;
                     }
-                    if (currentList.Where(x => x.Item1 == itr.Item1).Any())
+                    if (currentList.Any(x => x.Item1 == itr.Item1))
                     {
                         //grab all optimization constraints from the plan of interest that have the same structure id as item 2 of itr
                         List<Tuple<string, string, double, double, int>> planOptList = currentList.FirstOrDefault(x => x.Item1 == itr.Item1).Item2.Where(y => y.Item1 == itr.Item2).ToList();
@@ -1536,15 +1535,15 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 CSIAutoPlanTemplate theTemplate = null;
                 selectItem SUI = new selectItem();
                 SUI.title.Text = "Please select and existing template!";
-                foreach (CSIAutoPlanTemplate itr in PlanTemplates) SUI.itemCombo.Items.Add(itr.templateName);
+                foreach (CSIAutoPlanTemplate itr in PlanTemplates) SUI.itemCombo.Items.Add(itr.TemplateName);
                 SUI.itemCombo.SelectedIndex = 0;
                 SUI.ShowDialog();
-                if (SUI.confirm) theTemplate = PlanTemplates.FirstOrDefault(x => x.templateName == SUI.itemCombo.SelectedItem.ToString());
+                if (SUI.confirm) theTemplate = PlanTemplates.FirstOrDefault(x => x.TemplateName == SUI.itemCombo.SelectedItem.ToString());
                 else return;
                 if (theTemplate == null) { MessageBox.Show("Template not found! Exiting!"); return; }
 
                 //set name
-                templateNameTB.Text = theTemplate.templateName + "_1";
+                templateNameTB.Text = theTemplate.TemplateName + "_1";
 
                 //setRx
                 templateInitPlanDosePerFxTB.Text = theTemplate.initialRxDosePerFx.ToString();
@@ -1562,11 +1561,11 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
                 //add default TS structures
                 ClearTuningStructureList(templateTS_sp);
-                if (theTemplate.TS_structures.Any()) AddTuningStructureVolumes(theTemplate.TS_structures, templateTS_sp);
+                if (theTemplate.TSManipulations.Any()) AddTuningStructureVolumes(theTemplate.createTSStructures, templateTS_sp);
 
                 //add default sparing structures
                 ClearStructureManipulationsList(templateClearSpareStructuresBtn);
-                if (theTemplate.spareStructures.Any()) AddStructureManipulationVolumes(theTemplate.spareStructures, templateStructuresSP);
+                if (theTemplate.TSManipulations.Any()) AddStructureManipulationVolumes(theTemplate.TSManipulations, templateStructuresSP);
 
                 //add optimization constraints
                 List<Tuple<string,List<Tuple<string, string, double, double, int>>>> tmpList = RetrieveOptConstraintsFromTemplate(theTemplate);
@@ -1615,7 +1614,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         {
             if (selectedSS == null) { MessageBox.Show("Error! Please select a Structure Set before add sparing volumes!"); return; }
             prospectiveTemplate = new CSIAutoPlanTemplate();
-            prospectiveTemplate.templateName = templateNameTB.Text;
+            prospectiveTemplate.TemplateName = templateNameTB.Text;
 
             if (!double.TryParse(templateInitPlanDosePerFxTB.Text, out prospectiveTemplate.initialRxDosePerFx)) {MessageBox.Show("Error! Initial plan dose per fx not parsed successfully! Fix and try again!"); return; }
             if (!int.TryParse(templateInitPlanNumFxTB.Text, out prospectiveTemplate.initialRxNumFx)) {MessageBox.Show("Error! Initial plan dose per fx not parsed successfully! Fix and try again!"); return; }
@@ -1624,8 +1623,8 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
             TemplateBuilder builder = new TemplateBuilder();
             prospectiveTemplate.targets = new List<Tuple<string, double, string>>(new TargetsUIHelper().parseTargets(targetTemplate_sp, selectedSS).OrderBy(x => x.Item2));
-            prospectiveTemplate.TS_structures = new List<Tuple<string, string>>(builder.parseTSStructureList(templateTS_sp));
-            prospectiveTemplate.spareStructures = new List<Tuple<string,string,double>>(new StructureTuningUIHelper().parseSpareStructList(templateStructuresSP));
+            prospectiveTemplate.createTSStructures = new List<Tuple<string, string>>(builder.parseTSStructureList(templateTS_sp));
+            prospectiveTemplate.TSManipulations = new List<Tuple<string,string,double>>(new StructureTuningUIHelper().parseSpareStructList(templateStructuresSP));
             List<Tuple<string, List<Tuple<string, string, double, double, int>>>> templateOptParametersListList = new OptimizationSetupUIHelper().parseOptConstraints(templateOptParams_sp);
             prospectiveTemplate.init_constraints = new List<Tuple<string, string, double, double, int>>(templateOptParametersListList.First().Item2);
             prospectiveTemplate.bst_constraints = new List<Tuple<string, string, double, double, int>>(templateOptParametersListList.Last().Item2);
@@ -1638,7 +1637,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         {
             if (selectedSS == null) { MessageBox.Show("Error! Please select a Structure Set before add sparing volumes!"); return; }
             if (prospectiveTemplate == null) { MessageBox.Show("Error! Please preview the requested template before building!"); return; }
-            string fileName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\CSI_" + prospectiveTemplate.templateName + ".ini";
+            string fileName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\CSI_" + prospectiveTemplate.TemplateName + ".ini";
             if (File.Exists(fileName))
             {
                 confirmUI CUI = new confirmUI();
@@ -1647,9 +1646,9 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 CUI.cancelBTN.Text = "No";
                 CUI.ShowDialog();
                 if (!CUI.confirm) return;
-                if(PlanTemplates.FirstOrDefault(x => x.templateName == prospectiveTemplate.templateName) != null)
+                if(PlanTemplates.FirstOrDefault(x => x.TemplateName == prospectiveTemplate.TemplateName) != null)
                 {
-                    int index = PlanTemplates.IndexOf(PlanTemplates.FirstOrDefault(x => x.templateName == prospectiveTemplate.templateName));
+                    int index = PlanTemplates.IndexOf(PlanTemplates.FirstOrDefault(x => x.TemplateName == prospectiveTemplate.TemplateName));
                     PlanTemplates.RemoveAt(index);
                 }
             }
@@ -1681,7 +1680,6 @@ namespace VMATAutoPlanMT.VMAT_CSI
             configTB.Text += String.Format(" Image export format: {0}", imgExportFormat) + Environment.NewLine;
             configTB.Text += String.Format(" Contour field ovelap: {0}", contourOverlap) + Environment.NewLine;
             configTB.Text += String.Format(" Contour field overlap margin: {0} cm", contourFieldOverlapMargin) + Environment.NewLine;
-            configTB.Text += String.Format(" Auto crop and contour overlap between targets: {0}", autoCropTargets) + Environment.NewLine;
             configTB.Text += String.Format(" Available linacs:") + Environment.NewLine;
             foreach (string l in linacs) configTB.Text += string.Format("     {0}", l) + Environment.NewLine;
             configTB.Text += String.Format(" Available photon energies:") + Environment.NewLine;
@@ -1716,7 +1714,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 foreach (Tuple<string, string> ts in defaultTS_structures) configTB.Text += String.Format("  {0, -10} | {1, -15} |" + Environment.NewLine, ts.Item1, ts.Item2);
                 configTB.Text += Environment.NewLine;
             }
-            else configTB.Text += String.Format(" No general tuning structures requested!") + Environment.NewLine + Environment.NewLine;
+            else configTB.Text += String.Format(" No general TS manipulations requested!") + Environment.NewLine + Environment.NewLine;
 
             if (defaultTSStructureManipulations.Any())
             {
@@ -1725,13 +1723,13 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 foreach (Tuple<string, string, double> itr in defaultTSStructureManipulations) configTB.Text += String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |" + Environment.NewLine, itr.Item1, itr.Item2, itr.Item3);
                 configTB.Text += Environment.NewLine;
             }
-            else configTB.Text += String.Format(" No default sparing structures to list") + Environment.NewLine + Environment.NewLine;
+            else configTB.Text += String.Format(" No default TS manipulations to list") + Environment.NewLine + Environment.NewLine;
 
-            foreach (CSIAutoPlanTemplate itr in PlanTemplates.Where(x => x.templateName != "--select--"))
+            foreach (CSIAutoPlanTemplate itr in PlanTemplates.Where(x => x.TemplateName != "--select--"))
             {
                 configTB.Text += "-----------------------------------------------------------------------------" + Environment.NewLine;
 
-                configTB.Text += String.Format(" Template ID: {0}", itr.templateName) + Environment.NewLine;
+                configTB.Text += String.Format(" Template ID: {0}", itr.TemplateName) + Environment.NewLine;
                 configTB.Text += String.Format(" Initial Dose per fraction: {0} cGy", itr.initialRxDosePerFx) + Environment.NewLine;
                 configTB.Text += String.Format(" Initial number of fractions: {0}", itr.initialRxNumFx) + Environment.NewLine;
                 configTB.Text += String.Format(" Boost Dose per fraction: {0} cGy", itr.boostRxDosePerFx) + Environment.NewLine;
@@ -1739,47 +1737,56 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
                 if (itr.targets.Any())
                 {
-                    configTB.Text += String.Format(" {0} targets:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format(" {0} targets:", itr.TemplateName) + Environment.NewLine;
                     configTB.Text += String.Format("  {0, -15} | {1, -8} | {2, -14} |", "structure Id", "Rx (cGy)", "Plan Id") + Environment.NewLine;
                     foreach (Tuple<string, double, string> tgt in itr.targets) configTB.Text += String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |" + Environment.NewLine, tgt.Item1, tgt.Item2, tgt.Item3);
                     configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No targets set for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No targets set for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
 
-                if (itr.TS_structures.Any())
+                if (itr.createTSStructures.Any())
                 {
-                    configTB.Text += String.Format(" {0} additional tuning structures:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format(" {0} additional tuning structures:", itr.TemplateName) + Environment.NewLine;
                     configTB.Text += String.Format("  {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + Environment.NewLine;
-                    foreach (Tuple<string, string> ts in itr.TS_structures) configTB.Text += String.Format("  {0, -10} | {1, -15} |" + Environment.NewLine, ts.Item1, ts.Item2);
+                    foreach (Tuple<string, string> ts in itr.createTSStructures) configTB.Text += String.Format("  {0, -10} | {1, -15} |" + Environment.NewLine, ts.Item1, ts.Item2);
                     configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No additional tuning structures for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No additional tuning structures for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
 
-                if (itr.spareStructures.Any())
+                if (itr.TSManipulations.Any())
                 {
-                    configTB.Text += String.Format(" {0} additional sparing structures:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format(" {0} additional sparing structures:", itr.TemplateName) + Environment.NewLine;
                     configTB.Text += String.Format("  {0, -15} | {1, -26} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + Environment.NewLine;
-                    foreach (Tuple<string, string, double> spare in itr.spareStructures) configTB.Text += String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |" + Environment.NewLine, spare.Item1, spare.Item2, spare.Item3);
+                    foreach (Tuple<string, string, double> spare in itr.TSManipulations) configTB.Text += String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |" + Environment.NewLine, spare.Item1, spare.Item2, spare.Item3);
                     configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No additional sparing structures for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No additional sparing structures for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
+
+                if(itr.cropAndOverlapStructures.Any())
+                {
+                    configTB.Text += String.Format(" {0} requested structures for crop/overlap with targets:", itr.TemplateName) + Environment.NewLine;
+                    configTB.Text += String.Format("  {0, -15}", "structure Id") + Environment.NewLine;
+                    foreach (string cropOverlap in itr.cropAndOverlapStructures) configTB.Text += String.Format("  {0}" + Environment.NewLine, cropOverlap);
+                    configTB.Text += Environment.NewLine;
+                }
+                else configTB.Text += String.Format(" No structures requested for crop/overlp with targets for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
 
                 if (itr.init_constraints.Any())
                 {
-                    configTB.Text += String.Format(" {0} template initial plan optimization parameters:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format(" {0} template initial plan optimization parameters:", itr.TemplateName) + Environment.NewLine;
                     configTB.Text += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + Environment.NewLine;
                     foreach (Tuple<string, string, double, double, int> opt in itr.init_constraints) configTB.Text += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
                     configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No iniital plan optimization constraints for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No iniital plan optimization constraints for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
 
                 if (itr.bst_constraints.Any())
                 {
-                    configTB.Text += String.Format(" {0} template boost plan optimization parameters:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format(" {0} template boost plan optimization parameters:", itr.TemplateName) + Environment.NewLine;
                     configTB.Text += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + Environment.NewLine;
                     foreach (Tuple<string, string, double, double, int> opt in itr.bst_constraints) configTB.Text += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
                 }
-                else configTB.Text += String.Format(" No boost plan optimization constraints for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No boost plan optimization constraints for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
 
                 configTB.Text += Environment.NewLine;
             }
@@ -1895,10 +1902,9 @@ namespace VMATAutoPlanMT.VMAT_CSI
                                 else if (parameter == "optimization model") { if (value != "") optimizationModel = value; }
                                 else if (parameter == "contour field overlap") { if (value != "") contourOverlap = bool.Parse(value); }
                                 else if (parameter == "contour field overlap margin") { if (value != "") contourFieldOverlapMargin = value; }
-                                else if (parameter == "auto crop targets") { if (value != "") autoCropTargets = bool.Parse(value); }
                             }
-                            else if (line.Contains("add default sparing structure")) defaultTSManipulations_temp.Add(helper.ParseSparingStructure(line));
-                            else if (line.Contains("add default TS")) defaultTSstructures_temp.Add(helper.ParseTS(line));
+                            else if (line.Contains("add default TS manipulation")) defaultTSManipulations_temp.Add(helper.ParseTSManipulation(line));
+                            else if (line.Contains("create default TS")) defaultTSstructures_temp.Add(helper.ParseCreateTS(line));
                             else if (line.Contains("add linac"))
                             {
                                 //parse the linacs that should be added. One entry per line

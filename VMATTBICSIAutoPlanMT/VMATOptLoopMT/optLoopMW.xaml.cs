@@ -641,11 +641,11 @@ namespace VMATTBICSIOptLoopMT
             configTB.Text += String.Format("Decision threshold: {0}", threshold) + Environment.NewLine;
             configTB.Text += String.Format("Relative lower dose limit: {0}", lowDoseLimit) + Environment.NewLine + Environment.NewLine;
 
-            foreach (CSIAutoPlanTemplate itr in PlanTemplates.Where(x => x.templateName != "--select--"))
+            foreach (CSIAutoPlanTemplate itr in PlanTemplates.Where(x => x.TemplateName != "--select--"))
             {
                 configTB.Text += "-----------------------------------------------------------------------------" + Environment.NewLine;
 
-                configTB.Text += String.Format(" Template ID: {0}", itr.templateName) + Environment.NewLine;
+                configTB.Text += String.Format(" Template ID: {0}", itr.TemplateName) + Environment.NewLine;
                 configTB.Text += String.Format(" Initial Dose per fraction: {0} cGy", itr.initialRxDosePerFx) + Environment.NewLine;
                 configTB.Text += String.Format(" Initial number of fractions: {0}", itr.initialRxNumFx) + Environment.NewLine;
                 configTB.Text += String.Format(" Boost Dose per fraction: {0} cGy", itr.boostRxDosePerFx) + Environment.NewLine;
@@ -653,52 +653,52 @@ namespace VMATTBICSIOptLoopMT
 
                 if (itr.targets.Any())
                 {
-                    configTB.Text += String.Format(" {0} targets:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format(" {0} targets:", itr.TemplateName) + Environment.NewLine;
                     configTB.Text += String.Format("  {0, -15} | {1, -8} | {2, -14} |", "structure Id", "Rx (cGy)", "Plan Id") + Environment.NewLine;
                     foreach (Tuple<string, double, string> tgt in itr.targets) configTB.Text += String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |" + Environment.NewLine, tgt.Item1, tgt.Item2, tgt.Item3);
                     configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No targets set for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No targets set for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
 
-                if (itr.TS_structures.Any())
+                if (itr.createTSStructures.Any())
                 {
-                    configTB.Text += String.Format(" {0} additional tuning structures:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format(" {0} additional tuning structures:", itr.TemplateName) + Environment.NewLine;
                     configTB.Text += String.Format("  {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + Environment.NewLine;
-                    foreach (Tuple<string, string> ts in itr.TS_structures) configTB.Text += String.Format("  {0, -10} | {1, -15} |" + Environment.NewLine, ts.Item1, ts.Item2);
+                    foreach (Tuple<string, string> ts in itr.createTSStructures) configTB.Text += String.Format("  {0, -10} | {1, -15} |" + Environment.NewLine, ts.Item1, ts.Item2);
                     configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No additional tuning structures for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No additional tuning structures for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
 
-                if (itr.spareStructures.Any())
+                if (itr.TSManipulations.Any())
                 {
-                    configTB.Text += String.Format(" {0} additional sparing structures:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format(" {0} additional sparing structures:", itr.TemplateName) + Environment.NewLine;
                     configTB.Text += String.Format("  {0, -15} | {1, -26} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + Environment.NewLine;
-                    foreach (Tuple<string, string, double> spare in itr.spareStructures) configTB.Text += String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |" + Environment.NewLine, spare.Item1, spare.Item2, spare.Item3);
+                    foreach (Tuple<string, string, double> spare in itr.TSManipulations) configTB.Text += String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |" + Environment.NewLine, spare.Item1, spare.Item2, spare.Item3);
                     configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No additional sparing structures for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No additional sparing structures for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
 
                 if (itr.init_constraints.Any())
                 {
-                    configTB.Text += String.Format(" {0} template initial plan optimization parameters:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format(" {0} template initial plan optimization parameters:", itr.TemplateName) + Environment.NewLine;
                     configTB.Text += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + Environment.NewLine;
                     foreach (Tuple<string, string, double, double, int> opt in itr.init_constraints) configTB.Text += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
                     configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No iniital plan optimization constraints for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No iniital plan optimization constraints for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
 
                 if (itr.bst_constraints.Any())
                 {
-                    configTB.Text += String.Format(" {0} template boost plan optimization parameters:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format(" {0} template boost plan optimization parameters:", itr.TemplateName) + Environment.NewLine;
                     configTB.Text += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + Environment.NewLine;
                     foreach (Tuple<string, string, double, double, int> opt in itr.bst_constraints) configTB.Text += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
                     configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No boost plan optimization constraints for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No boost plan optimization constraints for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
 
                 if (itr.planDoseInfo.Any())
                 {
-                    configTB.Text += String.Format(" {0} template requested dosimetric info after each iteration:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format(" {0} template requested dosimetric info after each iteration:", itr.TemplateName) + Environment.NewLine;
                     configTB.Text += String.Format(" {0, -15} | {1, -6} | {2, -9} |", "structure Id", "metric", "dose type") + Environment.NewLine;
 
                     foreach (Tuple<string, string, double, string> info in itr.planDoseInfo)
@@ -709,11 +709,11 @@ namespace VMATTBICSIOptLoopMT
                     configTB.Text += Environment.NewLine;
                     configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No requested dosimetric info for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No requested dosimetric info for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
 
                 if(itr.planObj.Any())
                 {
-                    configTB.Text += String.Format(" {0} template plan objectives:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format(" {0} template plan objectives:", itr.TemplateName) + Environment.NewLine;
                     configTB.Text += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -9} |", "structure Id", "constraint type", "dose", "volume (%)", "dose type") + Environment.NewLine;
                     foreach (Tuple<string, string, double, double, DoseValuePresentation> obj in itr.planObj)
                     {
@@ -721,11 +721,11 @@ namespace VMATTBICSIOptLoopMT
                     }
                     configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No plan objectives for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No plan objectives for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
 
                 if(itr.requestedTSstructures.Any())
                 {
-                    configTB.Text += String.Format(" {0} template requested tuning structures:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format(" {0} template requested tuning structures:", itr.TemplateName) + Environment.NewLine;
                     configTB.Text += String.Format(" {0, -15} | {1, -9} | {2, -10} | {3, -5} | {4, -8} | {5, -10} |", "structure Id", "low D (%)", "high D (%)", "V (%)", "priority", "constraint") + Environment.NewLine;
                     foreach (Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>> ts in itr.requestedTSstructures)
                     {
@@ -754,7 +754,7 @@ namespace VMATTBICSIOptLoopMT
                     }
                     configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No requested heater/cooler structures for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No requested heater/cooler structures for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
             }
             configScroller.ScrollToTop();
 
@@ -852,7 +852,7 @@ namespace VMATTBICSIOptLoopMT
             {
                 MessageBox.Show(String.Format("Error could not load plan template file because: {0}!", e.Message));
             }
-            selectedTemplate = PlanTemplates.FirstOrDefault(x => x.templateName == selectedTemplateName);
+            selectedTemplate = PlanTemplates.FirstOrDefault(x => x.TemplateName == selectedTemplateName);
             if (selectedTemplate != null) templateList.SelectedItem = selectedTemplate;
         }
 
