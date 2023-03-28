@@ -403,12 +403,22 @@ namespace VMATTBICSIOptLoopMT
             initDosePerFxTB.Text = plans.First().DosePerFraction.Dose.ToString();
             initNumFxTB.Text = plans.First().NumberOfFractions.ToString();
             initRxTB.Text = plans.First().TotalDose.Dose.ToString();
+            
             //boost plan
             if(plans.Count > 1)
             {
                 boostDosePerFxTB.Text = plans.Last().DosePerFraction.Dose.ToString();
                 boostNumFxTB.Text = plans.Last().NumberOfFractions.ToString();
                 boostRxTB.Text = plans.Last().TotalDose.Dose.ToString();
+            }
+            if (normalizationVolumes.Any())
+            {
+                initNormVolume.Text = normalizationVolumes.First().Item2;
+                if(normalizationVolumes.Count > 1) bstNormVolume.Text = normalizationVolumes.Last().Item2;
+            }
+            else
+            {
+                initNormVolume.Text = GetPlanTargetId();
             }
         }
 
@@ -622,7 +632,7 @@ namespace VMATTBICSIOptLoopMT
         {
             //if(useFlash) planObj.Add(Tuple.Create("TS_PTV_FLASH", obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
             //else planObj.Add(Tuple.Create("TS_PTV_VMAT", obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
-            return new TargetsHelper().GetTargetForPlan(selectedSS, null, useFlash, planType).Id;
+            return new TargetsHelper().GetTargetForPlan(selectedSS, "", useFlash, planType).Id;
         }
         #endregion
 
@@ -923,6 +933,5 @@ namespace VMATTBICSIOptLoopMT
             app.ClosePatient();
             app.Dispose();
         }
-
     }
 }

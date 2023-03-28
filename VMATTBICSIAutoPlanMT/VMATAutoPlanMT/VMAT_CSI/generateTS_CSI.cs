@@ -479,6 +479,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 Structure addedStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.ToLower());
                 if (itr.ToLower().Contains("ts_ring"))
                 {
+                    //3/28/23 FIX this!!! If there are multiple target structures, it overrides the previously contoured ring with a new ring of the same dose level
                     if (double.TryParse(itr.Substring(7, itr.Length - 7), out double ringDose))
                     {
                         calcItems = prescriptions.Count;

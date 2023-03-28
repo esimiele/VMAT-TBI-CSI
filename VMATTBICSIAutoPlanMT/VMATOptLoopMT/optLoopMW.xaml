@@ -202,6 +202,11 @@
                                 <TextBox x:Name="boostRxTB" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,53,0" IsReadOnly="True"></TextBox>
                             </Grid>
                             <Grid Margin="0,0,0,5">
+                                <Label Content="Normalization volumes:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,228,0"></Label>
+                                <TextBox x:Name="initNormVolume" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,153,0" IsReadOnly="True"></TextBox>
+                                <TextBox x:Name="bstNormVolume" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,53,0" IsReadOnly="True"></TextBox>
+                            </Grid>
+                            <Grid Margin="0,0,0,5">
                                 <Label Content="Run coverage check:" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,68,0"></Label>
                                 <CheckBox x:Name="runCoverageCk" HorizontalAlignment="Right" Margin="0,7,53,0" VerticalAlignment="Top"/>
                             </Grid>

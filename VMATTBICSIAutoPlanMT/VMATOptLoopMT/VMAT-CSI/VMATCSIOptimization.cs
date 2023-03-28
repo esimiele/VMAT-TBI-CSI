@@ -109,7 +109,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             for (int i = 0; i < totalSlices; i++)
             {
                 ProvideUIUpdate((int)(100 * (i + 1) / totalSlices));
-                if((i + 1) % 10 == 0) ProvideUIUpdate(String.Format("Summing doses from slice: {0}", i + 1));
+                //if((i + 1) % 10 == 0) ProvideUIUpdate(String.Format("Summing doses from slice: {0}", i + 1));
                 //need to initialize jagged array before using
                 sumArray[i] = new int[xSize, ySize];
                 //get dose arrays from initial and boost plans (better to use more memory and initialize two arrays rather than putting this in a loop to limit the

@@ -132,14 +132,14 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         {
             string optPlanObjHeader = " Plan objectives:" + Environment.NewLine;
             optPlanObjHeader += " --------------------------------------------------------------------------" + Environment.NewLine;
-            optPlanObjHeader += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -9} |", "structure Id", "constraint type", "dose", "volume (%)", "dose type") + Environment.NewLine;
+            optPlanObjHeader += String.Format(" {0, -16} | {1, -16} | {2, -10} | {3, -10} | {4, -9} |", "structure Id", "constraint type", "dose", "volume (%)", "dose type") + Environment.NewLine;
             optPlanObjHeader += " --------------------------------------------------------------------------";
             ProvideUIUpdate(optPlanObjHeader);
 
             foreach (Tuple<string, string, double, double, DoseValuePresentation> itr in _data.planObj)
             {
                 //"structure Id", "constraint type", "dose (cGy or %)", "volume (%)", "Dose display (absolute or relative)"
-                ProvideUIUpdate(String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-9} |", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5));
+                ProvideUIUpdate(String.Format(" {0, -16} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-9} |", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5));
             }
             ProvideUIUpdate(Environment.NewLine);
         }
@@ -149,22 +149,39 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             ProvideUIUpdate(GetOptimizationObjectivesHeader(planId));
             foreach (Tuple<string, string, double, double, int> itr in constraints)
             {
-                ProvideUIUpdate(String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5));
+                ProvideUIUpdate(String.Format(" {0, -16} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5));
             }
             ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " ");
+        }
+
+        protected bool PrintPlanOptimizationResultVsConstraints(ExternalPlanSetup plan, List<Tuple<string, string, double, double, int>> optParams, List<Tuple<Structure, DVHData, double, double, double, int>> diffPlanOpt, double totalCostPlanOpt)
+        {
+            //print the results of the quality check for this optimization
+            ProvideUIUpdate(GetOptimizationResultsHeader(plan.Id));
+            int index = 0;
+            //structure, dvh data, current dose obj, dose diff^2, cost, current priority, priority difference
+            foreach (Tuple<Structure, DVHData, double, double, double, int> itr in diffPlanOpt)
+            {
+                //"structure Id", "constraint type", "dose diff^2 (cGy^2)", "current priority", "cost", "cost (%)"
+                ProvideUIUpdate(String.Format(" {0, -16} | {1, -16} | {2, -20:N1} | {3, -16} | {4, -12:N1} | {5, -9:N1} |",
+                                                itr.Item1.Id, optParams.ElementAt(index).Item2, itr.Item4, itr.Item6, itr.Item5, 100 * itr.Item5 / totalCostPlanOpt));
+                index++;
+            }
+
+            PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, plan); return false;
         }
 
         protected void PrintRequestedTSStructures()
         {
             string optRequestTS = String.Format(" Requested tuning structures:") + Environment.NewLine;
             optRequestTS += " --------------------------------------------------------------------------" + Environment.NewLine;
-            optRequestTS += String.Format(" {0, -15} | {1, -9} | {2, -10} | {3, -5} | {4, -8} | {5, -10} |", "structure Id", "low D (%)", "high D (%)", "V (%)", "priority", "constraint") + Environment.NewLine;
+            optRequestTS += String.Format(" {0, -16} | {1, -9} | {2, -10} | {3, -5} | {4, -8} | {5, -10} |", "structure Id", "low D (%)", "high D (%)", "V (%)", "priority", "constraint") + Environment.NewLine;
             optRequestTS += " --------------------------------------------------------------------------";
             ProvideUIUpdate(optRequestTS);
 
             foreach (Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>> itr in _data.requestedTSstructures)
             {
-                string msg = String.Format(" {0, -15} | {1, -9:N1} | {2,-10:N1} | {3,-5:N1} | {4,-8} |", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5);
+                string msg = String.Format(" {0, -16} | {1, -9:N1} | {2,-10:N1} | {3,-5:N1} | {4,-8} |", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5);
                 if (!itr.Item6.Any()) msg += String.Format(" {0,-10} |", "none");
                 else
                 {
@@ -181,7 +198,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                         {
                             if (itr1.Item1.Contains("Dmax")) msg += String.Format(" {0,-59} | {1,-10} |", " ", String.Format("{0}{1}{2}%", itr1.Item1, itr1.Item3, itr1.Item4));
                             else if (itr1.Item1.Contains("V")) msg += String.Format(" {0,-59} | {1,-10} |", " ", String.Format("{0}{1}%{2}{3}%", itr1.Item1, itr1.Item2, itr1.Item3, itr1.Item4));
-                            else msg += String.Format(" {0,-59} | {1,-10} |", " ", String.Format("{0}", itr1.Item1));
+                            else msg += String.Format(" {0,-60} | {1,-10} |", " ", String.Format("{0}", itr1.Item1));
                         }
                         index++;
                         if (index < itr.Item6.Count) msg += Environment.NewLine;
@@ -195,7 +212,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         {
             string optObjHeader = Environment.NewLine + String.Format("Updated optimization constraints for plan: {0}", planId) + Environment.NewLine;
             optObjHeader += " -------------------------------------------------------------------------" + Environment.NewLine;
-            optObjHeader += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |" + Environment.NewLine, "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority");
+            optObjHeader += String.Format(" {0, -16} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |" + Environment.NewLine, "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority");
             optObjHeader += " -------------------------------------------------------------------------";
             return optObjHeader;
         }
@@ -204,7 +221,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         {
             string optResHeader = String.Format(" Results of optimization for plan: {0}" + Environment.NewLine, planId);
             optResHeader += " ---------------------------------------------------------------------------------------------------------" + Environment.NewLine;
-            optResHeader += String.Format(" {0, -15} | {1, -16} | {2, -20} | {3, -16} | {4, -12} | {5, -9} |" + Environment.NewLine, "structure Id", "constraint type", "dose diff^2 (cGy^2)", "current priority", "cost", "cost (%)");
+            optResHeader += String.Format(" {0, -16} | {1, -16} | {2, -20} | {3, -16} | {4, -12} | {5, -9} |" + Environment.NewLine, "structure Id", "constraint type", "dose diff^2 (cGy^2)", "current priority", "cost", "cost (%)");
             optResHeader += " ---------------------------------------------------------------------------------------------------------";
             return optResHeader;
         }
@@ -551,8 +568,6 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             int percentComplete = 0;
             int calcItems = 1 + 7 * _data.numOptimizations;
 
-            
-
             //update the current optimization parameters for this iteration
             InitializeOptimizationConstriants(plan);
 
@@ -638,23 +653,6 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                 else finalObj.Add(itr);
             }
             return finalObj;
-        }
-
-        protected bool PrintPlanOptimizationResultVsConstraints(ExternalPlanSetup plan, List<Tuple<string, string, double, double, int>> optParams, List<Tuple<Structure, DVHData, double, double, double, int>> diffPlanOpt, double totalCostPlanOpt)
-        {
-            //print the results of the quality check for this optimization
-            ProvideUIUpdate(GetOptimizationResultsHeader(plan.Id));
-            int index = 0;
-            //structure, dvh data, current dose obj, dose diff^2, cost, current priority, priority difference
-            foreach (Tuple<Structure, DVHData, double, double, double, int> itr in diffPlanOpt)
-            {
-                //"structure Id", "constraint type", "dose diff^2 (cGy^2)", "current priority", "cost", "cost (%)"
-                ProvideUIUpdate(String.Format(" {0, -15} | {1, -16} | {2, -20:N1} | {3, -16} | {4, -12:N1} | {5, -9:N1} |",
-                                                itr.Item1.Id, optParams.ElementAt(index).Item2, itr.Item4, itr.Item6, itr.Item5, 100 * itr.Item5 / totalCostPlanOpt));
-                index++;
-            }
-
-            PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, plan); return false;
         }
 
         protected virtual bool RunSequentialPlansOptimizationLoop(List<ExternalPlanSetup> plans)
@@ -758,7 +756,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                 //start OAR structure priorities at 2/3 of the values the user specified so there is some wiggle room for adjustment
                 else priority = (int)Math.Ceiling(((double)opt.Item5 * 2) / 3);
                 optObj.Add(Tuple.Create(opt.Item1, opt.Item2, opt.Item3, opt.Item4, priority));
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.Item1, opt.Item2, opt.Item3, opt.Item4, priority));
+                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format(" {0, -16} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.Item1, opt.Item2, opt.Item3, opt.Item4, priority));
             }
             ProvideUIUpdate(" ");
             UpdateConstraints(optObj, plan);
@@ -964,24 +962,24 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                     if (copyOpt.Any())
                     {
                         optPriority = copyOpt.First().Item5;
-                        ProvideUIUpdate(String.Format("Corresponding optimization objective found for plan objective: ({0},{1},{2},{3},{4})", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5.ToString()));
+                        //ProvideUIUpdate(String.Format("Corresponding optimization objective found for plan objective: ({0},{1},{2},{3},{4})", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5.ToString()));
                         //increment the number of comparisons since an optimization constraint was found
                         numComparisons++;
                     }
                     //if no exact constraint was found, leave the priority at zero (per Nataliya's instructions)
-                    else ProvideUIUpdate(String.Format("No corresponding optimization objective found for plan objective: ({0},{1},{2},{3},{4})", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5.ToString()));
+                    //else ProvideUIUpdate(String.Format("No corresponding optimization objective found for plan objective: ({0},{1},{2},{3},{4})", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5.ToString()));
 
                     diff = GetDifferenceFromGoal(plan, itr, s, dvh);
                     if (diff <= 0.0)
                     {
                         //objective was met. Increment the counter for the number of objecives met
-                        ProvideUIUpdate(String.Format("Objective met for: ({0},{1},{2},{3},{4})", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5.ToString()));
+                        ProvideUIUpdate(String.Format("Plan objective met for: ({0},{1},{2},{3},{4})", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5.ToString()));
                         numPass++;
                     }
                     else
                     {
                         cost = diff * diff * optPriority;
-                        ProvideUIUpdate(String.Format("Objective NOT met for: ({0},{1},{2},{3},{4})", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5.ToString()));
+                        ProvideUIUpdate(String.Format("Plan objective NOT met for: ({0},{1},{2},{3},{4})", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5.ToString()));
                     }
 
                     //add this comparison to the list and increment the running total of the cost for the plan objectives
