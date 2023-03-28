@@ -73,6 +73,8 @@ namespace VMATTBICSIOptLoopMT
         List<string> planUIDs = new List<string> { };
         //plan id, target id, num fx, dose per fx, cumulative rx for this target
         List<Tuple<string, string, int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+        //plan id, volume id
+        List<Tuple<string, string>> normalizationVolumes = new List<Tuple<string, string>> { };
 
         public OptLoopMW(string[] args)
         {
@@ -552,6 +554,7 @@ namespace VMATTBICSIOptLoopMT
             dataContainer data = new dataContainer();
             data.construct(plans, 
                            prescriptions,
+                           normalizationVolumes,
                            objectives, 
                            requestedTSstructures, 
                            planDoseInfo,
@@ -863,6 +866,7 @@ namespace VMATTBICSIOptLoopMT
                 using (StreamReader reader = new StreamReader(fullLogName))
                 {
                     string line;
+                    ConfigurationHelper helper = new ConfigurationHelper();
                     while (!(line = reader.ReadLine()).Equals("Optimization constraints:"))
                     {
                         if (!string.IsNullOrEmpty(line))
@@ -886,7 +890,6 @@ namespace VMATTBICSIOptLoopMT
                             }
                             else if (line.Contains("prescriptions:"))
                             {
-                                ConfigurationHelper helper = new ConfigurationHelper();
                                 while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {
                                     prescriptions.Add(helper.ParsePrescriptionsFromLogFile(line));
@@ -897,6 +900,13 @@ namespace VMATTBICSIOptLoopMT
                                 while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {
                                     planUIDs.Add(line);
+                                }
+                            }
+                            else if (line.Contains("normalization volumes:"))
+                            {
+                                while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
+                                {
+                                    normalizationVolumes.Add(helper.ParseNormalizationVolumeFromLogFile(line));
                                 }
                             }
                         }

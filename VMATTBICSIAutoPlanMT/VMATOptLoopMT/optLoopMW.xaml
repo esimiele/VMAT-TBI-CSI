@@ -177,7 +177,7 @@
                                 <Label x:Name="planTypeLabel" Content="type" FontSize="14" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Top" ></Label>
                             </Grid>
                             <Label Content="Plan Templates" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,5,0,0"></Label>
-                            <ListBox x:Name="templateList" ItemsSource="{Binding PlanTemplates}" VerticalAlignment="Bottom" HorizontalContentAlignment="Center" Height="180" Width="300" DisplayMemberPath="templateName" Margin="0" SelectionChanged="Templates_SelectionChanged">
+                            <ListBox x:Name="templateList" ItemsSource="{Binding PlanTemplates}" VerticalAlignment="Bottom" HorizontalContentAlignment="Center" Height="180" Width="300" DisplayMemberPath="TemplateName" Margin="0" SelectionChanged="Templates_SelectionChanged">
                             </ListBox>
                         </StackPanel>
 

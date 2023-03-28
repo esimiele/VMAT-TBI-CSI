@@ -298,5 +298,16 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             RxDose = double.Parse(line.Substring(0, line.IndexOf("}")));
             return Tuple.Create(planId, targetId, numFx, new DoseValue(dosePerFx, DoseValue.DoseUnit.cGy), RxDose);
         }
+
+        public Tuple<string,string> ParseNormalizationVolumeFromLogFile(string line)
+        {
+            string planId;
+            string volumeId;
+            line = CropLine(line, "{");
+            planId = line.Substring(0, line.IndexOf(","));
+            line = CropLine(line, ",");
+            volumeId = line.Substring(0, line.IndexOf("}"));
+            return Tuple.Create(planId, volumeId);
+        }
     }
 }

@@ -805,7 +805,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         private void PerformTSStructureGenerationManipulation_Click(object sender, RoutedEventArgs e)
         {
             //ensure the targets have been specified prior to generating and manipulating the tuning structures
-            if(!targets.Any())
+            if(!prescriptions.Any())
             {
                 MessageBox.Show("Please set the targets first on the 'Set Targets' tab!");
                 return;
@@ -817,7 +817,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             List<string> cropAndOverlapStructs = new List<string>((templateList.SelectedItem as CSIAutoPlanTemplate).cropAndOverlapStructures);
 
             //create an instance of the generateTS_CSI class, passing the tuning structure list, structure sparing list, targets, prescriptions, and the selected structure set
-            generateTS_CSI generate = new generateTS_CSI(TS_structures, structureSpareList, targets, prescriptions, selectedSS, cropAndOverlapStructs);
+            generateTS_CSI generate = new generateTS_CSI(TS_structures, structureSpareList, prescriptions, selectedSS, cropAndOverlapStructs);
             pi.BeginModifications();
             bool result = generate.Execute();
             //grab the log output regardless if it passes or fails
@@ -851,6 +851,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             beamPlacementTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             log.addedStructures = generate.GetAddedStructures();
             log.structureManipulations = structureSpareList;
+            log.normVolumes = generate.GetNormalizationVolumes();
             log.isoNames = isoNames;
         }
 
@@ -1718,7 +1719,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
             if (defaultTSStructureManipulations.Any())
             {
-                configTB.Text += String.Format(" Default sparing structures:") + Environment.NewLine;
+                configTB.Text += String.Format(" Default TS manipulations:") + Environment.NewLine;
                 configTB.Text += String.Format("  {0, -15} | {1, -26} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + Environment.NewLine;
                 foreach (Tuple<string, string, double> itr in defaultTSStructureManipulations) configTB.Text += String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |" + Environment.NewLine, itr.Item1, itr.Item2, itr.Item3);
                 configTB.Text += Environment.NewLine;
@@ -1769,7 +1770,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     foreach (string cropOverlap in itr.cropAndOverlapStructures) configTB.Text += String.Format("  {0}" + Environment.NewLine, cropOverlap);
                     configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No structures requested for crop/overlp with targets for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No structures requested for crop/overlap with targets for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
 
                 if (itr.init_constraints.Any())
                 {

@@ -45,6 +45,8 @@ namespace VMATAutoPlanMT.Logging
         public List<string> addedStructures { get; set; }
         //structure ID, sparing type, margin
         public List<Tuple<string, string, double>> structureManipulations { get; set; }
+        //plan id, normalization volume for plan
+        public List<Tuple<string, string>> normVolumes { get; set; }
         //plan Id, list of isocenter names for this plan
         public List<Tuple<string, List<string>>> isoNames { get; set; }
         //plan generation and beam placement
@@ -64,6 +66,7 @@ namespace VMATAutoPlanMT.Logging
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
             addedStructures = new List<string> { };
             structureManipulations = new List<Tuple<string, string, double>> { };
+            normVolumes = new List<Tuple<string, string>> { };
             isoNames = new List<Tuple<string, List<string>>> { };
             planUIDs = new List<string> { };
             optimizationConstraints = new List<Tuple<string, List<Tuple<string, string, double, double, int>>>> { };
@@ -113,6 +116,13 @@ namespace VMATAutoPlanMT.Logging
             foreach (string itr in planUIDs)
             {
                 sb.AppendLine(String.Format("    {0}", itr));
+            }
+            sb.AppendLine(String.Format(""));
+
+            sb.AppendLine("normalization volumes:");
+            foreach(Tuple<string,string> itr in normVolumes)
+            {
+                sb.AppendLine(String.Format("    {{{0},{1}}}", itr.Item1, itr.Item2));
             }
             sb.AppendLine(String.Format(""));
 

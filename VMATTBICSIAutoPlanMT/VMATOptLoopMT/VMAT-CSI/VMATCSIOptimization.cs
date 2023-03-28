@@ -231,7 +231,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                     if (CalculateDose(_data.isDemo, itr, _data.app)) return true;
                     ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Dose calculated, normalizing plan!");
                     //normalize
-                    NormalizePlan(itr, new TargetsHelper().GetTargetForPlan(_data.selectedSS, plansTargets.FirstOrDefault(x => x.Item1 == itr.Id).Item2, _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
+                    NormalizePlan(itr, new TargetsHelper().GetTargetForPlan(_data.selectedSS, GetNormaliztionVolumeIdForPlan(itr.Id), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
                     if (GetAbortStatus())
                     {
                         KillOptimizationLoop();

@@ -536,7 +536,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
 
                 //normalize
-                NormalizePlan(itr, new TargetsHelper().GetTargetForPlan(_data.selectedSS, null, _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
+                NormalizePlan(itr, new TargetsHelper().GetTargetForPlan(_data.selectedSS, GetNormaliztionVolumeIdForPlan(itr.Id), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
                 UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
                 ProvideUIUpdate(String.Format(" {0} normalized!", itr.Id));
 
@@ -550,6 +550,8 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         {
             int percentComplete = 0;
             int calcItems = 1 + 7 * _data.numOptimizations;
+
+            
 
             //update the current optimization parameters for this iteration
             InitializeOptimizationConstriants(plan);
@@ -581,7 +583,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
 
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Dose calculated, normalizing plan!");
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
-                NormalizePlan(plan, new TargetsHelper().GetTargetForPlan(_data.selectedSS, "", _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
+                NormalizePlan(plan, new TargetsHelper().GetTargetForPlan(_data.selectedSS, GetNormaliztionVolumeIdForPlan(plan.Id), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
 
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Plan normalized! Evaluating plan quality and updating constraints!"); ;
                 //evaluate the new plan for quality and make any adjustments to the optimization parameters
@@ -794,6 +796,19 @@ namespace VMATTBICSIOptLoopMT.baseClasses
         #endregion
 
         #region normalization
+        protected string GetNormaliztionVolumeIdForPlan(string planId)
+        {
+            string normStructureId = "";
+            if (_data.normalizationVolumes.Any())
+            {
+                if (_data.normalizationVolumes.Any(x => x.Item1 == planId))
+                {
+                    normStructureId = _data.normalizationVolumes.FirstOrDefault(x => x.Item1 == planId).Item2;
+                }
+            }
+            return normStructureId;
+        }
+        
         public bool NormalizePlan(ExternalPlanSetup plan, Structure target, double relativeDose, double targetVolCoverage)
         {
             UpdateUILabel("Normalization:");
@@ -810,9 +825,11 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             //get current coverage of the RxDose
             double coverage = plan.GetVolumeAtDose(target, dv, VolumePresentation.Relative);
 
+            ProvideUIUpdate(String.Format("{0} V{1}% = {2:0.0}%", target.Id, relativeDose, coverage));
             //if the current coverage doesn't equal the desired coverage, then renormalize the plan
             if (coverage != targetVolCoverage)
             {
+                ProvideUIUpdate(String.Format("Renormalizing plan: {0} to acheive {1} V{2}% >= {3}", plan.Id, target.Id, relativeDose, targetVolCoverage));
                 //get the dose that does cover the targetVolCoverage of the target volume and scale the dose distribution by the ratio of that dose to the relative prescription dose
                 dv = plan.GetDoseAtVolume(target, targetVolCoverage, VolumePresentation.Relative, DoseValuePresentation.Absolute);
                 double normValue = 100.0 * dv.Dose / (relativeDose * RxDose / 100);
@@ -822,6 +839,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                     return true;
                 }
                 plan.PlanNormalizationValue = normValue;
+                ProvideUIUpdate(String.Format("{0} normalized. Normalization value = {1:0.0}%", plan.Id, normValue));
             }
             UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
             return false;
