@@ -15,6 +15,30 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VMATTBICSIOptLoopMT", "VMAT
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VMATTBICSIAutoPlanningHelpers", "VMATTBICSIAutoplanningHelpers\VMATTBICSIAutoPlanningHelpers.csproj", "{B3FBF7B5-9E18-43BA-B40F-144682A3956E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParallelTest", "ParallelTest\ParallelTest.csproj", "{F66246AF-812B-412D-9375-FBF20EC79E41}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_configuration", "_configuration", "{24C37300-C7B2-4BE6-80D9-27F6091E4AEF}"
+	ProjectSection(SolutionItems) = preProject
+		_configuration\General_configuration.ini = _configuration\General_configuration.ini
+		_configuration\VMAT_CSI_config.ini = _configuration\VMAT_CSI_config.ini
+		_configuration\VMAT_TBI_config.ini = _configuration\VMAT_TBI_config.ini
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_planTemplates", "_planTemplates", "{E9D5DED0-4010-4A94-9D72-3883494611DA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CSI", "CSI", "{EDA295EC-E181-4235-87C7-06631B866687}"
+	ProjectSection(SolutionItems) = preProject
+		_planTemplates\CSI\CSI_mediumRisk.ini = _planTemplates\CSI\CSI_mediumRisk.ini
+		_planTemplates\CSI\CSI_reduceDose.ini = _planTemplates\CSI\CSI_reduceDose.ini
+		_planTemplates\CSI\CSI_regimen1.ini = _planTemplates\CSI\CSI_regimen1.ini
+		_planTemplates\CSI\CSI_regimen2.ini = _planTemplates\CSI\CSI_regimen2.ini
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TBI", "TBI", "{1CECA9E7-ABC6-4E64-8154-4A2D392C12CA}"
+	ProjectSection(SolutionItems) = preProject
+		_planTemplates\TBI\TBI_regimen1.ini = _planTemplates\TBI\TBI_regimen1.ini
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -47,9 +71,21 @@ Global
 		{B3FBF7B5-9E18-43BA-B40F-144682A3956E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{B3FBF7B5-9E18-43BA-B40F-144682A3956E}.Release|x64.ActiveCfg = Release|Any CPU
 		{B3FBF7B5-9E18-43BA-B40F-144682A3956E}.Release|x64.Build.0 = Release|Any CPU
+		{F66246AF-812B-412D-9375-FBF20EC79E41}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F66246AF-812B-412D-9375-FBF20EC79E41}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F66246AF-812B-412D-9375-FBF20EC79E41}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F66246AF-812B-412D-9375-FBF20EC79E41}.Debug|x64.Build.0 = Debug|Any CPU
+		{F66246AF-812B-412D-9375-FBF20EC79E41}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F66246AF-812B-412D-9375-FBF20EC79E41}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F66246AF-812B-412D-9375-FBF20EC79E41}.Release|x64.ActiveCfg = Release|Any CPU
+		{F66246AF-812B-412D-9375-FBF20EC79E41}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{EDA295EC-E181-4235-87C7-06631B866687} = {E9D5DED0-4010-4A94-9D72-3883494611DA}
+		{1CECA9E7-ABC6-4E64-8154-4A2D392C12CA} = {E9D5DED0-4010-4A94-9D72-3883494611DA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {9AB14FFC-193B-4A52-B6D8-B74C083F6E7D}

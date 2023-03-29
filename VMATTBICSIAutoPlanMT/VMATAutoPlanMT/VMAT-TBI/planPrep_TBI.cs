@@ -9,7 +9,7 @@ using VMS.TPS.Common.Model.Types;
 using VMATAutoPlanMT.baseClasses;
 using VMATAutoPlanMT.Prompts;
 using VMATTBICSIAutoplanningHelpers.Prompts;
-using VMATTBICSIAutoplanningHelpers.helpers;
+using VMATTBICSIAutoplanningHelpers.Helpers;
 
 
 namespace VMATAutoPlanMT
@@ -56,7 +56,7 @@ namespace VMATAutoPlanMT
             }
 
             //get the isocenter names using the isoNameHelper class
-            names = new List<string>(new isoNameHelper().getIsoNames(numVMATIsos, numIsos));
+            names = new List<string>(new IsoNameHelper().getIsoNames(numVMATIsos, numIsos));
 
             //get the user origin in user coordinates
             VVector uOrigin = vmatPlan.StructureSet.Image.UserOrigin;

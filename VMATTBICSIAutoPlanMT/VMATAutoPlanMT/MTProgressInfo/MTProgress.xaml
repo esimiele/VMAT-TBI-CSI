@@ -9,7 +9,7 @@
     <Grid Background="DarkGray">
         <StackPanel>
             <Grid HorizontalAlignment="Center">
-                <TextBlock x:Name="theLabel" FontWeight="Bold" Width="300" TextAlignment="Center" VerticalAlignment="Top" Height="18" HorizontalAlignment="Right" Margin="5"/>
+                <TextBlock x:Name="taskLabel" FontWeight="Bold" Width="300" TextAlignment="Center" VerticalAlignment="Top" Height="18" HorizontalAlignment="Right" Margin="5"/>
             </Grid>
             <Grid Width="340" Height="26" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,0,0,0">
                 <ProgressBar BorderThickness="1" BorderBrush="Black" HorizontalAlignment="Center" Height="20" Margin="0,5,5,0" VerticalAlignment="Top" Width="300" Minimum="0" Maximum="100" Foreground="ForestGreen" Name="progress"/>

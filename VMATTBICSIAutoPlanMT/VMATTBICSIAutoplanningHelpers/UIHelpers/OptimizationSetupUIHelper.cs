@@ -6,7 +6,7 @@ using System.Windows.Controls;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 
-namespace VMATTBICSIAutoplanningHelpers.helpers
+namespace VMATTBICSIAutoplanningHelpers.UIHelpers
 {
     public class OptimizationSetupUIHelper
     {
@@ -32,6 +32,15 @@ namespace VMATTBICSIAutoplanningHelpers.helpers
                 }
             }
             return defaultList;
+        }
+
+        public bool RemoveOptimizationConstraintsFromPLan(ExternalPlanSetup plan)
+        {
+            if (plan.OptimizationSetup.Objectives.Count() > 0)
+            {
+                foreach (OptimizationObjective o in plan.OptimizationSetup.Objectives) plan.OptimizationSetup.RemoveObjective(o);
+            }
+            return false;
         }
 
         public StackPanel AddPlanIdtoOptList(StackPanel theSP, string id)
@@ -162,27 +171,27 @@ namespace VMATTBICSIAutoplanningHelpers.helpers
 
             //the order of the dose and volume values are switched when they are displayed to the user. This way, the optimization objective appears to the user as it would in the optimization workspace.
             //However, due to the way ESAPI assigns optimization objectives via VMATplan.OptimizationSetup.AddPointObjective, they need to be stored in the order listed in the templates above
-            TextBox dose_tb = new TextBox();
-            dose_tb.Name = "dose_tb";
-            dose_tb.Width = 65;
-            dose_tb.Height = sp.Height - 5;
-            dose_tb.HorizontalAlignment = HorizontalAlignment.Left;
-            dose_tb.VerticalAlignment = VerticalAlignment.Top;
-            dose_tb.Margin = new Thickness(5, 5, 0, 0);
-            dose_tb.Text = String.Format("{0:0.#}", listItem.Item4);
-            dose_tb.TextAlignment = TextAlignment.Center;
-            sp.Children.Add(dose_tb);
-
             TextBox vol_tb = new TextBox();
             vol_tb.Name = "vol_tb";
-            vol_tb.Width = 70;
+            vol_tb.Width = 65;
             vol_tb.Height = sp.Height - 5;
             vol_tb.HorizontalAlignment = HorizontalAlignment.Left;
             vol_tb.VerticalAlignment = VerticalAlignment.Top;
             vol_tb.Margin = new Thickness(5, 5, 0, 0);
-            vol_tb.Text = String.Format("{0:0.#}", listItem.Item3);
+            vol_tb.Text = String.Format("{0:0.#}", listItem.Item4);
             vol_tb.TextAlignment = TextAlignment.Center;
             sp.Children.Add(vol_tb);
+
+            TextBox dose_tb = new TextBox();
+            dose_tb.Name = "dose_tb";
+            dose_tb.Width = 70;
+            dose_tb.Height = sp.Height - 5;
+            dose_tb.HorizontalAlignment = HorizontalAlignment.Left;
+            dose_tb.VerticalAlignment = VerticalAlignment.Top;
+            dose_tb.Margin = new Thickness(5, 5, 0, 0);
+            dose_tb.Text = String.Format("{0:0.#}", listItem.Item3);
+            dose_tb.TextAlignment = TextAlignment.Center;
+            sp.Children.Add(dose_tb);
 
             if(listItem.Item5.GetType() == typeof(int))
             {
@@ -301,7 +310,7 @@ namespace VMATTBICSIAutoplanningHelpers.helpers
                         return new List<Tuple<string, List<Tuple<string, string, double, double, int>>>>();
                     }
                     //if the row of data passes the above checks, add it the optimization parameter list
-                    else optParametersList.Add(Tuple.Create(structure, constraintType, dose, vol, priority));
+                    else optParametersList.Add(Tuple.Create(structure, constraintType, Math.Round(dose, 3, MidpointRounding.AwayFromZero), Math.Round(vol, 3, MidpointRounding.AwayFromZero), priority));
                     //reset the values of the variables used to parse the data
                     firstCombo = true;
                     txtbxNum = 1;

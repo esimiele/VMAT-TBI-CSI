@@ -5,7 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 
-namespace VMATTBICSIAutoplanningHelpers.helpers
+namespace VMATTBICSIAutoplanningHelpers.UIHelpers
 {
     public class BeamPlacementUIHelper
     {

@@ -5,21 +5,14 @@ using System.Windows;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Media.Media3D;
-using System.IO;
-using Microsoft.Win32;
-using System.Threading;
-using System.Windows.Threading;
 using VMATAutoPlanMT.baseClasses;
-using VMATAutoPlanMT.Prompts;
 using VMATTBICSIAutoplanningHelpers.Prompts;
-using VMATTBICSIAutoplanningHelpers.helpers;
+using VMATTBICSIAutoplanningHelpers.Helpers;
 
 namespace VMATAutoPlanMT
 {
     public class generateTS_TBI : generateTSbase
     {
-        //structure, sparing type, added margin
-        public List<Tuple<string, string, double>> spareStructList;
         //DICOM types
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
@@ -31,7 +24,6 @@ namespace VMATAutoPlanMT
         private bool scleroTrial;
         private Structure flashStructure = null;
         private double flashMargin;
-        public bool updateSparingList = false;
 
         public generateTS_TBI(List<Tuple<string, string>> ts, List<Tuple<string, string>> sclero_ts, List<Tuple<string, string, double>> list, StructureSet ss, double tm, bool st)
         {
@@ -71,7 +63,7 @@ namespace VMATAutoPlanMT
             return false;
         }
 
-        protected override bool preliminaryChecks()
+        protected override bool PreliminaryChecks()
         {
             //check if user origin was set
             if (isUOriginInside(selectedSS)) return true;
@@ -131,7 +123,7 @@ namespace VMATAutoPlanMT
             }
 
             //set isocenter names based on numIsos and numVMATIsos (determined these names from prior cases)
-            isoNames.Add(Tuple.Create("_VMAT TBI",new List<string>(new isoNameHelper().getIsoNames(numVMATIsos, numIsos, true))));
+            isoNames.Add(Tuple.Create("_VMAT TBI",new List<string>(new IsoNameHelper().getIsoNames(numVMATIsos, numIsos, true))));
 
             //check if selected structures are empty or of high-resolution (i.e., no operations can be performed on high-resolution structures)
             string output = "The following structures are high-resolution:" + System.Environment.NewLine;

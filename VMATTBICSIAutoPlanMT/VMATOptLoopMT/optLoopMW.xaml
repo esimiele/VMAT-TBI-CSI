@@ -171,9 +171,13 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
-                            <Button x:Name="selectPatientBtn" Content="Select Patient" FontWeight="Bold" Width="125" Height="22" Margin="0,5,0,15" HorizontalAlignment="Center" VerticalAlignment="Top" Click="SelectPatient_Click"></Button>
-                            <Label Content="Plan Templates" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,15,0,0"></Label>
-                            <ListBox x:Name="templateList" ItemsSource="{Binding PlanTemplates}" VerticalAlignment="Bottom" HorizontalContentAlignment="Center" Height="180" Width="300" DisplayMemberPath="templateName" Margin="0" SelectionChanged="Templates_SelectionChanged">
+                            <Button x:Name="selectPatientBtn" Content="Select Patient" FontWeight="Bold" Width="125" Height="22" Margin="0,5,0,10" HorizontalAlignment="Center" VerticalAlignment="Top" Click="SelectPatient_Click"></Button>
+                            <Grid Width="140" Margin="0,0,0,0">
+                                <Label Content="Plan type:" FontSize="14" HorizontalAlignment="Left" VerticalAlignment="Center" ></Label>
+                                <Label x:Name="planTypeLabel" Content="type" FontSize="14" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Top" ></Label>
+                            </Grid>
+                            <Label Content="Plan Templates" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,5,0,0"></Label>
+                            <ListBox x:Name="templateList" ItemsSource="{Binding PlanTemplates}" VerticalAlignment="Bottom" HorizontalContentAlignment="Center" Height="180" Width="300" DisplayMemberPath="TemplateName" Margin="0" SelectionChanged="Templates_SelectionChanged">
                             </ListBox>
                         </StackPanel>
 
@@ -196,6 +200,11 @@
                                 <Label Content="Rx dose (cGy):" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,228,0"></Label>
                                 <TextBox x:Name="initRxTB" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,153,0" IsReadOnly="True"></TextBox>
                                 <TextBox x:Name="boostRxTB" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,53,0" IsReadOnly="True"></TextBox>
+                            </Grid>
+                            <Grid Margin="0,0,0,5">
+                                <Label Content="Normalization volumes:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,228,0"></Label>
+                                <TextBox x:Name="initNormVolume" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,153,0" IsReadOnly="True"></TextBox>
+                                <TextBox x:Name="bstNormVolume" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,53,0" IsReadOnly="True"></TextBox>
                             </Grid>
                             <Grid Margin="0,0,0,5">
                                 <Label Content="Run coverage check:" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,68,0"></Label>

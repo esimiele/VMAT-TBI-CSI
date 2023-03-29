@@ -18,7 +18,8 @@ namespace VMATTBICSIOptLoopMT.Prompts
         private string _patientMRN = "";
         private string _fullLogFileName = "";
         private string logPath = "";
-        List<string> logs = new List<string> { };
+        List<string> logsCSI = new List<string> { };
+        List<string> logsTBI = new List<string> { };
         public bool selectionMade = false;
         public (string,string) GetPatientMRN()
         {
@@ -26,7 +27,8 @@ namespace VMATTBICSIOptLoopMT.Prompts
         }
 
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
-        public ObservableCollection<string> PatientMRNs { get; set; }
+        public ObservableCollection<string> PatientMRNsCSI { get; set; }
+        public ObservableCollection<string> PatientMRNsTBI { get; set; }
         public SelectPatient(string path)
         {
             InitializeComponent();
@@ -39,11 +41,23 @@ namespace VMATTBICSIOptLoopMT.Prompts
         {
             if(Directory.Exists(logPath + "\\preparation\\"))
             {
-                PatientMRNs = new ObservableCollection<string>() { "--select--" };
-                logs = new List<string>(Directory.GetFiles(logPath + "\\preparation\\").OrderByDescending(x => File.GetLastWriteTimeUtc(x)));
-                foreach (string itr in logs)
+                if(Directory.Exists(logPath + "\\preparation\\CSI\\"))
                 {
-                    PatientMRNs.Add(itr.Substring(itr.LastIndexOf("\\") + 1, itr.Length - itr.LastIndexOf("\\") - 1 - 4));
+                    PatientMRNsCSI = new ObservableCollection<string>() { "--select--" };
+                    logsCSI = new List<string>(Directory.GetFiles(logPath + "\\preparation\\CSI\\", ".", SearchOption.AllDirectories).OrderByDescending(x => File.GetLastWriteTimeUtc(x)));
+                    foreach (string itr in logsCSI)
+                    {
+                        PatientMRNsCSI.Add(itr.Substring(itr.LastIndexOf("\\") + 1, itr.Length - itr.LastIndexOf("\\") - 1 - 4));
+                    }
+                }
+                if(Directory.Exists(logPath + "\\preparation\\TBI\\"))
+                {
+                    PatientMRNsTBI = new ObservableCollection<string>() { "--select--" };
+                    logsTBI = new List<string>(Directory.GetFiles(logPath + "\\preparation\\TBI\\", ".", SearchOption.AllDirectories).OrderByDescending(x => File.GetLastWriteTimeUtc(x)));
+                    foreach (string itr in logsTBI)
+                    {
+                        PatientMRNsTBI.Add(itr.Substring(itr.LastIndexOf("\\") + 1, itr.Length - itr.LastIndexOf("\\") - 1 - 4));
+                    }
                 }
             }
             else
@@ -55,27 +69,51 @@ namespace VMATTBICSIOptLoopMT.Prompts
 
         private void OpenPatient_Click(object sender, RoutedEventArgs e)
         {
-            if (!string.IsNullOrEmpty(MRNTB.Text) && !string.IsNullOrEmpty(_patientMRN))
+            if (!string.IsNullOrEmpty(MRNTB.Text) || !string.IsNullOrEmpty(_patientMRN))
             {
-                _patientMRN = MRNTB.Text;
-                _fullLogFileName = Directory.GetFiles(logPath + "\\preparation\\").FirstOrDefault(x => x.Contains(_patientMRN));
+                //give priority to the text box data
+                if(string.IsNullOrEmpty(MRNTB.Text))
+                {
+                    //if mrn text box is empty get the full path to the log file
+                    _fullLogFileName = Directory.GetFiles(logPath + "\\preparation\\",".",SearchOption.AllDirectories).FirstOrDefault(x => x.Contains(_patientMRN));
+                }
+                else _patientMRN = MRNTB.Text;
+                selectionMade = true;
             }
-            selectionMade = true;
             this.Close();
         }
 
-        private void mrnList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void mrnListCSI_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            string temp = mrnList.SelectedItem as string;
+            string temp = mrnListCSI.SelectedItem as string;
             if (string.IsNullOrEmpty(temp)) return;
             if (temp != "--select--")
             {
-                _patientMRN = mrnList.SelectedItem as string;
-                _fullLogFileName = logs.FirstOrDefault(x => x.Contains(_patientMRN));
+                mrnListTBI.UnselectAll();
+                _patientMRN = mrnListCSI.SelectedItem as string;
+                _fullLogFileName = logsCSI.FirstOrDefault(x => x.Contains(_patientMRN));
             }
             else
             {
-                mrnList.UnselectAll();
+                mrnListCSI.UnselectAll();
+                _fullLogFileName = "";
+                _patientMRN = "";
+            }
+        }
+
+        private void mrnListTBI_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            string temp = mrnListTBI.SelectedItem as string;
+            if (string.IsNullOrEmpty(temp)) return;
+            if (temp != "--select--")
+            {
+                mrnListCSI.UnselectAll();
+                _patientMRN = mrnListTBI.SelectedItem as string;
+                _fullLogFileName = logsTBI.FirstOrDefault(x => x.Contains(_patientMRN));
+            }
+            else
+            {
+                mrnListTBI.UnselectAll();
                 _fullLogFileName = "";
                 _patientMRN = "";
             }

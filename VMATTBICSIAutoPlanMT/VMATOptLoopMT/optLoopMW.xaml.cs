@@ -7,12 +7,14 @@ using System.IO;
 using Microsoft.Win32;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using VMATTBICSIOptLoopMT.helpers;
+using VMATTBICSIOptLoopMT.Helpers;
 using VMATTBICSIOptLoopMT.baseClasses;
-using VMATTBICSIAutoplanningHelpers.helpers;
+using VMATTBICSIAutoplanningHelpers.Helpers;
+using VMATTBICSIAutoplanningHelpers.UIHelpers;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 using VMATTBICSIAutoplanningHelpers.TemplateClasses;
 using VMATTBICSIOptLoopMT.VMAT_CSI;
+using VMATTBICSIOptLoopMT.VMAT_TBI;
 using VMATTBICSIOptLoopMT.Prompts;
 using System.Collections.ObjectModel;
 using System.Reflection;
@@ -27,7 +29,7 @@ namespace VMATTBICSIOptLoopMT
         string documentationPath = @"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\Research\VMAT_TBI\documentation\";
         //default number of optimizations to perform
         string defautlNumOpt = "3";
-        //default plan normalization (i.e., PTV100% = 90%) 
+        //default plan normaliBzation (i.e., PTV100% = 90%) 
         string defaultPlanNorm = "90";
         //run coverage check
         bool runCoverageCheckOption = false;
@@ -44,7 +46,7 @@ namespace VMATTBICSIOptLoopMT
         //lower dose limit
         double lowDoseLimit = 0.1;
 
-        //structure, constraint type, relative dose, relative volume (unless otherwise specified)
+        //structure, constraint type, dose, relative volume, dose value presentation (unless otherwise specified)
         //note, if the constraint type is "mean", the relative volume value is ignored
         public List<Tuple<string, string, double, double, DoseValuePresentation>> planObj = new List<Tuple<string, string, double, double, DoseValuePresentation>> { };
 
@@ -65,11 +67,14 @@ namespace VMATTBICSIOptLoopMT
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
         public ObservableCollection<CSIAutoPlanTemplate> PlanTemplates { get; set; }
         public CSIAutoPlanTemplate selectedTemplate;
+        string selectedTemplateName = "";
         //to be read from the plan prep log files
-        string planType = "";
+        VMATTBICSIAutoplanningHelpers.Helpers.PlanType planType;
         List<string> planUIDs = new List<string> { };
         //plan id, target id, num fx, dose per fx, cumulative rx for this target
-        List<Tuple<string, string, int, double, double>> prescriptions = new List<Tuple<string, string, int, double, double>> { };
+        List<Tuple<string, string, int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+        //plan id, volume id
+        List<Tuple<string, string>> normalizationVolumes = new List<Tuple<string, string>> { };
 
         public OptLoopMW(string[] args)
         {
@@ -77,22 +82,24 @@ namespace VMATTBICSIOptLoopMT
             PlanTemplates = new ObservableCollection<CSIAutoPlanTemplate>() { new CSIAutoPlanTemplate("--select--") };
             DataContext = this;
             string patmrn = "";
-            string configurationFile = "";
+            List<string> configurationFiles = new List<string> { Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\General_configuration.ini" };
             for (int i = 0; i < args.Length; i++)
             {
                 if (i == 0) patmrn = args[i];
-                if (i == 1) configurationFile = args[i];
+                if (i == 1) configurationFiles.Add(args[i]);
             }
-            //if (args.Length == 0) configurationFile = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_TBI_config.ini";
-            if (args.Length == 0) configurationFile = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_CSI_config.ini";
-
-            if (File.Exists(configurationFile)) 
-            { 
-                if (!loadConfigurationSettings(configurationFile)) DisplayConfigurationParameters(); 
+            
+            foreach(string itr in configurationFiles)
+            {
+                if (File.Exists(itr))
+                {
+                    loadConfigurationSettings(itr);
+                }
             }
-            else MessageBox.Show("No configuration file found! Loading default settings!");
+            
             if (args.Length > 0) OpenPatient(patmrn);
             else LoadPatient();
+            DisplayConfigurationParameters();
         }
 
         #region help and info buttons
@@ -129,9 +136,18 @@ namespace VMATTBICSIOptLoopMT
                     if(!string.Equals(mrn,currentMRN))
                     {
                         planUIDs = new List<string> { };
-                        if (!string.IsNullOrEmpty(fullLogName)) LoadLogFile(fullLogName);
+                        if (!string.IsNullOrEmpty(fullLogName))
+                        {
+                            LoadLogFile(fullLogName);
+                        }
+
+                        string planTypeSpecificConfigurationSettings;
+                        if (planType == VMATTBICSIAutoplanningHelpers.Helpers.PlanType.VMAT_CSI) planTypeSpecificConfigurationSettings = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_CSI_config.ini";
+                        else planTypeSpecificConfigurationSettings = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_TBI_config.ini";
+                        loadConfigurationSettings(planTypeSpecificConfigurationSettings);
+
                         OpenPatient(mrn);
-                        if (selectedTemplate != null) templateList.SelectedItem = selectedTemplate;
+                        LoadTemplatePlanChoices(planType);
                     }
                 }
                 else MessageBox.Show(String.Format("Entered MRN: {0} is invalid! Please re-enter and try again", mrn));
@@ -160,12 +176,7 @@ namespace VMATTBICSIOptLoopMT
 
                 //populate the prescription text boxes with the prescription stored in the VMAT TBI plan
                 populateRx();
-                //set the default parameters for the optimization loop
-                runCoverageCk.IsChecked = runCoverageCheckOption;
-                numOptLoops.Text = defautlNumOpt;
-                runAdditionalOpt.IsChecked = runAdditionalOptOption;
-                copyAndSave.IsChecked = copyAndSaveOption;
-                targetNormTB.Text = defaultPlanNorm;
+
                 planObjectiveHeader.Background = System.Windows.Media.Brushes.PaleVioletRed;
             }
             catch
@@ -317,7 +328,6 @@ namespace VMATTBICSIOptLoopMT
             StructureSet ss = null;
             //grab an instance of the VMAT TBI plan. Return null if it isn't found
             if (pi == null) return (thePlans, ss);
-            //Course c = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat tbi");
             if(planUIDs.Any())
             {
                 //should automatically be in order in terms of cumulative Rx (lowest to highest)
@@ -327,10 +337,52 @@ namespace VMATTBICSIOptLoopMT
                     if(tmp != null) thePlans.Add(tmp);
                 }
             }
-            //Course c = pi.Courses.FirstOrDefault(x => x.Id.ToLower().Contains("vmat csi"))
-            //if (c == null) return (thePlans, null);
-            
-            //ExternalPlanSetup thePlan = c.ExternalPlanSetups.FirstOrDefault(x => x.Id.ToLower() == "csi-init");
+            else
+            {
+                //simple logic to try and guess which plans are which
+                Course theCourse = null;
+                List<Course> courses = pi.Courses.Where(x => x.Id.ToLower().Contains("vmat csi") || x.Id.ToLower().Contains("vmat tbi")).ToList();
+                if (!courses.Any()) return (thePlans, ss);
+                if (courses.Count > 1)
+                {
+                    selectItem SI = new selectItem();
+                    SI.title.Text = "Please a course:";
+                    foreach (Course itr in courses) SI.itemCombo.Items.Add(itr.Id);
+                    SI.itemCombo.SelectedIndex = 0;
+                    SI.ShowDialog();
+                    if (!SI.confirm) return (thePlans, ss);
+                    theCourse = courses.FirstOrDefault(x => x.Id == SI.itemCombo.SelectedItem.ToString());
+                }
+                else theCourse = courses.First();
+                if (theCourse.Id.ToLower().Contains("csi"))
+                {
+                    planType = VMATTBICSIAutoplanningHelpers.Helpers.PlanType.VMAT_CSI;
+                    planTypeLabel.Content = "VMAT CSI";
+                }
+                else
+                {
+                    planType = VMATTBICSIAutoplanningHelpers.Helpers.PlanType.VMAT_TBI;
+                    planTypeLabel.Content = "VMAT TBI";
+                }
+
+                thePlans = theCourse.ExternalPlanSetups.OrderBy(x => x.CreationDateTime).ToList();
+                if (thePlans.Count > 2)
+                {
+                    MessageBox.Show(String.Format("Error! More than two plans found in course: {0}! Unable to determine which plan(s) should be used for optimization! Exiting!", theCourse.Id));
+                    thePlans = new List<ExternalPlanSetup> { };
+                }
+                else if (thePlans.Count < 1)
+                {
+                    MessageBox.Show(String.Format("Error! No plans found in course: {0}! Unable to determine which plan(s) should be used for optimization! Exiting!", theCourse.Id));
+                }
+                else if (thePlans.Count == 2 && (thePlans.First().StructureSet != thePlans.Last().StructureSet))
+                {
+                    MessageBox.Show(String.Format("Error! Structure set in first plan ({0}) is not the same as the structure set in second plan ({1})! Exiting!", thePlans.First().Id, thePlans.Last().Id));
+                    thePlans = new List<ExternalPlanSetup> { };
+                }
+            }
+            if (thePlans.Any()) ss = thePlans.First().StructureSet;
+
             return (thePlans, ss);
         }
 
@@ -351,12 +403,22 @@ namespace VMATTBICSIOptLoopMT
             initDosePerFxTB.Text = plans.First().DosePerFraction.Dose.ToString();
             initNumFxTB.Text = plans.First().NumberOfFractions.ToString();
             initRxTB.Text = plans.First().TotalDose.Dose.ToString();
+            
             //boost plan
             if(plans.Count > 1)
             {
                 boostDosePerFxTB.Text = plans.Last().DosePerFraction.Dose.ToString();
                 boostNumFxTB.Text = plans.Last().NumberOfFractions.ToString();
                 boostRxTB.Text = plans.Last().TotalDose.Dose.ToString();
+            }
+            if (normalizationVolumes.Any())
+            {
+                initNormVolume.Text = normalizationVolumes.First().Item2;
+                if(normalizationVolumes.Count > 1) bstNormVolume.Text = normalizationVolumes.Last().Item2;
+            }
+            else
+            {
+                initNormVolume.Text = GetPlanTargetId();
             }
         }
 
@@ -456,6 +518,11 @@ namespace VMATTBICSIOptLoopMT
                 MessageBox.Show("Error! Target normalization is is either < 0% or > 100% \nExiting!");
                 return;
             }
+            if(numOptimizations < 1)
+            {
+                MessageBox.Show("Number of requested optimizations needs to be greater than or equal to 1.\nExiting!");
+                return;
+            }
 
             List<Tuple<string, List<Tuple<string, string, double, double, int>>>> optParametersListList = new OptimizationSetupUIHelper().parseOptConstraints(optimizationParamSP);
             if (!optParametersListList.Any()) return;
@@ -478,10 +545,7 @@ namespace VMATTBICSIOptLoopMT
                 thePlan = plans.FirstOrDefault(x => x.Id == itr.Item1);
                 if (thePlan != null)
                 {
-                    if (thePlan.OptimizationSetup.Objectives.Count() > 0)
-                    {
-                        foreach (OptimizationObjective o in thePlan.OptimizationSetup.Objectives) thePlan.OptimizationSetup.RemoveObjective(o);
-                    }
+                    helper.RemoveOptimizationConstraintsFromPLan(thePlan);
                     helper.AssignOptConstraints(itr.Item2, thePlan, true, 0.0);
                 }
             }
@@ -499,10 +563,12 @@ namespace VMATTBICSIOptLoopMT
             //create a new instance of the structure dataContainer and assign the optimization loop parameters entered by the user to the various data members
             dataContainer data = new dataContainer();
             data.construct(plans, 
-                           optParametersListList.First().Item2, 
+                           prescriptions,
+                           normalizationVolumes,
                            objectives, 
                            requestedTSstructures, 
                            planDoseInfo,
+                           planType,
                            planNorm, 
                            numOptimizations, 
                            runCoverageCheck, 
@@ -518,7 +584,8 @@ namespace VMATTBICSIOptLoopMT
             //start the optimization loop (all saving to the database is performed in the progressWindow class)
             //use a bit of polymorphism
             optimizationLoopBase optLoop;
-            optLoop = new VMATCSIOptimization(data);
+            if(planType == VMATTBICSIAutoplanningHelpers.Helpers.PlanType.VMAT_CSI) optLoop = new VMATCSIOptimization(data);
+            else optLoop = new VMATTBIOptimization(data);
             optLoop.Execute();
         }
 
@@ -565,8 +632,7 @@ namespace VMATTBICSIOptLoopMT
         {
             //if(useFlash) planObj.Add(Tuple.Create("TS_PTV_FLASH", obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
             //else planObj.Add(Tuple.Create("TS_PTV_VMAT", obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
-            if (useFlash) return "TS_PTV_FLASH";
-            else return "TS_PTV_CSI";
+            return new TargetsHelper().GetTargetForPlan(selectedSS, "", useFlash, planType).Id;
         }
         #endregion
 
@@ -588,11 +654,11 @@ namespace VMATTBICSIOptLoopMT
             configTB.Text += String.Format("Decision threshold: {0}", threshold) + Environment.NewLine;
             configTB.Text += String.Format("Relative lower dose limit: {0}", lowDoseLimit) + Environment.NewLine + Environment.NewLine;
 
-            foreach (CSIAutoPlanTemplate itr in PlanTemplates.Where(x => x.templateName != "--select--"))
+            foreach (CSIAutoPlanTemplate itr in PlanTemplates.Where(x => x.TemplateName != "--select--"))
             {
                 configTB.Text += "-----------------------------------------------------------------------------" + Environment.NewLine;
 
-                configTB.Text += String.Format(" Template ID: {0}", itr.templateName) + Environment.NewLine;
+                configTB.Text += String.Format(" Template ID: {0}", itr.TemplateName) + Environment.NewLine;
                 configTB.Text += String.Format(" Initial Dose per fraction: {0} cGy", itr.initialRxDosePerFx) + Environment.NewLine;
                 configTB.Text += String.Format(" Initial number of fractions: {0}", itr.initialRxNumFx) + Environment.NewLine;
                 configTB.Text += String.Format(" Boost Dose per fraction: {0} cGy", itr.boostRxDosePerFx) + Environment.NewLine;
@@ -600,52 +666,52 @@ namespace VMATTBICSIOptLoopMT
 
                 if (itr.targets.Any())
                 {
-                    configTB.Text += String.Format(" {0} targets:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format(" {0} targets:", itr.TemplateName) + Environment.NewLine;
                     configTB.Text += String.Format("  {0, -15} | {1, -8} | {2, -14} |", "structure Id", "Rx (cGy)", "Plan Id") + Environment.NewLine;
                     foreach (Tuple<string, double, string> tgt in itr.targets) configTB.Text += String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |" + Environment.NewLine, tgt.Item1, tgt.Item2, tgt.Item3);
                     configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No targets set for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No targets set for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
 
-                if (itr.TS_structures.Any())
+                if (itr.createTSStructures.Any())
                 {
-                    configTB.Text += String.Format(" {0} additional tuning structures:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format(" {0} additional tuning structures:", itr.TemplateName) + Environment.NewLine;
                     configTB.Text += String.Format("  {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + Environment.NewLine;
-                    foreach (Tuple<string, string> ts in itr.TS_structures) configTB.Text += String.Format("  {0, -10} | {1, -15} |" + Environment.NewLine, ts.Item1, ts.Item2);
+                    foreach (Tuple<string, string> ts in itr.createTSStructures) configTB.Text += String.Format("  {0, -10} | {1, -15} |" + Environment.NewLine, ts.Item1, ts.Item2);
                     configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No additional tuning structures for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No additional tuning structures for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
 
-                if (itr.spareStructures.Any())
+                if (itr.TSManipulations.Any())
                 {
-                    configTB.Text += String.Format(" {0} additional sparing structures:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format(" {0} additional sparing structures:", itr.TemplateName) + Environment.NewLine;
                     configTB.Text += String.Format("  {0, -15} | {1, -26} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + Environment.NewLine;
-                    foreach (Tuple<string, string, double> spare in itr.spareStructures) configTB.Text += String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |" + Environment.NewLine, spare.Item1, spare.Item2, spare.Item3);
+                    foreach (Tuple<string, string, double> spare in itr.TSManipulations) configTB.Text += String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |" + Environment.NewLine, spare.Item1, spare.Item2, spare.Item3);
                     configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No additional sparing structures for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No additional sparing structures for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
 
                 if (itr.init_constraints.Any())
                 {
-                    configTB.Text += String.Format(" {0} template initial plan optimization parameters:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format(" {0} template initial plan optimization parameters:", itr.TemplateName) + Environment.NewLine;
                     configTB.Text += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + Environment.NewLine;
                     foreach (Tuple<string, string, double, double, int> opt in itr.init_constraints) configTB.Text += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
                     configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No iniital plan optimization constraints for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No iniital plan optimization constraints for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
 
                 if (itr.bst_constraints.Any())
                 {
-                    configTB.Text += String.Format(" {0} template boost plan optimization parameters:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format(" {0} template boost plan optimization parameters:", itr.TemplateName) + Environment.NewLine;
                     configTB.Text += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + Environment.NewLine;
                     foreach (Tuple<string, string, double, double, int> opt in itr.bst_constraints) configTB.Text += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
                     configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No boost plan optimization constraints for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No boost plan optimization constraints for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
 
                 if (itr.planDoseInfo.Any())
                 {
-                    configTB.Text += String.Format(" {0} template requested dosimetric info after each iteration:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format(" {0} template requested dosimetric info after each iteration:", itr.TemplateName) + Environment.NewLine;
                     configTB.Text += String.Format(" {0, -15} | {1, -6} | {2, -9} |", "structure Id", "metric", "dose type") + Environment.NewLine;
 
                     foreach (Tuple<string, string, double, string> info in itr.planDoseInfo)
@@ -656,11 +722,11 @@ namespace VMATTBICSIOptLoopMT
                     configTB.Text += Environment.NewLine;
                     configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No requested dosimetric info for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No requested dosimetric info for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
 
                 if(itr.planObj.Any())
                 {
-                    configTB.Text += String.Format(" {0} template plan objectives:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format(" {0} template plan objectives:", itr.TemplateName) + Environment.NewLine;
                     configTB.Text += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -9} |", "structure Id", "constraint type", "dose", "volume (%)", "dose type") + Environment.NewLine;
                     foreach (Tuple<string, string, double, double, DoseValuePresentation> obj in itr.planObj)
                     {
@@ -668,11 +734,11 @@ namespace VMATTBICSIOptLoopMT
                     }
                     configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No plan objectives for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No plan objectives for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
 
                 if(itr.requestedTSstructures.Any())
                 {
-                    configTB.Text += String.Format(" {0} template requested tuning structures:", itr.templateName) + Environment.NewLine;
+                    configTB.Text += String.Format(" {0} template requested tuning structures:", itr.TemplateName) + Environment.NewLine;
                     configTB.Text += String.Format(" {0, -15} | {1, -9} | {2, -10} | {3, -5} | {4, -8} | {5, -10} |", "structure Id", "low D (%)", "high D (%)", "V (%)", "priority", "constraint") + Environment.NewLine;
                     foreach (Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>> ts in itr.requestedTSstructures)
                     {
@@ -701,16 +767,23 @@ namespace VMATTBICSIOptLoopMT
                     }
                     configTB.Text += Environment.NewLine;
                 }
-                else configTB.Text += String.Format(" No requested heater/cooler structures for template: {0}", itr.templateName) + Environment.NewLine + Environment.NewLine;
+                else configTB.Text += String.Format(" No requested heater/cooler structures for template: {0}", itr.TemplateName) + Environment.NewLine + Environment.NewLine;
             }
             configScroller.ScrollToTop();
+
+            //set the default parameters for the optimization loop
+            runCoverageCk.IsChecked = runCoverageCheckOption;
+            numOptLoops.Text = defautlNumOpt;
+            runAdditionalOpt.IsChecked = runAdditionalOptOption;
+            copyAndSave.IsChecked = copyAndSaveOption;
+            targetNormTB.Text = defaultPlanNorm;
         }
 
         private void loadNewConfigFile_Click(object sender, RoutedEventArgs e)
         {
             configFile = "";
             OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.InitialDirectory = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\configuration\\";
+            openFileDialog.InitialDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\";
             openFileDialog.Filter = "ini files (*.ini)|*.ini|All files (*.*)|*.*";
 
             if (openFileDialog.ShowDialog().Value) 
@@ -726,7 +799,6 @@ namespace VMATTBICSIOptLoopMT
         private bool loadConfigurationSettings(string file)
         {
             configFile = file;
-            ConfigurationHelper helper = new ConfigurationHelper();
             try
             {
                 using (StreamReader reader = new StreamReader(configFile))
@@ -736,55 +808,65 @@ namespace VMATTBICSIOptLoopMT
                     {
                         if (!string.IsNullOrEmpty(line) && line.Substring(0, 1) != "%")
                         {
-                            //start actually reading data when you find the begin executable configuration tab
-                            if (line.Equals(":begin executable configuration:"))
-                            {
-                                while (!(line = reader.ReadLine()).Equals(":end executable configuration:"))
+                                //useful info on this line
+                                if (line.Contains("="))
                                 {
-                                    if (!string.IsNullOrEmpty(line) && line.Substring(0, 1) != "%")
+                                    string parameter = line.Substring(0, line.IndexOf("="));
+                                    string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
+                                    if (double.TryParse(value, out double result))
                                     {
-                                        //useful info on this line
-                                        if (line.Contains("="))
-                                        {
-                                            string parameter = line.Substring(0, line.IndexOf("="));
-                                            string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
-                                            if (double.TryParse(value, out double result))
-                                            {
-                                                if (parameter == "default number of optimizations") defautlNumOpt = value;
-                                                else if (parameter == "default plan normalization") defaultPlanNorm = value;
-                                                else if (parameter == "decision threshold") threshold = result;
-                                                else if (parameter == "relative lower dose limit") lowDoseLimit = result;
-                                            }
-                                            else if (parameter == "documentation path")
-                                            {
-                                                documentationPath = value;
-                                                if (documentationPath.LastIndexOf("\\") != documentationPath.Length - 1) documentationPath += "\\";
-                                            }
-                                            else if (parameter == "log file path")
-                                            {
-                                                logFilePath = value;
-                                                if (logFilePath.LastIndexOf("\\") != logFilePath.Length - 1) logFilePath += "\\";
-                                            }
-                                            else if (parameter == "demo") { if (value != "") demo = bool.Parse(value); }
-                                            else if (parameter == "run coverage check") { if (value != "") runCoverageCheckOption = bool.Parse(value); }
-                                            else if (parameter == "run additional optimization") { if (value != "") runAdditionalOptOption = bool.Parse(value); }
-                                            else if (parameter == "copy and save each plan") { if (value != "") copyAndSaveOption = bool.Parse(value); }
-                                        }
+                                        if (parameter == "default number of optimizations") defautlNumOpt = value;
+                                        else if (parameter == "default plan normalization") defaultPlanNorm = value;
+                                        else if (parameter == "decision threshold") threshold = result;
+                                        else if (parameter == "relative lower dose limit") lowDoseLimit = result;
                                     }
+                                    else if (parameter == "documentation path")
+                                    {
+                                        documentationPath = value;
+                                        if (documentationPath.LastIndexOf("\\") != documentationPath.Length - 1) documentationPath += "\\";
+                                    }
+                                    else if (parameter == "log file path")
+                                    {
+                                        logFilePath = value;
+                                        if (logFilePath.LastIndexOf("\\") != logFilePath.Length - 1) logFilePath += "\\";
+                                    }
+                                    else if (parameter == "demo") { if (value != "") demo = bool.Parse(value); }
+                                    else if (parameter == "run coverage check") { if (value != "") runCoverageCheckOption = bool.Parse(value); }
+                                    else if (parameter == "run additional optimization") { if (value != "") runAdditionalOptOption = bool.Parse(value); }
+                                    else if (parameter == "copy and save each plan") { if (value != "") copyAndSaveOption = bool.Parse(value); }
                                 }
-                            }
                         }
                     }
                     reader.Close();
                 }
-                int count = 1;
-                foreach (string itr in Directory.GetFiles(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\", "*.ini").OrderBy(x => x))
-                {
-                    PlanTemplates.Add(helper.readTemplatePlan(itr, count++));
-                }
+                
                 return false;
             }
             catch (Exception e) { MessageBox.Show(String.Format("Error could not load configuration file because: {0}\n\nAssuming default parameters", e.Message)); return true; }
+        }
+
+        private void LoadTemplatePlanChoices(VMATTBICSIAutoplanningHelpers.Helpers.PlanType type)
+        {
+            ConfigurationHelper helper = new ConfigurationHelper();
+            int count = 1;
+            SearchOption option = SearchOption.AllDirectories;
+            string path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\";
+            PlanTemplates.Clear();
+            if (type == VMATTBICSIAutoplanningHelpers.Helpers.PlanType.VMAT_CSI) path += "CSI\\";
+            else path += "TBI\\";
+            try
+            {
+                foreach (string itr in Directory.GetFiles(path, "*.ini", option).OrderBy(x => x))
+                {
+                    PlanTemplates.Add(helper.ReadTemplatePlan(itr, count++));
+                }
+            }
+            catch(Exception e)
+            {
+                MessageBox.Show(String.Format("Error could not load plan template file because: {0}!", e.Message));
+            }
+            selectedTemplate = PlanTemplates.FirstOrDefault(x => x.TemplateName == selectedTemplateName);
+            if (selectedTemplate != null) templateList.SelectedItem = selectedTemplate;
         }
 
         private void LoadLogFile(string fullLogName)
@@ -794,6 +876,7 @@ namespace VMATTBICSIOptLoopMT
                 using (StreamReader reader = new StreamReader(fullLogName))
                 {
                     string line;
+                    ConfigurationHelper helper = new ConfigurationHelper();
                     while (!(line = reader.ReadLine()).Equals("Optimization constraints:"))
                     {
                         if (!string.IsNullOrEmpty(line))
@@ -805,18 +888,18 @@ namespace VMATTBICSIOptLoopMT
                                 string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
                                 if (parameter == "plan type")
                                 {
-                                    planType = value;
+                                    if(value.Contains("CSI")) planType = VMATTBICSIAutoplanningHelpers.Helpers.PlanType.VMAT_CSI;
+                                    else planType = VMATTBICSIAutoplanningHelpers.Helpers.PlanType.VMAT_TBI;
+                                    planTypeLabel.Content = planType;
                                 }
                                 else if (parameter == "template")
                                 {
                                     //plan objectives will be updated in OpenPatient method
-                                    selectedTemplate = PlanTemplates.FirstOrDefault(x => x.templateName == value);
-                                    //templateList.SelectedItem = selectedTemplate;
+                                    selectedTemplateName = value;
                                 }
                             }
                             else if (line.Contains("prescriptions:"))
                             {
-                                ConfigurationHelper helper = new ConfigurationHelper();
                                 while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {
                                     prescriptions.Add(helper.ParsePrescriptionsFromLogFile(line));
@@ -827,6 +910,13 @@ namespace VMATTBICSIOptLoopMT
                                 while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {
                                     planUIDs.Add(line);
+                                }
+                            }
+                            else if (line.Contains("normalization volumes:"))
+                            {
+                                while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
+                                {
+                                    normalizationVolumes.Add(helper.ParseNormalizationVolumeFromLogFile(line));
                                 }
                             }
                         }
@@ -843,6 +933,5 @@ namespace VMATTBICSIOptLoopMT
             app.ClosePatient();
             app.Dispose();
         }
-
     }
 }

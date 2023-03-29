@@ -344,13 +344,15 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     //circular margin (in mm), target structure, use asymmetric x Jaws, use asymmetric y jaws, optimize collimator rotation
                     if (target.Id.ToLower().Contains("ptv_brain"))
                     {
-                        b.FitCollimatorToStructure(new FitToStructureMargins(30.0, 40.0, 30.0, 30.0), target, true, true, false);
+                        //original (3/28/23) 30.0,40.0,30.0,30.0
+                        b.FitCollimatorToStructure(new FitToStructureMargins(45.0, 40.0, 45.0, 30.0), target, true, true, false);
                         ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Fit collimator to: {0}", target.Id));
                         ProvideUIUpdate(String.Format("Asymmetric margin: {0} cm Lat, {1} cm Sup, {2} cm Inf", 3.0, 3.0, 4.0));
                     }
                     else
                     {
-                        b.FitCollimatorToStructure(new FitToStructureMargins(30.0), target, true, true, false);
+                        //original (3/28/23) 30.0
+                        b.FitCollimatorToStructure(new FitToStructureMargins(45.0,30.0,45.0,30.0), target, true, true, false);
                         ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Fit collimator to: {0}", target.Id));
                         ProvideUIUpdate(String.Format("Uniform margin: {0} cm", 3.0));
                     }

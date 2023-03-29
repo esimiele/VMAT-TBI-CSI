@@ -102,8 +102,8 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="baseClasses\MTBase.cs" />
-    <Compile Include="helpers\dataContainer.cs" />
-    <Compile Include="PlanEvaluation\evalPlanStruct.cs" />
+    <Compile Include="Helpers\dataContainer.cs" />
+    <Compile Include="PlanEvaluation\EvalPlanStruct.cs" />
     <Compile Include="optLoopMW.xaml.cs">
       <DependentUpon>optLoopMW.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -161,8 +161,22 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>if NOT EXIST "$(ProjectDir)$(OutDir)..\log_files\" (
+    <PreBuildEvent>if NOT EXIST "$(ProjectDir)$(OutDir)\configuration\" (
+mkdir "$(ProjectDir)$(OutDir)\configuration\"
+)
+if NOT EXIST "$(ProjectDir)$(OutDir)templates\CSI\" (
+mkdir "$(ProjectDir)$(OutDir)\templates\CSI\"
+)
+if NOT EXIST "$(ProjectDir)$(OutDir)templates\TBI\" (
+mkdir "$(ProjectDir)$(OutDir)\templates\TBI\"
+)
+if NOT EXIST "$(ProjectDir)$(OutDir)..\log_files\" (
 mkdir "$(ProjectDir)$(OutDir)..\log_files\"
 )</PreBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PostBuildEvent>copy "$(SolutionDir)_configuration\*" "$(ProjectDir)$(OutDir)\configuration"
+copy "$(SolutionDir)_planTemplates\CSI\*" "$(ProjectDir)$(OutDir)\templates\CSI"
+copy "$(SolutionDir)_planTemplates\TBI\*" "$(ProjectDir)$(OutDir)\templates\TBI"</PostBuildEvent>
   </PropertyGroup>
 </Project>

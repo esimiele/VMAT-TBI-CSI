@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Windows;
-using System.Windows.Forms;
 using System.Windows.Media;
 using System.ComponentModel;
 using System.Windows.Threading;
@@ -11,6 +8,7 @@ using System.IO;
 using VMATTBICSIOptLoopMT.baseClasses;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 using VMATTBICSIAutoplanningHelpers.MTWorker;
+using System.Windows.Forms;
 
 namespace VMATTBICSIOptLoopMT.MTProgressInfo
 {
@@ -69,21 +67,6 @@ namespace VMATTBICSIOptLoopMT.MTProgressInfo
             });
         }
 
-        private void Abort_Click(object sender, RoutedEventArgs e)
-        {
-            //the user wants to stop the optimization loop. Set the abortOpt flag to true. The optimization loop will stop when it reaches an appropriate point
-            if (!isFinished)
-            {
-                string message = Environment.NewLine + Environment.NewLine + 
-                    " Abort command received!" + Environment.NewLine + " The optimization loop will be stopped at the next available stopping point!" + Environment.NewLine + " Be patient!";
-                update.Text += message +Environment.NewLine;
-                abortOpt = true;
-                abortStatus.Text = "Canceling";
-                abortStatus.Background = Brushes.Yellow;
-                updateLogFile(message);
-            }
-        }
-
         private void dt_tick(object sender, EventArgs e)
         {
             //increment the time on the progress window for each "tick", which is set to intervals of 1 second
@@ -95,19 +78,23 @@ namespace VMATTBICSIOptLoopMT.MTProgressInfo
             }
         }
 
+        #region update UI methods
+        public void UpdateLabel(string message)
+        {
+            taskLabel.Text = message;
+        }
+
         //three overloaded methods to provide periodic updates on the progress of the optimization loop
         public void provideUpdate(int percentComplete, string message, bool fail)
         {
             if (fail) FailEvent();
-            progress.Value = percentComplete;
-            update.Text += message + Environment.NewLine;
-            scroller.ScrollToBottom();
-            updateLogFile(message);
-        }
-
-        public void provideUpdate(int percentComplete) 
-        { 
-            progress.Value = percentComplete; 
+            taskProgress.Value = percentComplete;
+            if(!string.IsNullOrEmpty(message))
+            {
+                update.Text += message + Environment.NewLine;
+                scroller.ScrollToBottom();
+                updateLogFile(message);
+            }
         }
 
         public void provideUpdate(string message, bool fail) 
@@ -118,17 +105,26 @@ namespace VMATTBICSIOptLoopMT.MTProgressInfo
             updateLogFile(message); 
         }
 
+        public void updateOverallProgress(int percentComplete)
+        {
+            overallProgress.Value = percentComplete;
+        }
+
         private void FailEvent()
         {
-            progress.Background = Brushes.Red;
-            progress.Foreground = Brushes.Red;
+            taskProgress.Background = Brushes.Red;
+            taskProgress.Foreground = Brushes.Red;
+            overallProgress.Background = Brushes.Red;
+            overallProgress.Foreground = Brushes.Red;
             abortStatus.Text = "Failed!";
             abortStatus.Background = Brushes.Red;
             sw.Stop();
             dt.Stop();
             canClose = true;
         }
+        #endregion
 
+        #region logging
         public void InitializeLogFile(string path, string name)
         {
             logPath = path;
@@ -138,9 +134,6 @@ namespace VMATTBICSIOptLoopMT.MTProgressInfo
 
         private void updateLogFile(string output)
         {
-            //this is here to check if the directory and file already exist. An alternative method would be to create a streamwriter in the constructor of this class, but because this program runs for several hours and I have no
-            //control over the shared drive, there may be a situation where the streamwriter is created and wants to write to the file after a few hours and (for whatever reason) the directory/file is gone. In this case, it would likely
-            //crash the program
             if (Directory.Exists(logPath))
             {
                 output += Environment.NewLine;
@@ -171,6 +164,23 @@ namespace VMATTBICSIOptLoopMT.MTProgressInfo
                 update.Text += String.Format(Environment.NewLine + " Output written to text file at: {0}" + Environment.NewLine, string.Concat(fileName));
             }
         }
+        #endregion
+
+        #region abort run
+        private void Abort_Click(object sender, RoutedEventArgs e)
+        {
+            //the user wants to stop the optimization loop. Set the abortOpt flag to true. The optimization loop will stop when it reaches an appropriate point
+            if (!isFinished)
+            {
+                string message = Environment.NewLine + Environment.NewLine +
+                    " Abort command received!" + Environment.NewLine + " The optimization loop will be stopped at the next available stopping point!" + Environment.NewLine + " Be patient!";
+                update.Text += message + Environment.NewLine;
+                abortOpt = true;
+                abortStatus.Text = "Canceling";
+                abortStatus.Background = Brushes.Yellow;
+                updateLogFile(message);
+            }
+        }
 
         public void setAbortStatus()
         {
@@ -192,11 +202,12 @@ namespace VMATTBICSIOptLoopMT.MTProgressInfo
             canClose = true;
             provideUpdate(String.Format(" Total run time: {0}", currentTime), false);
         }
+        #endregion
 
         private void Window_Closing(object sender, CancelEventArgs e)
         {
             //extremely annoying message letting the user know that they cannot shut down the program until the optimization loop reaches a safe stopping point. The confirm window will keep popping up until 
-            //the optimization loop reaches a safe stopping point. At that time, the user can close the application. If the user closes the progress window before that time, the background thread will still be working.
+            //the optimization loop reaches a safe stopping point. At that time, the user can close the application. If the user closes the taskProgress window before that time, the background thread will still be working.
             //If the user forces the application to close, the timestamp within eclipse will still be there and it is not good to kill multithreaded applications in this way.
             //Basically, this code is an e-bomb, and will ensure the program can't be killed by the user until a safe stopping point has been reached (at least without the user of the task manager)
             while (!canClose)

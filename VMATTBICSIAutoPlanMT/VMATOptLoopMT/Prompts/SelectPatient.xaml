@@ -12,16 +12,30 @@
                 <StackPanel>
                     <Label Content="Manual Entry" FontWeight="Bold" VerticalAlignment="Top" HorizontalAlignment="Center"/>
                     <Grid Margin="0,5,0,10">
-                        <Label Content="Patient MRN:" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,80,0"></Label>
-                        <TextBox x:Name="MRNTB" Height="22" Width="85" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,10,0"></TextBox>
+                        <Label Content="Patient MRN:" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,120,0"></Label>
+                        <TextBox x:Name="MRNTB" Height="22" Width="120" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,80,0"></TextBox>
                     </Grid>
                 </StackPanel>
             </Grid>
             <Grid VerticalAlignment="Bottom" Height="Auto">
                 <StackPanel>
                     <Label Content="Select Patient From Script Logs" FontWeight="Bold" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="5"/>
-                    <ListBox x:Name="mrnList" ItemsSource="{Binding PatientMRNs}" VerticalAlignment="Bottom" HorizontalContentAlignment="Center" Height="200" Width="160" Margin="0,0,0,5" SelectionChanged="mrnList_SelectionChanged">
-                    </ListBox>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"></ColumnDefinition>
+                            <ColumnDefinition Width="Auto"></ColumnDefinition>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"></RowDefinition>
+                            <RowDefinition Height="Auto"></RowDefinition>
+                        </Grid.RowDefinitions>
+                        <Label Content="VMAT CSI" Grid.Column="0" Grid.Row="0" FontWeight="Bold" HorizontalAlignment="Center" Margin="0"/>
+                        <Label Content="VMAT TBI" Grid.Column="1" Grid.Row="0" FontWeight="Bold" HorizontalAlignment="Center" Margin="0"/>
+                        <ListBox x:Name="mrnListCSI" Grid.Column="0" Grid.Row="1" ItemsSource="{Binding PatientMRNsCSI}" HorizontalContentAlignment="Center" Height="200" Width="160" Margin="10,0,10,10" SelectionChanged="mrnListCSI_SelectionChanged"/>
+                        <ListBox x:Name="mrnListTBI" Grid.Column="1" Grid.Row="1" ItemsSource="{Binding PatientMRNsTBI}" HorizontalContentAlignment="Center" Height="200" Width="160" Margin="10,0,10,10" SelectionChanged="mrnListTBI_SelectionChanged"/>
+                    </Grid>
+                    <Grid>
+                    </Grid>
                     <Button Content="Open Patient" HorizontalAlignment="Center" VerticalAlignment="Bottom" Width="100" Margin="0,0,0,5" Click="OpenPatient_Click"/>
                 </StackPanel>
             </Grid>

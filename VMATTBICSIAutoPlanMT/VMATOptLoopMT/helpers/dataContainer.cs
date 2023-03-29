@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
+using VMATTBICSIAutoplanningHelpers.Helpers;
 
-namespace VMATTBICSIOptLoopMT.helpers
+namespace VMATTBICSIOptLoopMT.Helpers
 {
     //data structure to hold all the relevant information
     public struct dataContainer
@@ -14,7 +13,7 @@ namespace VMATTBICSIOptLoopMT.helpers
         //data members
         public Application app;
         public List<ExternalPlanSetup> plans;
-        public ExternalPlanSetup plan;
+        public StructureSet selectedSS;
         public string id;
         public int numOptimizations;
         public double targetVolCoverage;
@@ -23,7 +22,8 @@ namespace VMATTBICSIOptLoopMT.helpers
         public bool oneMoreOpt;
         public bool copyAndSavePlanItr;
         public bool useFlash;
-        public List<Tuple<string, string, double, double, int>> optParams;
+        public List<Tuple<string, string, int, DoseValue, double>> prescriptions;
+        public List<Tuple<string, string>> normalizationVolumes;
         public List<Tuple<string, string, double, double, DoseValuePresentation>> planObj;
         public List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures;
         public List<Tuple<string, string, double, string>> requestedPlanDoseInfo;
@@ -31,13 +31,17 @@ namespace VMATTBICSIOptLoopMT.helpers
         public double lowDoseLimit;
         public bool isDemo;
         public string logFilePath;
+        public VMATTBICSIAutoplanningHelpers.Helpers.PlanType planType;
+
         //simple method to automatically assign/initialize the above data members
         public void construct(List<ExternalPlanSetup> p, 
-                              List<Tuple<string, string, double, double, int>> param, 
+                              List<Tuple<string, string, int, DoseValue, double>> presc,
+                              List<Tuple<string,string>> normVols,
                               List<Tuple<string, string, double, double, DoseValuePresentation>> objectives, 
                               List<Tuple<string, double, double, double, int, 
                               List<Tuple<string, double, string, double>>>> RTS,
                               List<Tuple<string,string,double,string>> info,
+                              VMATTBICSIAutoplanningHelpers.Helpers.PlanType type,
                               double targetNorm, 
                               int numOpt, 
                               bool coverMe, 
@@ -50,12 +54,10 @@ namespace VMATTBICSIOptLoopMT.helpers
                               string logPath, 
                               Application a)
         {
-            optParams = new List<Tuple<string, string, double, double, int>> { };
-            optParams = param;
-
             plans = new List<ExternalPlanSetup>(p);
-            if (plans.Count == 1) plan = plans.First();
+            selectedSS = plans.First().StructureSet;
             id = plans.First().Course.Patient.Id;
+            planType = type;
             numOptimizations = numOpt;
 
             //log file path
@@ -79,6 +81,8 @@ namespace VMATTBICSIOptLoopMT.helpers
             useFlash = flash;
             app = a;
 
+            prescriptions = presc;
+            normalizationVolumes = normVols;
             planObj = objectives;
             requestedTSstructures = RTS;
             requestedPlanDoseInfo = info;
