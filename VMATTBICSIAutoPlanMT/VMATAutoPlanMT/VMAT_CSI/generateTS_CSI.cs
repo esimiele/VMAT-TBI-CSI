@@ -483,14 +483,16 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     if (double.TryParse(itr.Substring(7, itr.Length - 7), out double ringDose))
                     {
                         calcItems = prescriptions.Count;
-                        foreach (Tuple<string, string, int, DoseValue, double> itr1 in prescriptions)
+                        (string, double) result = new TargetsHelper().GetAppropriateTargetForRing(prescriptions, ringDose);
+                        if (!string.IsNullOrEmpty(result.Item1))
                         {
-                            Structure targetStructure = selectedSS.Structures.FirstOrDefault(x => x.Id == itr1.Item2);
+                            double targetRx = result.Item2;
+                            Structure targetStructure = selectedSS.Structures.FirstOrDefault(x => x.Id == result.Item1);
                             if (targetStructure != null)
                             {
-                                ProvideUIUpdate(String.Format("Generating ring {0} for target {1}", itr, itr1.Item2));
+                                ProvideUIUpdate(String.Format("Target: {0} will be used to generate ring structure: {1}", targetStructure.Id, addedStructure.Id));
                                 //margin in cm. 
-                                double margin = ((itr1.Item5 - ringDose) / itr1.Item5) * 3.0;
+                                double margin = ((targetRx - ringDose) / targetRx) * 3.0;
                                 if (margin > 0.0)
                                 {
                                     //method to create ring of 2.0 cm thickness
@@ -502,7 +504,37 @@ namespace VMATAutoPlanMT.VMAT_CSI
                                     ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Finished contouring ring: {0}", itr));
                                 }
                             }
+                            else
+                            {
+                                ProvideUIUpdate(String.Format("Could not retrieve target structure to generate ring: {0}!", addedStructure.Id), true);
+                                return true;
+                            }
                         }
+                        else
+                        {
+                            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Warning! No targets in prescription have a Rx dose greater than {0}! Skipping and removing {1}", ringDose, addedStructure.Id));
+                            selectedSS.RemoveStructure(addedStructure);
+                        }
+                        //foreach (Tuple<string, string, int, DoseValue, double> itr1 in prescriptions)
+                        //{
+                        //    Structure targetStructure = selectedSS.Structures.FirstOrDefault(x => x.Id == itr1.Item2);
+                        //    if (targetStructure != null)
+                        //    {
+                        //        ProvideUIUpdate(String.Format("Generating ring {0} for target {1}", itr, itr1.Item2));
+                        //        //margin in cm. 
+                        //        double margin = ((itr1.Item5 - ringDose) / itr1.Item5) * 3.0;
+                        //        if (margin > 0.0)
+                        //        {
+                        //            //method to create ring of 2.0 cm thickness
+                        //            //first create structure that is a copy of the target structure with an outer margin of ((Rx - ring dose / Rx) * 30 mm) + 20 mm.
+                        //            //1/5/2023, nataliya stated the 50% Rx ring should be 1.5 cm from the target and have a thickness of 2 cm. Redefined the margin formula to equal 15 mm whenever (Rx - ring dose) / Rx = 0.5
+                        //            //keep only the parts of the ring that are inside the body!
+                        //            double thickness = margin + 2.0 > 5.0 ? 5.0 - margin : 2.0;
+                        //            if (CreateRing(targetStructure, addedStructure, margin, thickness)) return true;
+                        //            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Finished contouring ring: {0}", itr));
+                        //        }
+                        //    }
+                        //}
                     }
                     else ProvideUIUpdate(String.Format("Could not parse ring dose for {0}! Skipping!", itr));
                 }

@@ -32,6 +32,35 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             return plansTargets;
         }
 
+        public (string, double) GetAppropriateTargetForRing(List<Tuple<string, string, int, DoseValue, double>> prescriptions, double ringDose)
+        {
+            string targetId = "";
+            double targetRx = 0.0;
+            List<Tuple<string, double>> sortedTargets = new TargetsHelper().GetSortedTargetsByRxDose(prescriptions);
+            if (sortedTargets.Any(x => x.Item2 > ringDose))
+            {
+                Tuple<string, double> tmp = sortedTargets.First(y => y.Item2 > ringDose);
+                targetId = tmp.Item1;
+                targetRx = tmp.Item2;
+            }
+            return (targetId, targetRx);
+        }
+
+        //targetId, cumulative Rx dose
+        public List<Tuple<string, double>> GetSortedTargetsByRxDose(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
+        {
+            List<Tuple<string, double>> sortedTargets = new List<Tuple<string, double>> { };
+            if (!prescriptions.Any()) return sortedTargets;
+            //sort by cumulative dose to targets
+            List<Tuple<string, string, int, DoseValue, double>> tmpList = prescriptions.OrderBy(x => x.Item5).ToList();
+
+            foreach (Tuple<string, string, int, DoseValue, double> itr in tmpList)
+            {
+                sortedTargets.Add(Tuple.Create(itr.Item2, itr.Item5));
+            }
+            return sortedTargets;
+        }
+
         //planId, targetId
         public List<Tuple<string, string>> GetPlanTargetList(List<Tuple<string, double, string>> targetList)
         {
