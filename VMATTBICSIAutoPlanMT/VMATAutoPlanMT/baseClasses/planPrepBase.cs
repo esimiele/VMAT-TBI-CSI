@@ -9,7 +9,7 @@ using VMATTBICSIAutoplanningHelpers.Prompts;
 
 namespace VMATAutoPlanMT.baseClasses
 {
-    public class planPrepBase
+    public class PlanPrepBase
     {
         public ExternalPlanSetup vmatPlan = null;
         public int numVMATIsos = 0;
@@ -20,17 +20,17 @@ namespace VMATAutoPlanMT.baseClasses
         public List<ExternalPlanSetup> separatedPlans = new List<ExternalPlanSetup> { };
         public bool flashRemoved = false;
 
-        public planPrepBase()
+        public PlanPrepBase()
         {
 
         }
 
-        public virtual bool getShiftNote()
+        public virtual bool GetShiftNote()
         {
             return false;
         }
 
-        public bool checkBeamNameFormatting(List<ExternalPlanSetup> plans)
+        public bool CheckBeamNameFormatting(List<ExternalPlanSetup> plans)
         {
             string beamFormatMessage = "The following beams are not in the correct format:" + Environment.NewLine;
             bool beamFormatError = false;
@@ -54,7 +54,7 @@ namespace VMATAutoPlanMT.baseClasses
             return false;
         }
 
-        public Tuple<List<List<Beam>>,int> extractNumIsoAndBeams(ExternalPlanSetup plan, int numIsosTmp)
+        public Tuple<List<List<Beam>>,int> ExtractNumIsoAndBeams(ExternalPlanSetup plan, int numIsosTmp)
         {
             List<List<Beam>> beamsPerIso = new List<List<Beam>> { };
             List<Beam> beams = new List<Beam> { };
@@ -85,12 +85,12 @@ namespace VMATAutoPlanMT.baseClasses
             return new Tuple<List<List<Beam>>,int>(beamsPerIso, numIsosTmp);
         }
 
-        public List<Tuple<string, Tuple<double, double, double>, Tuple<double, double, double>>> extractIsoPositions()
+        public List<Tuple<string, Tuple<double, double, double>, Tuple<double, double, double>>> ExtractIsoPositions()
         {
             List<Tuple<string, Tuple<double, double, double>, Tuple<double, double, double>>> shifts = new List<Tuple<string, Tuple<double, double, double>, Tuple<double, double, double>>> { };
-            double SupInfShifts = 0.0;
-            double AntPostShifts = 0.0;
-            double LRShifts = 0.0;
+            double SupInfShifts;
+            double AntPostShifts;
+            double LRShifts;
             int count = 0;
             foreach (Tuple<double, double, double> pos in isoPositions)
             {
@@ -117,7 +117,7 @@ namespace VMATAutoPlanMT.baseClasses
             return shifts;
         }
 
-        public int separatePlans(ExternalPlanSetup plan, int count)
+        public int SeparatePlan(ExternalPlanSetup plan, int count)
         {
             foreach (List<Beam> beams in vmatBeamsPerIso)
             {
@@ -150,7 +150,7 @@ namespace VMATAutoPlanMT.baseClasses
             return count;
         }
 
-        public bool checkForFlash()
+        public bool CheckForFlash()
         {
             //look in the structure set to see if any of the structures contain the string 'flash'. If so, return true indicating flash was included in this plan
             IEnumerable<Structure> flashStr = vmatPlan.StructureSet.Structures.Where(x => x.Id.ToLower().Contains("flash"));
@@ -158,7 +158,7 @@ namespace VMATAutoPlanMT.baseClasses
             return false;
         }
 
-        public virtual bool removeFlash(List<ExternalPlanSetup> plans)
+        public virtual bool RemoveFlash(List<ExternalPlanSetup> plans)
         {
             //remove the structures used to generate flash in the plan
             StructureSet ss = vmatPlan.StructureSet;
@@ -212,7 +212,7 @@ namespace VMATAutoPlanMT.baseClasses
             return false;
         }
 
-        public void calculateDose()
+        public void CalculateDose()
         {
             //loop through each plan in the separatedPlans list (generated in the separate method above) and calculate dose for each plan
             foreach (ExternalPlanSetup p in separatedPlans) p.CalculateDose();

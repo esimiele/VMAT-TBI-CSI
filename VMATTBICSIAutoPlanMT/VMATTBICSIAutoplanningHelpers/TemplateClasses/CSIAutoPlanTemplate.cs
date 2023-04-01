@@ -6,17 +6,12 @@ namespace VMATTBICSIAutoplanningHelpers.TemplateClasses
 {
     public class CSIAutoPlanTemplate
     {
-        public string TemplateName 
-        {
-            get { return templateName; }
-            set { templateName = value; } 
-        }
+        public string TemplateName { get; set; }
         public double initialRxDosePerFx = 0.1;
         public int initialRxNumFx = 1;
         public double boostRxDosePerFx = 0.1;
         public int boostRxNumFx = 1;
 
-        private string templateName;
         //structure ID, Rx dose, plan Id
         public List<Tuple<string, double, string>> targets = new List<Tuple<string, double, string>> { };
         //structure ID, sparing type, margin
@@ -45,12 +40,12 @@ namespace VMATTBICSIAutoplanningHelpers.TemplateClasses
 
         public CSIAutoPlanTemplate(int count)
         {
-            templateName = String.Format("Template: {0}", count);
+            TemplateName = String.Format("Template: {0}", count);
         }
 
         public CSIAutoPlanTemplate(string name)
         {
-            templateName = name;
+            TemplateName = name;
         }
     }
 }

@@ -12,7 +12,7 @@ using System.Runtime.ExceptionServices;
 
 namespace VMATAutoPlanMT.VMAT_CSI
 {
-    public class generateTS_CSI : generateTSbase
+    public class GenerateTS_CSI : GenerateTSbase
     {
         //planId, lower dose target id, manipulation target id, operation
         public List<Tuple<string, string, List<Tuple<string, string>>>> GetTargetManipulations() { return targetManipulations; }
@@ -21,15 +21,15 @@ namespace VMATAutoPlanMT.VMAT_CSI
         //DICOM types
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
-        protected List<Tuple<string, string>> TS_structures;
+        private List<Tuple<string, string>> TS_structures;
         //plan id, structure id, num fx, dose per fx, cumulative dose
-        List<Tuple<string, string, int, DoseValue, double>> prescriptions;
-        List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations = new List<Tuple<string, string, List<Tuple<string, string>>>> { };
-        List<Tuple<string, string>> normVolumes = new List<Tuple<string, string>> { };
-        List<string> cropAndOverlapStructures = new List<string> { };
-        int numVMATIsos;
+        private List<Tuple<string, string, int, DoseValue, double>> prescriptions;
+        private List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations = new List<Tuple<string, string, List<Tuple<string, string>>>> { };
+        private List<Tuple<string, string>> normVolumes = new List<Tuple<string, string>> { };
+        private List<string> cropAndOverlapStructures = new List<string> { };
+        private int numVMATIsos;
 
-        public generateTS_CSI(List<Tuple<string, string>> ts, List<Tuple<string, string, double>> list, List<Tuple<string,string,int,DoseValue,double>> presc, StructureSet ss, List<string> cropStructs)
+        public GenerateTS_CSI(List<Tuple<string, string>> ts, List<Tuple<string, string, double>> list, List<Tuple<string,string,int,DoseValue,double>> presc, StructureSet ss, List<string> cropStructs)
         {
             TS_structures = new List<Tuple<string, string>>(ts);
             spareStructList = new List<Tuple<string, string, double>>(list);
@@ -53,13 +53,13 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 if (RemoveOldTSStructures(TS_structures.Where(x => !x.Item2.ToLower().Contains("ctv") && !x.Item2.ToLower().Contains("ptv")).ToList())) return true;
                 if (CheckForTargetStructures()) return true;
                 //if (createTargetStructures()) return true;
-                if (createTSStructures()) return true;
-                if (performTSStructureManipulation()) return true;
+                if (CreateTSStructures()) return true;
+                if (PerformTSStructureManipulation()) return true;
                 if(cropAndOverlapStructures.Any())
                 {
                     if (CropAndContourOverlapWithTargets()) return true;
                 }
-                if (calculateNumIsos()) return true;
+                if (CalculateNumIsos()) return true;
                 UpdateUILabel("Finished!");
                 ProvideUIUpdate(100, "Finished Structure Tuning!");
             }
@@ -75,7 +75,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             int calcItems = 2;
             int counter = 0;
             //check if user origin was set
-            if (isUOriginInside(selectedSS)) return true;
+            if (IsUOriginInside(selectedSS)) return true;
             ProvideUIUpdate((int)(100 * ++counter / calcItems), "User origin is inside body");
 
             //verify brain and spine structures are present
@@ -145,7 +145,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 }
                 ProvideUIUpdate("Now converting to low-resolution!");
                 //convert high res structures queued for TS manipulation to low resolution and update the queue with the resulting low res structure
-                List<Tuple<string, string, double>> newData = convertHighToLowRes(highResStructList, highResSpareList, spareStructList);
+                List<Tuple<string, string, double>> newData = ConvertHighToLowRes(highResStructList, highResSpareList, spareStructList);
                 if (!newData.Any()) return true;
                 spareStructList = new List<Tuple<string, string, double>>(newData);
                 ProvideUIUpdate(100, "Finishing converting high resolution structures to default resolution");
@@ -179,13 +179,13 @@ namespace VMATAutoPlanMT.VMAT_CSI
             if (missingTargets.Any())
             {
                 ProvideUIUpdate(String.Format("Targets missing from the structure set! Creating them now!"));
-                if (createTargetStructures(missingTargets)) return true;
+                if (CreateTargetStructures(missingTargets)) return true;
             }
             ProvideUIUpdate(String.Format("All requested targets are present and contoured! Skipping target creation!"));
             return false;
         }
 
-        protected bool createTargetStructures(List<Tuple<string, string>> missingTargets)
+        protected bool CreateTargetStructures(List<Tuple<string, string>> missingTargets)
         {
             UpdateUILabel("Create Missing Target Structures: ");
             ProvideUIUpdate(0, "Creating missing target structures!");
@@ -454,7 +454,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         #endregion
 
         #region TS Structure Creation and Manipulation
-        protected override bool createTSStructures()
+        protected override bool CreateTSStructures()
         {
             UpdateUILabel("Create TS Structures: ");
             ProvideUIUpdate(String.Format("Adding remaining tuning structures to stack!"));
@@ -776,7 +776,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             return false;
         }
 
-        private bool performTSStructureManipulation()
+        private bool PerformTSStructureManipulation()
         {
             //get target plan list
             
@@ -938,7 +938,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         #endregion
 
         #region Isocenter Calculation
-        protected bool calculateNumIsos()
+        protected bool CalculateNumIsos()
         {
             UpdateUILabel("Calculating Number of Isocenters:");
             ProvideUIUpdate("Calculating number of isocenters");
@@ -1036,7 +1036,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
                 //set isocenter names based on numIsos and numVMATIsos (be sure to pass 'true' for the third argument to indicate that this is a CSI plan(s))
                 //plan Id, list of isocenter names for this plan
-                isoNames.Add(Tuple.Create(itr.Item1, new List<string>(new IsoNameHelper().getIsoNames(numVMATIsos, numVMATIsos, true))));
+                isoNames.Add(Tuple.Create(itr.Item1, new List<string>(new IsoNameHelper().GetIsoNames(numVMATIsos, numVMATIsos, true))));
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Added isocenter to stack!"));
             }
             ProvideUIUpdate(String.Format("Required Number of Isocenters: {0}", numVMATIsos));

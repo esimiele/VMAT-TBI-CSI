@@ -9,33 +9,26 @@ using VMATAutoPlanMT.baseClasses;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 
-namespace VMATAutoPlanMT
+namespace VMATAutoPlanMT.VMAT_TBI
 {
-    public class generateTS_TBI : generateTSbase
+    public class GenerateTS_TBI : GenerateTSbase
     {
+        public int GetNumberOfIsocenters() { return numIsos; }
+        public int GetNumberOfVMATIsocenters() { return numVMATIsos; }
+
         //DICOM types
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
-        public List<Tuple<string, string>> TS_structures;
-        List<Tuple<string, string>> scleroStructures;
-        public int numIsos;
-        public int numVMATIsos;
+        private List<Tuple<string, string>> TS_structures;
+        private List<Tuple<string, string>> scleroStructures;
+        private int numIsos;
+        private int numVMATIsos;
         private double targetMargin;
         private bool scleroTrial;
         private Structure flashStructure = null;
         private double flashMargin;
 
-        public generateTS_TBI(List<Tuple<string, string>> ts, List<Tuple<string, string>> sclero_ts, List<Tuple<string, string, double>> list, StructureSet ss, double tm, bool st)
-        {
-            TS_structures = new List<Tuple<string, string>>(ts);
-            scleroStructures = new List<Tuple<string, string>>(sclero_ts);
-            spareStructList = new List<Tuple<string, string, double>>(list);
-            selectedSS = ss;
-            targetMargin = tm;
-            scleroTrial = st;
-        }
-
-        public generateTS_TBI(List<Tuple<string, string>> ts, List<Tuple<string, string>> sclero_ts, List<Tuple<string, string, double>> list, StructureSet ss, double tm, bool st, bool flash, Structure fSt, double fM)
+        public GenerateTS_TBI(List<Tuple<string, string>> ts, List<Tuple<string, string>> sclero_ts, List<Tuple<string, string, double>> list, StructureSet ss, double tm, bool st, bool flash, Structure fSt, double fM)
         {
             //overloaded constructor for the case where the user wants to include flash in the simulation
             TS_structures = new List<Tuple<string, string>>(ts);
@@ -55,8 +48,8 @@ namespace VMATAutoPlanMT
             { 
                 isoNames.Clear();
                 //if (preliminaryChecks(selectedSS, )) return true;
-                if (createTSStructures()) return true;
-                if (useFlash) if (createFlash()) return true;
+                if (CreateTSStructures()) return true;
+                if (useFlash) if (CreateFlash()) return true;
                 MessageBox.Show("Structures generated successfully!\nPlease proceed to the beam placement tab!");
             }
             catch(Exception e) { ProvideUIUpdate(String.Format("{0}", e.Message)); return true; }
@@ -66,7 +59,7 @@ namespace VMATAutoPlanMT
         protected override bool PreliminaryChecks()
         {
             //check if user origin was set
-            if (isUOriginInside(selectedSS)) return true;
+            if (IsUOriginInside(selectedSS)) return true;
 
             //get the points collection for the Body (used for calculating number of isocenters)
             Point3DCollection pts = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").MeshGeometry.Positions;
@@ -123,7 +116,7 @@ namespace VMATAutoPlanMT
             }
 
             //set isocenter names based on numIsos and numVMATIsos (determined these names from prior cases)
-            isoNames.Add(Tuple.Create("_VMAT TBI",new List<string>(new IsoNameHelper().getIsoNames(numVMATIsos, numIsos, true))));
+            isoNames.Add(Tuple.Create("_VMAT TBI",new List<string>(new IsoNameHelper().GetIsoNames(numVMATIsos, numIsos, true))));
 
             //check if selected structures are empty or of high-resolution (i.e., no operations can be performed on high-resolution structures)
             string output = "The following structures are high-resolution:" + System.Environment.NewLine;
@@ -157,7 +150,7 @@ namespace VMATAutoPlanMT
                 CUI.ShowDialog();
                 if (!CUI.confirm) return true;
 
-                List<Tuple<string, string, double>> newData = convertHighToLowRes(highResStructList, highResSpareList, spareStructList);
+                List<Tuple<string, string, double>> newData = ConvertHighToLowRes(highResStructList, highResSpareList, spareStructList);
                 if(!newData.Any()) return true;
                 spareStructList = new List<Tuple<string, string, double>>(newData);
                 //inform the main UI class that the UI needs to be updated
@@ -166,7 +159,7 @@ namespace VMATAutoPlanMT
             return false;
         }
 
-        protected override bool createTSStructures()
+        protected override bool CreateTSStructures()
         {
             if (RemoveOldTSStructures(TS_structures)) return true;
             if (scleroTrial) if (RemoveOldTSStructures(scleroStructures)) return true;
@@ -410,7 +403,7 @@ namespace VMATAutoPlanMT
             return false;
         }
 
-        protected override bool createFlash()
+        protected override bool CreateFlash()
         {
             //create flash for the plan per the users request
             //NOTE: IT IS IMPORTANT THAT ALL OF THE STRUCTURES CREATED IN THIS METHOD (I.E., ALL STRUCTURES USED TO GENERATE FLASH HAVE THE KEYWORD 'FLASH' SOMEWHERE IN THE STRUCTURE ID)!

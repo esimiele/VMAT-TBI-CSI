@@ -16,27 +16,31 @@ namespace VMATTBICSIOptLoopMT.MTProgressInfo
     {
         //flags to let the code know if the user hit the 'Abort' button, if the optimization loop is finished, 
         //and if the GUI can close safely (you don't want to close it if the background thread hasn't stopped working)
-        public bool abortOpt;
-        public bool isFinished;
-        public bool canClose;
+        public bool GetAbortStatus() { return abortOpt; }
+        public void SetFinishStatus(bool status) { isFinished = status; }
+        public string GetElapsedTime() { return currentTime; }
+
+        private bool abortOpt;
+        private bool isFinished;
+        private bool canClose;
         //used to copy the instances of the background thread and the optimizationLoop class
-        ESAPIworker slave;
-        MTbase callerClass;
+        private ESAPIworker slave;
+        private MTbase callerClass;
         //path to where the log files should be written
-        string logPath = "";
+        private string logPath = "";
         //filename
-        string fileName = "";
+        private string fileName = "";
         //get instances of the stopwatch and dispatch timer to report how long the calculation takes at each reporting interval
-        Stopwatch sw = new Stopwatch();
-        DispatcherTimer dt = new DispatcherTimer();
-        public string currentTime = "";
+        private Stopwatch sw = new Stopwatch();
+        private DispatcherTimer dt = new DispatcherTimer();
+        private string currentTime = "";
 
         public progressWindow()
         {
             InitializeComponent();
         }
 
-        public void setCallerClass<T>(ESAPIworker e, T caller)
+        public void SetCallerClass<T>(ESAPIworker e, T caller)
         {
             //Make all worker classes derive from MTbase. This simplifies the type casting as opposed to try and figure out the class at run time
             callerClass = caller as MTbase;
@@ -45,10 +49,10 @@ namespace VMATTBICSIOptLoopMT.MTProgressInfo
             runTime.Text = "00:00:00";
             dt.Tick += new EventHandler(dt_tick);
             dt.Interval = new TimeSpan(0, 0, 1);
-            doStuff();
+            DoStuff();
         }
 
-        public void doStuff()
+        public void DoStuff()
         {
             slave.DoWork(() =>
             {
@@ -84,8 +88,8 @@ namespace VMATTBICSIOptLoopMT.MTProgressInfo
             taskLabel.Text = message;
         }
 
-        //three overloaded methods to provide periodic updates on the progress of the optimization loop
-        public void provideUpdate(int percentComplete, string message, bool fail)
+        //two overloaded methods to provide periodic updates on the progress of the optimization loop
+        public void ProvideUpdate(int percentComplete, string message, bool fail)
         {
             if (fail) FailEvent();
             taskProgress.Value = percentComplete;
@@ -93,19 +97,19 @@ namespace VMATTBICSIOptLoopMT.MTProgressInfo
             {
                 update.Text += message + Environment.NewLine;
                 scroller.ScrollToBottom();
-                updateLogFile(message);
+                UpdateLogFile(message);
             }
         }
 
-        public void provideUpdate(string message, bool fail) 
+        public void ProvideUpdate(string message, bool fail) 
         {
             if (fail) FailEvent();
             update.Text += message + Environment.NewLine; 
             scroller.ScrollToBottom(); 
-            updateLogFile(message); 
+            UpdateLogFile(message); 
         }
 
-        public void updateOverallProgress(int percentComplete)
+        public void UpdateOverallProgress(int percentComplete)
         {
             overallProgress.Value = percentComplete;
         }
@@ -132,12 +136,16 @@ namespace VMATTBICSIOptLoopMT.MTProgressInfo
             if (!Directory.Exists(logPath)) Directory.CreateDirectory(logPath);
         }
 
-        private void updateLogFile(string output)
+        private void UpdateLogFile(string output)
         {
             if (Directory.Exists(logPath))
             {
                 output += Environment.NewLine;
                 File.AppendAllText(fileName, output);
+            }
+            else
+            {
+                ProvideUpdate(String.Format("Warning! {0} does not exist! Could not write to log file!", logPath), false);
             }
         }
 
@@ -178,29 +186,33 @@ namespace VMATTBICSIOptLoopMT.MTProgressInfo
                 abortOpt = true;
                 abortStatus.Text = "Canceling";
                 abortStatus.Background = Brushes.Yellow;
-                updateLogFile(message);
+                UpdateLogFile(message);
             }
         }
 
-        public void setAbortStatus()
+        public void OptimizationRunAborted()
         {
-            if (abortOpt)
-            {
-                //the user requested to abort the optimization loop
-                abortStatus.Text = "Aborted!";
-                abortStatus.Background = Brushes.Red;
-            }
-            else
-            {
-                //the optimization loop finished successfully
-                abortStatus.Text = "Finished!";
-                abortStatus.Background = Brushes.LimeGreen;
-            }
+            //the user requested to abort the optimization loop
+            abortStatus.Text = "Aborted!";
+            abortStatus.Background = Brushes.Red;
+            CleanUpRun();
+        }
+
+        public void OptimizationRunCompleted()
+        {
+            //the optimization loop finished successfully
+            abortStatus.Text = "Finished!";
+            abortStatus.Background = Brushes.LimeGreen;
+            CleanUpRun();
+        }
+
+        private void CleanUpRun()
+        {
             //stop the clock and report the total run time. Also set the canClose flag to true to let the code know the background thread has finished working and it is safe to close
             sw.Stop();
             dt.Stop();
             canClose = true;
-            provideUpdate(String.Format(" Total run time: {0}", currentTime), false);
+            ProvideUpdate(String.Format(" Total run time: {0}", currentTime), false);
         }
         #endregion
 

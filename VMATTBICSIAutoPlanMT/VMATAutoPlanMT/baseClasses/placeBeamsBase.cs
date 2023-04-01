@@ -5,20 +5,18 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Forms;
 using System.Windows.Media.Media3D;
-using VMATAutoPlanMT.Prompts;
 using VMATTBICSIAutoplanningHelpers.Prompts;
-using System.Windows.Threading;
-using VMATAutoPlanMT.MTProgressInfo;
-using System.Diagnostics;
-using System.Reflection;
 
 namespace VMATAutoPlanMT.baseClasses
 {
-    public class placeBeamsBase : MTbase
+    public class PlaceBeamsBase : MTbase
     {
+        public List<ExternalPlanSetup> GetGeneratedPlans() { return plans; }
+        public List<Structure> GetFieldJunctionStructures() { return jnxs; }
+
         protected bool contourOverlap = false;
         protected bool checkIsoPlacement = false;
-        public List<ExternalPlanSetup> plans = new List<ExternalPlanSetup> { };
+        protected List<ExternalPlanSetup> plans = new List<ExternalPlanSetup> { };
         protected double checkIsoPlacementLimit = 5.0;
         private string courseId;
         protected Course theCourse;
@@ -31,7 +29,7 @@ namespace VMATAutoPlanMT.baseClasses
         protected string useGPUoptimization = "";
         protected string MRrestart = "";
         protected double contourOverlapMargin;
-        public List<Structure> jnxs = new List<Structure> { };
+        protected List<Structure> jnxs = new List<Structure> { };
         protected Structure target = null;
         protected int numVMATIsos;
 

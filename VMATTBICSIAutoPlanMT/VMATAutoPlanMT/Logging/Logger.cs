@@ -2,59 +2,54 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.IO;
-using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 
 namespace VMATAutoPlanMT.Logging
 {
     class Logger
     {
-        //path to location to write log file
-        string logPath = "";
-        //stringbuilder object to log output from ts generation/manipulation and beam placement
-        private StringBuilder _logFromOperations;
-
         //general patient info
-        public string mrn { get; set; }
-        public string planType { get; set; }
-        public string template { get; set; }
-        public string selectedSS { get; set; }
-        //called after TS generation and beam placement are performed to copy the immediate log output from MTProgress window to the log file
-        public void AppendLogOutput(string info, StringBuilder s) 
-        {
-            _logFromOperations.AppendLine(info); 
-            _logFromOperations.Append(s); 
-            _logFromOperations.AppendLine(""); 
-        }
-
-        public void AppendLogOutput(string info)
-        {
-            _logFromOperations.AppendLine(info);
-            _logFromOperations.AppendLine("");
-        }
-
+        public string MRN { set { mrn = value; }  }
+        public string PlanType { set { planType = value; } }
+        public string Template { set { template = value; } }
+        public string StructureSet { set { selectedSS = value; } }
         //targets and prescription
         //structure ID, Rx dose, plan Id
-        public List<Tuple<string, double, string>> targets { get; set; }
+        public List<Tuple<string, double, string>> Targets { set { targets = new List<Tuple<string, double, string>>(value); } }
         //plan ID, target Id, numFx, dosePerFx, cumulative dose
-        public List<Tuple<string, string, int, DoseValue, double>> prescriptions { get; set; }
-
+        public List<Tuple<string, string, int, DoseValue, double>> Prescriptions { set { prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(value); } }
         //ts generation and manipulation
-        public List<string> addedStructures { get; set; }
+        public List<string> AddedStructures { set { addedStructures = new List<string>(value); } }
         //structure ID, sparing type, margin
-        public List<Tuple<string, string, double>> structureManipulations { get; set; }
+        public List<Tuple<string, string, double>> StructureManipulations { set { structureManipulations = new List<Tuple<string, string, double>>(value); } }
         //plan id, normalization volume for plan
-        public List<Tuple<string, string>> normVolumes { get; set; }
+        public List<Tuple<string, string>> NormalizationVolumes { set { normVolumes = new List<Tuple<string, string>>(value); } }
         //plan Id, list of isocenter names for this plan
-        public List<Tuple<string, List<string>>> isoNames { get; set; }
+        public List<Tuple<string, List<string>>> IsoNames { set { isoNames = new List<Tuple<string, List<string>>>(value); } }
         //plan generation and beam placement
-        public List<string> planUIDs { get; set; }
+        public List<string> PlanUIDs { set { planUIDs = new List<string>(value); } }
         //optimization setup
         //plan ID, <structure, constraint type, dose cGy, volume %, priority>
-        public List<Tuple<string, List<Tuple<string, string, double, double, int>>>> optimizationConstraints { get; set; }
-        
+        public List<Tuple<string, List<Tuple<string, string, double, double, int>>>> OptimizationConstraints { set { optimizationConstraints = new List<Tuple<string, List<Tuple<string, string, double, double, int>>>>(value); } }
+
+        //path to location to write log file
+        private string logPath = "";
+        //stringbuilder object to log output from ts generation/manipulation and beam placement
+        private StringBuilder _logFromOperations;
+        private string mrn;
+        private string planType;
+        private string template;
+        private string selectedSS;
+        public List<Tuple<string, double, string>> targets;
+        List<Tuple<string, string, int, DoseValue, double>> prescriptions;
+        private List<string> addedStructures;
+        private List<Tuple<string, string, double>> structureManipulations { get; set; }
+        private List<Tuple<string, string>> normVolumes { get; set; }
+        private List<Tuple<string, List<string>>> isoNames { get; set; }
+        private List<string> planUIDs { get; set; }
+        private List<Tuple<string, List<Tuple<string, string, double, double, int>>>> optimizationConstraints { get; set; }
+
         public Logger(string path, string type, string patient)
         {
             logPath = path;
@@ -71,6 +66,20 @@ namespace VMATAutoPlanMT.Logging
             planUIDs = new List<string> { };
             optimizationConstraints = new List<Tuple<string, List<Tuple<string, string, double, double, int>>>> { };
             _logFromOperations = new StringBuilder();
+        }
+
+        //called after TS generation and beam placement are performed to copy the immediate log output from MTProgress window to the log file
+        public void AppendLogOutput(string info, StringBuilder s)
+        {
+            _logFromOperations.AppendLine(info);
+            _logFromOperations.Append(s);
+            _logFromOperations.AppendLine("");
+        }
+
+        public void AppendLogOutput(string info)
+        {
+            _logFromOperations.AppendLine(info);
+            _logFromOperations.AppendLine("");
         }
 
         public bool Dump()

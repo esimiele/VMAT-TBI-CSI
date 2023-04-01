@@ -9,11 +9,12 @@ using VMS.TPS.Common.Model.Types;
 using System.IO;
 using System.Diagnostics;
 using Microsoft.Win32;
+using VMATAutoPlanMT.VMAT_TBI;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 using VMATTBICSIAutoplanningHelpers.UIHelpers;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 
-namespace VMATAutoPlanMT
+namespace VMATAutoPlanMT.VMAT_TBI
 {
     public partial class TBIAutoPlanMW : Window
     {
@@ -181,7 +182,7 @@ namespace VMATAutoPlanMT
         string flashType = "";
         List<Structure> jnxs = new List<Structure> { };
         Structure flashStructure = null;
-        planPrep_TBI prep = null;
+        PlanPrep_TBI prep = null;
         public VMS.TPS.Common.Model.API.Application app = null;
         bool isModified = false;
         bool autoSave = false;
@@ -609,10 +610,8 @@ namespace VMATAutoPlanMT
 
             //create an instance of the generateTS class, passing the structure sparing list vector, the selected structure set, and if this is the scleroderma trial treatment regiment
             //The scleroderma trial contouring/margins are specific to the trial, so this trial needs to be handled separately from the generic VMAT treatment type
-            generateTS_TBI generate;
+            GenerateTS_TBI generate = new GenerateTS_TBI(TS_structures, scleroStructures, structureSpareList, selectedSS, targetMargin, sclero_chkbox.IsChecked.Value, useFlash, flashStructure, flashMargin);
             //overloaded constructor depending on if the user requested to use flash or not. If so, pass the relevant flash parameters to the generateTS class
-            if (!useFlash) generate = new generateTS_TBI(TS_structures, scleroStructures, structureSpareList, selectedSS, targetMargin, sclero_chkbox.IsChecked.Value);
-            else generate = new generateTS_TBI(TS_structures, scleroStructures, structureSpareList, selectedSS, targetMargin, sclero_chkbox.IsChecked.Value, useFlash, flashStructure, flashMargin);
             pi.BeginModifications();
             if (generate.Execute()) return;
             //does the structure sparing list need to be updated? This occurs when structures the user elected to spare with option of 'Mean Dose < Rx Dose' are high resolution. Since Eclipse can't perform
@@ -627,8 +626,8 @@ namespace VMATAutoPlanMT
                 add_sp_volumes(selectedSS, structureSpareList);
             }
             optParameters = generate.GetOptParameters();
-            numIsos = generate.numIsos;
-            numVMATIsos = generate.numVMATIsos;
+            numIsos = generate.GetNumberOfIsocenters();
+            numVMATIsos = generate.GetNumberOfVMATIsocenters();
             isoNames = generate.GetIsoNames().First().Item2;
 
             //get prescription
@@ -694,7 +693,7 @@ namespace VMATAutoPlanMT
                 if (!optParameters.Where(x => x.Item1.ToLower().Contains("brain")).Any()) beamsPerIso[0]++;
                 numIsos += tmp - numVMATIsos;
                 numVMATIsos = tmp;
-                isoNames = new List<string>(new IsoNameHelper().getIsoNames(numVMATIsos, numIsos));
+                isoNames = new List<string>(new IsoNameHelper().GetIsoNames(numVMATIsos, numIsos));
                 populateBeamsTab();
             }
         }
@@ -766,30 +765,31 @@ namespace VMATAutoPlanMT
             }
 
             //Added code to account for the scenario where the user either requested or did not request to contour the overlap between fields in adjacent isocenters
-            placeBeams_TBI place;
+            bool contourOverlap = false;
+            double contourOverlapMargin = 0.0;
             if (contourOverlap_chkbox.IsChecked.Value)
             {
                 //ensure the value entered in the added margin text box for contouring field overlap is a valid double
-                if (!double.TryParse(contourOverlapTB.Text, out double contourOverlapMargin))
+                if (!double.TryParse(contourOverlapTB.Text, out contourOverlapMargin))
                 {
                     MessageBox.Show("Error! The entered added margin for the contour overlap text box is NaN! Please enter a valid number and try again!");
                     return;
                 }
+                contourOverlap = true;
                 //convert from mm to cm
                 contourOverlapMargin *= 10.0;
                 //overloaded constructor for the placeBeams class
-                place = new placeBeams_TBI(selectedSS, isoNames, numIsos, numVMATIsos, singleAPPAplan, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, useFlash, contourOverlapMargin);
             }
-            else place = new placeBeams_TBI(selectedSS, isoNames, numIsos, numVMATIsos, singleAPPAplan, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, useFlash);
+            PlaceBeams_TBI place = new PlaceBeams_TBI(selectedSS, isoNames, numIsos, numVMATIsos, singleAPPAplan, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, useFlash, contourOverlap, contourOverlapMargin);
 
             place.Initialize("VMAT TBI", new List<Tuple<string, string, int, DoseValue, double>> { Tuple.Create("VMAT TBI", "", prescription.Item1, prescription.Item2, 0.0) });
             place.Execute();
-            VMATplan = place.plans.First();
+            VMATplan = place.GetGeneratedPlans().First();
             //VMATplan = place.generatePlans("VMAT TBI", new List<Tuple<string, string, int, DoseValue, double>> { Tuple.Create("VMAT TBI", "", prescription.Item1, prescription.Item2, 0.0)}).First();
             if (VMATplan == null) return;
 
             //if the user elected to contour the overlap between fields in adjacent isocenters, get this list of structures from the placeBeams class and copy them to the jnxs vector
-            if (contourOverlap_chkbox.IsChecked.Value) jnxs = place.jnxs;
+            if (contourOverlap_chkbox.IsChecked.Value) jnxs = place.GetFieldJunctionStructures();
 
             //if the user requested to contour the overlap between fields in adjacent VMAT isocenters, repopulate the optimization tab (will include the newly added field junction structures)!
             if (contourOverlap_chkbox.IsChecked.Value) populateOptimizationTab();
@@ -1156,9 +1156,9 @@ namespace VMATAutoPlanMT
                 }
 
                 //create an instance of the planPep class and pass it the vmatPlan and appaPlan objects as arguments. Get the shift note for the plan of interest
-                prep = new planPrep_TBI(vmatPlan, appaPlan);
+                prep = new PlanPrep_TBI(vmatPlan, appaPlan);
             }
-            if (prep.getShiftNote()) return;
+            if (prep.GetShiftNote()) return;
 
             //let the user know this step has been completed (they can now do the other steps like separate plans and calculate dose)
             shiftTB.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -1176,7 +1176,7 @@ namespace VMATAutoPlanMT
 
             //separate the plans
             pi.BeginModifications();
-            if (prep.separate()) return;
+            if (prep.SeparatePlans()) return;
 
             //let the user know this step has been completed
             separateTB.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -1210,7 +1210,7 @@ namespace VMATAutoPlanMT
             calcDoseTB.Background = System.Windows.Media.Brushes.Yellow;
             calcDoseTB.Text = "WORKING";
 
-            prep.calculateDose();
+            prep.CalculateDose();
 
             //let the user know this step has been completed
             calcDoseTB.Background = System.Windows.Media.Brushes.ForestGreen;

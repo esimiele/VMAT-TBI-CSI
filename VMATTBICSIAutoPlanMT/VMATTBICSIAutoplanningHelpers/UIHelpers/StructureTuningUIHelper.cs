@@ -214,5 +214,45 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
 
             return structureSpareList;
         }
+
+        public List<Tuple<string, string>> ParseTSStructureList(StackPanel theSP)
+        {
+            List<Tuple<string, string>> TSStructureList = new List<Tuple<string, string>> { };
+            string dcmType = "";
+            string structure = "";
+            bool firstCombo = true;
+            bool headerObj = true;
+            foreach (object obj in theSP.Children)
+            {
+                //skip over the header row
+                if (!headerObj)
+                {
+                    foreach (object obj1 in ((StackPanel)obj).Children)
+                    {
+                        if (obj1.GetType() == typeof(ComboBox))
+                        {
+                            //first combo box is the structure and the second is the sparing type
+                            if (firstCombo)
+                            {
+                                dcmType = (obj1 as ComboBox).SelectedItem.ToString();
+                                firstCombo = false;
+                            }
+                            else structure = (obj1 as ComboBox).SelectedItem.ToString();
+                        }
+                    }
+                    if (dcmType == "--select--" || structure == "--select--")
+                    {
+                        MessageBox.Show("Error! \nStructure or DICOM Type not selected! \nSelect an option and try again");
+                        return new List<Tuple<string, string>> { };
+                    }
+                    //only add the current row to the structure sparing list if all the parameters were successful parsed
+                    else TSStructureList.Add(Tuple.Create(dcmType, structure));
+                    firstCombo = true;
+                }
+                else headerObj = false;
+            }
+
+            return TSStructureList;
+        }
     }
 }

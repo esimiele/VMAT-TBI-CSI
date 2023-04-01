@@ -1,19 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATAutoPlanMT.baseClasses;
-using VMATAutoPlanMT.Prompts;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 
 namespace VMATAutoPlanMT.VMAT_CSI
 {
-    class planPrep_CSI : planPrepBase
+    class PlanPrep_CSI : PlanPrepBase
     {
         //common variables
         IEnumerable<ExternalPlanSetup> appaPlan;
@@ -21,7 +18,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         List<List<Beam>> appaBeamsPerIso = new List<List<Beam>> { };
         bool legsSeparated = false;
 
-        public planPrep_CSI(ExternalPlanSetup vmat, IEnumerable<ExternalPlanSetup> appa)
+        public PlanPrep_CSI(ExternalPlanSetup vmat, IEnumerable<ExternalPlanSetup> appa)
         {
             //copy arguments into local variables
             vmatPlan = vmat;
@@ -30,16 +27,16 @@ namespace VMATAutoPlanMT.VMAT_CSI
             if (appa.Count() > 1) legsSeparated = true;
         }
 
-        public override bool getShiftNote()
+        public override bool GetShiftNote()
         {
             //loop through each beam in the vmat plan, grab the isocenter position of the beam. Compare the z position of each isocenter to the list of z positions in the vector. 
             //If no match is found, this is a new isocenter. Add it to the stack. If it is not unique, this beam belongs to an existing isocenter group --> ignore it
             //also grab instances of each beam in each isocenter and save them (used for separating the plans later)
             List<ExternalPlanSetup> plans = new List<ExternalPlanSetup>(appaPlan);
             plans.Add(vmatPlan);
-            if (checkBeamNameFormatting(plans)) return true;
+            if (CheckBeamNameFormatting(plans)) return true;
 
-            Tuple<List<List<Beam>>, int> result = extractNumIsoAndBeams(vmatPlan, numVMATIsos);
+            Tuple<List<List<Beam>>, int> result = ExtractNumIsoAndBeams(vmatPlan, numVMATIsos);
             vmatBeamsPerIso = new List<List<Beam>>(result.Item1);
             numVMATIsos = result.Item2;
 
@@ -48,20 +45,20 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //if the ap/pa plan is NOT null, then get the isocenter position(s) of those beams as well. Do the same thing as above
             foreach (ExternalPlanSetup p in appaPlan)
             {
-                result = extractNumIsoAndBeams(p, numIsos);
+                result = ExtractNumIsoAndBeams(p, numIsos);
                 List<List<Beam>> tmp = new List<List<Beam>>(result.Item1);
                 foreach (List<Beam> itr in tmp) appaBeamsPerIso.Add(new List<Beam>(itr));
                 numIsos += result.Item2;
             }
 
             //get the isocenter names using the isoNameHelper class
-            names = new List<string>(new IsoNameHelper().getIsoNames(numVMATIsos, numIsos));
+            names = new List<string>(new IsoNameHelper().GetIsoNames(numVMATIsos, numIsos));
 
             //get the user origin in user coordinates
             VVector uOrigin = vmatPlan.StructureSet.Image.UserOrigin;
             uOrigin = vmatPlan.StructureSet.Image.DicomToUser(uOrigin, vmatPlan);
             //vector to hold the isocenter name, the x,y,z shifts from CT ref, and the shifts between each adjacent iso for each axis (LR, AntPost, SupInf)
-            List<Tuple<string, Tuple<double, double, double>, Tuple<double, double, double>>> shifts = new List<Tuple<string, Tuple<double, double, double>, Tuple<double, double, double>>>(extractIsoPositions());
+            List<Tuple<string, Tuple<double, double, double>, Tuple<double, double, double>>> shifts = new List<Tuple<string, Tuple<double, double, double>, Tuple<double, double, double>>>(ExtractIsoPositions());
 
             //convert the user origin back to dicom coordinates
             uOrigin = vmatPlan.StructureSet.Image.UserToDicom(uOrigin, vmatPlan);
@@ -120,7 +117,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             return false;
         }
 
-        public bool separate()
+        public bool SeparatePlans()
         {
             //check for setup fields in the vmat and AP/PA plans
             if (!vmatPlan.Beams.Where(x => x.IsSetupField).Any() || (appaPlan.Count() > 0 && !legsSeparated && !appaPlan.First().Beams.Where(x => x.IsSetupField).Any()))
@@ -135,18 +132,18 @@ namespace VMATAutoPlanMT.VMAT_CSI
             }
 
             //check if flash was used in the plan. If so, ask the user if they want to remove these structures as part of cleanup
-            if (checkForFlash())
+            if (CheckForFlash())
             {
                 confirmUI CUI = new confirmUI();
                 CUI.message.Text = "I found some structures in the structure set for generating flash." + Environment.NewLine + Environment.NewLine + "Do you want me to remove them?!";
                 CUI.cancelBTN.Text = "No";
                 CUI.ShowDialog();
-                if (CUI.confirm) if (removeFlashStr()) return true;
+                if (CUI.confirm) if (RemoveFlashStructures()) return true;
             }
             //counter for indexing names
             int count = 0;
             //loop through the list of beams in each isocenter
-            count = separatePlans(vmatPlan, count);
+            count = SeparatePlan(vmatPlan, count);
 
             //do the same as above, but for the AP/PA legs plan
             if (!legsSeparated)
@@ -178,12 +175,12 @@ namespace VMATAutoPlanMT.VMAT_CSI
             return false;
         }
 
-        private bool removeFlashStr()
+        private bool RemoveFlashStructures()
         {
             List<ExternalPlanSetup> plans = new List<ExternalPlanSetup>();
             plans.Add(vmatPlan);
             foreach (ExternalPlanSetup p in appaPlan) plans.Add(p);
-            if (removeFlash(plans)) return true;
+            if (RemoveFlash(plans)) return true;
 
             //from the generateTS class, the human_body structure was a copy of the body structure BEFORE flash was added. Therefore, if this structure still exists, we can just copy it back onto the body
             StructureSet ss = vmatPlan.StructureSet;

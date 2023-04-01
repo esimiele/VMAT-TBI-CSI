@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Controls;
 using System.Windows;
+using System.Collections.Generic;
 using VMS.TPS.Common.Model.API;
 using VMATTBICSIAutoplanningHelpers.TemplateClasses;
 
@@ -10,7 +10,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
 {
     public class TemplateBuilder
     {
-        public StackPanel addTemplateTSHeader(StackPanel theSP)
+        public StackPanel AddTemplateTSHeader(StackPanel theSP)
         {
             StackPanel sp = new StackPanel();
             sp.Height = 30;
@@ -41,7 +41,12 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             return sp;
         }
 
-        public StackPanel addTSVolume(StackPanel theSP, StructureSet selectedSS, Tuple<string, string> listItem, string clearBtnPrefix, int clearBtnCounter, RoutedEventHandler clearEvtHndl)
+        public List<Tuple<string,string>> ParseTSStructureList(StackPanel theSP)
+        {
+            return new UIHelpers.StructureTuningUIHelper().ParseTSStructureList(theSP);
+        }
+
+        public StackPanel AddTSVolume(StackPanel theSP, StructureSet selectedSS, Tuple<string, string> listItem, string clearBtnPrefix, int clearBtnCounter, RoutedEventHandler clearEvtHndl)
         {
             StackPanel sp = new StackPanel();
             sp.Height = 30;
@@ -106,153 +111,113 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             return sp;
         }
 
-        public List<Tuple<string, string>> parseTSStructureList(StackPanel theSP)
-        {
-            List<Tuple<string, string>> TSStructureList = new List<Tuple<string, string>> { };
-            string dcmType = "";
-            string structure = "";
-            bool firstCombo = true;
-            bool headerObj = true;
-            foreach (object obj in theSP.Children)
-            {
-                //skip over the header row
-                if (!headerObj)
-                {
-                    foreach (object obj1 in ((StackPanel)obj).Children)
-                    {
-                        if (obj1.GetType() == typeof(ComboBox))
-                        {
-                            //first combo box is the structure and the second is the sparing type
-                            if (firstCombo)
-                            {
-                                dcmType = (obj1 as ComboBox).SelectedItem.ToString();
-                                firstCombo = false;
-                            }
-                            else structure = (obj1 as ComboBox).SelectedItem.ToString();
-                        }
-                    }
-                    if (dcmType == "--select--" || structure == "--select--")
-                    {
-                        MessageBox.Show("Error! \nStructure or DICOM Type not selected! \nSelect an option and try again");
-                        return new List<Tuple<string, string>> { };
-                    }
-                    //only add the current row to the structure sparing list if all the parameters were successful parsed
-                    else TSStructureList.Add(Tuple.Create(dcmType, structure));
-                    firstCombo = true;
-                }
-                else headerObj = false;
-            }
-
-            return TSStructureList;
-        }
-
-        public string generateTemplatePreviewText(CSIAutoPlanTemplate prospectiveTemplate)
+        public string GenerateTemplatePreviewText(CSIAutoPlanTemplate prospectiveTemplate)
         {
             string output = "";
-            output += String.Format(" {0}", DateTime.Now.ToString()) + System.Environment.NewLine;
+            output += String.Format(" {0}", DateTime.Now.ToString()) + Environment.NewLine;
 
-            output += String.Format(" Template ID: {0}", prospectiveTemplate.TemplateName) + System.Environment.NewLine;
-            output += String.Format(" Initial Dose per fraction: {0} cGy", prospectiveTemplate.initialRxDosePerFx) + System.Environment.NewLine;
-            output += String.Format(" Initial number of fractions: {0}", prospectiveTemplate.initialRxNumFx) + System.Environment.NewLine;
-            output += String.Format(" Boost Dose per fraction: {0} cGy", prospectiveTemplate.boostRxDosePerFx) + System.Environment.NewLine;
-            output += String.Format(" Boost number of fractions: {0}", prospectiveTemplate.boostRxNumFx) + System.Environment.NewLine;
+            output += String.Format(" Template ID: {0}", prospectiveTemplate.TemplateName) + Environment.NewLine;
+            output += String.Format(" Initial Dose per fraction: {0} cGy", prospectiveTemplate.initialRxDosePerFx) + Environment.NewLine;
+            output += String.Format(" Initial number of fractions: {0}", prospectiveTemplate.initialRxNumFx) + Environment.NewLine;
+            output += String.Format(" Boost Dose per fraction: {0} cGy", prospectiveTemplate.boostRxDosePerFx) + Environment.NewLine;
+            output += String.Format(" Boost number of fractions: {0}", prospectiveTemplate.boostRxNumFx) + Environment.NewLine;
 
             if (prospectiveTemplate.targets.Any())
             {
-                output += String.Format(" {0} targets:", prospectiveTemplate.TemplateName) + System.Environment.NewLine;
-                output += String.Format("  {0, -15} | {1, -8} | {2, -14} |", "structure Id", "Rx (cGy)", "Plan Id") + System.Environment.NewLine;
-                foreach (Tuple<string, double, string> tgt in prospectiveTemplate.targets) output += String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |" + System.Environment.NewLine, tgt.Item1, tgt.Item2, tgt.Item3);
-                output += System.Environment.NewLine;
+                output += String.Format(" {0} targets:", prospectiveTemplate.TemplateName) + Environment.NewLine;
+                output += String.Format("  {0, -15} | {1, -8} | {2, -14} |", "structure Id", "Rx (cGy)", "Plan Id") + Environment.NewLine;
+                foreach (Tuple<string, double, string> tgt in prospectiveTemplate.targets) output += String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |" + Environment.NewLine, tgt.Item1, tgt.Item2, tgt.Item3);
+                output += Environment.NewLine;
             }
-            else output += String.Format(" No targets set for template: {0}", prospectiveTemplate.TemplateName) + System.Environment.NewLine + System.Environment.NewLine;
+            else output += String.Format(" No targets set for template: {0}", prospectiveTemplate.TemplateName) + Environment.NewLine + Environment.NewLine;
 
             if (prospectiveTemplate.createTSStructures.Any())
             {
-                output += String.Format(" {0} additional tuning structures:", prospectiveTemplate.TemplateName) + System.Environment.NewLine;
-                output += String.Format("  {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + System.Environment.NewLine;
-                foreach (Tuple<string, string> ts in prospectiveTemplate.createTSStructures) output += String.Format("  {0, -10} | {1, -15} |" + System.Environment.NewLine, ts.Item1, ts.Item2);
-                output += System.Environment.NewLine;
+                output += String.Format(" {0} additional tuning structures:", prospectiveTemplate.TemplateName) + Environment.NewLine;
+                output += String.Format("  {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + Environment.NewLine;
+                foreach (Tuple<string, string> ts in prospectiveTemplate.createTSStructures) output += String.Format("  {0, -10} | {1, -15} |" + Environment.NewLine, ts.Item1, ts.Item2);
+                output += Environment.NewLine;
             }
-            else output += String.Format(" No additional tuning structures for template: {0}", prospectiveTemplate.TemplateName) + System.Environment.NewLine + System.Environment.NewLine;
+            else output += String.Format(" No additional tuning structures for template: {0}", prospectiveTemplate.TemplateName) + Environment.NewLine + Environment.NewLine;
 
             if (prospectiveTemplate.TSManipulations.Any())
             {
-                output += String.Format(" {0} additional sparing structures:", prospectiveTemplate.TemplateName) + System.Environment.NewLine;
-                output += String.Format("  {0, -15} | {1, -19} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + System.Environment.NewLine;
-                foreach (Tuple<string, string, double> spare in prospectiveTemplate.TSManipulations) output += String.Format("  {0, -15} | {1, -19} | {2,-11:N1} |" + System.Environment.NewLine, spare.Item1, spare.Item2, spare.Item3);
-                output += System.Environment.NewLine;
+                output += String.Format(" {0} additional sparing structures:", prospectiveTemplate.TemplateName) + Environment.NewLine;
+                output += String.Format("  {0, -15} | {1, -19} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + Environment.NewLine;
+                foreach (Tuple<string, string, double> spare in prospectiveTemplate.TSManipulations) output += String.Format("  {0, -15} | {1, -19} | {2,-11:N1} |" + Environment.NewLine, spare.Item1, spare.Item2, spare.Item3);
+                output += Environment.NewLine;
             }
-            else output += String.Format(" No additional sparing structures for template: {0}", prospectiveTemplate.TemplateName) + System.Environment.NewLine + System.Environment.NewLine;
+            else output += String.Format(" No additional sparing structures for template: {0}", prospectiveTemplate.TemplateName) + Environment.NewLine + Environment.NewLine;
 
             if (prospectiveTemplate.init_constraints.Any())
             {
-                output += String.Format(" {0} template initial plan optimization parameters:", prospectiveTemplate.TemplateName) + System.Environment.NewLine;
-                output += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + System.Environment.NewLine;
-                foreach (Tuple<string, string, double, double, int> opt in prospectiveTemplate.init_constraints) output += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
-                output += System.Environment.NewLine;
+                output += String.Format(" {0} template initial plan optimization parameters:", prospectiveTemplate.TemplateName) + Environment.NewLine;
+                output += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + Environment.NewLine;
+                foreach (Tuple<string, string, double, double, int> opt in prospectiveTemplate.init_constraints) output += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
+                output += Environment.NewLine;
             }
-            else output += String.Format(" No iniital plan optimization constraints for template: {0}", prospectiveTemplate.TemplateName) + System.Environment.NewLine + System.Environment.NewLine;
+            else output += String.Format(" No iniital plan optimization constraints for template: {0}", prospectiveTemplate.TemplateName) + Environment.NewLine + Environment.NewLine;
 
             if (prospectiveTemplate.bst_constraints.Any())
             {
-                output += String.Format(" {0} template boost plan optimization parameters:", prospectiveTemplate.TemplateName) + System.Environment.NewLine;
-                output += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + System.Environment.NewLine;
-                foreach (Tuple<string, string, double, double, int> opt in prospectiveTemplate.bst_constraints) output += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
+                output += String.Format(" {0} template boost plan optimization parameters:", prospectiveTemplate.TemplateName) + Environment.NewLine;
+                output += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + Environment.NewLine;
+                foreach (Tuple<string, string, double, double, int> opt in prospectiveTemplate.bst_constraints) output += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
             }
-            else output += String.Format(" No boost plan optimization constraints for template: {0}", prospectiveTemplate.TemplateName) + System.Environment.NewLine + System.Environment.NewLine;
+            else output += String.Format(" No boost plan optimization constraints for template: {0}", prospectiveTemplate.TemplateName) + Environment.NewLine + Environment.NewLine;
 
-            output += "-----------------------------------------------------------------------------" + System.Environment.NewLine;
+            output += "-----------------------------------------------------------------------------" + Environment.NewLine;
             return output;
         }
 
-        public string generateSerializedTemplate(CSIAutoPlanTemplate prospectiveTemplate)
+        public string GenerateSerializedTemplate(CSIAutoPlanTemplate prospectiveTemplate)
         {
-            string output = ":begin template case configuration:" + System.Environment.NewLine;
+            string output = ":begin template case configuration:" + Environment.NewLine;
             output += "%template name" + Environment.NewLine;
-            output += String.Format("template name={0}", prospectiveTemplate.TemplateName) + System.Environment.NewLine;
+            output += String.Format("template name={0}", prospectiveTemplate.TemplateName) + Environment.NewLine;
             output += "%initial dose per fraction(cGy) and num fractions" + Environment.NewLine;
-            output += String.Format("initial dose per fraction={0}", prospectiveTemplate.initialRxDosePerFx) + System.Environment.NewLine;
-            output += String.Format("initial num fx={0}", prospectiveTemplate.initialRxDosePerFx) + System.Environment.NewLine;
+            output += String.Format("initial dose per fraction={0}", prospectiveTemplate.initialRxDosePerFx) + Environment.NewLine;
+            output += String.Format("initial num fx={0}", prospectiveTemplate.initialRxDosePerFx) + Environment.NewLine;
             if (prospectiveTemplate.boostRxDosePerFx > 0.1)
             {
                 output += "%boost dose per fraction(cGy) and num fractions" + Environment.NewLine;
-                output += String.Format("boost dose per fraction={0}", prospectiveTemplate.boostRxDosePerFx) + System.Environment.NewLine;
-                output += String.Format("boost num fx={0}", prospectiveTemplate.boostRxNumFx) + System.Environment.NewLine;
+                output += String.Format("boost dose per fraction={0}", prospectiveTemplate.boostRxDosePerFx) + Environment.NewLine;
+                output += String.Format("boost num fx={0}", prospectiveTemplate.boostRxNumFx) + Environment.NewLine;
             }
             output += "%" + Environment.NewLine;
             output += "%" + Environment.NewLine;
 
             if (prospectiveTemplate.targets.Any())
             {
-                foreach (Tuple<string, double, string> itr in prospectiveTemplate.targets) output += String.Format("add target{{{0},{1},{2}}}", itr.Item1, itr.Item2, itr.Item3) + System.Environment.NewLine;
+                foreach (Tuple<string, double, string> itr in prospectiveTemplate.targets) output += String.Format("add target{{{0},{1},{2}}}", itr.Item1, itr.Item2, itr.Item3) + Environment.NewLine;
                 output += "%" + Environment.NewLine;
                 output += "%" + Environment.NewLine;
             }
 
             if (prospectiveTemplate.createTSStructures.Any())
             {
-                foreach (Tuple<string, string> itr in prospectiveTemplate.createTSStructures) output += String.Format("add TS{{{0},{1}}}", itr.Item1, itr.Item2) + System.Environment.NewLine;
+                foreach (Tuple<string, string> itr in prospectiveTemplate.createTSStructures) output += String.Format("add TS{{{0},{1}}}", itr.Item1, itr.Item2) + Environment.NewLine;
                 output += "%" + Environment.NewLine;
                 output += "%" + Environment.NewLine;
             }
 
             if (prospectiveTemplate.TSManipulations.Any())
             {
-                foreach (Tuple<string, string, double> itr in prospectiveTemplate.TSManipulations) output += String.Format("add sparing structure{{{0},{1},{2}}}", itr.Item1, itr.Item2, itr.Item3) + System.Environment.NewLine;
+                foreach (Tuple<string, string, double> itr in prospectiveTemplate.TSManipulations) output += String.Format("add sparing structure{{{0},{1},{2}}}", itr.Item1, itr.Item2, itr.Item3) + Environment.NewLine;
                 output += "%" + Environment.NewLine;
                 output += "%" + Environment.NewLine;
             }
 
             if (prospectiveTemplate.init_constraints.Any())
             {
-                foreach (Tuple<string, string, double, double, int> itr in prospectiveTemplate.init_constraints) output += String.Format("add init opt constraint{{{0},{1},{2},{3},{4}}}", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5) + System.Environment.NewLine;
+                foreach (Tuple<string, string, double, double, int> itr in prospectiveTemplate.init_constraints) output += String.Format("add init opt constraint{{{0},{1},{2},{3},{4}}}", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5) + Environment.NewLine;
                 output += "%" + Environment.NewLine;
                 output += "%" + Environment.NewLine;
             }
 
             if (prospectiveTemplate.bst_constraints.Any())
             {
-                foreach (Tuple<string, string, double, double, int> itr in prospectiveTemplate.bst_constraints) output += String.Format("add boost opt constraint{{{0},{1},{2},{3},{4}}}", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5) + System.Environment.NewLine;
+                foreach (Tuple<string, string, double, double, int> itr in prospectiveTemplate.bst_constraints) output += String.Format("add boost opt constraint{{{0},{1},{2},{3},{4}}}", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5) + Environment.NewLine;
                 output += "%" + Environment.NewLine;
                 output += "%" + Environment.NewLine;
             }

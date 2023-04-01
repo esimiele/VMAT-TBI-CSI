@@ -99,7 +99,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             //structure id, sparing type, added margin in cm (ignored if sparing type is Dmax ~ Rx Dose)
             string structure;
             string planId;
-            double val = 0.0;
+            double val;
             line = CropLine(line, "{");
             structure = line.Substring(0, line.IndexOf(","));
             line = CropLine(line, ",");

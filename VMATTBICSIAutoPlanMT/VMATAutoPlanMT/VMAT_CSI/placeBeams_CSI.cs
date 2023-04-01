@@ -1,45 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Media.Media3D;
 using VMATAutoPlanMT.baseClasses;
-using VMATAutoPlanMT.Prompts;
-using System.Windows.Threading;
-using System.Runtime.InteropServices.WindowsRuntime;
 using System.Runtime.ExceptionServices;
 
 namespace VMATAutoPlanMT.VMAT_CSI
 {
-    public class placeBeams_CSI : placeBeamsBase
+    public class PlaceBeams_CSI : PlaceBeamsBase
     {
         //plan, list<iso name, number of beams>
-        List<Tuple<string, List<Tuple<string, int>>>> planIsoBeamInfo;
-        double isoSeparation = 0;
-        double[] collRot;
-        double[] CW = { 181.0, 179.0 };
-        double[] CCW = { 179.0, 181.0 };
-        ExternalBeamMachineParameters ebmpArc;
-        List<VRect<double>> jawPos;
+        private List<Tuple<string, List<Tuple<string, int>>>> planIsoBeamInfo;
+        private double isoSeparation = 0;
+        private double[] collRot;
+        private double[] CW = { 181.0, 179.0 };
+        private double[] CCW = { 179.0, 181.0 };
+        private ExternalBeamMachineParameters ebmpArc;
+        private List<VRect<double>> jawPos;
 
-        public placeBeams_CSI(StructureSet ss, List<Tuple<string, List<Tuple<string, int>>>> planInfo, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr)
-        {
-            selectedSS = ss;
-            planIsoBeamInfo = new List<Tuple<string, List<Tuple<string, int>>>>(planInfo);
-            collRot = coll;
-            jawPos = new List<VRect<double>>(jp);
-            ebmpArc = new ExternalBeamMachineParameters(linac, energy, 600, "ARC", null);
-            //copy the calculation model
-            calculationModel = calcModel;
-            optimizationModel = optModel;
-            useGPUdose = gpuDose;
-            useGPUoptimization = gpuOpt;
-            MRrestart = mr;
-        }
-
-        public placeBeams_CSI(StructureSet ss, List<Tuple<string, List<Tuple<string, int>>>> planInfo, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, double overlapMargin)
+        public PlaceBeams_CSI(StructureSet ss, List<Tuple<string, List<Tuple<string, int>>>> planInfo, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool overlap, double overlapMargin)
         {
             selectedSS = ss;
             planIsoBeamInfo = new List<Tuple<string, List<Tuple<string, int>>>>(planInfo);
@@ -53,7 +34,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             useGPUoptimization = gpuOpt;
             MRrestart = mr;
             //user wants to contour the overlap between fields in adjacent VMAT isocenters
-            contourOverlap = true;
+            contourOverlap = overlap;
             contourOverlapMargin = overlapMargin;
         }
 

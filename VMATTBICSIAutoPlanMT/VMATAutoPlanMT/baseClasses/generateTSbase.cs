@@ -7,7 +7,7 @@ using System.Windows.Media.Media3D;
 
 namespace VMATAutoPlanMT.baseClasses
 {
-    public class generateTSbase : MTbase
+    public class GenerateTSbase : MTbase
     {
         public List<Tuple<string, List<string>>> GetIsoNames() { return isoNames; }
         public List<string> GetAddedStructures() { return addedStructures; }
@@ -32,13 +32,13 @@ namespace VMATAutoPlanMT.baseClasses
             return false;
         }
 
-        protected virtual bool createTSStructures()
+        protected virtual bool CreateTSStructures()
         {
             //no virtual method implementation as this code really can't be abstracted
             return false;
         }
 
-        protected virtual bool createFlash()
+        protected virtual bool CreateFlash()
         {
             //no virtual method implementation as this method is really only useful for VMAT TBI as VMAT CSI already has a healthy margin going from CTV->PTV
             return false;
@@ -106,7 +106,7 @@ namespace VMATAutoPlanMT.baseClasses
             return false;
         }
 
-        protected List<Tuple<string, string, double>> convertHighToLowRes(List<Structure> highRes, List<Tuple<string, string, double>> highResSpareList, List<Tuple<string, string, double>> dataList)
+        protected List<Tuple<string, string, double>> ConvertHighToLowRes(List<Structure> highRes, List<Tuple<string, string, double>> highResSpareList, List<Tuple<string, string, double>> dataList)
         {
             int count = 0;
             foreach (Structure s in highRes)
@@ -175,7 +175,7 @@ namespace VMATAutoPlanMT.baseClasses
             return addedStructure;
         }
 
-        protected bool isUOriginInside(StructureSet ss)
+        protected bool IsUOriginInside(StructureSet ss)
         {
             if (!ss.Image.HasUserOrigin || !(ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").IsPointInsideSegment(ss.Image.UserOrigin)))
             {

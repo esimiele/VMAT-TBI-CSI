@@ -111,7 +111,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             {
                 VMS.TPS.Common.Model.API.Image theImage = structureSets.FirstOrDefault(x => x.Image.Id == selectedCTID).Image;
                 CTImageExport exporter = new CTImageExport(theImage, imgExportPath, Id, format);
-                if (exporter.exportImage()) return;
+                if (exporter.ExportImage()) return;
                 MessageBox.Show(String.Format("{0} has been exported successfully!", theImage.Id));
             }
             else MessageBox.Show("No imaged selected for export!");

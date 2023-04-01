@@ -123,8 +123,8 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="baseClasses\MTBase.cs" />
-    <Compile Include="baseClasses\generateTSbase.cs" />
-    <Compile Include="baseClasses\planPrepBase.cs" />
+    <Compile Include="baseClasses\GenerateTSbase.cs" />
+    <Compile Include="baseClasses\PlanPrepBase.cs" />
     <Compile Include="Logging\Logger.cs" />
     <Compile Include="MTProgressInfo\MTProgress.xaml.cs">
       <DependentUpon>MTProgress.xaml</DependentUpon>
@@ -137,7 +137,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="VMAT-TBI\TBIAutoPlanMW.xaml">
+    <Page Include="VMAT_TBI\TBIAutoPlanMW.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -145,29 +145,29 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Launcher\launchVMATTBICSIautoPlan.cs" />
-    <Compile Include="VMAT_CSI\generateTS_CSI.cs" />
-    <Compile Include="VMAT_CSI\placeBeams_CSI.cs" />
-    <Compile Include="VMAT_CSI\planPrep_CSI.cs" />
-    <Compile Include="VMAT-TBI\generateTS_TBI.cs" />
+    <Compile Include="Launcher\LaunchVMATTBICSIautoPlan.cs" />
+    <Compile Include="VMAT_CSI\GenerateTS_CSI.cs" />
+    <Compile Include="VMAT_CSI\PlaceBeams_CSI.cs" />
+    <Compile Include="VMAT_CSI\PlanPrep_CSI.cs" />
+    <Compile Include="VMAT_TBI\GenerateTS_TBI.cs" />
     <Compile Include="Prompts\selectOption.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Prompts\selectOption.Designer.cs">
       <DependentUpon>selectOption.cs</DependentUpon>
     </Compile>
-    <Compile Include="baseClasses\placeBeamsBase.cs" />
+    <Compile Include="baseClasses\PlaceBeamsBase.cs" />
     <Compile Include="VMAT_CSI\CSIAutoPlanMW.xaml.cs">
       <DependentUpon>CSIAutoPlanMW.xaml</DependentUpon>
     </Compile>
-    <Compile Include="VMAT-TBI\TBIAutoPlanMW.xaml.cs">
+    <Compile Include="VMAT_TBI\TBIAutoPlanMW.xaml.cs">
       <DependentUpon>TBIAutoPlanMW.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="VMAT-TBI\placeBeams_TBI.cs" />
-    <Compile Include="VMAT-TBI\planPrep_TBI.cs" />
+    <Compile Include="VMAT_TBI\PlaceBeams_TBI.cs" />
+    <Compile Include="VMAT_TBI\PlanPrep_TBI.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>

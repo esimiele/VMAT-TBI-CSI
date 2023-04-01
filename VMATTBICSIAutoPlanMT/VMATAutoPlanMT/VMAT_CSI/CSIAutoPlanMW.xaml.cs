@@ -92,7 +92,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         List<Tuple<string, string,int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
         //list of junction structures (i.e., overlap regions between adjacent isocenters)
         List<Structure> jnxs = new List<Structure> { };
-        planPrep_CSI prep = null;
+        PlanPrep_CSI prep = null;
         public VMS.TPS.Common.Model.API.Application app = null;
         bool isModified = false;
         bool autoSave = false;
@@ -134,7 +134,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                         { 
                             if (app != null) pi = app.OpenPatientById(e.value.Text);
                             mrn = e.value.Text;
-                            log.mrn = mrn;
+                            log.MRN = mrn;
                         }
                         catch (Exception except) { MessageBox.Show(string.Format("Error! Could not open patient because: {0}! Please try again!", except.Message)); pi = null; }
                     }
@@ -200,7 +200,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
             //update selected structure set
             selectedSS = pi.StructureSets.FirstOrDefault(x => x.Id == SSID.SelectedItem.ToString());
-            log.selectedSS = selectedSS.Id;
+            log.StructureSet = selectedSS.Id;
         }
 
         private void ClearAllCurrentParameters()
@@ -242,7 +242,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 if (selectedTemplate.boostRxDosePerFx != 0.1 && selectedTemplate.boostRxNumFx != 1) setBoostPrescriptionInfo(selectedTemplate.boostRxDosePerFx, selectedTemplate.boostRxNumFx);
                 ClearAllCurrentParameters();
                 LoadTemplateDefaults();
-                log.template = selectedTemplate.TemplateName;
+                log.Template = selectedTemplate.TemplateName;
             }
             else
             {
@@ -523,7 +523,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             structureTuningTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             TSManipulationTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             log.targets = targets;
-            log.prescriptions = prescriptions;
+            log.Prescriptions = prescriptions;
         }
         #endregion
 
@@ -574,7 +574,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         {
             if (selectedSS == null) { MessageBox.Show("Error! Please select a Structure Set before adding sparing volumes!"); return; }
             TemplateBuilder builder = new TemplateBuilder();
-            if (theSP.Children.Count == 0) theSP.Children.Add(builder.addTemplateTSHeader(theSP));
+            if (theSP.Children.Count == 0) theSP.Children.Add(builder.AddTemplateTSHeader(theSP));
             int counter = 0;
             string clearBtnName = "ClearTSStructuresBtn";
             if (theSP.Name.Contains("template"))
@@ -584,7 +584,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             for (int i = 0; i < defaultList.Count; i++)
             {
                 counter++;
-                theSP.Children.Add(builder.addTSVolume(theSP, selectedSS, defaultList[i], clearBtnName, counter, new RoutedEventHandler(this.ClearTuningStructureItem_Click)));
+                theSP.Children.Add(builder.AddTSVolume(theSP, selectedSS, defaultList[i], clearBtnName, counter, new RoutedEventHandler(this.ClearTuningStructureItem_Click)));
             }
         }
 
@@ -813,11 +813,11 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
             //get sparing structure and tuning structure lists from the UI
             List<Tuple<string, string, double>> structureSpareList = new StructureTuningUIHelper().parseSpareStructList(structureManipulationSP);
-            List<Tuple<string, string>> TS_structures = new List<Tuple<string, string>>(new TemplateBuilder().parseTSStructureList(TSGenerationSP));
+            List<Tuple<string, string>> TS_structures = new List<Tuple<string, string>>(new TemplateBuilder().ParseTSStructureList(TSGenerationSP));
             List<string> cropAndOverlapStructs = new List<string>((templateList.SelectedItem as CSIAutoPlanTemplate).cropAndOverlapStructures);
 
             //create an instance of the generateTS_CSI class, passing the tuning structure list, structure sparing list, targets, prescriptions, and the selected structure set
-            generateTS_CSI generate = new generateTS_CSI(TS_structures, structureSpareList, prescriptions, selectedSS, cropAndOverlapStructs);
+            GenerateTS_CSI generate = new GenerateTS_CSI(TS_structures, structureSpareList, prescriptions, selectedSS, cropAndOverlapStructs);
             pi.BeginModifications();
             bool result = generate.Execute();
             //grab the log output regardless if it passes or fails
@@ -849,10 +849,10 @@ namespace VMATAutoPlanMT.VMAT_CSI
             structureTuningTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             TSManipulationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             beamPlacementTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
-            log.addedStructures = generate.GetAddedStructures();
-            log.structureManipulations = structureSpareList;
-            log.normVolumes = generate.GetNormalizationVolumes();
-            log.isoNames = isoNames;
+            log.AddedStructures = generate.GetAddedStructures();
+            log.StructureManipulations = structureSpareList;
+            log.NormalizationVolumes = generate.GetNormalizationVolumes();
+            log.IsoNames = isoNames;
         }
 
         private List<Tuple<string, List<Tuple<string, string, double, double, int>>>> UpdateOptimizationConstraints(List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations)
@@ -972,38 +972,38 @@ namespace VMATAutoPlanMT.VMAT_CSI
             }
 
             //Added code to account for the scenario where the user either requested or did not request to contour the overlap between fields in adjacent isocenters
-            placeBeams_CSI place;
+            bool contourOverlap = false;
+            double contourOverlapMargin = 0.0;
             if (contourOverlap_chkbox.IsChecked.Value)
             {
                 //ensure the value entered in the added margin text box for contouring field overlap is a valid double
-                if (!double.TryParse(contourOverlapTB.Text, out double contourOverlapMargin))
+                if (!double.TryParse(contourOverlapTB.Text, out contourOverlapMargin))
                 {
                     MessageBox.Show("Error! The entered added margin for the contour overlap text box is NaN! Please enter a valid number and try again!");
                     return;
                 }
+                contourOverlap = true;
                 //convert from cm to mm
                 contourOverlapMargin *= 10.0;
-                //overloaded constructor for the placeBeams class
-                place = new placeBeams_CSI(selectedSS, planIsoBeamInfo, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, contourOverlapMargin);
             }
-            else place = new placeBeams_CSI(selectedSS, planIsoBeamInfo, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel);
+            PlaceBeams_CSI place = new PlaceBeams_CSI(selectedSS, planIsoBeamInfo, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, contourOverlap, contourOverlapMargin);
 
             place.Initialize("VMAT CSI", prescriptions);
             place.Execute();
             log.AppendLogOutput("Plan generation and beam placement output:", place.GetLogOutput());
-            VMATplans = new List<ExternalPlanSetup>(place.plans);
+            VMATplans = new List<ExternalPlanSetup>(place.GetGeneratedPlans());
             //VMATplans = new List<ExternalPlanSetup>(place.generatePlans("VMAT CSI", prescriptions));
             if (!VMATplans.Any()) return;
 
             //if the user elected to contour the overlap between fields in adjacent isocenters, get this list of structures from the placeBeams class and copy them to the jnxs vector
-            if (contourOverlap_chkbox.IsChecked.Value) jnxs = place.jnxs;
+            if (contourOverlap_chkbox.IsChecked.Value) jnxs = place.GetFieldJunctionStructures();
 
             //if the user requested to contour the overlap between fields in adjacent VMAT isocenters, repopulate the optimization tab (will include the newly added field junction structures)!
             if (contourOverlap_chkbox.IsChecked.Value) PopulateOptimizationTab(optParametersSP);
             beamPlacementTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             optimizationSetupTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             //list the plan UIDs by creation date (initial always gets created first, then boost)
-            foreach (ExternalPlanSetup itr in VMATplans.OrderBy(x => x.CreationDateTime)) log.planUIDs.Add(itr.UID);
+            log.PlanUIDs = VMATplans.OrderBy(x => x.CreationDateTime).Select(y => y.UID).ToList();
             isModified = true;
         }
         #endregion
@@ -1136,7 +1136,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 List<ExternalPlanSetup> thePlans = course.ExternalPlanSetups.OrderByDescending(x => x.TotalDose).ToList();
                 PopulateOptimizationTab(optParametersSP, null, true);
                 //list the plan UIDs in ascending order
-                foreach (ExternalPlanSetup itr in thePlans.OrderBy(x => x.CreationDateTime)) log.planUIDs.Add(itr.UID);
+                log.PlanUIDs = thePlans.OrderBy(x => x.CreationDateTime).Select(y => y.UID).ToList();
             }
         }
 
@@ -1223,7 +1223,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //}
             //}
             //autoSave = true;
-            log.optimizationConstraints = optParametersListList;
+            log.OptimizationConstraints = optParametersListList;
         }
 
         private void AddOptimizationConstraint_Click(object sender, RoutedEventArgs e)
@@ -1407,9 +1407,9 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 }
 
                 //create an instance of the planPep class and pass it the vmatPlan and appaPlan objects as arguments. Get the shift note for the plan of interest
-                prep = new planPrep_CSI(vmatPlan, appaPlan);
+                prep = new PlanPrep_CSI(vmatPlan, appaPlan);
             }
-            if (prep.getShiftNote()) return;
+            if (prep.GetShiftNote()) return;
 
             //let the user know this step has been completed (they can now do the other steps like separate plans and calculate dose)
             shiftTB.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -1427,7 +1427,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
             //separate the plans
             pi.BeginModifications();
-            if (prep.separate()) return;
+            if (prep.SeparatePlans()) return;
 
             //let the user know this step has been completed
             separateTB.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -1462,7 +1462,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             calcDoseTB.Background = System.Windows.Media.Brushes.Yellow;
             calcDoseTB.Text = "WORKING";
 
-            prep.calculateDose();
+            prep.CalculateDose();
 
             //let the user know this step has been completed
             calcDoseTB.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -1597,7 +1597,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 //add default TS structures
                 ClearTuningStructureList(templateTS_sp);
                 TemplateBuilder builder = new TemplateBuilder();
-                if (selectedTemplate != null) AddTuningStructureVolumes(builder.parseTSStructureList(TSGenerationSP), templateTS_sp);
+                if (selectedTemplate != null) AddTuningStructureVolumes(builder.ParseTSStructureList(TSGenerationSP), templateTS_sp);
 
                 //add default sparing structures
                 ClearStructureManipulationsList(templateClearSpareStructuresBtn);
@@ -1624,13 +1624,13 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
             TemplateBuilder builder = new TemplateBuilder();
             prospectiveTemplate.targets = new List<Tuple<string, double, string>>(new TargetsUIHelper().parseTargets(targetTemplate_sp, selectedSS).OrderBy(x => x.Item2));
-            prospectiveTemplate.createTSStructures = new List<Tuple<string, string>>(builder.parseTSStructureList(templateTS_sp));
+            prospectiveTemplate.createTSStructures = new List<Tuple<string, string>>(builder.ParseTSStructureList(templateTS_sp));
             prospectiveTemplate.TSManipulations = new List<Tuple<string,string,double>>(new StructureTuningUIHelper().parseSpareStructList(templateStructuresSP));
             List<Tuple<string, List<Tuple<string, string, double, double, int>>>> templateOptParametersListList = new OptimizationSetupUIHelper().parseOptConstraints(templateOptParams_sp);
             prospectiveTemplate.init_constraints = new List<Tuple<string, string, double, double, int>>(templateOptParametersListList.First().Item2);
             prospectiveTemplate.bst_constraints = new List<Tuple<string, string, double, double, int>>(templateOptParametersListList.Last().Item2);
 
-            templatePreviewTB.Text = builder.generateTemplatePreviewText(prospectiveTemplate);
+            templatePreviewTB.Text = builder.GenerateTemplatePreviewText(prospectiveTemplate);
             templatePreviewScroller.ScrollToTop();
         }
 
@@ -1655,7 +1655,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             }
 
             TemplateBuilder builder = new TemplateBuilder();
-            File.WriteAllText(fileName, builder.generateSerializedTemplate(prospectiveTemplate));
+            File.WriteAllText(fileName, builder.GenerateSerializedTemplate(prospectiveTemplate));
             PlanTemplates.Add(prospectiveTemplate);
             DisplayConfigurationParameters();
             templateList.ScrollIntoView(prospectiveTemplate);

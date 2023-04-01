@@ -25,13 +25,13 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
         private string _AEC;               // AE title of VMS DB Daemon
         private string _AEM;                 // AE title of VMS File Daemon
         private string _IP_PORT;// IP address of server hosting the DB Daemon, port daemon is listening to
-        string _CMD_FILE_FMT;
-        StringBuilder stdErr = new StringBuilder("");
+        private string _CMD_FILE_FMT;
+        private StringBuilder stdErr = new StringBuilder("");
 
         private string _exportFormat;
         private VMS.TPS.Common.Model.API.Image _image;
-        string _writeLocation;
-        string _patID;
+        private string _writeLocation;
+        private string _patID;
 
         public CTImageExport(VMS.TPS.Common.Model.API.Image img, string imgWriteLocation, string patientID, string exportFormat = "png", string DCMTK_BIN_PATH = @"N:\RadiationTherapy\Public\CancerCTR\RSPD\v36\bin", string AET = @"DCMTK", string AEC = @"VMSDBD", string AEM = @"VMSFD", string IP_PORT = @" 10.151.176.60 51402", string CMD_FILE_FMT = @"move-{1}-{2}.cmd") 
         {
@@ -47,15 +47,15 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             _patID = patientID;
         }
 
-        public bool exportImage()
+        public bool ExportImage()
         {
             bool result = false;
-            if (_exportFormat == "png") exportAsPNG();
-            else if (_exportFormat == "dcm") exportAsDCM();
+            if (_exportFormat == "png") ExportAsPNG();
+            else if (_exportFormat == "dcm") ExportAsDCM();
             return result;
         }
 
-        private bool exportAsPNG()
+        private bool ExportAsPNG()
         {
             int[,] pixels = new int[_image.XSize, _image.YSize];
             //write 16 bit-depth image (still having problems as of 7/20/2022. Geometry and image looks vaguely correct, but the gray levels look off)
@@ -209,7 +209,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
         //    return PixelFormats.Gray32Float;
         //}
 
-        private void exportAsDCM()
+        private void ExportAsDCM()
         {
             string temp = System.Environment.GetEnvironmentVariable("TEMP");
             string filename = MakeFilenameValid(String.Format(_CMD_FILE_FMT, _patID, _image.Id));
@@ -230,7 +230,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
                 process.StartInfo.RedirectStandardError = true;
 
                 // Set our event handler to asynchronously accumulate std err
-                process.ErrorDataReceived += new DataReceivedEventHandler(stdErrHandler);
+                process.ErrorDataReceived += new DataReceivedEventHandler(StdErrHandler);
 
                 process.Start();
 
@@ -242,12 +242,12 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             }
 
             // dump out the standard error file, show them to user if they exist, and exit with a nice message.
-            string stdErrFile = "";
+            string stdErrFile;
 
             if (stdErr1.Length > 0)
             {
                 stdErrFile = filename + "-err.txt";
-                System.IO.File.WriteAllText(stdErrFile, stdErr1);
+                File.WriteAllText(stdErrFile, stdErr1);
             }
 
             /*
@@ -265,22 +265,22 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
 
             string sourcePath = @"\\shariatscap105\Dicom\RSDCM\Export\" + _patID;
             string targetPath = @"P:\_DEMO\" + _patID;
-            if (!System.IO.Directory.Exists(targetPath))
+            if (!Directory.Exists(targetPath))
             {
-                System.IO.Directory.CreateDirectory(targetPath);
+                Directory.CreateDirectory(targetPath);
             }
             string fileName;
             string destFile;
-            if (System.IO.Directory.Exists(sourcePath))
+            if (Directory.Exists(sourcePath))
             {
-                string[] files = System.IO.Directory.GetFiles(sourcePath);
+                string[] files = Directory.GetFiles(sourcePath);
                 // Copy the files and overwrite destination files if they already exist.
                 foreach (string s in files)
                 {
                     // Use static Path methods to extract only the file name from the path.
-                    fileName = System.IO.Path.GetFileName(s);
-                    destFile = System.IO.Path.Combine(targetPath, fileName);
-                    System.IO.File.Copy(s, destFile, true);
+                    fileName = Path.GetFileName(s);
+                    destFile = Path.Combine(targetPath, fileName);
+                    File.Copy(s, destFile, true);
                 }
             }
             else
@@ -298,22 +298,22 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
 
             string exeSourcePath = @"P:\_DEMO\" + _patID;
             string exeTargetPath = @"P:\_DEMO\Eclipse Scripting API\Plugins\InputData\" + _patID;
-            if (!System.IO.Directory.Exists(exeTargetPath))
+            if (!Directory.Exists(exeTargetPath))
             {
-                System.IO.Directory.CreateDirectory(exeTargetPath);
+                Directory.CreateDirectory(exeTargetPath);
             }
             string exeFileName;
             string exeDestFile;
-            if (System.IO.Directory.Exists(exeSourcePath))
+            if (Directory.Exists(exeSourcePath))
             {
-                string[] exeFiles = System.IO.Directory.GetFiles(exeSourcePath);
+                string[] exeFiles = Directory.GetFiles(exeSourcePath);
                 // Copy the files and overwrite destination files if they already exist.
                 foreach (string s in exeFiles)
                 {
                     // Use static Path methods to extract only the file name from the path.
-                    exeFileName = System.IO.Path.GetFileName(s);
-                    exeDestFile = System.IO.Path.Combine(exeTargetPath, exeFileName);
-                    System.IO.File.Copy(s, exeDestFile, true);
+                    exeFileName = Path.GetFileName(s);
+                    exeDestFile = Path.Combine(exeTargetPath, exeFileName);
+                    File.Copy(s, exeDestFile, true);
                 }
             }
             else
@@ -349,7 +349,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             //}
         }
 
-        private void stdErrHandler(object sendingProcess, DataReceivedEventArgs outLine)
+        private void StdErrHandler(object sendingProcess, DataReceivedEventArgs outLine)
         {
             if (!String.IsNullOrEmpty(outLine.Data))
             {

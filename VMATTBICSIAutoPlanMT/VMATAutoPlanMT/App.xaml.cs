@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using System.Windows;
 using System.IO;
 using System.Reflection;
@@ -24,7 +23,7 @@ namespace VMATAutoPlanMT
             theArguments.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\General_configuration.ini");
             if (SO.isVMATTBI) 
             { 
-                mw = new TBIAutoPlanMW(theArguments); 
+                mw = new VMAT_TBI.TBIAutoPlanMW(theArguments); 
             }
             else if (SO.isVMATCSI) 
             { 
