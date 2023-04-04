@@ -223,7 +223,7 @@ namespace VMATTBICSIOptLoopMT
                 if (SPAndSV.Item1.Children.Count > 0)
                 {
                     OptimizationSetupUIHelper helper = new OptimizationSetupUIHelper();
-                    List<Tuple<string, List<Tuple<string, string, double, double, int>>>> optParametersListList = helper.parseOptConstraints(SPAndSV.Item1, false);
+                    List<Tuple<string, List<Tuple<string, string, double, double, int>>>> optParametersListList = helper.ParseOptConstraints(SPAndSV.Item1, false);
                     foreach (Tuple<string, List<Tuple<string, string, double, double, int>>> itr in optParametersListList)
                     {
                         if (itr.Item1 == thePlan.Id)
@@ -264,7 +264,7 @@ namespace VMATTBICSIOptLoopMT
         private void ClearItem_Click(object sender, EventArgs e)
         {
             StackPanel theSP = GetSPAndSV(sender as Button).Item1;
-            if (new GeneralUIhelper().clearRow(sender, theSP)) ClearAllItemsFromUIList(theSP);
+            if (new GeneralUIhelper().ClearRow(sender, theSP)) ClearAllItemsFromUIList(theSP);
         }
         #endregion
 
@@ -438,7 +438,7 @@ namespace VMATTBICSIOptLoopMT
 
         private void AddOptimizationConstraintsHeader(StackPanel theSP)
         {
-            theSP.Children.Add(new OptimizationSetupUIHelper().getOptHeader(theSP.Width));
+            theSP.Children.Add(new OptimizationSetupUIHelper().GetOptHeader(theSP.Width));
         }
 
         private void AddPlanObjectivesHeader(StackPanel theSP)
@@ -467,7 +467,7 @@ namespace VMATTBICSIOptLoopMT
             for (int i = 0; i < defaultList.Count; i++)
             {
                 counter++;
-                theSP.Children.Add(helper.addOptVolume(theSP, 
+                theSP.Children.Add(helper.AddOptVolume(theSP, 
                                                        selectedSS, 
                                                        defaultList[i], 
                                                        clearBtnNamePrefix, 
@@ -524,7 +524,7 @@ namespace VMATTBICSIOptLoopMT
                 return;
             }
 
-            List<Tuple<string, List<Tuple<string, string, double, double, int>>>> optParametersListList = new OptimizationSetupUIHelper().parseOptConstraints(optimizationParamSP);
+            List<Tuple<string, List<Tuple<string, string, double, double, int>>>> optParametersListList = new OptimizationSetupUIHelper().ParseOptConstraints(optimizationParamSP);
             if (!optParametersListList.Any()) return;
             List<Tuple<string, string, double, double, DoseValuePresentation>> objectives = new PlanObjectiveSetupUIHelper().GetPlanObjectives(planObjectiveParamSP);
             if (!objectives.Any())

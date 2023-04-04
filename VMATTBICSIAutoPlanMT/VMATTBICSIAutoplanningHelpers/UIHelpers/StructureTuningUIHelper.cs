@@ -9,7 +9,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
 {
     public class StructureTuningUIHelper
     {
-        public StackPanel getSpareStructHeader(StackPanel theSP)
+        public StackPanel GetSpareStructHeader(StackPanel theSP)
         {
             StackPanel sp = new StackPanel();
             sp.Height = 30;
@@ -48,7 +48,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return sp;
         }
 
-        public StackPanel addSpareStructVolume(StackPanel theSP, List<string> structureIds, Tuple<string, string, double> listItem, string clearBtnPrefix, int clearSpareBtnCounter, SelectionChangedEventHandler typeChngHndl, RoutedEventHandler clearEvtHndl)
+        public StackPanel AddTSManipulation(StackPanel theSP, List<string> structureIds, Tuple<string, string, double> listItem, string clearBtnPrefix, int clearSpareBtnCounter, SelectionChangedEventHandler typeChngHndl, RoutedEventHandler clearEvtHndl)
         {
             StackPanel sp = new StackPanel();
             sp.Height = 30;
@@ -121,7 +121,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return sp;
         }
 
-        public List<Tuple<Structure, Structure, string>> checkStructuresToUnion(StructureSet selectedSS)
+        public List<Tuple<Structure, Structure, string>> CheckStructuresToUnion(StructureSet selectedSS)
         {
             //left structure, right structure, unioned structure name
             List<Tuple<Structure, Structure, string>> structuresToUnion = new List<Tuple<Structure, Structure, string>> { };
@@ -148,7 +148,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return unionedName;
         }
 
-        public (bool, string) unionLRStructures(Tuple<Structure, Structure, string> itr, StructureSet selectedSS)
+        public (bool, string) UnionLRStructures(Tuple<Structure, Structure, string> itr, StructureSet selectedSS)
         {
             Structure newStructure = null;
             string newName = itr.Item3;
@@ -165,9 +165,9 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return (false, "");
         }
 
-        public List<Tuple<string, string, double>> parseSpareStructList(StackPanel theSP)
+        public List<Tuple<string, string, double>> ParseTSManipulationList(StackPanel theSP)
         {
-            List<Tuple<string, string, double>> structureSpareList = new List<Tuple<string, string, double>> { };
+            List<Tuple<string, string, double>> TSManipulationList = new List<Tuple<string, string, double>> { };
             string structure = "";
             string spareType = "";
             double margin = -1000.0;
@@ -205,17 +205,17 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
                         return new List<Tuple<string, string, double>> { };
                     }
                     //only add the current row to the structure sparing list if all the parameters were successful parsed
-                    else structureSpareList.Add(Tuple.Create(structure, spareType, margin));
+                    else TSManipulationList.Add(Tuple.Create(structure, spareType, margin));
                     firstCombo = true;
                     margin = -1000.0;
                 }
                 else headerObj = false;
             }
 
-            return structureSpareList;
+            return TSManipulationList;
         }
 
-        public List<Tuple<string, string>> ParseTSStructureList(StackPanel theSP)
+        public List<Tuple<string, string>> ParseCreateTSStructureList(StackPanel theSP)
         {
             List<Tuple<string, string>> TSStructureList = new List<Tuple<string, string>> { };
             string dcmType = "";

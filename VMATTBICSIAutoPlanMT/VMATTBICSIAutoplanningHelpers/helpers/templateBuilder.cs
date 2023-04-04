@@ -43,7 +43,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
 
         public List<Tuple<string,string>> ParseTSStructureList(StackPanel theSP)
         {
-            return new UIHelpers.StructureTuningUIHelper().ParseTSStructureList(theSP);
+            return new UIHelpers.StructureTuningUIHelper().ParseCreateTSStructureList(theSP);
         }
 
         public StackPanel AddTSVolume(StackPanel theSP, StructureSet selectedSS, Tuple<string, string> listItem, string clearBtnPrefix, int clearBtnCounter, RoutedEventHandler clearEvtHndl)

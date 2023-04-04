@@ -9,7 +9,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
 {
     public class BeamPlacementUIHelper
     {
-        public List<StackPanel> populateBeamsTabHelper(StackPanel theSP, List<string> linacs, List<string> beamEnergies, List<string> isoNames, int[] beamsPerIso, int numIsos, int numVMATIsos)
+        public List<StackPanel> PopulateBeamsTabHelper(StackPanel theSP, List<string> linacs, List<string> beamEnergies, List<string> isoNames, int[] beamsPerIso, int numIsos, int numVMATIsos)
         {
             List<StackPanel> theSPList = new List<StackPanel> { };
             StackPanel sp = new StackPanel();
@@ -125,7 +125,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return theSPList;
         }
 
-        public List<StackPanel> populateBeamsTabHelper(StackPanel theSP, List<string> linacs, List<string> beamEnergies, List<Tuple<string, List<string>>> isoNames, int[] beamsPerIso)
+        public List<StackPanel> PopulateBeamsTabHelper(StackPanel theSP, List<string> linacs, List<string> beamEnergies, List<Tuple<string, List<string>>> isoNames, int[] beamsPerIso)
         {
             List<StackPanel> theSPList = new List<StackPanel> { };
             StackPanel sp = new StackPanel();

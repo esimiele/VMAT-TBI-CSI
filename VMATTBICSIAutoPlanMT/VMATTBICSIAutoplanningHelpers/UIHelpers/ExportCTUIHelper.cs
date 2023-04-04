@@ -15,15 +15,15 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             MessageBox.Show("Select a CT image to export to the deep learning model (for autocontouring)");
         }
 
-        public void populateCTImageSets(List<StructureSet> structureSets, StructureSet selectedSS, StackPanel theSP)
+        public void PopulateCTImageSets(List<StructureSet> structureSets, StructureSet selectedSS, StackPanel theSP)
         {
             ExportCTUIHelper helper = new ExportCTUIHelper();
             //needed to allow automatic selection of CT image for selected CT structure set (nothing will be selected if no structure set is selected)
             if (selectedSS != null) { structureSets.Insert(0, selectedSS); }
-            foreach (StructureSet itr in structureSets) theSP.Children.Add(helper.getCTImageSets(theSP, itr.Image, itr == selectedSS ? true : false));
+            foreach (StructureSet itr in structureSets) theSP.Children.Add(helper.GetCTImageSets(theSP, itr.Image, itr == selectedSS ? true : false));
         }
 
-        private StackPanel getCTImageSets(StackPanel theSP, VMS.TPS.Common.Model.API.Image theImage, bool isFirst)
+        private StackPanel GetCTImageSets(StackPanel theSP, VMS.TPS.Common.Model.API.Image theImage, bool isFirst)
         {
             StackPanel sp = new StackPanel();
             sp.Height = 30;
@@ -79,7 +79,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return sp;
         }
 
-        public string parseSelectedCTImage(StackPanel theSP)
+        public string ParseSelectedCTImage(StackPanel theSP)
         {
             string theImageId = "";
             foreach (object obj in theSP.Children)
@@ -106,7 +106,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
         public void ExportImage(StackPanel theSP, List<StructureSet> structureSets, string Id, string imgExportPath, string format)
         {
             ExportCTUIHelper helper = new ExportCTUIHelper();
-            string selectedCTID = helper.parseSelectedCTImage(theSP);
+            string selectedCTID = helper.ParseSelectedCTImage(theSP);
             if (!string.IsNullOrWhiteSpace(selectedCTID))
             {
                 VMS.TPS.Common.Model.API.Image theImage = structureSets.FirstOrDefault(x => x.Image.Id == selectedCTID).Image;

@@ -64,7 +64,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return sp;
         }
 
-        public StackPanel getOptHeader(double theWidth)
+        public StackPanel GetOptHeader(double theWidth)
         {
             StackPanel sp = new StackPanel();
             sp.Height = 30;
@@ -120,7 +120,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return sp;
         }
 
-        public StackPanel addOptVolume<T>(StackPanel theSP, StructureSet selectedSS, Tuple<string, string, double, double, T> listItem, string clearBtnNamePrefix, int clearOptBtnCounter, RoutedEventHandler e, bool addStructureEvenIfNotInSS = false)
+        public StackPanel AddOptVolume<T>(StackPanel theSP, StructureSet selectedSS, Tuple<string, string, double, double, T> listItem, string clearBtnNamePrefix, int clearOptBtnCounter, RoutedEventHandler e, bool addStructureEvenIfNotInSS = false)
         {
             StackPanel sp = new StackPanel();
             sp.Height = 30;
@@ -234,7 +234,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return sp;
         }
 
-        public List<Tuple<string, List<Tuple<string, string, double, double, int>>>> parseOptConstraints(StackPanel sp, bool checkInputIntegrity = true)
+        public List<Tuple<string, List<Tuple<string, string, double, double, int>>>> ParseOptConstraints(StackPanel sp, bool checkInputIntegrity = true)
         {
             if (sp.Children.Count == 0)
             {

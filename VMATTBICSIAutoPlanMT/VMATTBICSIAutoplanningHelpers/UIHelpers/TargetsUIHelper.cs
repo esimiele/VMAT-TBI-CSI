@@ -38,26 +38,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return targetList;
         }
 
-        public bool clearTarget(StackPanel theSP, Button btn)
-        {
-            //same deal as the clear sparing structure button (clearStructBtn_click)
-            int i = 0;
-            int k = 0;
-            foreach (object obj in theSP.Children)
-            {
-                foreach (object obj1 in ((StackPanel)obj).Children)
-                {
-                    if (obj1.Equals(btn)) k = i;
-                }
-                if (k > 0) break;
-                i++;
-            }
-            if (theSP.Children.Count < 3) { return true; }
-            else theSP.Children.RemoveAt(k);
-            return false;
-        }
-
-        public StackPanel get_target_header(double width)
+        public StackPanel GetTargetHeader(double width)
         {
             StackPanel sp = new StackPanel();
             sp.Height = 30;
@@ -95,7 +76,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return sp;
         }
 
-        public StackPanel add_target_volumes(double width, Tuple<string, double, string> listItem, string clearBtnNamePrefix, int counter, List<string> planIDs, SelectionChangedEventHandler typeChngHndl, RoutedEventHandler clearEvtHndl)
+        public StackPanel AddTargetVolumes(double width, Tuple<string, double, string> listItem, string clearBtnNamePrefix, int counter, List<string> planIDs, SelectionChangedEventHandler typeChngHndl, RoutedEventHandler clearEvtHndl)
         {
             StackPanel sp = new StackPanel();
             sp.Height = 30;
@@ -159,7 +140,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return sp;
         }
 
-        public List<Tuple<string, double, string>> parseTargets(StackPanel theSP, StructureSet selectedSS)
+        public List<Tuple<string, double, string>> ParseTargets(StackPanel theSP, StructureSet selectedSS)
         {
             List<Tuple<string, double, string>> listTargets = new List<Tuple<string, double, string>> { };
             string structure = "";
