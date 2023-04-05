@@ -17,7 +17,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>> { };
             if (template != null)
             {
-                tmpList = new List<Tuple<string, double, string>>(template.targets);
+                tmpList = new List<Tuple<string, double, string>>(template.GetTargets());
                 foreach (Tuple<string, double, string> itr in tmpList) if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.Item1.ToLower()) != null || itr.Item1.ToLower() == "ptv_csi") targetList.Add(itr);
             }
             else targetList = new List<Tuple<string, double, string>>(tmpList);

@@ -23,7 +23,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
                         if (line.Equals(":begin template case configuration:"))
                         {
                             //preparation
-                            List<Tuple<string, string, double>> spareStruct_temp = new List<Tuple<string, string, double>> { };
+                            List<Tuple<string, string, double>> TSManipulation_temp = new List<Tuple<string, string, double>> { };
                             List<Tuple<string, string>> TSstructures_temp = new List<Tuple<string, string>> { };
                             List<Tuple<string, string, double, double, int>> initOptConst_temp = new List<Tuple<string, string, double, double, int>> { };
                             List<Tuple<string, string, double, double, int>> bstOptConst_temp = new List<Tuple<string, string, double, double, int>> { };
@@ -42,13 +42,25 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
                                     {
                                         string parameter = line.Substring(0, line.IndexOf("="));
                                         string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
-                                        if (parameter == "template name") tempTemplate.TemplateName = value;
-                                        else if (parameter == "initial dose per fraction") { if (double.TryParse(value, out double initDPF)) tempTemplate.initialRxDosePerFx = initDPF; }
-                                        else if (parameter == "initial num fx") { if (int.TryParse(value, out int initFx)) tempTemplate.initialRxNumFx = initFx; }
-                                        else if (parameter == "boost dose per fraction") { if (double.TryParse(value, out double bstDPF)) tempTemplate.boostRxDosePerFx = bstDPF; }
-                                        else if (parameter == "boost num fx") { if (int.TryParse(value, out int bstFx)) tempTemplate.boostRxNumFx = bstFx; }
+                                        if (parameter == "template name") tempTemplate.SetTemplateName(value);
+                                        else if (parameter == "initial dose per fraction") 
+                                        { 
+                                            if (double.TryParse(value, out double initDPF)) tempTemplate.SetInitRxDosePerFx(initDPF); 
+                                        }
+                                        else if (parameter == "initial num fx") 
+                                        { 
+                                            if (int.TryParse(value, out int initFx)) tempTemplate.SetInitialRxNumFx(initFx); 
+                                        }
+                                        else if (parameter == "boost dose per fraction") 
+                                        { 
+                                            if (double.TryParse(value, out double bstDPF)) tempTemplate.SetBoostRxDosePerFx(bstDPF); 
+                                        }
+                                        else if (parameter == "boost num fx") 
+                                        { 
+                                            if (int.TryParse(value, out int bstFx)) tempTemplate.SetBoostRxNumFx(bstFx); 
+                                        }
                                     }
-                                    else if (line.Contains("add TS manipulation")) spareStruct_temp.Add(ParseTSManipulation(line));
+                                    else if (line.Contains("add TS manipulation")) TSManipulation_temp.Add(ParseTSManipulation(line));
                                     else if (line.Contains("crop and contour")) cropAndContourOverlapStructures_temp.Add(ParseCropAndContourOverlapStruct(line));
                                     else if (line.Contains("add init opt constraint")) initOptConst_temp.Add(ParseOptimizationConstraint(line));
                                     else if (line.Contains("add boost opt constraint")) bstOptConst_temp.Add(ParseOptimizationConstraint(line));
@@ -60,15 +72,15 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
                                 }
                             }
 
-                            if(spareStruct_temp.Any()) tempTemplate.TSManipulations = new List<Tuple<string, string, double>>(spareStruct_temp);
-                            if(cropAndContourOverlapStructures_temp.Any()) tempTemplate.cropAndOverlapStructures = new List<string>(cropAndContourOverlapStructures_temp);
-                            if(TSstructures_temp.Any()) tempTemplate.createTSStructures = new List<Tuple<string, string>>(TSstructures_temp);
-                            if(initOptConst_temp.Any()) tempTemplate.init_constraints = new List<Tuple<string, string, double, double, int>>(initOptConst_temp);
-                            if(bstOptConst_temp.Any()) tempTemplate.bst_constraints = new List<Tuple<string, string, double, double, int>>(bstOptConst_temp);
-                            if(targets_temp.Any()) tempTemplate.targets = new List<Tuple<string, double, string>>(targets_temp);
-                            if(planObj_temp.Any()) tempTemplate.planObj = new List<Tuple<string, string, double, double, DoseValuePresentation>>(planObj_temp);
-                            if(requestedTSstructures_temp.Any()) tempTemplate.requestedTSstructures = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>(requestedTSstructures_temp);
-                            if(planDoseInfo_temp.Any()) tempTemplate.planDoseInfo = new List<Tuple<string, string, double, string>>(planDoseInfo_temp);
+                            if(TSManipulation_temp.Any()) tempTemplate.SetTSManipulations(TSManipulation_temp);
+                            if(cropAndContourOverlapStructures_temp.Any()) tempTemplate.SetCropAndOverlapStructures(cropAndContourOverlapStructures_temp);
+                            if(TSstructures_temp.Any()) tempTemplate.SetCreateTSStructures(TSstructures_temp);
+                            if(initOptConst_temp.Any()) tempTemplate.SetInitOptimizationConstraints(initOptConst_temp);
+                            if(bstOptConst_temp.Any()) tempTemplate.SetBoostOptimizationConstraints(bstOptConst_temp);
+                            if(targets_temp.Any()) tempTemplate.SetTargets(targets_temp);
+                            if(planObj_temp.Any()) tempTemplate.SetPlanObjectives(planObj_temp);
+                            if(requestedTSstructures_temp.Any()) tempTemplate.SetRequestedOptTSStructures(requestedTSstructures_temp);
+                            if(planDoseInfo_temp.Any()) tempTemplate.SetRequestedPlanDoseInfo(planDoseInfo_temp);
                         }
                     }
                 }
