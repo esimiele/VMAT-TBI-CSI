@@ -118,6 +118,7 @@
     <Compile Include="UIHelpers\GeneralUIhelper.cs" />
     <Compile Include="Helpers\IsoNameHelper.cs" />
     <Compile Include="UIHelpers\OptimizationSetupUIHelper.cs" />
+    <Compile Include="UIHelpers\RingUIHelper.cs" />
     <Compile Include="UIHelpers\StructureTuningUIHelper.cs" />
     <Compile Include="UIHelpers\TargetsUIHelper.cs" />
     <Compile Include="Helpers\TemplateBuilder.cs" />

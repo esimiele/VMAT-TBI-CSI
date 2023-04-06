@@ -250,7 +250,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             double dose = -1.0;
             double vol = -1.0;
             int priority = -1;
-            int txtbxNum = 1;
+            int txtBxNum = 1;
             bool firstCombo = true;
             //bool headerObj = true;
             int numElementsPerRow = 0;
@@ -276,13 +276,13 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
                         if (!string.IsNullOrWhiteSpace((obj1 as TextBox).Text))
                         {
                             //first text box is the volume percentage
-                            if (txtbxNum == 1) double.TryParse((obj1 as TextBox).Text, out vol);
+                            if (txtBxNum == 1) double.TryParse((obj1 as TextBox).Text, out vol);
                             //second text box is the dose constraint
-                            else if (txtbxNum == 2) double.TryParse((obj1 as TextBox).Text, out dose);
+                            else if (txtBxNum == 2) double.TryParse((obj1 as TextBox).Text, out dose);
                             //third text box is the priority
                             else int.TryParse((obj1 as TextBox).Text, out priority);
                         }
-                        txtbxNum++;
+                        txtBxNum++;
                     }
                     else if (obj1.GetType() == typeof(Label)) copyObj = obj1;
                     numElementsPerRow++;
@@ -313,7 +313,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
                     else optParametersList.Add(Tuple.Create(structure, constraintType, Math.Round(dose, 3, MidpointRounding.AwayFromZero), Math.Round(vol, 3, MidpointRounding.AwayFromZero), priority));
                     //reset the values of the variables used to parse the data
                     firstCombo = true;
-                    txtbxNum = 1;
+                    txtBxNum = 1;
                     dose = -1.0;
                     vol = -1.0;
                     priority = -1;

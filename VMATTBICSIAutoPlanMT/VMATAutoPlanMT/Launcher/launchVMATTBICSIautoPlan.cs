@@ -20,11 +20,21 @@ namespace VMS.TPS
                 {
                     bool addOptLaunchOption = false;
                     ExternalPlanSetup plan = context.ExternalPlanSetup;
-                    if (plan != null && (plan.Id.ToLower() == "_vmat tbi" || plan.Id.ToLower() == "_vmat csi") && !plan.IsDoseValid) addOptLaunchOption |= true;
+                    if (plan != null && (plan.Id.ToLower() == "_vmat tbi" || plan.Id.ToLower() == "_vmat csi") && !plan.IsDoseValid) addOptLaunchOption = true;
                     else
                     {
-                        List<Course> courses = context.Patient.Courses.Where(x => x.Id.ToLower().Contains("VMAT TBI") || x.Id.ToLower().Contains("VMAT CSI")).ToList();
-                        if (courses.Any()) { foreach (Course c in courses) if (c.ExternalPlanSetups.Where(x => (x.Id.ToLower() == "_vmat tbi" || x.Id.ToLower() == "_vmat csi") && !x.IsDoseValid).Any()) { addOptLaunchOption = true; break; } }
+                        List<Course> courses = context.Patient.Courses.Where(x => x.Id.ToLower().Contains("vmat tbi") || x.Id.ToLower().Contains("vmat csi")).ToList();
+                        if (courses.Any())
+                        {
+                            foreach (Course c in courses)
+                            {
+                                if (c.ExternalPlanSetups.Where(x => (x.Id.ToLower().Contains("tbi") || x.Id.ToLower().Contains("csi")) && !x.IsDoseValid).Any())
+                                {
+                                    addOptLaunchOption = true;
+                                    break;
+                                }
+                            }
+                        }
                     }
                     string exeName = "VMATTBICSIAutoPlanMT";
                     string path = AppExePath(exeName);

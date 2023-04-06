@@ -7,10 +7,11 @@ namespace VMATAutoPlanMT.Prompts
     {
         public bool isVMATTBI = false;
         public bool isVMATCSI = false;
+        public bool launchOptimization = false;
         public selectOption(bool showOpt = false)
         {
-            if (showOpt) launchOptBtn.Visible = true;
             InitializeComponent();
+            if (showOpt) launchOptBtn.Visible = true;
         }
 
         private void VMATTBI_btn_Click(object sender, EventArgs e)
@@ -22,6 +23,12 @@ namespace VMATAutoPlanMT.Prompts
         private void VMATCSI_btn_Click(object sender, EventArgs e)
         {
             isVMATCSI = true;
+            this.Close();
+        }
+
+        private void launchOptBtn_Click(object sender, EventArgs e)
+        {
+            launchOptimization = true;
             this.Close();
         }
     }

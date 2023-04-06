@@ -77,6 +77,7 @@ namespace VMATAutoPlanMT.Prompts
             this.launchOptBtn.Text = "Launch Optimization Loop";
             this.launchOptBtn.UseVisualStyleBackColor = true;
             this.launchOptBtn.Visible = false;
+            this.launchOptBtn.Click += new System.EventHandler(this.launchOptBtn_Click);
             // 
             // selectOption
             // 

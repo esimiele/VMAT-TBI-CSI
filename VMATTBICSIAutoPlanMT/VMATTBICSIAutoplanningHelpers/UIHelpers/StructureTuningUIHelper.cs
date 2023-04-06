@@ -9,7 +9,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
 {
     public class StructureTuningUIHelper
     {
-        public StackPanel GetSpareStructHeader(StackPanel theSP)
+        public StackPanel GetTSManipulationHeader(StackPanel theSP)
         {
             StackPanel sp = new StackPanel();
             sp.Height = 30;

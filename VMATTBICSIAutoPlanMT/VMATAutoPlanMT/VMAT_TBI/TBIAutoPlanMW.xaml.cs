@@ -439,7 +439,7 @@ namespace VMATAutoPlanMT.VMAT_TBI
         //add the header to the structure sparing list (basically just add some labels to make it look nice)
         private void add_sp_header()
         {
-            structures_sp.Children.Add(new StructureTuningUIHelper().GetSpareStructHeader(structures_sp));
+            structures_sp.Children.Add(new StructureTuningUIHelper().GetTSManipulationHeader(structures_sp));
 
             //bool to indicate that the header has been added
             firstSpareStruct = false;

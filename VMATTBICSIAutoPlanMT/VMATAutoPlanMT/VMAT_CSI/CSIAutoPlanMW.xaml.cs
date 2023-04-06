@@ -551,7 +551,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             if (theBtn.Name.Contains("template"))
             {
                 theScroller = templateTSScroller;
-                theSP = templateTS_sp;
+                theSP = templateTSSP;
             }
             else
             {
@@ -573,7 +573,11 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
         private void AddTuningStructureVolumes(List<Tuple<string, string>> defaultList, StackPanel theSP)
         {
-            if (selectedSS == null) { MessageBox.Show("Error! Please select a Structure Set before adding sparing volumes!"); return; }
+            if (selectedSS == null) 
+            { 
+                MessageBox.Show("Error! Please select a Structure Set before adding tuning structure manipulations!"); 
+                return; 
+            }
             TemplateBuilder builder = new TemplateBuilder();
             if (theSP.Children.Count == 0) theSP.Children.Add(builder.AddTemplateTSHeader(theSP));
             int counter = 0;
@@ -595,7 +599,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             StackPanel theSP;
             if (theBtn.Name.Contains("template"))
             {
-                theSP = templateTS_sp;
+                theSP = templateTSSP;
             }
             else
             {
@@ -610,7 +614,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             StackPanel theSP;
             if (theBtn.Name.Contains("template"))
             {
-                theSP = templateTS_sp;
+                theSP = templateTSSP;
             }
             else
             {
@@ -622,6 +626,62 @@ namespace VMATAutoPlanMT.VMAT_CSI
         private void ClearTuningStructureList(StackPanel theSP)
         {
             theSP.Children.Clear();
+        }
+
+        private void AddRing_Click(object sender, RoutedEventArgs e)
+        {
+            //FIX ME!!
+
+            //populate the comboboxes
+            Button theBtn = (Button)sender;
+            StackPanel theSP;
+            if (theBtn.Name.Contains("template"))
+            {
+                theSP = templateCreateRingsSP;
+            }
+            else
+            {
+                theSP = createRingsSP;
+            }
+            AddRingStructures(new List<Tuple<string, double, double, double>> { Tuple.Create("--select--", 0.0, 0.0, 0.0) }, theSP);
+        }
+
+        private void AddRingStructures(List<Tuple<string, double, double, double>> lists, StackPanel theSP)
+        {
+            if (selectedSS == null)
+            {
+                MessageBox.Show("Error! Please select a Structure Set before adding ring structures!");
+                return;
+            }
+            RingUIHelper helper = new RingUIHelper();
+            if (theSP.Children.Count == 0) theSP.Children.Add(helper.GetRingHeader(theSP.Width));
+            int counter = 0;
+            string clearBtnName = "ClearRingBtn";
+            if (theSP.Name.Contains("template"))
+            {
+                clearBtnName = "template" + clearBtnName;
+            }
+            for (int i = 0; i < lists.Count; i++)
+            {
+                counter++;
+                theSP.Children.Add(helper.AddRing(theSP, targets.Select(x => x.Item1).ToList(), lists[i], clearBtnName, counter, new RoutedEventHandler(this.ClearRingItem_Click)));
+            }
+        }
+
+        private void ClearRingItem_Click(object sender, RoutedEventArgs e)
+        {
+            //FIX ME!!
+            Button theBtn = (Button)sender;
+            StackPanel theSP;
+            if (theBtn.Name.Contains("template"))
+            {
+                theSP = templateCreateRingsSP;
+            }
+            else
+            {
+                theSP = createRingsSP;
+            }
+            if (new GeneralUIhelper().ClearRow(sender, theSP)) ClearTuningStructureList(theSP);
         }
 
         private List<string> CheckLRStructures()
@@ -660,7 +720,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         //add the header to the structure manipulation list (basically just add some labels to make it look nice)
         private void AddStructureManipulationHeader(StackPanel theSP)
         {
-            theSP.Children.Add(new StructureTuningUIHelper().GetSpareStructHeader(theSP));
+            theSP.Children.Add(new StructureTuningUIHelper().GetTSManipulationHeader(theSP));
 
             //bool to indicate that the header has been added
             if (theSP.Name.Contains("template")) firstTemplateSpareStruct = false;
@@ -1562,8 +1622,8 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 AddTargetVolumes(targetList, targetTemplate_sp);
 
                 //add default TS structures
-                ClearTuningStructureList(templateTS_sp);
-                if (theTemplate.GetTSManipulations().Any()) AddTuningStructureVolumes(theTemplate.GetCreateTSStructures(), templateTS_sp);
+                ClearTuningStructureList(templateTSSP);
+                if (theTemplate.GetTSManipulations().Any()) AddTuningStructureVolumes(theTemplate.GetCreateTSStructures(), templateTSSP);
 
                 //add default sparing structures
                 ClearStructureManipulationsList(templateClearSpareStructuresBtn);
@@ -1596,9 +1656,9 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
                 CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
                 //add default TS structures
-                ClearTuningStructureList(templateTS_sp);
+                ClearTuningStructureList(templateTSSP);
                 TemplateBuilder builder = new TemplateBuilder();
-                if (selectedTemplate != null) AddTuningStructureVolumes(builder.ParseTSStructureList(TSGenerationSP), templateTS_sp);
+                if (selectedTemplate != null) AddTuningStructureVolumes(builder.ParseTSStructureList(TSGenerationSP), templateTSSP);
 
                 //add default sparing structures
                 ClearStructureManipulationsList(templateClearSpareStructuresBtn);
@@ -1657,7 +1717,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
             TemplateBuilder builder = new TemplateBuilder();
             prospectiveTemplate.SetTargets(new TargetsUIHelper().ParseTargets(targetTemplate_sp, selectedSS).OrderBy(x => x.Item2).ToList());
-            prospectiveTemplate.SetCreateTSStructures(builder.ParseTSStructureList(templateTS_sp));
+            prospectiveTemplate.SetCreateTSStructures(builder.ParseTSStructureList(templateTSSP));
             prospectiveTemplate.SetTSManipulations(new StructureTuningUIHelper().ParseTSManipulationList(templateStructuresSP));
             List<Tuple<string, List<Tuple<string, string, double, double, int>>>> templateOptParametersListList = new OptimizationSetupUIHelper().ParseOptConstraints(templateOptParams_sp);
             prospectiveTemplate.SetInitOptimizationConstraints(templateOptParametersListList.First().Item2);

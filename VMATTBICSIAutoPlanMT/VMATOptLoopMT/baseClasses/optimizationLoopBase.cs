@@ -494,11 +494,17 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             for (int i = 0; i < 3; i++)
             {
                 //check that isocenter positions are rounded to the nearest 5 mm
-                //ProvideUIUpdate(String.Format("i, pos[i], pos[i] % 1, beam id \n{0}, {1}, {2}, {3}", i, pos[i], Math.Abs(pos[i]) % 5, beamId));
-                if (Math.Abs(pos[i]) % 5 > 1e-3)
+                //calculate the modulus of the iso position and 5 mm
+                double mod = Math.Abs(pos[i]) % 5;
+                if(mod >= 2.5)
+                {
+                    //mod is > 2.5 --> check to see the 5 - mod isn't 4.99999999999999 
+                    mod = 5 - mod;
+                }
+                if (mod > 1e-3)
                 {
                     ProvideUIUpdate("Isocenter position is NOT rounded off!");
-                    ProvideUIUpdate(String.Format("x, y, z, pos[i] % 1, beam id \n{0}, {1}, {2}, {3}, {4}", pos.x, pos.y, pos.z, Math.Abs(pos[i]) % 10, beamId), true);
+                    ProvideUIUpdate(String.Format("x, y, z, pos[i] % 5, beam id \n{0}, {1}, {2}, {3}, {4}", pos.x, pos.y, pos.z, Math.Abs(pos[i]) % 5, beamId), true);
                     return true;
                 }
             }

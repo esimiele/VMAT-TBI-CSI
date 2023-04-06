@@ -25,6 +25,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
                             //preparation
                             List<Tuple<string, string, double>> TSManipulation_temp = new List<Tuple<string, string, double>> { };
                             List<Tuple<string, string>> TSstructures_temp = new List<Tuple<string, string>> { };
+                            List<Tuple<string, double, double, double>> createRings_temp = new List<Tuple<string, double, double, double>> { };
                             List<Tuple<string, string, double, double, int>> initOptConst_temp = new List<Tuple<string, string, double, double, int>> { };
                             List<Tuple<string, string, double, double, int>> bstOptConst_temp = new List<Tuple<string, string, double, double, int>> { };
                             List<Tuple<string, double, string>> targets_temp = new List<Tuple<string, double, string>> { };
@@ -43,24 +44,25 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
                                         string parameter = line.Substring(0, line.IndexOf("="));
                                         string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
                                         if (parameter == "template name") tempTemplate.SetTemplateName(value);
-                                        else if (parameter == "initial dose per fraction") 
-                                        { 
-                                            if (double.TryParse(value, out double initDPF)) tempTemplate.SetInitRxDosePerFx(initDPF); 
+                                        else if (parameter == "initial dose per fraction")
+                                        {
+                                            if (double.TryParse(value, out double initDPF)) tempTemplate.SetInitRxDosePerFx(initDPF);
                                         }
-                                        else if (parameter == "initial num fx") 
-                                        { 
-                                            if (int.TryParse(value, out int initFx)) tempTemplate.SetInitialRxNumFx(initFx); 
+                                        else if (parameter == "initial num fx")
+                                        {
+                                            if (int.TryParse(value, out int initFx)) tempTemplate.SetInitialRxNumFx(initFx);
                                         }
-                                        else if (parameter == "boost dose per fraction") 
-                                        { 
-                                            if (double.TryParse(value, out double bstDPF)) tempTemplate.SetBoostRxDosePerFx(bstDPF); 
+                                        else if (parameter == "boost dose per fraction")
+                                        {
+                                            if (double.TryParse(value, out double bstDPF)) tempTemplate.SetBoostRxDosePerFx(bstDPF);
                                         }
-                                        else if (parameter == "boost num fx") 
-                                        { 
-                                            if (int.TryParse(value, out int bstFx)) tempTemplate.SetBoostRxNumFx(bstFx); 
+                                        else if (parameter == "boost num fx")
+                                        {
+                                            if (int.TryParse(value, out int bstFx)) tempTemplate.SetBoostRxNumFx(bstFx);
                                         }
                                     }
                                     else if (line.Contains("add TS manipulation")) TSManipulation_temp.Add(ParseTSManipulation(line));
+                                    else if (line.Contains("create ring")) createRings_temp.Add(ParseCreateRing(line));
                                     else if (line.Contains("crop and contour")) cropAndContourOverlapStructures_temp.Add(ParseCropAndContourOverlapStruct(line));
                                     else if (line.Contains("add init opt constraint")) initOptConst_temp.Add(ParseOptimizationConstraint(line));
                                     else if (line.Contains("add boost opt constraint")) bstOptConst_temp.Add(ParseOptimizationConstraint(line));
@@ -73,6 +75,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
                             }
 
                             if(TSManipulation_temp.Any()) tempTemplate.SetTSManipulations(TSManipulation_temp);
+                            if (createRings_temp.Any()) tempTemplate.SetCreateRings(createRings_temp);
                             if(cropAndContourOverlapStructures_temp.Any()) tempTemplate.SetCropAndOverlapStructures(cropAndContourOverlapStructures_temp);
                             if(TSstructures_temp.Any()) tempTemplate.SetCreateTSStructures(TSstructures_temp);
                             if(initOptConst_temp.Any()) tempTemplate.SetInitOptimizationConstraints(initOptConst_temp);
@@ -105,7 +108,24 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             return Tuple.Create(dicomType, TSstructure);
         }
 
-        public Tuple<string, double, string> ParseTargets(string line)
+        private Tuple<string, double, double, double> ParseCreateRing(string line)
+        {
+            string structure;
+            double margin;
+            double thickness;
+            double dose;
+            line = CropLine(line, "{");
+            structure = line.Substring(0, line.IndexOf(","));
+            line = CropLine(line, ",");
+            margin = double.Parse(line.Substring(0, line.IndexOf(",")));
+            line = CropLine(line, ",");
+            thickness = double.Parse(line.Substring(0, line.IndexOf(",")));
+            line = CropLine(line, ",");
+            dose = double.Parse(line.Substring(0, line.IndexOf("}")));
+            return Tuple.Create(structure, margin, thickness, dose);
+        }
+
+        private Tuple<string, double, string> ParseTargets(string line)
         {
             //known array format --> can take shortcuts in parsing the data
             //structure id, sparing type, added margin in cm (ignored if sparing type is Dmax ~ Rx Dose)
@@ -145,7 +165,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             return structure;
         }
 
-        public Tuple<string, string, double, double, int> ParseOptimizationConstraint(string line)
+        private Tuple<string, string, double, double, int> ParseOptimizationConstraint(string line)
         {
             //known array format --> can take shortcuts in parsing the data
             //structure id, constraint type, dose (cGy), volume (%), priority
@@ -167,7 +187,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             return Tuple.Create(structure, constraintType, doseVal, volumeVal, priorityVal);
         }
 
-        public Tuple<string, string, double, string> ParseRequestedPlanDoseInfo(string line)
+        private Tuple<string, string, double, string> ParseRequestedPlanDoseInfo(string line)
         {
             line = CropLine(line, "{");
             string structure = line.Substring(0, line.IndexOf(","));
@@ -201,7 +221,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             return Tuple.Create(structure, constraintType, doseVal, representation);
         }
 
-        public Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>> ParseTSstructure(string line)
+        private Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>> ParseTSstructure(string line)
         {
             //type (Dmax or V), dose value for volume constraint (N/A for Dmax), equality or inequality, volume (%) or dose (%)
             List<Tuple<string, double, string, double>> constraints = new List<Tuple<string, double, string, double>> { };
@@ -270,7 +290,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             catch (Exception e) { MessageBox.Show(String.Format("Error could not parse TS structure: {0}\nBecause: {1}", line, e.Message)); return Tuple.Create("", 0.0, 0.0, 0.0, 0, new List<Tuple<string, double, string, double>> { }); }
         }
 
-        public Tuple<string, string, double, double, DoseValuePresentation> ParsePlanObjective(string line)
+        private Tuple<string, string, double, double, DoseValuePresentation> ParsePlanObjective(string line)
         {
             string structure;
             string constraintType;
