@@ -734,47 +734,6 @@ namespace VMATAutoPlanMT.VMAT_CSI
             return isOverlap;
         }
 
-        private bool CheckAllRequestedTargetCropAndOverlapManipulations(List<string> cropSpareList)
-        {
-            List<string> structuresToRemove = new List<string> { };
-            foreach (string itr in cropSpareList)
-            {
-                Structure normal = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.ToLower());
-                if (normal != null)
-                {
-                    List<Tuple<string, string>> tgts = new TargetsHelper().GetPlanTargetList(prescriptions);
-                    //verify structures requested for cropping target from structure actually overlap with structure
-                    //planid, targetid
-                    foreach (Tuple<string, string> itr1 in tgts)
-                    {
-                        Structure target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr1.Item2.ToLower());
-                        if (target != null)
-                        {
-                            if (!IsOverlap(target, normal, 0.0))
-                            {
-                                ProvideUIUpdate(String.Format("Warning! {0} does not overlap with all plan target ({1}) structures! Removing from TS manipulation list!", normal.Id, target.Id));
-                                structuresToRemove.Add(itr);
-                                break;
-                            }
-                            else ProvideUIUpdate(String.Format("{0} overlaps with target {1}", normal.Id, target.Id));
-                        }
-                        else ProvideUIUpdate(String.Format("Warning! Could not retrieve target: {0}! Skipping", itr1.Item2));
-                    }
-                }
-                else
-                {
-                    ProvideUIUpdate(String.Format("Warning! Could not retrieve structure: {0}! Skipping and removing from list!", itr));
-                    structuresToRemove.Add(itr);
-                }
-            }
-
-            foreach(string itr in structuresToRemove)
-            {
-                cropAndOverlapStructures.RemoveAt(cropAndOverlapStructures.IndexOf(itr));
-            }
-            return false;
-        }
-
         private bool PerformTSStructureManipulation()
         {
             //get target plan list
@@ -843,20 +802,122 @@ namespace VMATAutoPlanMT.VMAT_CSI
             return false;
         }
 
+        private bool CheckAllRequestedTargetCropAndOverlapManipulations()
+        {
+            List<string> structuresToRemove = new List<string> { };
+            List<Tuple<string, string>> tgts = new TargetsHelper().GetPlanTargetList(prescriptions);
+            int percentCompletion = 0;
+            int calcItems = ((1 + 2 * tgts.Count) * cropAndOverlapStructures.Count) + 1;
+            ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), String.Format("Retrieved plan-target list"));
+
+            foreach (string itr in cropAndOverlapStructures)
+            {
+                Structure normal = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.ToLower());
+                if (normal != null)
+                {
+                    ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), String.Format("Retrieved normal structure: {0}", normal.Id));
+                    //verify structures requested for cropping target from structure actually overlap with structure
+                    //planid, targetid
+                    foreach (Tuple<string, string> itr1 in tgts)
+                    {
+                        Structure target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr1.Item2.ToLower());
+                        if (target != null)
+                        {
+                            ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), String.Format("Retrieved target structure: {0}", target.Id));
+                            if (!IsOverlap(target, normal, 0.0))
+                            {
+                                ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), String.Format("Warning! {0} does not overlap with all plan target ({1}) structures! Removing from TS manipulation list!", normal.Id, target.Id));
+                                structuresToRemove.Add(itr);
+                                break;
+                            }
+                            else ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), String.Format("{0} overlaps with target {1}", normal.Id, target.Id));
+                        }
+                        else ProvideUIUpdate(String.Format("Warning! Could not retrieve target: {0}! Skipping", itr1.Item2));
+                    }
+                }
+                else
+                {
+                    ProvideUIUpdate(String.Format("Warning! Could not retrieve structure: {0}! Skipping and removing from list!", itr));
+                    structuresToRemove.Add(itr);
+                }
+            }
+
+            RemoveStructuresFromCropOverlapList(structuresToRemove);
+            ProvideUIUpdate(100, String.Format("Removed missing structures or normals that do not overlap with all targets from crop/overlap list"));
+            return false;
+        }
+
+        private void RemoveStructuresFromCropOverlapList(List<string> structuresToRemove)
+        {
+            foreach (string itr in structuresToRemove)
+            {
+                ProvideUIUpdate(String.Format("Removing {0} from crop/overlap list", itr));
+                cropAndOverlapStructures.RemoveAt(cropAndOverlapStructures.IndexOf(itr));
+            }
+        }
+
+        private (bool, Structure) CreateAndContourCropStructure(Structure target)
+        {
+            bool fail = false;
+            string cropName = String.Format("{0}crop", target.Id);
+            if (cropName.Length > 16) cropName = cropName.Substring(0, 16);
+            Structure cropStructure;
+            if (!string.Equals(cropName, target.Id))
+            {
+                cropStructure = AddTSStructures(new Tuple<string, string>("CONTROL", cropName));
+                if (cropStructure == null)
+                {
+                    ProvideUIUpdate(String.Format("Error! Could not create crop structure: {0}! Exiting", cropName), true);
+                    fail = true;
+                    return (fail, null);
+                }
+                cropStructure.SegmentVolume = target.Margin(0.0);
+                ProvideUIUpdate(String.Format("Created and contoured crop structure: {0}", cropName));
+            }
+            else
+            {
+                ProvideUIUpdate(String.Format("Warning! Ran out of characters for structure Id! Using existing TS target: {0}", target.Id));
+                cropStructure = target;
+            }
+            return (fail, cropStructure);
+        }
+
+        private (bool, Structure) CreateOverlapStructure(Structure target, int prescriptionCount)
+        {
+            bool fail = false;
+            string overlapName = String.Format("{0}over", target.Id);
+            if (overlapName.Length > 16) overlapName = overlapName.Substring(0, 16);
+            Structure overlapStructure;
+            if (string.Equals(overlapName, target.Id))
+            {
+                ProvideUIUpdate(String.Format("Warning! Ran out of characters for structure Id! Using structure Id: {0}{1}", "TS_overlap", prescriptionCount));
+                overlapName = String.Format("TS_overlap{0}", prescriptionCount);
+            }
+            overlapStructure = AddTSStructures(new Tuple<string, string>("CONTROL", overlapName));
+            if (overlapStructure == null)
+            {
+                ProvideUIUpdate(String.Format("Error! Could not create overlap structure: {0}! Exiting", overlapName));
+                fail = true;
+                return (fail, null);
+            }
+            ProvideUIUpdate(String.Format("Created overlap structure: {0}", overlapName));
+            return (fail, overlapStructure);
+        }
+
         private bool CropAndContourOverlapWithTargets()
         {
             //only do this for the highest dose target in each plan!
-            UpdateUILabel("Crop Targets:");
-            int percentComplete = 0;
-            int calcItems = prescriptions.Count() + 1;
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), "Sorting prscriptions by cumulative dose");
-            //sort by cumulative Rx to the targets (item 2)
-            List<Tuple<string, string, int, DoseValue, double>> sortedPrescriptions = prescriptions.OrderBy(x => x.Item5).ToList();
-            ProvideUIUpdate("Evaluating overlap between targets and normal structures requested for target cropping!");
-            ////get list of structure manipulations that require cropping target from structure
+            UpdateUILabel("Crop/overlap with targets:");
             //evaluate overlap of each structure with each target
             //if structure dose not overlap BOTH targets, remove from structure manipulations list and remove added structure
-            if (CheckAllRequestedTargetCropAndOverlapManipulations(cropAndOverlapStructures)) return true;
+            ProvideUIUpdate("Evaluating overlap between targets and normal structures requested for target cropping!");
+            if (CheckAllRequestedTargetCropAndOverlapManipulations()) return true;
+
+            int percentComplete = 0;
+            int calcItems = 1 + (3 + 3 * cropAndOverlapStructures.Count) * prescriptions.Count();
+            //sort by cumulative Rx to the targets (item 2)
+            List<Tuple<string, string, int, DoseValue, double>> sortedPrescriptions = prescriptions.OrderBy(x => x.Item5).ToList();
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), "Sorted prescriptions by cumulative dose");
 
             if (cropAndOverlapStructures.Any())
             {
@@ -866,72 +927,37 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     string targetId = String.Format("TS_{0}", sortedPrescriptions.ElementAt(i).Item2);
                     Structure target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == targetId.ToLower());
                     List<Tuple<string, string>> tmp = new List<Tuple<string, string>> { };
-                    ProvideUIUpdate(String.Format("Retrieved target: {0}", targetId));
+                    ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), String.Format("Retrieved target: {0}", targetId));
                     if (target != null)
                     {
-                        string cropName = String.Format("{0}crop", targetId);
-                        if (cropName.Length > 16) cropName = cropName.Substring(0, 16);
-                        Structure cropStructure;
-                        if (!string.Equals(cropName, targetId))
-                        {
-                            cropStructure = AddTSStructures(new Tuple<string, string>("CONTROL", cropName));
-                            if (cropStructure == null)
-                            {
-                                ProvideUIUpdate(String.Format("Error! Could not create crop structure: {0}! Exiting", cropName));
-                                return true;
-                            }
-                            cropStructure.SegmentVolume = target.Margin(0.0);
-                        }
-                        else
-                        {
-                            ProvideUIUpdate(String.Format("Warning! Ran out of characters for structure Id! Using existing TS target: {0}", targetId));
-                            cropStructure = target;
-                        }
-                        tmp.Add(Tuple.Create(cropName, "crop"));
+                        (bool, Structure) cropResult = CreateAndContourCropStructure(target);
+                        if (cropResult.Item1) return true;
+                        tmp.Add(Tuple.Create(cropResult.Item2.Id, "crop"));
+                        ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), String.Format("Added crop structure ({0}) to stack", cropResult.Item2.Id));
 
-                        string overlapName = String.Format("{0}over", targetId);
-                        if (overlapName.Length > 16) overlapName = overlapName.Substring(0, 16);
-                        Structure overlapStructure;
-                        if (string.Equals(overlapName, targetId))
-                        {
-                            ProvideUIUpdate(String.Format("Warning! Ran out of characters for structure Id! Using structure Id: {0}{1}", "TS_overlap",i));
-                            overlapName = String.Format("TS_overlap{0}", i);
-                        }
-                        overlapStructure = AddTSStructures(new Tuple<string, string>("CONTROL", overlapName));
-                        if (overlapStructure == null)
-                        {
-                            ProvideUIUpdate(String.Format("Error! Could not create overlap structure: {0}! Exiting", overlapName));
-                            return true;
-                        }
-                        //overlapStructure.SegmentVolume = target.Margin(0.0);
-                        tmp.Add(Tuple.Create(overlapName, "overlap"));
+                        (bool, Structure) overlapRresult = CreateOverlapStructure(target, i);
+                        if (overlapRresult.Item1) return true;
+                        tmp.Add(Tuple.Create(overlapRresult.Item2.Id, "overlap"));
+                        ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), String.Format("Added overlap structure ({0}) to stack", overlapRresult.Item2.Id));
 
                         foreach (string itr in cropAndOverlapStructures)
                         {
                             Structure normal = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.ToLower());
+                            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), String.Format("Retrieved normal structure: {0}", normal.Id));
 
-                            ProvideUIUpdate(String.Format("Contouring overlap between structure ({0}) and target ({1})", itr, target.Id));
-                            if (ContourOverlapAndUnion(normal, target, overlapStructure, 0.0)) return true;
+                            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), String.Format("Contouring overlap between structure ({0}) and target ({1})", itr, target.Id));
+                            if (ContourOverlapAndUnion(normal, target, overlapRresult.Item2, 0.0)) return true;
 
-                            ProvideUIUpdate(String.Format("Cropping structure ({0}) from target ({1})", itr, target.Id));
-                            if(CropTargetFromStructure(cropStructure, normal, 0.0)) return true;
-
-                            
-                            //for(int j = i + 1; j < sortedPrescriptions.Count(); j++)
-                            //{
-                            //    Structure baseTarget = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == sortedPrescriptions.ElementAt(j).Item2.ToLower());
-                            //    ProvideUIUpdate(String.Format("Retrieving base target: {0}", baseTarget.Id));
-
-                            //}
+                            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), String.Format("Cropping structure ({0}) from target ({1})", itr, target.Id));
+                            if(CropTargetFromStructure(cropResult.Item2, normal, 0.0)) return true;
                         }
-                        normVolumes.Add(Tuple.Create(sortedPrescriptions.ElementAt(i).Item1, cropStructure.Id));
+                        normVolumes.Add(Tuple.Create(sortedPrescriptions.ElementAt(i).Item1, cropResult.Item2.Id));
                         targetManipulations.Add(Tuple.Create(sortedPrescriptions.ElementAt(i).Item1, target.Id, tmp));
                     }
                     else ProvideUIUpdate(String.Format("Could not retrieve ts target: {0}", targetId));
                 }
-                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));
             }
-            else ProvideUIUpdate("No structures remaining to crop and contour overlap with structures! Moving on!");
+            else ProvideUIUpdate(100, "No structures remaining to crop and contour overlap with structures! Skipping!");
             return false;
         }
         #endregion

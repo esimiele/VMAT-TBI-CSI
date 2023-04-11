@@ -92,7 +92,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         //plan ID, target Id, numFx, dosePerFx, cumulative dose
         List<Tuple<string, string,int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
         //list of junction structures (i.e., overlap regions between adjacent isocenters)
-        List<Structure> jnxs = new List<Structure> { };
+        List<Tuple<ExternalPlanSetup, List<Structure>>> jnxs = new List<Tuple<ExternalPlanSetup, List<Structure>>> { };
         PlanPrep_CSI prep = null;
         public VMS.TPS.Common.Model.API.Application app = null;
         bool isModified = false;
@@ -206,15 +206,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
         private void ClearAllCurrentParameters()
         {
-            //clear targets list
-            ClearAllTargetItems();
-
-            //clear tuning structure generation list
-            ClearTuningStructureList(TSGenerationSP);
-
-            //clear tuning structure manipulation list
-            ClearStructureManipulationsList(ClearStructureManipulationsBtn);
-
+            //targets and tuning structures are automatically handled in their respectful AddDefaults event click method
             //clear isocenter and beams information
             beamPlacementSP.Children.Clear();
 
@@ -239,8 +231,8 @@ namespace VMATAutoPlanMT.VMAT_CSI
             boostNumFxTB.Text = "";
             if (selectedTemplate.GetTemplateName() != "--select--")
             {
-                setInitPresciptionInfo(selectedTemplate.GetInitialRxDosePerFx(), selectedTemplate.GetInitialRxNumFx());
-                if (selectedTemplate.GetBoostRxDosePerFx() != 0.1 && selectedTemplate.GetBoostRxNumFx() != 1) setBoostPrescriptionInfo(selectedTemplate.GetBoostRxDosePerFx(), selectedTemplate.GetBoostRxNumFx());
+                SetInitPresciptionInfo(selectedTemplate.GetInitialRxDosePerFx(), selectedTemplate.GetInitialRxNumFx());
+                if (selectedTemplate.GetBoostRxDosePerFx() != 0.1 && selectedTemplate.GetBoostRxNumFx() != 1) SetBoostPrescriptionInfo(selectedTemplate.GetBoostRxDosePerFx(), selectedTemplate.GetBoostRxNumFx());
                 ClearAllCurrentParameters();
                 LoadTemplateDefaults();
                 log.Template = selectedTemplate.GetTemplateName();
@@ -252,7 +244,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         }
 
         bool waitToUpdate = false;
-        private void setInitPresciptionInfo(double dose_perFx, int num_Fx)
+        private void SetInitPresciptionInfo(double dose_perFx, int num_Fx)
         {
             if (initDosePerFxTB.Text != dose_perFx.ToString() && initNumFxTB.Text != num_Fx.ToString()) waitToUpdate = true;
             initDosePerFxTB.Text = dose_perFx.ToString();
@@ -260,7 +252,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         }
 
         bool boostWaitToUpdate = false;
-        private void setBoostPrescriptionInfo(double dose_perFx, int num_Fx)
+        private void SetBoostPrescriptionInfo(double dose_perFx, int num_Fx)
         {
             if (boostDosePerFxTB.Text != dose_perFx.ToString() && boostNumFxTB.Text != num_Fx.ToString()) boostWaitToUpdate = true;
             boostDosePerFxTB.Text = dose_perFx.ToString();
@@ -275,7 +267,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 MessageBox.Show("Error! The number of fractions must be non-negative integer and greater than zero!");
                 initRxTB.Text = "";
             }
-            else resetInitRxDose();
+            else ResetInitRxDose();
         }
 
         private void initDosePerFx_TextChanged(object sender, TextChangedEventArgs e)
@@ -286,10 +278,10 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 MessageBox.Show("Error! The dose per fraction must be a number and non-negative!");
                 initRxTB.Text = "";
             }
-            else resetInitRxDose();
+            else ResetInitRxDose();
         }
 
-        private void resetInitRxDose()
+        private void ResetInitRxDose()
         {
             if (waitToUpdate) waitToUpdate = false;
             else if (int.TryParse(initNumFxTB.Text, out int newNumFx) && double.TryParse(initDosePerFxTB.Text, out double newDoseFx))
@@ -387,7 +379,11 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
         private void AddTargetDefaults_Click(object sender, RoutedEventArgs e)
         {
-            if (selectedSS == null) { MessageBox.Show("Error! The structure set has not been assigned! Choose a structure set and try again!"); return; }
+            if (selectedSS == null) 
+            { 
+                MessageBox.Show("Error! The structure set has not been assigned! Choose a structure set and try again!"); 
+                return; 
+            }
             List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>>(new TargetsUIHelper().AddTargetDefaults((templateList.SelectedItem as CSIAutoPlanTemplate), selectedSS));
             ClearAllTargetItems();
             AddTargetVolumes(targetList, targetsSP);
@@ -438,7 +434,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             bool firstStruct;
             int counter;
             string clearBtnNamePrefix;
-            if (theSP.Name == "targets_sp")
+            if (theSP.Name == "targetsSP")
             {
                 firstStruct = firstTargetStruct;
                 counter = clearTargetBtnCounter;
@@ -499,7 +495,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         private void AddTargetHeader(StackPanel theSP)
         {
             theSP.Children.Add(new TargetsUIHelper().GetTargetHeader(theSP.Width));
-            if (theSP.Name == "targets_sp") firstTargetStruct = false;
+            if (theSP.Name == "targetsSP") firstTargetStruct = false;
             else firstTargetTemplateStruct = false;
         }
 
@@ -565,7 +561,11 @@ namespace VMATAutoPlanMT.VMAT_CSI
         private void AddDefaultTuningStructures_Click(object sender, RoutedEventArgs e)
         {
             List<Tuple<string, string>> tmp = new List<Tuple<string, string>>(defaultTS_structures);
-            if (templateList.SelectedItem != null) foreach (Tuple<string, string> itr in ((CSIAutoPlanTemplate)templateList.SelectedItem).GetCreateTSStructures()) tmp.Add(itr);
+            if (templateList.SelectedItem != null)
+            {
+                foreach (Tuple<string, string> itr in ((CSIAutoPlanTemplate)templateList.SelectedItem).GetCreateTSStructures()) tmp.Add(itr);
+            }
+            ClearTuningStructureList(TSGenerationSP);
             //populate the comboboxes
             AddTuningStructureVolumes(tmp, TSGenerationSP);
             TSGenerationScroller.ScrollToBottom();
@@ -794,7 +794,11 @@ namespace VMATAutoPlanMT.VMAT_CSI
             List<Tuple<string, string, double>> templateSpareList = new List<Tuple<string, string, double>>(defaultTSStructureManipulations);
             //add the case-specific sparing structures to the temporary list
             if (templateList.SelectedItem != null) templateSpareList = new List<Tuple<string, string, double>>(AddTemplateSpecificStructureManipulations((templateList.SelectedItem as CSIAutoPlanTemplate).GetTSManipulations(), templateSpareList));
-            if (!templateSpareList.Any()) { MessageBox.Show("No default tuning structure manipulations contained in the selected template!"); return; }
+            if (!templateSpareList.Any()) 
+            { 
+                MessageBox.Show("No default tuning structure manipulations contained in the selected template!"); 
+                return; 
+            }
 
             string missOutput = "";
             string emptyOutput = "";
@@ -996,6 +1000,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         {
             //default option to contour overlap between fields in adjacent isocenters and assign the resulting structures as targets
             contourOverlap_chkbox.IsChecked = contourOverlap;
+            ContourOverlap_Checked(null, null);
             contourOverlapTB.Text = contourFieldOverlapMargin;
 
             beamPlacementSP.Children.Clear();
@@ -1057,10 +1062,14 @@ namespace VMATAutoPlanMT.VMAT_CSI
             if (!VMATplans.Any()) return;
 
             //if the user elected to contour the overlap between fields in adjacent isocenters, get this list of structures from the placeBeams class and copy them to the jnxs vector
-            if (contourOverlap_chkbox.IsChecked.Value) jnxs = place.GetFieldJunctionStructures();
+            //also repopulate the optimization tab (will include the newly added field junction structures)!
+            if (contourOverlap_chkbox.IsChecked.Value)
+            {
+                jnxs = place.GetFieldJunctionStructures();
+                ClearOptimizationConstraintsList(optParametersSP);
+                PopulateOptimizationTab(optParametersSP);
+            }
 
-            //if the user requested to contour the overlap between fields in adjacent VMAT isocenters, repopulate the optimization tab (will include the newly added field junction structures)!
-            if (contourOverlap_chkbox.IsChecked.Value) PopulateOptimizationTab(optParametersSP);
             beamPlacementTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             optimizationSetupTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             //list the plan UIDs by creation date (initial always gets created first, then boost)
@@ -1085,6 +1094,8 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 }
                 else
                 {
+                    if (selectedTemplate.GetInitOptimizationConstraints().Any()) list.Add(Tuple.Create("CSI-init", selectedTemplate.GetInitOptimizationConstraints()));
+                    if (selectedTemplate.GetBoostOptimizationConstraints().Any()) list.Add(Tuple.Create("CSI-bst", selectedTemplate.GetBoostOptimizationConstraints()));
                 }
             }
             else MessageBox.Show("No template selected!");
@@ -1125,54 +1136,44 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 defaultListList = new List<Tuple<string, List<Tuple<string, string, double, double, int>>>> (tmpList);
             }
 
+            if(jnxs.Any())
+            {
+                defaultListList = InsertTSJnxOptConstraints(defaultListList);
+            }
+
             //12/27/2022 this line needs to be fixed as it assumes prescriptions is arranged such that each entry in the list contains a unique plan ID
             //1/18/2023 super ugly, but it works. A simple check is performed to ensure that we won't exceed the number of prescriptions in the loop
             //an issue for the following line is that boost constraints might end up being added to the initial plan (if there are two prescriptions for the initial plan)
             //need to implement function to get unique plan Id's sorted by Rx
             foreach (Tuple<string, List<Tuple<string, string, double, double, int>>> itr in defaultListList) AddOptimizationConstraintItems(itr.Item2, itr.Item1, theSP);
 
-            //else
-            //{
-            //    //No items in the optParameters vector, indicating the user just wants to set/reset the optimization parameters. 
-            //    //In this case, just search through the structure set to see if any of the contoured structure IDs match the structures in the optimization parameter templates
-            //    if (selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ptv")).Any())
-            //    {
-            //        foreach (Tuple<string, string, double, double, int> opt in tmp)
-            //        {
-            //            if (opt.Item1.Contains("PTV")) defaultList.Add(opt);
-            //            else if (selectedSS.Structures.Where(x => x.Id.ToLower().Contains(opt.Item1.ToLower())).Any())
-            //            {
-            //                //12-22-2020 coded added to account for the situation where the structure selected for sparing had to be previously converted to a low resolution structure using this script
-            //                if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()) != null && !selectedSS.Structures.First(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()).IsEmpty) defaultList.Add(Tuple.Create(selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()).Id, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
-            //                else if (!selectedSS.Structures.First(x => x.Id.ToLower() == opt.Item1.ToLower()).IsEmpty) defaultList.Add(Tuple.Create(selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == opt.Item1.ToLower()).Id, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
-            //            }
-            //        }
-            //    }
-            //    else
-            //    {
-            //        MessageBox.Show("Warning! No PTV structures in the selected structure set! Add a PTV structure and try again!");
-            //        return;
-            //    }
-            //}
-
             //check if the user requested to contour the overlap between fields in adjacent isocenters and also check if there are any structures in the junction structure stack (jnxs)
             //if (contourOverlap_chkbox.IsChecked.Value || jnxs.Any())
             //{
-            //    //we want to insert the optimization constraints for these junction structure right after the ptv constraints, so find the last index of the target ptv structure and insert
-            //    //the junction structure constraints directly after the target structure constraints
-            //    int index = defaultList.FindLastIndex(x => x.Item1.ToLower().Contains("ptv"));
-            //    foreach (Structure s in jnxs)
-            //    {
-            //        //per Nataliya's instructions, add both a lower and upper constraint to the junction volumes. Make the constraints match those of the ptv target
-            //        defaultList.Insert(++index, new Tuple<string, string, double, double, int>(s.Id, "Lower", prescriptions.Item2.Dose * prescriptions.Item1, 100.0, 100));
-            //        defaultList.Insert(++index, new Tuple<string, string, double, double, int>(s.Id, "Upper", prescriptions.Item2.Dose * prescriptions.Item1 * 1.01, 0.0, 100));
-            //    }
+            //    
             //}
+        }
 
-            //clear the current list of optimization objectives
-            // clear_optimization_parameter_list();
-            //add the default list of optimization objectives to the displayed list of optimization objectives
-            // add_opt_volumes(defaultList);
+        private List<Tuple<string, List<Tuple<string, string, double, double, int>>>> InsertTSJnxOptConstraints(List<Tuple<string, List<Tuple<string, string, double, double, int>>>> list)
+        {
+            //we want to insert the optimization constraints for these junction structure right after the ptv constraints, so find the last index of the target ptv structure and insert
+            //the junction structure constraints directly after the target structure constraints
+            TargetsHelper helper = new TargetsHelper();
+            foreach(Tuple < string, List<Tuple<string, string, double, double, int>>> itr in list)
+            {
+                if(jnxs.Any(x => string.Equals(x.Item1.Id.ToLower(), itr.Item1.ToLower())))
+                {
+                    int index = itr.Item2.FindLastIndex(x => x.Item1.ToLower().Contains("ptv") || x.Item1.ToLower().Contains("ts_overlap"));
+                    double rxDose = helper.GetHighestRxForPlan(prescriptions, itr.Item1);
+                    foreach (Structure itr1 in jnxs.First(x => string.Equals(x.Item1.Id.ToLower(), itr.Item1.ToLower())).Item2)
+                    {
+                        //per Nataliya's instructions, add both a lower and upper constraint to the junction volumes. Make the constraints match those of the ptv target
+                        itr.Item2.Insert(++index, new Tuple<string, string, double, double, int>(itr1.Id, "Lower", rxDose, 100.0, 100));
+                        itr.Item2.Insert(++index, new Tuple<string, string, double, double, int>(itr1.Id, "Upper", rxDose * 1.01, 0.0, 100));
+                    }
+                }
+            }
+            return list;
         }
 
         private void ScanSSAndAddOptimizationConstraints_Click(object sender, RoutedEventArgs e)

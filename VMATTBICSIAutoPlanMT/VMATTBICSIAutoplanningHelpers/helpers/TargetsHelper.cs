@@ -32,6 +32,20 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             return plansTargets;
         }
 
+        //plan Rx dose
+        public double GetHighestRxForPlan(List<Tuple<string, string, int, DoseValue, double>> prescriptions, string plandId)
+        {
+            double dose = 0.0;
+            List<Tuple<string, string, int, DoseValue, double>> tmpList = prescriptions.OrderBy(x => x.Item5).ToList();
+            if (tmpList.Any(x => string.Equals(x.Item1.ToLower(), plandId.ToLower())))
+            {
+                Tuple<string, string, int, DoseValue, double> rx = prescriptions.Last(x => string.Equals(x.Item1.ToLower(), plandId.ToLower()));
+                dose = rx.Item3 * rx.Item4.Dose;
+            }
+            return dose;
+        }
+
+        //target id, target prescription dose
         public (string, double) GetAppropriateTargetForRing(List<Tuple<string, string, int, DoseValue, double>> prescriptions, double ringDose)
         {
             string targetId = "";
@@ -86,6 +100,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             return plansTargets;
         }
 
+        //list of target IDs
         public List<string> GetAllTargets(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
         {
             List<string> targets = new List<string> { };
@@ -96,6 +111,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             return targets;
         }
 
+        //target structure
         public Structure GetTargetForPlan(StructureSet ss, string targetId, bool useFlash, PlanType type)
         {
             Structure target = null;

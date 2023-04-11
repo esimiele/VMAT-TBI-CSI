@@ -180,7 +180,7 @@ namespace VMATAutoPlanMT.VMAT_TBI
         Tuple<int, DoseValue> prescription = null;
         bool useFlash = false;
         string flashType = "";
-        List<Structure> jnxs = new List<Structure> { };
+        List<Tuple<ExternalPlanSetup,List<Structure>>> jnxs = new List<Tuple<ExternalPlanSetup, List<Structure>>> { };
         Structure flashStructure = null;
         PlanPrep_TBI prep = null;
         public VMS.TPS.Common.Model.API.Application app = null;
@@ -788,11 +788,13 @@ namespace VMATAutoPlanMT.VMAT_TBI
             //VMATplan = place.generatePlans("VMAT TBI", new List<Tuple<string, string, int, DoseValue, double>> { Tuple.Create("VMAT TBI", "", prescription.Item1, prescription.Item2, 0.0)}).First();
             if (VMATplan == null) return;
 
-            //if the user elected to contour the overlap between fields in adjacent isocenters, get this list of structures from the placeBeams class and copy them to the jnxs vector
-            if (contourOverlap_chkbox.IsChecked.Value) jnxs = place.GetFieldJunctionStructures();
-
-            //if the user requested to contour the overlap between fields in adjacent VMAT isocenters, repopulate the optimization tab (will include the newly added field junction structures)!
-            if (contourOverlap_chkbox.IsChecked.Value) populateOptimizationTab();
+            if (contourOverlap_chkbox.IsChecked.Value)
+            {
+                //if the user elected to contour the overlap between fields in adjacent isocenters, get this list of structures from the placeBeams class and copy them to the jnxs vector
+                jnxs = place.GetFieldJunctionStructures();
+                //if the user requested to contour the overlap between fields in adjacent VMAT isocenters, repopulate the optimization tab (will include the newly added field junction structures)!
+                populateOptimizationTab();
+            }
         }
 
         //stuff related to optimization setup tab
@@ -888,7 +890,7 @@ namespace VMATAutoPlanMT.VMAT_TBI
                 //we want to insert the optimization constraints for these junction structure right after the ptv constraints, so find the last index of the target ptv structure and insert
                 //the junction structure constraints directly after the target structure constraints
                 int index = defaultList.FindLastIndex(x => x.Item1.ToLower().Contains("ptv"));
-                foreach (Structure s in jnxs)
+                foreach (Structure s in jnxs.First().Item2)
                 {
                     //per Nataliya's instructions, add both a lower and upper constraint to the junction volumes. Make the constraints match those of the ptv target
                     defaultList.Insert(++index, new Tuple<string, string, double, double, int>(s.Id, "Lower", prescription.Item2.Dose * prescription.Item1, 100.0, 100));
@@ -911,7 +913,10 @@ namespace VMATAutoPlanMT.VMAT_TBI
                 MessageBox.Show("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
                 prescription = Tuple.Create(1, new DoseValue(0.1, DoseValue.DoseUnit.cGy));
             }
-            if (selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ts_jnx")).Any()) jnxs = selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ts_jnx")).ToList();
+            if (selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ts_jnx")).Any())
+            {
+                jnxs = new List<Tuple<ExternalPlanSetup, List<Structure>>> { new Tuple<ExternalPlanSetup, List<Structure>>(null, selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ts_jnx")).ToList()) };
+            }
 
             populateOptimizationTab();
         }
