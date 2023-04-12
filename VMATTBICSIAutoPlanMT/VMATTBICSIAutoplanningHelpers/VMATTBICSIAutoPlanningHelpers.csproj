@@ -110,7 +110,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Helpers\CalculationHelper.cs" />
+    <Compile Include="Helpers\OptimizationSetupHelper.cs" />
     <Compile Include="Helpers\PlanTypeEnum.cs" />
+    <Compile Include="Helpers\StructureTuningHelper.cs" />
     <Compile Include="Helpers\TargetsHelper.cs" />
     <Compile Include="UIHelpers\BeamPlacementUIHelper.cs" />
     <Compile Include="Helpers\ConfigurationHelper.cs" />

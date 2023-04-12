@@ -145,7 +145,7 @@
     </Window.Resources>
 
     <Grid Width="730">
-        <Grid.Background>
+        <!-- Grid.Background>
             <ImageBrush ImageSource="/Images/Stanford.png" Stretch="Uniform" AlignmentY="Top" Opacity="0.20">
                 <ImageBrush.Transform>
                     <TransformGroup>
@@ -156,7 +156,7 @@
                     </TransformGroup>
                 </ImageBrush.Transform>
             </ImageBrush>
-        </Grid.Background>
+        <-->
         <StackPanel>
             <Grid>
                 <Label Content="VMAT CSI auto planning" FontSize="20" HorizontalAlignment="Center" Margin="0,0,0,0" VerticalAlignment="Top"/>
@@ -260,9 +260,9 @@
                                     <StackPanel HorizontalAlignment="Center" Margin="0">
                                         <Label Content="Create Ring Structures" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
                                         <Grid Height="25" Width ="560" HorizontalAlignment="Center" Margin="0,5,0,0">
-                                            <Button x:Name="addRingBtn" Content="Add Ring" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="AddStructureManipulationItem_Click"/>
-                                            <Button Content="Add Defaults" Width="100" HorizontalAlignment="Center" VerticalAlignment="Top" Click="AddDefaultStructureManipulations_Click"/>
-                                            <Button x:Name="clearRingsBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="ClearStructureManipulations_Click"/>
+                                            <Button x:Name="addRingBtn" Content="Add Ring" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="AddRing_Click"/>
+                                            <Button Content="Add Defaults" Width="100" HorizontalAlignment="Center" VerticalAlignment="Top" Click="AddDefaultRings_Click"/>
+                                            <Button x:Name="clearRingsBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="ClearRings_Click"/>
                                         </Grid>
                                         <ScrollViewer x:Name="createRingsScroller" Height="360" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                             <StackPanel Name="createRingsSP" Margin="5">

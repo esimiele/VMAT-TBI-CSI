@@ -10,16 +10,13 @@ using System.Windows.Shapes;
 
 namespace VMATTBICSIOptLoopMT.Prompts
 {
-    /// <summary>
-    /// Interaction logic for SelectPatient.xaml
-    /// </summary>
     public partial class SelectPatient : Window
     {
         private string _patientMRN = "";
         private string _fullLogFileName = "";
         private string logPath = "";
-        List<string> logsCSI = new List<string> { };
-        List<string> logsTBI = new List<string> { };
+        private List<string> logsCSI = new List<string> { };
+        private List<string> logsTBI = new List<string> { };
         public bool selectionMade = false;
         public (string,string) GetPatientMRN()
         {
@@ -44,19 +41,27 @@ namespace VMATTBICSIOptLoopMT.Prompts
                 if(Directory.Exists(logPath + "\\preparation\\CSI\\"))
                 {
                     PatientMRNsCSI = new ObservableCollection<string>() { "--select--" };
-                    logsCSI = new List<string>(Directory.GetFiles(logPath + "\\preparation\\CSI\\", ".", SearchOption.AllDirectories).OrderByDescending(x => File.GetLastWriteTimeUtc(x)));
+                    logsCSI = new List<string>(Directory.GetDirectories(logPath + "\\preparation\\CSI\\", "*", SearchOption.TopDirectoryOnly).OrderByDescending(x => Directory.GetLastWriteTimeUtc(x)));
                     foreach (string itr in logsCSI)
                     {
-                        PatientMRNsCSI.Add(itr.Substring(itr.LastIndexOf("\\") + 1, itr.Length - itr.LastIndexOf("\\") - 1 - 4));
+                        if (Directory.GetFiles(itr, ".", SearchOption.TopDirectoryOnly).Any())
+                        {
+                            string CSILogFile = Directory.GetFiles(itr, ".", SearchOption.TopDirectoryOnly).First();
+                            PatientMRNsCSI.Add(CSILogFile.Substring(itr.LastIndexOf("\\") + 1, CSILogFile.Length - CSILogFile.LastIndexOf("\\") - 1 - 4));
+                        }
                     }
                 }
-                if(Directory.Exists(logPath + "\\preparation\\TBI\\"))
+                if (Directory.Exists(logPath + "\\preparation\\TBI\\"))
                 {
                     PatientMRNsTBI = new ObservableCollection<string>() { "--select--" };
-                    logsTBI = new List<string>(Directory.GetFiles(logPath + "\\preparation\\TBI\\", ".", SearchOption.AllDirectories).OrderByDescending(x => File.GetLastWriteTimeUtc(x)));
+                    logsTBI = new List<string>(Directory.GetDirectories(logPath + "\\preparation\\TBI\\", ".", SearchOption.TopDirectoryOnly).OrderByDescending(x => File.GetLastWriteTimeUtc(x)));
                     foreach (string itr in logsTBI)
                     {
-                        PatientMRNsTBI.Add(itr.Substring(itr.LastIndexOf("\\") + 1, itr.Length - itr.LastIndexOf("\\") - 1 - 4));
+                        if (Directory.GetFiles(itr, ".", SearchOption.TopDirectoryOnly).Any())
+                        {
+                            string TBILogFile = Directory.GetFiles(itr, ".txt", SearchOption.TopDirectoryOnly).First();
+                            PatientMRNsTBI.Add(itr.Substring(TBILogFile.LastIndexOf("\\") + 1, TBILogFile.Length - TBILogFile.LastIndexOf("\\") - 1 - 4));
+                        }
                     }
                 }
             }

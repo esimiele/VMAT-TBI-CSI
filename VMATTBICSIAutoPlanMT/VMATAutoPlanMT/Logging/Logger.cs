@@ -14,6 +14,8 @@ namespace VMATAutoPlanMT.Logging
         public string PlanType { set { planType = value; } }
         public string Template { set { template = value; } }
         public string StructureSet { set { selectedSS = value; } }
+        public bool ChangesSaved { set { changesSaved = value; } }
+        public string User { set { userId = value; } }
         //targets and prescription
         //structure ID, Rx dose, plan Id
         public List<Tuple<string, double, string>> Targets { set { targets = new List<Tuple<string, double, string>>(value); } }
@@ -37,10 +39,12 @@ namespace VMATAutoPlanMT.Logging
         private string logPath = "";
         //stringbuilder object to log output from ts generation/manipulation and beam placement
         private StringBuilder _logFromOperations;
+        private string userId;
         private string mrn;
         private string planType;
         private string template;
         private string selectedSS;
+        bool changesSaved = false;
         public List<Tuple<string, double, string>> targets;
         List<Tuple<string, string, int, DoseValue, double>> prescriptions;
         private List<string> addedStructures;
@@ -87,11 +91,22 @@ namespace VMATAutoPlanMT.Logging
             string type = "CSI";
             if (planType.Contains("TBI")) type = "TBI";
 
-            if (!Directory.Exists(logPath + "\\preparation\\" + type + "\\")) Directory.CreateDirectory(logPath + "\\preparation\\" + type + "\\");
-            string fileName = logPath + "\\preparation\\" + type + "\\" + mrn + ".txt";
+            logPath += "\\preparation\\" + type + "\\" + mrn + "\\";
+            string fileName = logPath + mrn + ".txt";
+            if (!changesSaved)
+            {
+                logPath += "unsaved" + "\\";
+                fileName = logPath + DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss") + ".txt";
+            }
+
+            if (!Directory.Exists(logPath))
+            {
+                Directory.CreateDirectory(logPath);
+            }
 
             StringBuilder sb = new StringBuilder();
             sb.AppendLine(String.Format(DateTime.Now.ToString()));
+            sb.AppendLine(String.Format("user={0}", userId));
             sb.AppendLine(String.Format("patient={0}", mrn));
             sb.AppendLine(String.Format("plan type={0}", planType));
             sb.AppendLine(String.Format("structure set={0}", selectedSS));

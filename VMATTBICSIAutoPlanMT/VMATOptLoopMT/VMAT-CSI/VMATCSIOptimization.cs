@@ -31,7 +31,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 //preliminary checks
                 UpdateUILabel("Preliminary checks:");
                 ProvideUIUpdate("Performing preliminary checks now:");
-                if (PreliminaryChecksSSAndImage(_data.selectedSS, new TargetsHelper().GetAllTargets(_data.prescriptions))) return true;
+                if (PreliminaryChecksSSAndImage(_data.selectedSS, new TargetsHelper().GetAllTargetIds(_data.prescriptions))) return true;
                 if (PreliminaryChecksCouch(_data.selectedSS)) return true;
                 if (_checkSupportStructures)
                 {
@@ -231,7 +231,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                     if (CalculateDose(_data.isDemo, itr, _data.app)) return true;
                     ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Dose calculated, normalizing plan!");
                     //normalize
-                    NormalizePlan(itr, new TargetsHelper().GetTargetForPlan(_data.selectedSS, GetNormaliztionVolumeIdForPlan(itr.Id), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
+                    NormalizePlan(itr, new TargetsHelper().GetTargetStructureForPlanType(_data.selectedSS, GetNormaliztionVolumeIdForPlan(itr.Id), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
                     if (GetAbortStatus())
                     {
                         KillOptimizationLoop();

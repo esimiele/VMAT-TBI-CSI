@@ -26,5 +26,10 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             else sp.Children.RemoveAt(k);
             return false;
         }
+
+        public void ClearList(StackPanel theSP)
+        {
+            theSP.Children.Clear();
+        }
     }
 }

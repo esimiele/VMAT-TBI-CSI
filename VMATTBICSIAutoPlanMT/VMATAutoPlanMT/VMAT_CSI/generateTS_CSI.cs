@@ -13,24 +13,30 @@ namespace VMATAutoPlanMT.VMAT_CSI
 {
     public class GenerateTS_CSI : GenerateTSbase
     {
-        //planId, lower dose target id, manipulation target id, operation
         public List<Tuple<string, string, List<Tuple<string, string>>>> GetTargetManipulations() { return targetManipulations; }
         public List<Tuple<string, string>> GetNormalizationVolumes() { return normVolumes; }
-        
+        public List<Tuple<string, string, double>> GetAddedRings() { return addedRings; }
+
         //DICOM types
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
         private List<Tuple<string, string>> TS_structures;
         //plan id, structure id, num fx, dose per fx, cumulative dose
         private List<Tuple<string, string, int, DoseValue, double>> prescriptions;
+        //target id, margin (cm), thickness (cm), dose (cGy)
+        private List<Tuple<string, double, double, double>> rings;
+        //target id, ring id, dose (cGy)
+        private List<Tuple<string, string, double>> addedRings = new List<Tuple<string, string, double>> { };
+        //planId, lower dose target id, list<manipulation target id, operation>
         private List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations = new List<Tuple<string, string, List<Tuple<string, string>>>> { };
         private List<Tuple<string, string>> normVolumes = new List<Tuple<string, string>> { };
         private List<string> cropAndOverlapStructures = new List<string> { };
         private int numVMATIsos;
 
-        public GenerateTS_CSI(List<Tuple<string, string>> ts, List<Tuple<string, string, double>> list, List<Tuple<string,string,int,DoseValue,double>> presc, StructureSet ss, List<string> cropStructs)
+        public GenerateTS_CSI(List<Tuple<string, string>> ts, List<Tuple<string, string, double>> list, List<Tuple<string, double, double, double>> tgtRings, List<Tuple<string,string,int,DoseValue,double>> presc, StructureSet ss, List<string> cropStructs)
         {
             TS_structures = new List<Tuple<string, string>>(ts);
+            rings = new List<Tuple<string, double, double, double>>(tgtRings);
             spareStructList = new List<Tuple<string, string, double>>(list);
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(presc);
             selectedSS = ss;
@@ -58,6 +64,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 {
                     if (CropAndContourOverlapWithTargets()) return true;
                 }
+                if (GenerateRings()) return true;
                 if (CalculateNumIsos()) return true;
                 UpdateUILabel("Finished!");
                 ProvideUIUpdate(100, "Finished Structure Tuning!");
@@ -65,6 +72,8 @@ namespace VMATAutoPlanMT.VMAT_CSI
             catch(Exception e) { ProvideUIUpdate(String.Format("{0}", e.Message), true); return true; }
             return false;
         }
+
+        
         #endregion
 
         #region Preliminary Checks and Structure Unioning
@@ -453,9 +462,44 @@ namespace VMATAutoPlanMT.VMAT_CSI
         #endregion
 
         #region TS Structure Creation and Manipulation
+        private bool GenerateRings()
+        {
+            if (rings.Any())
+            {
+                UpdateUILabel("Generating rings:");
+                ProvideUIUpdate("Generating requested ring structures for targets!");
+                int percentCompletion = 0;
+                int calcItems = 3 * rings.Count();
+                foreach(Tuple<string,double,double,double> itr in rings)
+                {
+                    Structure target = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id,itr.Item1));
+                    if (target != null)
+                    {
+                        ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), String.Format("Retrieved target: {0}", target.Id));
+                        string ringName = String.Format("TS_ring{0}", itr.Item4);
+                        if(selectedSS.Structures.Any(x => string.Equals(x.Id, ringName)))
+                        {
+                            //name is taken, append a '1' to it
+                            ringName += "1";
+                        }
+                        Structure ring = AddTSStructures(new Tuple<string, string>("CONTROL", ringName));
+                        if (ring == null) return true;
+                        ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), String.Format("Created empty ring: {0}", ring.Id));
+                        if (CreateRing(target, ring, itr.Item2, itr.Item3)) return true;
+                        ProvideUIUpdate(String.Format("Contouring ring: {0}", ring.Id));
+                        addedRings.Add(Tuple.Create(target.Id, ring.Id, itr.Item4));
+                        ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), String.Format("Finished contouring ring: {0}", itr));
+                    }
+                    else ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), String.Format("Could NOT retrieve target: {0}! Skipping ring: {1}", itr.Item1, String.Format("TS_ring{0}", itr.Item4)));
+                }
+            }
+            else ProvideUIUpdate("No ring structures requested!");
+            return false;
+        }
+
         protected override bool CreateTSStructures()
         {
-            UpdateUILabel("Create TS Structures: ");
+            UpdateUILabel("Create TS Structures:");
             ProvideUIUpdate(String.Format("Adding remaining tuning structures to stack!"));
             //get all TS structures that do not contain 'ctv' or 'ptv' in the title
             List<Tuple<string, string>> remainingTS = TS_structures.Where(x => !x.Item2.ToLower().Contains("ctv") && !x.Item2.ToLower().Contains("ptv")).ToList();
@@ -476,68 +520,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 counter = 0;
                 ProvideUIUpdate(0, String.Format("Contouring TS: {0}", itr));
                 Structure addedStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.ToLower());
-                if (itr.ToLower().Contains("ts_ring"))
-                {
-                    //3/28/23 FIX this!!! If there are multiple target structures, it overrides the previously contoured ring with a new ring of the same dose level
-                    if (double.TryParse(itr.Substring(7, itr.Length - 7), out double ringDose))
-                    {
-                        calcItems = prescriptions.Count;
-                        (string, double) result = new TargetsHelper().GetAppropriateTargetForRing(prescriptions, ringDose);
-                        if (!string.IsNullOrEmpty(result.Item1))
-                        {
-                            double targetRx = result.Item2;
-                            Structure targetStructure = selectedSS.Structures.FirstOrDefault(x => x.Id == result.Item1);
-                            if (targetStructure != null)
-                            {
-                                ProvideUIUpdate(String.Format("Target: {0} will be used to generate ring structure: {1}", targetStructure.Id, addedStructure.Id));
-                                //margin in cm. 
-                                double margin = ((targetRx - ringDose) / targetRx) * 3.0;
-                                if (margin > 0.0)
-                                {
-                                    //method to create ring of 2.0 cm thickness
-                                    //first create structure that is a copy of the target structure with an outer margin of ((Rx - ring dose / Rx) * 30 mm) + 20 mm.
-                                    //1/5/2023, nataliya stated the 50% Rx ring should be 1.5 cm from the target and have a thickness of 2 cm. Redefined the margin formula to equal 15 mm whenever (Rx - ring dose) / Rx = 0.5
-                                    //keep only the parts of the ring that are inside the body!
-                                    double thickness = margin + 2.0 > 5.0 ? 5.0 - margin : 2.0;
-                                    if (CreateRing(targetStructure, addedStructure, margin, thickness)) return true;
-                                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Finished contouring ring: {0}", itr));
-                                }
-                            }
-                            else
-                            {
-                                ProvideUIUpdate(String.Format("Could not retrieve target structure to generate ring: {0}!", addedStructure.Id), true);
-                                return true;
-                            }
-                        }
-                        else
-                        {
-                            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Warning! No targets in prescription have a Rx dose greater than {0}! Skipping and removing {1}", ringDose, addedStructure.Id));
-                            selectedSS.RemoveStructure(addedStructure);
-                        }
-                        //foreach (Tuple<string, string, int, DoseValue, double> itr1 in prescriptions)
-                        //{
-                        //    Structure targetStructure = selectedSS.Structures.FirstOrDefault(x => x.Id == itr1.Item2);
-                        //    if (targetStructure != null)
-                        //    {
-                        //        ProvideUIUpdate(String.Format("Generating ring {0} for target {1}", itr, itr1.Item2));
-                        //        //margin in cm. 
-                        //        double margin = ((itr1.Item5 - ringDose) / itr1.Item5) * 3.0;
-                        //        if (margin > 0.0)
-                        //        {
-                        //            //method to create ring of 2.0 cm thickness
-                        //            //first create structure that is a copy of the target structure with an outer margin of ((Rx - ring dose / Rx) * 30 mm) + 20 mm.
-                        //            //1/5/2023, nataliya stated the 50% Rx ring should be 1.5 cm from the target and have a thickness of 2 cm. Redefined the margin formula to equal 15 mm whenever (Rx - ring dose) / Rx = 0.5
-                        //            //keep only the parts of the ring that are inside the body!
-                        //            double thickness = margin + 2.0 > 5.0 ? 5.0 - margin : 2.0;
-                        //            if (CreateRing(targetStructure, addedStructure, margin, thickness)) return true;
-                        //            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Finished contouring ring: {0}", itr));
-                        //        }
-                        //    }
-                        //}
-                    }
-                    else ProvideUIUpdate(String.Format("Could not parse ring dose for {0}! Skipping!", itr));
-                }
-                else if (itr.ToLower().Contains("ts_globes") || itr.ToLower().Contains("ts_lenses"))
+                if (itr.ToLower().Contains("ts_globes") || itr.ToLower().Contains("ts_lenses"))
                 {
                     calcItems = 4;
                     //try to grab ptv_brain first

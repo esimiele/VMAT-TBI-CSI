@@ -559,7 +559,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
 
                 //normalize
-                NormalizePlan(itr, new TargetsHelper().GetTargetForPlan(_data.selectedSS, GetNormaliztionVolumeIdForPlan(itr.Id), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
+                NormalizePlan(itr, new TargetsHelper().GetTargetStructureForPlanType(_data.selectedSS, GetNormaliztionVolumeIdForPlan(itr.Id), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
                 UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
                 ProvideUIUpdate(String.Format(" {0} normalized!", itr.Id));
 
@@ -604,7 +604,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
 
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Dose calculated, normalizing plan!");
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
-                NormalizePlan(plan, new TargetsHelper().GetTargetForPlan(_data.selectedSS, GetNormaliztionVolumeIdForPlan(plan.Id), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
+                NormalizePlan(plan, new TargetsHelper().GetTargetStructureForPlanType(_data.selectedSS, GetNormaliztionVolumeIdForPlan(plan.Id), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
 
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Plan normalized! Evaluating plan quality and updating constraints!"); ;
                 //evaluate the new plan for quality and make any adjustments to the optimization parameters
@@ -1132,7 +1132,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             }
             string targetId = "";
             if (plansTargets.Where(x => x.Item1 == plan.Id).Any()) targetId = plansTargets.FirstOrDefault(x => x.Item1 == plan.Id).Item2;
-            Structure target = new TargetsHelper().GetTargetForPlan(_data.selectedSS, targetId, _data.useFlash, _data.planType);
+            Structure target = new TargetsHelper().GetTargetStructureForPlanType(_data.selectedSS, targetId, _data.useFlash, _data.planType);
             if (target == null)
             {
                 ProvideUIUpdate(String.Format("Error! Target structure not found for plan: {0}! Exiting!", plan.Id));

@@ -22,9 +22,9 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             strName.Content = "Target Id";
             strName.HorizontalAlignment = HorizontalAlignment.Center;
             strName.VerticalAlignment = VerticalAlignment.Top;
-            strName.Width = 110;
+            strName.Width = 100;
             strName.FontSize = 14;
-            strName.Margin = new Thickness(27, 0, 0, 0);
+            strName.Margin = new Thickness(40, 0, 0, 0);
 
             Label spareType = new Label();
             spareType.Content = "Margin (cm)";
@@ -32,23 +32,23 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             spareType.VerticalAlignment = VerticalAlignment.Top;
             spareType.Width = 90;
             spareType.FontSize = 14;
-            spareType.Margin = new Thickness(2, 0, 0, 0);
+            spareType.Margin = new Thickness(5, 0, 0, 0);
 
             Label volLabel = new Label();
             volLabel.Content = "Thickness (cm)";
             volLabel.HorizontalAlignment = HorizontalAlignment.Center;
             volLabel.VerticalAlignment = VerticalAlignment.Top;
-            volLabel.Width = 60;
+            volLabel.Width = 100;
             volLabel.FontSize = 14;
-            volLabel.Margin = new Thickness(18, 0, 0, 0);
+            volLabel.Margin = new Thickness(10, 0, 0, 0);
 
             Label doseLabel = new Label();
             doseLabel.Content = "Dose (cGy)";
             doseLabel.HorizontalAlignment = HorizontalAlignment.Center;
             doseLabel.VerticalAlignment = VerticalAlignment.Top;
-            doseLabel.Width = 60;
+            doseLabel.Width = 80;
             doseLabel.FontSize = 14;
-            doseLabel.Margin = new Thickness(3, 0, 0, 0);
+            doseLabel.Margin = new Thickness(15, 0, 0, 0);
 
             sp.Children.Add(strName);
             sp.Children.Add(spareType);
@@ -67,7 +67,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
 
             ComboBox str_cb = new ComboBox();
             str_cb.Name = "str_cb";
-            str_cb.Width = 150;
+            str_cb.Width = 120;
             str_cb.Height = sp.Height - 5;
             str_cb.HorizontalAlignment = HorizontalAlignment.Left;
             str_cb.VerticalAlignment = VerticalAlignment.Top;
@@ -90,7 +90,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
 
             TextBox addMargin = new TextBox();
             addMargin.Name = "addMargin_tb";
-            addMargin.Width = 120;
+            addMargin.Width = 100;
             addMargin.Height = sp.Height - 5;
             addMargin.HorizontalAlignment = HorizontalAlignment.Left;
             addMargin.VerticalAlignment = VerticalAlignment.Top;
@@ -102,7 +102,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
 
             TextBox addThickness = new TextBox();
             addThickness.Name = "addThickness_tb";
-            addThickness.Width = 120;
+            addThickness.Width = 100;
             addThickness.Height = sp.Height - 5;
             addThickness.HorizontalAlignment = HorizontalAlignment.Left;
             addThickness.VerticalAlignment = VerticalAlignment.Top;
@@ -114,7 +114,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
 
             TextBox addDose = new TextBox();
             addDose.Name = "addDose_tb";
-            addDose.Width = 120;
+            addDose.Width = 100;
             addDose.Height = sp.Height - 5;
             addDose.HorizontalAlignment = HorizontalAlignment.Left;
             addDose.VerticalAlignment = VerticalAlignment.Top;
@@ -173,13 +173,13 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
                     }
                     if (target == "--select--")
                     {
-                        MessageBox.Show("Error! \nTarget not selected! \nSelect an option and try again");
+                        MessageBox.Show("Error! \nTarget not selected for ring! \nSelect an option and try again");
                         return new List<Tuple<string, double, double, double>> { };
                     }
                     //margin will not be assigned from the default value (-1000) if the input is empty, a whitespace, or NaN
                     else if (margin <= 0.0 || thickness <= 0.0 || dose <= 0.0)
                     {
-                        MessageBox.Show("Error! \nEntered margin, thickness, or dose value(s) is/are invalid! \nEnter new values and try again");
+                        MessageBox.Show("Error! \nEntered margin, thickness, or dose value(s) is/are invalid for ring! \nEnter new values and try again");
                         return new List<Tuple<string, double, double, double>> { };
                     }
                     //only add the current row to the structure sparing list if all the parameters were successful parsed

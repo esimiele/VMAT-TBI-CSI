@@ -632,7 +632,7 @@ namespace VMATTBICSIOptLoopMT
         {
             //if(useFlash) planObj.Add(Tuple.Create("TS_PTV_FLASH", obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
             //else planObj.Add(Tuple.Create("TS_PTV_VMAT", obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
-            return new TargetsHelper().GetTargetForPlan(selectedSS, "", useFlash, planType).Id;
+            return new TargetsHelper().GetTargetStructureForPlanType(selectedSS, "", useFlash, planType).Id;
         }
         #endregion
 
