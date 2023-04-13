@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoplanningHelpers.TemplateClasses;
+using System.Text;
 
 namespace VMATTBICSIAutoplanningHelpers.Helpers
 {
@@ -16,7 +16,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
                                                                                                                    List<Tuple<string, List<Tuple<string, string, double, double, int>>>> currentList = null)
         {
             List<Tuple<string, List<Tuple<string, string, double, double, int>>>> updatedList = new List<Tuple<string, List<Tuple<string, string, double, double, int>>>> { };
-            if(!currentList.Any()) currentList = RetrieveOptConstraintsFromTemplate(selectedTemplate as CSIAutoPlanTemplate, prescriptions);
+            if(!currentList.Any()) currentList = RetrieveOptConstraintsFromTemplate(selectedTemplate as CSIAutoPlanTemplate, prescriptions).Item1;
             if (currentList.Any())
             {
                 string tmpPlanId = targetManipulations.First().Item1;
@@ -67,7 +67,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
                                                                                                                    List<Tuple<string, List<Tuple<string, string, double, double, int>>>> currentList = null)
         {
             List<Tuple<string, List<Tuple<string, string, double, double, int>>>> updatedList = new List<Tuple<string, List<Tuple<string, string, double, double, int>>>> { };
-            if (!currentList.Any()) currentList = RetrieveOptConstraintsFromTemplate(selectedTemplate as CSIAutoPlanTemplate, prescriptions);
+            if (!currentList.Any()) currentList = RetrieveOptConstraintsFromTemplate(selectedTemplate as CSIAutoPlanTemplate, prescriptions).Item1;
             if (currentList.Any())
             {
                 //string tmpTargetId = addedRings.First().Item2;
@@ -87,38 +87,44 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             return currentList;
         }
 
-        public List<Tuple<string, List<Tuple<string, string, double, double, int>>>> RetrieveOptConstraintsFromTemplate(CSIAutoPlanTemplate selectedTemplate, List<Tuple<string, string, int, DoseValue, double>> prescriptions)
+        public (List<Tuple<string, List<Tuple<string, string, double, double, int>>>>, StringBuilder) RetrieveOptConstraintsFromTemplate(CSIAutoPlanTemplate selectedTemplate, List<Tuple<string, string, int, DoseValue, double>> prescriptions)
         {
+            StringBuilder sb = new StringBuilder();
             List<Tuple<string, List<Tuple<string, string, double, double, int>>>> list = new List<Tuple<string, List<Tuple<string, string, double, double, int>>>> { };
             //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose
             if (selectedTemplate != null)
             {
-                if (prescriptions.Any())
+                if (selectedTemplate != null)
                 {
-                    List<Tuple<string, string>> planTargets = new TargetsHelper().GetPlanTargetList(prescriptions);
-                    if (selectedTemplate.GetInitOptimizationConstraints().Any()) list.Add(Tuple.Create(planTargets.ElementAt(0).Item1, selectedTemplate.GetInitOptimizationConstraints()));
-                    if (selectedTemplate.GetBoostOptimizationConstraints().Any()) list.Add(Tuple.Create(planTargets.ElementAt(1).Item1, selectedTemplate.GetBoostOptimizationConstraints()));
-                }
-                else
-                {
-                    if (selectedTemplate.GetInitOptimizationConstraints().Any()) list.Add(Tuple.Create("CSI-init", selectedTemplate.GetInitOptimizationConstraints()));
-                    if (selectedTemplate.GetBoostOptimizationConstraints().Any()) list.Add(Tuple.Create("CSI-bst", selectedTemplate.GetBoostOptimizationConstraints()));
+                    list = CreateOptimizationConstraintList(selectedTemplate, new TargetsHelper().GetPlanTargetList(prescriptions));
                 }
             }
-            else MessageBox.Show("No template selected!");
-            return list;
+            else sb.AppendLine("No template selected!");
+            return (list, sb);
         }
 
         //overload method to accept target list instead of prescription list
-        public List<Tuple<string, List<Tuple<string, string, double, double, int>>>> RetrieveOptConstraintsFromTemplate(CSIAutoPlanTemplate selectedTemplate, List<Tuple<string, double, string>> targets)
+        public (List<Tuple<string, List<Tuple<string, string, double, double, int>>>>, StringBuilder) RetrieveOptConstraintsFromTemplate(CSIAutoPlanTemplate selectedTemplate, List<Tuple<string, double, string>> targets)
+        {
+            StringBuilder sb = new StringBuilder();
+            List<Tuple<string, List<Tuple<string, string, double, double, int>>>> list = new List<Tuple<string, List<Tuple<string, string, double, double, int>>>> { };
+            //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose
+            if (selectedTemplate != null)
+            {
+                list = CreateOptimizationConstraintList(selectedTemplate, new TargetsHelper().GetPlanTargetList(targets));
+            }
+            else sb.AppendLine("No template selected!");
+            return (list, sb);
+        }
+
+        private List<Tuple<string, List<Tuple<string, string, double, double, int>>>> CreateOptimizationConstraintList(CSIAutoPlanTemplate selectedTemplate, List<Tuple<string,string>> planTargets)
         {
             List<Tuple<string, List<Tuple<string, string, double, double, int>>>> list = new List<Tuple<string, List<Tuple<string, string, double, double, int>>>> { };
             //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose
             if (selectedTemplate != null)
             {
-                if (targets.Any())
+                if (planTargets.Any())
                 {
-                    List<Tuple<string, string>> planTargets = new TargetsHelper().GetPlanTargetList(targets);
                     if (selectedTemplate.GetInitOptimizationConstraints().Any()) list.Add(Tuple.Create(planTargets.ElementAt(0).Item1, selectedTemplate.GetInitOptimizationConstraints()));
                     if (selectedTemplate.GetBoostOptimizationConstraints().Any()) list.Add(Tuple.Create(planTargets.ElementAt(1).Item1, selectedTemplate.GetBoostOptimizationConstraints()));
                 }
@@ -128,7 +134,6 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
                     if (selectedTemplate.GetBoostOptimizationConstraints().Any()) list.Add(Tuple.Create("CSI-bst", selectedTemplate.GetBoostOptimizationConstraints()));
                 }
             }
-            else MessageBox.Show("No template selected!");
             return list;
         }
     }

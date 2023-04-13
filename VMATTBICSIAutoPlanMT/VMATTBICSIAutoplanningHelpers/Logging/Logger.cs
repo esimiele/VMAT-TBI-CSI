@@ -5,9 +5,9 @@ using System.Text;
 using System.IO;
 using VMS.TPS.Common.Model.Types;
 
-namespace VMATAutoPlanMT.Logging
+namespace VMATTBICSIAutoplanningHelpers.Logging
 {
-    class Logger
+    public class Logger
     {
         //general patient info
         public string MRN { set { mrn = value; }  }
@@ -89,10 +89,17 @@ namespace VMATAutoPlanMT.Logging
             _logFromOperations.AppendLine("");
         }
 
-        public void LogError(string error)
+        public void LogError(string error, bool suppressMessage = false)
         {
-            MessageBox.Show(error);
+            if(!suppressMessage) MessageBox.Show(error);
             _logFromErrors.AppendLine(error);
+            _logFromErrors.AppendLine("");
+        }
+
+        public void LogError(StringBuilder error, bool suppressMessage = false)
+        {
+            if(!suppressMessage) MessageBox.Show(error.ToString());
+            _logFromErrors.Append(error);
             _logFromErrors.AppendLine("");
         }
 

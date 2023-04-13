@@ -4,10 +4,11 @@ using System.Linq;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Media.Media3D;
-using VMATAutoPlanMT.baseClasses;
+using VMATTBICSIAutoplanningHelpers.BaseClasses;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 using VMATTBICSIAutoplanningHelpers.UIHelpers;
 using System.Runtime.ExceptionServices;
+using System.Text;
 
 namespace VMATAutoPlanMT.VMAT_CSI
 {
@@ -69,7 +70,11 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 UpdateUILabel("Finished!");
                 ProvideUIUpdate(100, "Finished Structure Tuning!");
             }
-            catch(Exception e) { ProvideUIUpdate(String.Format("{0}", e.Message), true); return true; }
+            catch(Exception e) 
+            { 
+                ProvideUIUpdate(String.Format("{0}", e.Message), true); 
+                return true; 
+            }
             return false;
         }
 
@@ -102,7 +107,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
         {
             UpdateUILabel("Unioning Structures: ");
             ProvideUIUpdate(0, "Checking for L and R structures to union!");
-            StructureTuningUIHelper helper = new StructureTuningUIHelper();
+            StructureTuningHelper helper = new StructureTuningHelper();
             List<Tuple<Structure, Structure, string>> structuresToUnion = helper.CheckStructuresToUnion(selectedSS);
             if (structuresToUnion.Any())
             {
@@ -110,9 +115,13 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 int numUnioned = 0;
                 foreach (Tuple<Structure, Structure, string> itr in structuresToUnion)
                 {
-                    (bool, string) result = helper.UnionLRStructures(itr, selectedSS);
+                    (bool, StringBuilder) result = helper.UnionLRStructures(itr, selectedSS);
                     if (!result.Item1) ProvideUIUpdate((int)(100 * ++numUnioned / calcItems), String.Format("Unioned {0}", itr.Item3));
-                    else { ProvideUIUpdate(result.Item2, true); return true; }
+                    else 
+                    { 
+                        ProvideUIUpdate(result.Item2.ToString(), true); 
+                        return true; 
+                    }
                 }
                 ProvideUIUpdate(100, "Structures unioned successfully!");
             }

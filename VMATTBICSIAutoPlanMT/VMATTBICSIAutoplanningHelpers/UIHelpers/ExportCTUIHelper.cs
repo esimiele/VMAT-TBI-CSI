@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows;
 using VMS.TPS.Common.Model.API;
 using VMATTBICSIAutoplanningHelpers.Helpers;
+using System.Text;
 
 namespace VMATTBICSIAutoplanningHelpers.UIHelpers
 {
@@ -19,7 +20,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
         {
             ExportCTUIHelper helper = new ExportCTUIHelper();
             //needed to allow automatic selection of CT image for selected CT structure set (nothing will be selected if no structure set is selected)
-            if (selectedSS != null) { structureSets.Insert(0, selectedSS); }
+            if (selectedSS != null)  structureSets.Insert(0, selectedSS);
             foreach (StructureSet itr in structureSets) theSP.Children.Add(helper.GetCTImageSets(theSP, itr.Image, itr == selectedSS ? true : false));
         }
 
@@ -103,18 +104,18 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return theImageId;
         }
 
-        public void ExportImage(StackPanel theSP, List<StructureSet> structureSets, string Id, string imgExportPath, string format)
+        public (bool, StringBuilder) ExportImage(StackPanel theSP, List<StructureSet> structureSets, string Id, string imgExportPath, string format)
         {
+            StringBuilder sb = new StringBuilder();
             ExportCTUIHelper helper = new ExportCTUIHelper();
             string selectedCTID = helper.ParseSelectedCTImage(theSP);
             if (!string.IsNullOrWhiteSpace(selectedCTID))
             {
                 VMS.TPS.Common.Model.API.Image theImage = structureSets.FirstOrDefault(x => x.Image.Id == selectedCTID).Image;
                 CTImageExport exporter = new CTImageExport(theImage, imgExportPath, Id, format);
-                if (exporter.ExportImage()) return;
-                MessageBox.Show(String.Format("{0} has been exported successfully!", theImage.Id));
+                return exporter.ExportImage();
             }
-            else MessageBox.Show("No imaged selected for export!");
+            else return (true, sb.AppendLine("No imaged selected for export!"));
         }
     }
 }

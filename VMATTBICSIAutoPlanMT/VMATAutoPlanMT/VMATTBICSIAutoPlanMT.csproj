@@ -122,17 +122,6 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="baseClasses\MTBase.cs" />
-    <Compile Include="baseClasses\GenerateTSbase.cs" />
-    <Compile Include="baseClasses\PlanPrepBase.cs" />
-    <Compile Include="Logging\Logger.cs" />
-    <Compile Include="MTProgressInfo\MTProgress.xaml.cs">
-      <DependentUpon>MTProgress.xaml</DependentUpon>
-    </Compile>
-    <Page Include="MTProgressInfo\MTProgress.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
     <Page Include="VMAT_CSI\CSIAutoPlanMW.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -156,7 +145,6 @@
     <Compile Include="Prompts\selectOption.Designer.cs">
       <DependentUpon>selectOption.cs</DependentUpon>
     </Compile>
-    <Compile Include="baseClasses\PlaceBeamsBase.cs" />
     <Compile Include="VMAT_CSI\CSIAutoPlanMW.xaml.cs">
       <DependentUpon>CSIAutoPlanMW.xaml</DependentUpon>
     </Compile>

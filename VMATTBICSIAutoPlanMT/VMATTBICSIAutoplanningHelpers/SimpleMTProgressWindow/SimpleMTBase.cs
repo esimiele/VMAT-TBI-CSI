@@ -2,16 +2,15 @@
 using System.Text;
 using System.Windows.Threading;
 using VMATTBICSIAutoplanningHelpers.MTWorker;
-using VMATAutoPlanMT.MTProgressInfo;
 
-namespace VMATAutoPlanMT.baseClasses
+namespace VMATTBICSIAutoplanningHelpers.SimpleMTProgressWindow
 {
-    public class MTbase
+    public class SimpleMTbase
     {
         public StringBuilder GetLogOutput() { return _logOutput; }
 
         private Dispatcher _dispatch;
-        private MTProgress _pw;
+        private SimpleMTProgress _pw;
         private StringBuilder  _logOutput;
 
         public virtual bool Run()
@@ -27,7 +26,7 @@ namespace VMATAutoPlanMT.baseClasses
             slave.RunOnNewThread(() =>
             {
                 //pass the progress window the newly created thread and this instance of the optimizationLoop class.
-                MTProgress pw = new MTProgress();
+                SimpleMTProgress pw = new SimpleMTProgress();
                 pw.SetCallerClass(slave, this);
                 pw.ShowDialog();
 
@@ -38,7 +37,7 @@ namespace VMATAutoPlanMT.baseClasses
             return slave.isError;
         }
 
-        public void SetDispatcherAndUIInstance(Dispatcher d, MTProgress p)
+        public void SetDispatcherAndUIInstance(Dispatcher d, SimpleMTProgress p)
         {
             _dispatch = d;
             _pw = p;

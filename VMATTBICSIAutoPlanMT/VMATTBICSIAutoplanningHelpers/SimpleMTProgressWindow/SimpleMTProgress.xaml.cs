@@ -3,16 +3,15 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
 using VMATTBICSIAutoplanningHelpers.MTWorker;
-using VMATAutoPlanMT.baseClasses;
 
-namespace VMATAutoPlanMT.MTProgressInfo
+namespace VMATTBICSIAutoplanningHelpers.SimpleMTProgressWindow
 {
-    public partial class MTProgress : Window
+    public partial class SimpleMTProgress : Window
     {
         private ESAPIworker slave;
-        private MTbase callerClass;
+        private SimpleMTbase callerClass;
 
-        public MTProgress()
+        public SimpleMTProgress()
         {
             InitializeComponent();
         }
@@ -21,7 +20,7 @@ namespace VMATAutoPlanMT.MTProgressInfo
         public void SetCallerClass<T>(ESAPIworker e, T caller)
         {
             //Make all worker classes derive from MTbase. This simplifies the type casting as opposed to try and figure out the class at run time
-            callerClass = caller as MTbase;
+            callerClass = caller as SimpleMTbase;
             slave = e;
             DoStuff();
         }
@@ -69,6 +68,9 @@ namespace VMATAutoPlanMT.MTProgressInfo
             UpdateLabel("FAILED!");
         }
 
-        private void Window_SizeChanged(object sender, SizeChangedEventArgs e) { SizeToContent = SizeToContent.WidthAndHeight; }
+        private void Window_SizeChanged(object sender, SizeChangedEventArgs e) 
+        { 
+            SizeToContent = SizeToContent.WidthAndHeight; 
+        }
     }
 }

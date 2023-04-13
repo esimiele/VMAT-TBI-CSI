@@ -10,7 +10,7 @@ using VMATTBICSIAutoplanningHelpers.UIHelpers;
 
 namespace VMATTBICSIOptLoopMT.VMAT_TBI
 {
-    class VMATTBIOptimization : optimizationLoopBase
+    class VMATTBIOptimization : OptimizationLoopBase
     {
         public VMATTBIOptimization(dataContainer _d)
         {

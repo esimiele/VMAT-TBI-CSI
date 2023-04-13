@@ -605,7 +605,7 @@ namespace VMATAutoPlanMT.VMAT_TBI
                 return;
             }
 
-            List<Tuple<string, string, double>> structureSpareList = new StructureTuningUIHelper().ParseTSManipulationList(structures_sp);
+            List<Tuple<string, string, double>> structureSpareList = new StructureTuningUIHelper().ParseTSManipulationList(structures_sp).Item1;
             if (!structureSpareList.Any()) return;
 
             //create an instance of the generateTS class, passing the structure sparing list vector, the selected structure set, and if this is the scleroderma trial treatment regiment
@@ -925,7 +925,7 @@ namespace VMATAutoPlanMT.VMAT_TBI
         {
             OptimizationSetupUIHelper helper = new OptimizationSetupUIHelper();
             //12/5/2022 super janky, but works for now. Needed to accomodate multiple plans for VMAT CSI. Will fix later
-            List<Tuple<string, string, double, double, int>> optParametersList = helper.ParseOptConstraints(opt_parameters).First().Item2;
+            List<Tuple<string, string, double, double, int>> optParametersList = helper.ParseOptConstraints(opt_parameters).Item1.First().Item2;
             if (!optParametersList.Any()) return;
             if (VMATplan == null)
             {

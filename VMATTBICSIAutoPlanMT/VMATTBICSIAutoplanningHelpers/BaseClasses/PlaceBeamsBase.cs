@@ -7,10 +7,11 @@ using System.Windows.Forms;
 using System.Windows.Media.Media3D;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 using VMATTBICSIAutoplanningHelpers.Helpers;
+using VMATTBICSIAutoplanningHelpers.SimpleMTProgressWindow;
 
-namespace VMATAutoPlanMT.baseClasses
+namespace VMATTBICSIAutoplanningHelpers.BaseClasses
 {
-    public class PlaceBeamsBase : MTbase
+    public class PlaceBeamsBase : SimpleMTbase
     {
         public List<ExternalPlanSetup> GetGeneratedPlans() { return plans; }
         public List<Tuple<ExternalPlanSetup, List<Structure>>> GetFieldJunctionStructures() { return jnxs; }

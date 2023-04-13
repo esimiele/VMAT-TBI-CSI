@@ -11,7 +11,7 @@ using VMATTBICSIAutoplanningHelpers.UIHelpers;
 
 namespace VMATTBICSIOptLoopMT.VMAT_CSI
 {
-    class VMATCSIOptimization : optimizationLoopBase
+    class VMATCSIOptimization : OptimizationLoopBase
     {
         ExternalPlanSetup evalPlan = null;
 

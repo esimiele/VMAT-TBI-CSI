@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Windows;
 
@@ -144,8 +143,9 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return sp;
         }
 
-        public List<Tuple<string, double, double, double>> ParseCreateRingList(StackPanel theSP)
+        public (List<Tuple<string, double, double, double>>, StringBuilder) ParseCreateRingList(StackPanel theSP)
         {
+            StringBuilder sb = new StringBuilder();
             List<Tuple<string, double, double, double>> CreateRingList = new List<Tuple<string, double, double, double>> { };
             string target = "";
             double margin = -1000.0;
@@ -179,14 +179,14 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
                     }
                     if (target == "--select--")
                     {
-                        MessageBox.Show("Error! \nTarget not selected for ring! \nSelect an option and try again");
-                        return new List<Tuple<string, double, double, double>> { };
+                        sb.AppendLine("Error! \nTarget not selected for ring! \nSelect an option and try again");
+                        return (new List<Tuple<string, double, double, double>> { }, sb);
                     }
                     //margin will not be assigned from the default value (-1000) if the input is empty, a whitespace, or NaN
                     else if (margin <= 0.0 || thickness <= 0.0 || dose <= 0.0)
                     {
-                        MessageBox.Show("Error! \nEntered margin, thickness, or dose value(s) is/are invalid for ring! \nEnter new values and try again");
-                        return new List<Tuple<string, double, double, double>> { };
+                        sb.AppendLine("Error! \nEntered margin, thickness, or dose value(s) is/are invalid for ring! \nEnter new values and try again");
+                        return (new List<Tuple<string, double, double, double>> { }, sb);
                     }
                     //only add the current row to the structure sparing list if all the parameters were successful parsed
                     else CreateRingList.Add(Tuple.Create(target, margin, thickness, dose));
@@ -197,7 +197,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
                 }
                 else headerObj = false;
             }
-            return CreateRingList;
+            return (CreateRingList, sb);
         }
     }
 }

@@ -14,7 +14,7 @@ using VMATTBICSIAutoplanningHelpers.Prompts;
 
 namespace VMATTBICSIOptLoopMT.baseClasses
 {
-    public class optimizationLoopBase : MTbase
+    public class OptimizationLoopBase : MTbase
     {
         protected dataContainer _data;
         protected bool _checkSupportStructures = false;

@@ -18,6 +18,7 @@ using VMATTBICSIOptLoopMT.VMAT_TBI;
 using VMATTBICSIOptLoopMT.Prompts;
 using System.Collections.ObjectModel;
 using System.Reflection;
+using System.Text;
 
 namespace VMATTBICSIOptLoopMT
 {
@@ -223,7 +224,7 @@ namespace VMATTBICSIOptLoopMT
                 if (SPAndSV.Item1.Children.Count > 0)
                 {
                     OptimizationSetupUIHelper helper = new OptimizationSetupUIHelper();
-                    List<Tuple<string, List<Tuple<string, string, double, double, int>>>> optParametersListList = helper.ParseOptConstraints(SPAndSV.Item1, false);
+                    List<Tuple<string, List<Tuple<string, string, double, double, int>>>> optParametersListList = helper.ParseOptConstraints(SPAndSV.Item1, false).Item1;
                     foreach (Tuple<string, List<Tuple<string, string, double, double, int>>> itr in optParametersListList)
                     {
                         if (itr.Item1 == thePlan.Id)
@@ -524,8 +525,12 @@ namespace VMATTBICSIOptLoopMT
                 return;
             }
 
-            List<Tuple<string, List<Tuple<string, string, double, double, int>>>> optParametersListList = new OptimizationSetupUIHelper().ParseOptConstraints(optimizationParamSP);
-            if (!optParametersListList.Any()) return;
+            (List<Tuple<string, List<Tuple<string, string, double, double, int>>>>, StringBuilder) parsedOptimizationConstraints = new OptimizationSetupUIHelper().ParseOptConstraints(optimizationParamSP);
+            if (!parsedOptimizationConstraints.Item1.Any())
+            {
+                MessageBox.Show(parsedOptimizationConstraints.Item2.ToString());
+                return;
+            }
             List<Tuple<string, string, double, double, DoseValuePresentation>> objectives = new PlanObjectiveSetupUIHelper().GetPlanObjectives(planObjectiveParamSP);
             if (!objectives.Any())
             {
@@ -533,12 +538,12 @@ namespace VMATTBICSIOptLoopMT
                 return;
             }
             //determine if flash was used to prep the plan
-            if (optParametersListList.Where(x => x.Item2.Where(y => y.Item1.ToLower().Contains("flash")).Any()).Any()) useFlash = true;
+            if (parsedOptimizationConstraints.Item1.Where(x => x.Item2.Where(y => y.Item1.ToLower().Contains("flash")).Any()).Any()) useFlash = true;
 
             //assign optimization constraints
             pi.BeginModifications();
             OptimizationSetupUIHelper helper = new OptimizationSetupUIHelper();
-            foreach (Tuple<string, List<Tuple<string, string, double, double, int>>> itr in optParametersListList)
+            foreach (Tuple<string, List<Tuple<string, string, double, double, int>>> itr in parsedOptimizationConstraints.Item1)
             {
                 ExternalPlanSetup thePlan = null;
                 //additional check if the plan was not found in the list of VMATplans
@@ -583,7 +588,7 @@ namespace VMATTBICSIOptLoopMT
 
             //start the optimization loop (all saving to the database is performed in the progressWindow class)
             //use a bit of polymorphism
-            optimizationLoopBase optLoop;
+            OptimizationLoopBase optLoop;
             if(planType == VMATTBICSIAutoplanningHelpers.Helpers.PlanType.VMAT_CSI) optLoop = new VMATCSIOptimization(data);
             else optLoop = new VMATTBIOptimization(data);
             optLoop.Execute();

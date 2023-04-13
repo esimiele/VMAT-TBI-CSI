@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Controls;
 using System.Windows;
+using System.Text;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoplanningHelpers.TemplateClasses;
@@ -119,11 +120,9 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             planId_cb.VerticalAlignment = VerticalAlignment.Top;
             planId_cb.Margin = new Thickness(5, 5, 0, 0);
             planId_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
-            //string[] types = new string[] { itr.Item3, "--Add New--" };
             foreach (string p in planIDs) planId_cb.Items.Add(p);
             planId_cb.Text = listItem.Item3;
             planId_cb.SelectionChanged += typeChngHndl;
-            //planId_cb.SelectionChanged += new SelectionChangedEventHandler(type_cb_change);
             sp.Children.Add(planId_cb);
 
             Button clearStructBtn = new Button();
@@ -140,8 +139,9 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return sp;
         }
 
-        public List<Tuple<string, double, string>> ParseTargets(StackPanel theSP, StructureSet selectedSS)
+        public (List<Tuple<string, double, string>>, StringBuilder) ParseTargets(StackPanel theSP, StructureSet selectedSS)
         {
+            StringBuilder sb = new StringBuilder();
             List<Tuple<string, double, string>> listTargets = new List<Tuple<string, double, string>> { };
             string structure = "";
             double tgtRx = -1000.0;
@@ -166,18 +166,21 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
                             else planID = (obj1 as ComboBox).SelectedItem.ToString();
                         }
                         //try to parse the target Rx as a double value
-                        else if (obj1.GetType() == typeof(TextBox)) if (!string.IsNullOrWhiteSpace((obj1 as TextBox).Text)) double.TryParse((obj1 as TextBox).Text, out tgtRx);
+                        else if (obj1.GetType() == typeof(TextBox))
+                        {
+                            if (!string.IsNullOrWhiteSpace((obj1 as TextBox).Text)) double.TryParse((obj1 as TextBox).Text, out tgtRx);
+                        }
                     }
                     if (structure == "--select--" || planID == "--select--")
                     {
-                        MessageBox.Show("Error! \nStructure or plan not selected! \nSelect an option and try again");
-                        return listTargets;
+                        sb.AppendLine("Error! \nStructure or plan not selected! \nSelect an option and try again");
+                        return (listTargets, sb);
                     }
                     //margin will not be assigned from the default value (-1000) if the input is empty, a whitespace, or NaN
                     else if (tgtRx == -1000.0)
                     {
-                        MessageBox.Show("Error! \nEntered Rx value is invalid! \nEnter a new Rx and try again");
-                        return listTargets;
+                        sb.AppendLine("Error! \nEntered Rx value is invalid! \nEnter a new Rx and try again");
+                        return (listTargets, sb);
                     }
                     else
                     {
@@ -193,8 +196,8 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
                             Structure unknownStructure = selectedSS.Structures.FirstOrDefault(x => x.Id == structure);
                             if (unknownStructure == null || unknownStructure.IsEmpty)
                             {
-                                MessageBox.Show(String.Format("Error! Structure: {0} not found or is empty! Please remove and try again!", structure));
-                                return listTargets;
+                                sb.AppendLine(String.Format("Error! Structure: {0} not found or is empty! Please remove and try again!", structure));
+                                return (listTargets, sb);
                             }
                         }
                         listTargets.Add(Tuple.Create(structure, tgtRx, planID));
@@ -207,56 +210,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
 
             //sort the targets based on requested plan Id (alphabetically)
             listTargets.Sort(delegate (Tuple<string, double, string> x, Tuple<string, double, string> y) { return x.Item3.CompareTo(y.Item3); });
-            return listTargets;
-        }
-
-        public List<Tuple<string,string,int,DoseValue,double>> GetPrescriptions(List<Tuple<string, double, string>> targets, string initDosePerFxText, string initNumFxText, string initRxText, string boostDosePerFxText, string boostNumFxText)
-        {
-            List<Tuple<string, string, int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
-            string targetid = "";
-            double rx = 0.0;
-            string pid = "";
-            int numPlans = 0;
-            double dose_perFx = 0.0;
-            int numFractions = 0;
-
-            foreach (Tuple<string, double, string> itr in targets)
-            {
-                if (itr.Item3 != pid) numPlans++;
-                pid = itr.Item3;
-                rx = itr.Item2;
-                targetid = itr.Item1;
-                if (rx == double.Parse(initRxText))
-                {
-                    if (!double.TryParse(initDosePerFxText, out dose_perFx) || !int.TryParse(initNumFxText, out numFractions))
-                    {
-                        MessageBox.Show("Error! Could not parse dose per fx or number of fractions for initial plan! Exiting");
-                        targets = new List<Tuple<string, double, string>> { };
-                        prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
-                        return prescriptions;
-                    }
-                }
-                else
-                {
-                    if (!double.TryParse(boostDosePerFxText, out dose_perFx) || !int.TryParse(boostNumFxText, out numFractions))
-                    {
-                        MessageBox.Show("Error! Could not parse dose per fx or number of fractions for boost plan! Exiting");
-                        targets = new List<Tuple<string, double, string>> { };
-                        prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
-                        return prescriptions;
-                    }
-                }
-                prescriptions.Add(Tuple.Create(pid, targetid, numFractions, new DoseValue(dose_perFx, DoseValue.DoseUnit.cGy), rx));
-                if (numPlans > 2) { MessageBox.Show("Error! Number of request plans is > 2! Exiting!"); targets = new List<Tuple<string, double, string>> { }; prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { }; return prescriptions; }
-            }
-            //sort the prescription list by the cumulative rx dose
-            prescriptions.Sort(delegate (Tuple<string, string, int, DoseValue, double> x, Tuple<string, string, int, DoseValue, double> y) { return x.Item5.CompareTo(y.Item5); });
-
-            string msg = "Targets set successfully!" + Environment.NewLine + Environment.NewLine;
-            msg += "Prescriptions:" + Environment.NewLine;
-            foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions) msg += String.Format("{0}, {1}, {2}, {3}, {4}", itr.Item1, itr.Item2, itr.Item3, itr.Item4.Dose, itr.Item5) + Environment.NewLine;
-            MessageBox.Show(msg);
-            return prescriptions;
+            return (listTargets, sb);
         }
     }
 }

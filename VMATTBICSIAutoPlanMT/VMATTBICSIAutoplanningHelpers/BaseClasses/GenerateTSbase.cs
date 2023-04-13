@@ -4,10 +4,11 @@ using System.Linq;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Media.Media3D;
+using VMATTBICSIAutoplanningHelpers.SimpleMTProgressWindow;
 
-namespace VMATAutoPlanMT.baseClasses
+namespace VMATTBICSIAutoplanningHelpers.BaseClasses
 {
-    public class GenerateTSbase : MTbase
+    public class GenerateTSbase : SimpleMTbase
     {
         public List<Tuple<string, List<string>>> GetIsoNames() { return isoNames; }
         public List<string> GetAddedStructures() { return addedStructures; }

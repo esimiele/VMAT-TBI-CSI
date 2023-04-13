@@ -47,16 +47,18 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             _patID = patientID;
         }
 
-        public bool ExportImage()
+        public (bool, StringBuilder) ExportImage()
         {
-            bool result = false;
-            if (_exportFormat == "png") ExportAsPNG();
-            else if (_exportFormat == "dcm") ExportAsDCM();
+            (bool, StringBuilder) result = (false, new StringBuilder());
+            if (_exportFormat == "png") result = ExportAsPNG();
+            else if (_exportFormat == "dcm") result = ExportAsDCM();
+            if(!result.Item1) MessageBox.Show(String.Format("{0} has been exported successfully!", _image.Id));
             return result;
         }
 
-        private bool ExportAsPNG()
+        private (bool, StringBuilder) ExportAsPNG()
         {
+            StringBuilder sb = new StringBuilder();
             int[,] pixels = new int[_image.XSize, _image.YSize];
             //write 16 bit-depth image (still having problems as of 7/20/2022. Geometry and image looks vaguely correct, but the gray levels look off)
             //try
@@ -96,8 +98,11 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
                     bmp.Save(String.Format(@"{0}\{1}_{2}.png", folderLoc, ct_ID, k));
                 }
             }
-            catch (Exception e) { MessageBox.Show(e.Message); return true; }
-            return false;
+            catch (Exception e) 
+            { 
+                return (true, sb.AppendLine(e.Message)); 
+            }
+            return (false, sb);
         }
 
         private void FromTwoDimIntArrayGray(Int32[,] data, int sliceNum, string writeLocation)
@@ -209,8 +214,9 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
         //    return PixelFormats.Gray32Float;
         //}
 
-        private void ExportAsDCM()
+        private (bool, StringBuilder) ExportAsDCM()
         {
+            StringBuilder sb = new StringBuilder();
             string temp = System.Environment.GetEnvironmentVariable("TEMP");
             string filename = MakeFilenameValid(String.Format(_CMD_FILE_FMT, _patID, _image.Id));
             filename = temp + @"\" + filename;
@@ -347,6 +353,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             //    }
             //    Thread.Sleep(10000);
             //}
+            return (false, sb);
         }
 
         private void StdErrHandler(object sendingProcess, DataReceivedEventArgs outLine)

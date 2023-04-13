@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using VMS.TPS.Common.Model.API;
@@ -234,12 +235,13 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return sp;
         }
 
-        public List<Tuple<string, List<Tuple<string, string, double, double, int>>>> ParseOptConstraints(StackPanel sp, bool checkInputIntegrity = true)
+        public (List<Tuple<string, List<Tuple<string, string, double, double, int>>>>, StringBuilder) ParseOptConstraints(StackPanel sp, bool checkInputIntegrity = true)
         {
+            StringBuilder sb = new StringBuilder();
             if (sp.Children.Count == 0)
             {
-                System.Windows.Forms.MessageBox.Show("No optimization parameters present to assign to plans!");
-                return new List<Tuple<string, List<Tuple<string, string, double, double, int>>>>();
+                sb.AppendLine("No optimization parameters present to assign to plans!");
+                return (new List<Tuple<string, List<Tuple<string, string, double, double, int>>>>(), sb);
             }
 
             //get constraints
@@ -294,20 +296,21 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
                         optParametersListList.Add(new Tuple<string, List<Tuple<string, string, double, double, int>>>(planId, new List<Tuple<string, string, double, double, int>>(optParametersList)));
                         optParametersList = new List<Tuple<string, string, double, double, int>> { };
                     }
-                    planId = (copyObj as Label).Content.ToString().Substring((copyObj as Label).Content.ToString().IndexOf(":") + 2, (copyObj as Label).Content.ToString().Length - (copyObj as Label).Content.ToString().IndexOf(":") - 2);
+                    string planIdHeader = (copyObj as Label).Content.ToString();
+                    planId = planIdHeader.Substring(planIdHeader.IndexOf(":") + 2, planIdHeader.Length - planIdHeader.IndexOf(":") - 2);
                 }
                 else if (numElementsPerRow != 5)
                 {
                     //do some checks to ensure the integrity of the data
                     if (checkInputIntegrity && (structure == "--select--" || constraintType == "--select--"))
                     {
-                        System.Windows.Forms.MessageBox.Show("Error! \nStructure or Sparing Type not selected! \nSelect an option and try again");
-                        return new List<Tuple<string, List<Tuple<string, string, double, double, int>>>>();
+                        sb.AppendLine("Error! \nStructure or Sparing Type not selected! \nSelect an option and try again");
+                        return (new List<Tuple<string, List<Tuple<string, string, double, double, int>>>>(), sb);
                     }
                     else if (checkInputIntegrity && (dose == -1.0 || vol == -1.0 || priority == -1.0))
                     {
-                        System.Windows.Forms.MessageBox.Show("Error! \nDose, volume, or priority values are invalid! \nEnter new values and try again");
-                        return new List<Tuple<string, List<Tuple<string, string, double, double, int>>>>();
+                        sb.AppendLine("Error! \nDose, volume, or priority values are invalid! \nEnter new values and try again");
+                        return (new List<Tuple<string, List<Tuple<string, string, double, double, int>>>>(), sb);
                     }
                     //if the row of data passes the above checks, add it the optimization parameter list
                     else optParametersList.Add(Tuple.Create(structure, constraintType, Math.Round(dose, 3, MidpointRounding.AwayFromZero), Math.Round(vol, 3, MidpointRounding.AwayFromZero), priority));
@@ -321,12 +324,13 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
                 numElementsPerRow = 0;
             }
             optParametersListList.Add(new Tuple<string, List<Tuple<string, string, double, double, int>>>(planId, new List<Tuple<string, string, double, double, int>>(optParametersList)));
-            return optParametersListList;
+            return (optParametersListList, sb);
         }
 
-        public bool AssignOptConstraints(List<Tuple<string, string, double, double, int>> parameters, ExternalPlanSetup VMATplan, bool useJawTracking, double NTOpriority)
+        public (bool, StringBuilder) AssignOptConstraints(List<Tuple<string, string, double, double, int>> parameters, ExternalPlanSetup VMATplan, bool useJawTracking, double NTOpriority)
         {
             bool isError = false;
+            StringBuilder sb = new StringBuilder();
             foreach (Tuple<string, string, double, double, int> opt in parameters)
             {
                 //assign the constraints to the plan. I haven't found a use for the exact constraint yet, so I just wrote the script to throw a warning if the exact constraint was selected (that row of data will NOT be
@@ -335,19 +339,23 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
                 if (opt.Item2 == "Upper") VMATplan.OptimizationSetup.AddPointObjective(s, OptimizationObjectiveOperator.Upper, new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item4, (double)opt.Item5);
                 else if (opt.Item2 == "Lower") VMATplan.OptimizationSetup.AddPointObjective(s, OptimizationObjectiveOperator.Lower, new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item4, (double)opt.Item5);
                 else if (opt.Item2 == "Mean") VMATplan.OptimizationSetup.AddMeanDoseObjective(s, new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), (double)opt.Item5);
-                else if (opt.Item2 == "Exact") System.Windows.Forms.MessageBox.Show("Script not setup to handle exact dose constraints!");
+                else if (opt.Item2 == "Exact") sb.AppendLine("Script not setup to handle exact dose constraints!");
                 else 
                 { 
-                    System.Windows.Forms.MessageBox.Show("Constraint type not recognized!"); 
-                    isError = true; 
+                    sb.AppendLine("Constraint type not recognized!"); 
+                    isError = true;
+                    return (isError, sb);
                 }
             }
             //turn on/turn off jaw tracking
             try { VMATplan.OptimizationSetup.UseJawTracking = useJawTracking; }
-            catch (Exception except) { System.Windows.Forms.MessageBox.Show(String.Format("Warning! Could not set jaw tracking for VMAT plan because: {0}\nJaw tacking will have to be set manually!", except.Message)); }
+            catch (Exception except) 
+            { 
+                sb.AppendLine(String.Format("Warning! Could not set jaw tracking for VMAT plan because: {0}\nJaw tacking will have to be set manually!", except.Message)); 
+            }
             //set auto NTO priority to zero (i.e., shut it off). It has to be done this way because every plan created in ESAPI has an instance of an automatic NTO, which CAN'T be deleted.
             VMATplan.OptimizationSetup.AddAutomaticNormalTissueObjective(NTOpriority);
-            return isError;
+            return (isError, sb);
         }
     }
 }

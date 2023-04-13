@@ -275,7 +275,11 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
                         }
                         inequality = line.Substring(0, 1);
 
-                        if (!line.Contains(",")) { queryVal = double.Parse(line.Substring(1, line.IndexOf("}") - 1)); line = CropLine(line, "}"); }
+                        if (!line.Contains(",")) 
+                        { 
+                            queryVal = double.Parse(line.Substring(1, line.IndexOf("}") - 1)); 
+                            line = CropLine(line, "}"); 
+                        }
                         else
                         {
                             queryVal = double.Parse(line.Substring(1, line.IndexOf(",") - 1));
@@ -287,7 +291,11 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
 
                 return Tuple.Create(structure, lowDoseLevel, upperDoseLevel, volumeVal, priority, new List<Tuple<string, double, string, double>>(constraints));
             }
-            catch (Exception e) { MessageBox.Show(String.Format("Error could not parse TS structure: {0}\nBecause: {1}", line, e.Message)); return Tuple.Create("", 0.0, 0.0, 0.0, 0, new List<Tuple<string, double, string, double>> { }); }
+            catch (Exception e) 
+            {
+                MessageBox.Show(String.Format("Error could not parse TS structure: {0}\nBecause: {1}", line, e.Message)); 
+                return Tuple.Create("", 0.0, 0.0, 0.0, 0, new List<Tuple<string, double, string, double>> { }); 
+            }
         }
 
         private Tuple<string, string, double, double, DoseValuePresentation> ParsePlanObjective(string line)

@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Text;
+using System.Windows;
 using System.Collections.Generic;
 using System.Linq;
 using VMS.TPS.Common.Model.API;
@@ -8,6 +10,62 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
 {
     public class TargetsHelper
     {
+        public (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) GetPrescriptions(List<Tuple<string, double, string>> targets, string initDosePerFxText, string initNumFxText, string initRxText, string boostDosePerFxText, string boostNumFxText)
+        {
+            StringBuilder sb = new StringBuilder();
+            List<Tuple<string, string, int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+            string targetid = "";
+            double rx = 0.0;
+            string pid = "";
+            int numPlans = 0;
+            double dose_perFx = 0.0;
+            int numFractions = 0;
+
+            foreach (Tuple<string, double, string> itr in targets)
+            {
+                if (itr.Item3 != pid) numPlans++;
+                pid = itr.Item3;
+                rx = itr.Item2;
+                targetid = itr.Item1;
+                if (rx == double.Parse(initRxText))
+                {
+                    if (!double.TryParse(initDosePerFxText, out dose_perFx) || !int.TryParse(initNumFxText, out numFractions))
+                    {
+                        sb.AppendLine("Error! Could not parse dose per fx or number of fractions for initial plan! Exiting");
+                        targets = new List<Tuple<string, double, string>> { };
+                        prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+                        return (prescriptions, sb);
+                    }
+                }
+                else
+                {
+                    if (!double.TryParse(boostDosePerFxText, out dose_perFx) || !int.TryParse(boostNumFxText, out numFractions))
+                    {
+                        sb.AppendLine("Error! Could not parse dose per fx or number of fractions for boost plan! Exiting");
+                        targets = new List<Tuple<string, double, string>> { };
+                        prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+                        return (prescriptions, sb);
+                    }
+                }
+                prescriptions.Add(Tuple.Create(pid, targetid, numFractions, new DoseValue(dose_perFx, DoseValue.DoseUnit.cGy), rx));
+                if (numPlans > 2) 
+                { 
+                    sb.AppendLine("Error! Number of request plans is > 2! Exiting!"); 
+                    targets = new List<Tuple<string, double, string>> { }; 
+                    prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { }; 
+                    return (prescriptions, sb); 
+                }
+            }
+            //sort the prescription list by the cumulative rx dose
+            prescriptions.Sort(delegate (Tuple<string, string, int, DoseValue, double> x, Tuple<string, string, int, DoseValue, double> y) { return x.Item5.CompareTo(y.Item5); });
+
+            string msg = "Targets set successfully!" + Environment.NewLine + Environment.NewLine;
+            msg += "Prescriptions:" + Environment.NewLine;
+            foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions) msg += String.Format("{0}, {1}, {2}, {3}, {4}", itr.Item1, itr.Item2, itr.Item3, itr.Item4.Dose, itr.Item5) + Environment.NewLine;
+            MessageBox.Show(msg);
+            return (prescriptions, sb);
+        }
+
         //planId, targetId
         public List<Tuple<string, string>> GetPlanTargetList(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
         {
