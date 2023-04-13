@@ -719,8 +719,6 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
         private bool PerformTSStructureManipulation()
         {
-            //get target plan list
-            
             UpdateUILabel("Perform TS Manipulations: ");
             //there are items in the sparing list requiring structure manipulation
             List<Tuple<string, string, double>> tmpSpareLst = spareStructList.Where(x => x.Item2.Contains("Crop target from structure") || x.Item2.Contains("Contour")).ToList();

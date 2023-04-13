@@ -359,9 +359,9 @@
                                             <Label Content="Build template from:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,190,0"></Label>
                                             <ComboBox x:Name="templateBuildOptionCB" Width="150" Height="24" HorizontalAlignment="Right" Margin="0,0,35,0" SelectionChanged="TemplateBuildOptionCB_SelectionChanged"></ComboBox>
                                         </Grid>
-                                        <Grid Width="300" Height="30" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,50,135,0">
-                                                <Label Content="Template Name:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,190,0"></Label>
-                                                <TextBox x:Name="templateNameTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="150" Height="20" Margin="0,5,35,0"></TextBox>
+                                        <Grid Width="350" Height="30" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,50,115,0">
+                                                <Label Content="Template Name:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,215,0"></Label>
+                                                <TextBox x:Name="templateNameTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="180" Height="20" Margin="0,5,35,0"></TextBox>
                                             </Grid>
                                             <Grid  Width="350" Height="120" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,30,0,0" Visibility="Visible">
                                                 <Label Content="Base plan" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,93,0" ></Label>
@@ -420,8 +420,8 @@
                                             <StackPanel HorizontalAlignment="Center" Margin="0">
                                                 <Label Content="Create Ring Structures" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
                                                 <Grid Height="25" Width ="560" HorizontalAlignment="Center" Margin="0,5,0,0">
-                                                    <Button x:Name="templateAddRingBtn" Content="Add Ring" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="AddStructureManipulationItem_Click"/>
-                                                    <Button x:Name="templateClearRingsBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="ClearStructureManipulations_Click"/>
+                                                    <Button x:Name="templateAddRingBtn" Content="Add Ring" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="AddRing_Click"/>
+                                                    <Button x:Name="templateClearRingsBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="ClearRings_Click"/>
                                                 </Grid>
                                                 <ScrollViewer x:Name="templateCreateRingsScroller" Height="320" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                                     <StackPanel Name="templateCreateRingsSP" Margin="5">
@@ -468,13 +468,13 @@
                             <TabItem Header="Review" Background="Yellow" BorderThickness="0,1,1,0">
                                 <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                                     <StackPanel Margin="0,0,0,0">
-                                        <Button Content="Generate preview" Width="120" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,5,0,0" Click="generateTemplatePreview_Click"></Button>
+                                        <Button Content="Generate preview" Width="120" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,5,0,0" Click="GenerateTemplatePreview_Click"></Button>
                                         <Border BorderBrush="Black" BorderThickness="0,1,1,1" Width="580" Margin="0,7,0,0">
                                             <ScrollViewer x:Name="templatePreviewScroller" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="580" Height="372" Margin="0" >
                                                 <TextBlock x:Name="templatePreviewTB" FontSize="12" FontFamily="Courier New" Width="570" Background="White" TextWrapping="Wrap" Margin="0"></TextBlock>
                                             </ScrollViewer>
                                         </Border>
-                                        <Button Content="Build Template" Width="160" FontWeight="Bold" HorizontalAlignment="Center" Click="serializeNewTemplate_Click" Margin="0,7,0,0"></Button>
+                                        <Button Content="Build Template" Width="160" FontWeight="Bold" HorizontalAlignment="Center" Click="SerializeNewTemplate_Click" Margin="0,7,0,0"></Button>
                                     </StackPanel>
                                 </Border>
                             </TabItem>

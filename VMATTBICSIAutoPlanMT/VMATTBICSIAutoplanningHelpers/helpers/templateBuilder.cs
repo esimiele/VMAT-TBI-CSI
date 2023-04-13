@@ -140,9 +140,18 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             }
             else output += String.Format(" No additional tuning structures for template: {0}", prospectiveTemplate.GetTemplateName()) + Environment.NewLine + Environment.NewLine;
 
+            if (prospectiveTemplate.GetCreateRings().Any())
+            {
+                output += String.Format(" {0} ring structures:", prospectiveTemplate.GetTemplateName()) + Environment.NewLine;
+                output += String.Format("  {0, -15} | {1, -11} | {2, -14} | {3,-10} |", "target Id", "margin (cm)", "thickness (cm)", "dose (cGy)") + Environment.NewLine;
+                foreach (Tuple<string, double, double, double> ring in prospectiveTemplate.GetCreateRings()) output += String.Format("  {0, -15} | {1, -11} | {2, -14} | {3,-10} |" + Environment.NewLine, ring.Item1, ring.Item2, ring.Item3, ring.Item4);
+                output += Environment.NewLine;
+            }
+            else output += String.Format(" No requested ring structures for template: {0}", prospectiveTemplate.GetTemplateName()) + Environment.NewLine + Environment.NewLine;
+
             if (prospectiveTemplate.GetTSManipulations().Any())
             {
-                output += String.Format(" {0} additional sparing structures:", prospectiveTemplate.GetTemplateName()) + Environment.NewLine;
+                output += String.Format(" {0} additional tuning structure manipulations:", prospectiveTemplate.GetTemplateName()) + Environment.NewLine;
                 output += String.Format("  {0, -15} | {1, -19} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + Environment.NewLine;
                 foreach (Tuple<string, string, double> spare in prospectiveTemplate.GetTSManipulations()) output += String.Format("  {0, -15} | {1, -19} | {2,-11:N1} |" + Environment.NewLine, spare.Item1, spare.Item2, spare.Item3);
                 output += Environment.NewLine;
@@ -197,6 +206,13 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             if (prospectiveTemplate.GetCreateTSStructures().Any())
             {
                 foreach (Tuple<string, string> itr in prospectiveTemplate.GetCreateTSStructures()) output += String.Format("add TS{{{0},{1}}}", itr.Item1, itr.Item2) + Environment.NewLine;
+                output += "%" + Environment.NewLine;
+                output += "%" + Environment.NewLine;
+            }
+
+            if (prospectiveTemplate.GetCreateRings().Any())
+            {
+                foreach (Tuple<string, double, double, double> itr in prospectiveTemplate.GetCreateRings()) output += String.Format("create ring{{{0},{1},{2},{3}}}", itr.Item1, itr.Item2, itr.Item3, itr.Item4) + Environment.NewLine;
                 output += "%" + Environment.NewLine;
                 output += "%" + Environment.NewLine;
             }

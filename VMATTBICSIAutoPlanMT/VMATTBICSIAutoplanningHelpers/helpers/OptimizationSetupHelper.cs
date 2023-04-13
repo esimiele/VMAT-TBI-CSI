@@ -93,9 +93,32 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose
             if (selectedTemplate != null)
             {
-                if (prescriptions != null)
+                if (prescriptions.Any())
                 {
                     List<Tuple<string, string>> planTargets = new TargetsHelper().GetPlanTargetList(prescriptions);
+                    if (selectedTemplate.GetInitOptimizationConstraints().Any()) list.Add(Tuple.Create(planTargets.ElementAt(0).Item1, selectedTemplate.GetInitOptimizationConstraints()));
+                    if (selectedTemplate.GetBoostOptimizationConstraints().Any()) list.Add(Tuple.Create(planTargets.ElementAt(1).Item1, selectedTemplate.GetBoostOptimizationConstraints()));
+                }
+                else
+                {
+                    if (selectedTemplate.GetInitOptimizationConstraints().Any()) list.Add(Tuple.Create("CSI-init", selectedTemplate.GetInitOptimizationConstraints()));
+                    if (selectedTemplate.GetBoostOptimizationConstraints().Any()) list.Add(Tuple.Create("CSI-bst", selectedTemplate.GetBoostOptimizationConstraints()));
+                }
+            }
+            else MessageBox.Show("No template selected!");
+            return list;
+        }
+
+        //overload method to accept target list instead of prescription list
+        public List<Tuple<string, List<Tuple<string, string, double, double, int>>>> RetrieveOptConstraintsFromTemplate(CSIAutoPlanTemplate selectedTemplate, List<Tuple<string, double, string>> targets)
+        {
+            List<Tuple<string, List<Tuple<string, string, double, double, int>>>> list = new List<Tuple<string, List<Tuple<string, string, double, double, int>>>> { };
+            //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose
+            if (selectedTemplate != null)
+            {
+                if (targets.Any())
+                {
+                    List<Tuple<string, string>> planTargets = new TargetsHelper().GetPlanTargetList(targets);
                     if (selectedTemplate.GetInitOptimizationConstraints().Any()) list.Add(Tuple.Create(planTargets.ElementAt(0).Item1, selectedTemplate.GetInitOptimizationConstraints()));
                     if (selectedTemplate.GetBoostOptimizationConstraints().Any()) list.Add(Tuple.Create(planTargets.ElementAt(1).Item1, selectedTemplate.GetBoostOptimizationConstraints()));
                 }

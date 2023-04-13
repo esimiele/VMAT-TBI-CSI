@@ -147,7 +147,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
                 if (s.Id.ToLower() == listItem.Item1.ToLower()) index = j;
                 j++;
             }
-            if (addStructureEvenIfNotInSS && selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == listItem.Item1.ToLower()) == null)
+            if (addStructureEvenIfNotInSS && !selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), listItem.Item1.ToLower())))
             {
                 opt_str_cb.Items.Add(listItem.Item1);
                 opt_str_cb.SelectedIndex = opt_str_cb.Items.Count - 1;

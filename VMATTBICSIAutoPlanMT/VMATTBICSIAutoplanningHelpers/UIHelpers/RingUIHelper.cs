@@ -57,7 +57,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return sp;
         }
 
-        public StackPanel AddRing(StackPanel theSP, List<string> targetIds, Tuple<string, double, double, double> listItem, string clearBtnPrefix, int clearSpareBtnCounter, RoutedEventHandler clearEvtHndl)
+        public StackPanel AddRing(StackPanel theSP, List<string> targetIds, Tuple<string, double, double, double> listItem, string clearBtnPrefix, int clearSpareBtnCounter, RoutedEventHandler clearEvtHndl, bool addTargetEvenIfNotInSS = false)
         {
             StackPanel sp = new StackPanel();
             sp.Height = 30;
@@ -85,7 +85,13 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
                 if (itr.ToLower() == listItem.Item1.ToLower()) index = j;
                 j++;
             }
-            str_cb.SelectedIndex = index;
+            if (addTargetEvenIfNotInSS && !targetIds.Any(x => string.Equals(x.ToLower(), listItem.Item1.ToLower())))
+            {
+                str_cb.Items.Add(listItem.Item1);
+                str_cb.SelectedIndex = str_cb.Items.Count - 1;
+            }
+            else str_cb.SelectedIndex = index;
+            str_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
             sp.Children.Add(str_cb);
 
             TextBox addMargin = new TextBox();

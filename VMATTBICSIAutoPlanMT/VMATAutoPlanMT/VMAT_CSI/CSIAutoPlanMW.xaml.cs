@@ -15,7 +15,6 @@ using VMATTBICSIAutoplanningHelpers.TemplateClasses;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 using VMATTBICSIAutoplanningHelpers.UIHelpers;
 using VMATTBICSIAutoplanningHelpers.Prompts;
-using System.Windows.Media.Converters;
 
 namespace VMATAutoPlanMT.VMAT_CSI
 {
@@ -137,10 +136,15 @@ namespace VMATAutoPlanMT.VMAT_CSI
                             mrn = e.value.Text;
                             log.MRN = mrn;
                         }
-                        catch (Exception except) { MessageBox.Show(string.Format("Error! Could not open patient because: {0}! Please try again!", except.Message)); pi = null; }
+                        catch (Exception except) 
+                        { 
+                            log.LogError(string.Format("Error! Could not open patient because: {0}! Please try again!", except.Message)); 
+                            pi = null; 
+                        }
                     }
                     else 
                     { 
+                        //needs to be FIXED!
                         this.Close(); 
                         return; 
                     }
@@ -149,7 +153,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
                 //check the version information of Eclipse installed on this machine. If it is older than version 15.6, let the user know that this script may not work properly on their system
                 if (!double.TryParse(app.ScriptEnvironment.VersionInfo.Substring(0, app.ScriptEnvironment.VersionInfo.LastIndexOf(".")), out double vinfo)) MessageBox.Show("Warning! Could not parse Eclise version number! Proceed with caution!");
-                else if (vinfo < 15.6) MessageBox.Show(String.Format("Warning! Detected Eclipse version: {0:0.0} is older than v15.6! Proceed with caution!", vinfo));
+                else if (vinfo < 15.6) log.LogError(String.Format("Warning! Detected Eclipse version: {0:0.0} is older than v15.6! Proceed with caution!", vinfo));
 
                 if (pi != null)
                 {
@@ -185,7 +189,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
         private void HelpButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!File.Exists(documentationPath + "VMAT_CSI_guide.pdf")) MessageBox.Show("VMAT_CSI_guide PDF file does not exist!");
+            if (!File.Exists(documentationPath + "VMAT_CSI_guide.pdf")) log.LogError("VMAT_CSI_guide PDF file does not exist!");
             else Process.Start(documentationPath + "VMAT_CSI_guide.pdf");
         }
 
@@ -673,7 +677,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             for (int i = 0; i < lists.Count; i++)
             {
                 counter++;
-                theSP.Children.Add(helper.AddRing(theSP, targets.Select(x => x.Item1).ToList(), lists[i], clearBtnName, counter, new RoutedEventHandler(this.ClearRingItem_Click)));
+                theSP.Children.Add(helper.AddRing(theSP, targets.Select(x => x.Item1).ToList(), lists[i], clearBtnName, counter, new RoutedEventHandler(this.ClearRingItem_Click), theSP.Name.Contains("template") ? true : false));
             }
         }
 
@@ -875,14 +879,6 @@ namespace VMATAutoPlanMT.VMAT_CSI
             List<string> cropAndOverlapStructs = new List<string>((templateList.SelectedItem as CSIAutoPlanTemplate).GetCropAndOverlapStructures());
             List<Tuple<string, double, double, double>> rings = new List<Tuple<string, double, double, double>>(new RingUIHelper().ParseCreateRingList(createRingsSP));
 
-            //string msg = "";
-            //foreach(Tuple<string,double,double,double> itr in rings)
-            //{
-            //    msg += String.Format("{0}, {1}, {2}, {3}\n", itr.Item1, itr.Item2, itr.Item3, itr.Item4);
-            //}
-            //MessageBox.Show(msg);
-            //return;
-
             //create an instance of the generateTS_CSI class, passing the tuning structure list, structure sparing list, targets, prescriptions, and the selected structure set
             GenerateTS_CSI generate = new GenerateTS_CSI(TS_structures, structureSpareList, rings, prescriptions, selectedSS, cropAndOverlapStructs);
             pi.BeginModifications();
@@ -891,7 +887,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
             log.AppendLogOutput("TS Generation and manipulation output:", generate.GetLogOutput());
             if (result) return;
 
-            //does the structure sparing list need to be updated? This occurs when structures the user elected to spare with option of 'Mean Dose < Rx Dose' are high resolution. Since Eclipse can't perform
+            //does the structure sparing list need to be updated? This occurs when structures the user elected to perform manipulations on are high resolution. Since Eclipse can't perform
             //boolean operations on structures of two different resolutions, code was added to the generateTS class to automatically convert these structures to low resolution with the name of
             // '<original structure Id>_lowRes'. When these structures are converted to low resolution, the updateSparingList flag in the generateTS class is set to true to tell this class that the 
             //structure sparing list needs to be updated with the new low resolution structures.
@@ -1078,7 +1074,6 @@ namespace VMATAutoPlanMT.VMAT_CSI
             //an issue for the following line is that boost constraints might end up being added to the initial plan (if there are two prescriptions for the initial plan)
             //need to implement function to get unique plan Id's sorted by Rx
             foreach (Tuple<string, List<Tuple<string, string, double, double, int>>> itr in defaultListList) AddOptimizationConstraintItems(itr.Item2, itr.Item1, theSP);
-
         }
 
         private List<Tuple<string, List<Tuple<string, string, double, double, int>>>> InsertTSJnxOptConstraints(List<Tuple<string, List<Tuple<string, string, double, double, int>>>> list)
@@ -1519,7 +1514,11 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
         private void TemplateBuildOptionCB_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (selectedSS == null) { MessageBox.Show("Error! The structure set has not been assigned! Choose a structure set and try again!"); return; }
+            if (selectedSS == null) 
+            { 
+                MessageBox.Show("Error! The structure set has not been assigned! Choose a structure set and try again!"); 
+                return; 
+            }
             if (templateBuildOptionCB.SelectedItem.ToString().ToLower() == "existing template")
             {
                 CSIAutoPlanTemplate theTemplate = null;
@@ -1530,7 +1529,11 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 SUI.ShowDialog();
                 if (SUI.confirm) theTemplate = PlanTemplates.FirstOrDefault(x => x.GetTemplateName() == SUI.itemCombo.SelectedItem.ToString());
                 else return;
-                if (theTemplate == null) { MessageBox.Show("Template not found! Exiting!"); return; }
+                if (theTemplate == null) 
+                { 
+                    MessageBox.Show("Template not found! Exiting!"); 
+                    return; 
+                }
 
                 //set name
                 templateNameTB.Text = theTemplate.GetTemplateName() + "_1";
@@ -1549,24 +1552,30 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 ClearAllTargetItems(templateClearTargetList);
                 AddTargetVolumes(targetList, targetTemplate_sp);
 
-                //add default TS structures
+                //add create TS structures
                 new GeneralUIhelper().ClearList(templateTSSP);
-                if (theTemplate.GetTSManipulations().Any()) AddTuningStructureVolumes(theTemplate.GetCreateTSStructures(), templateTSSP);
+                if (theTemplate.GetCreateTSStructures().Any()) AddTuningStructureVolumes(theTemplate.GetCreateTSStructures(), templateTSSP);
 
-                //add default sparing structures
+                new GeneralUIhelper().ClearList(templateCreateRingsSP);
+                if (theTemplate.GetCreateRings().Any()) AddRingStructures(theTemplate.GetCreateRings(), templateCreateRingsSP);
+
+                //add tuning structure manipulations sparing structures
                 ClearStructureManipulationsList(templateClearSpareStructuresBtn);
                 if (theTemplate.GetTSManipulations().Any()) AddStructureManipulationVolumes(theTemplate.GetTSManipulations(), templateStructuresSP);
 
                 //add optimization constraints
-                List<Tuple<string,List<Tuple<string, string, double, double, int>>>> tmpList = new OptimizationSetupHelper().RetrieveOptConstraintsFromTemplate(theTemplate, prescriptions);
-
+                List<Tuple<string,List<Tuple<string, string, double, double, int>>>> tmpList = new OptimizationSetupHelper().RetrieveOptConstraintsFromTemplate(theTemplate, targetList);
                 PopulateOptimizationTab(templateOptParams_sp, tmpList, false);
             }
             else if(templateBuildOptionCB.SelectedItem.ToString().ToLower() == "current parameters")
             {
                 //add targets (checked first to ensure the user has actually input some parameters into the UI before trying to make a template based on the current settings)
                 List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>>(new TargetsUIHelper().ParseTargets(targetsSP, selectedSS).OrderBy(x => x.Item2));
-                if (!targetList.Any()) { MessageBox.Show("Error! Enter parameters into the UI before trying to use them to make a new plan template!"); return; }
+                if (!targetList.Any()) 
+                { 
+                    MessageBox.Show("Error! Enter parameters into the UI before trying to use them to make a new plan template!");
+                    return; 
+                }
                 ClearAllTargetItems(templateClearTargetList);
                 AddTargetVolumes(targetList, targetTemplate_sp);
 
@@ -1583,26 +1592,34 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 }
 
                 CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
-                //add default TS structures
-                new GeneralUIhelper().ClearList(templateTSSP);
+
+                //add create tuning structures structures
                 TemplateBuilder builder = new TemplateBuilder();
+                new GeneralUIhelper().ClearList(templateTSSP);
                 if (selectedTemplate != null) AddTuningStructureVolumes(builder.ParseTSStructureList(TSGenerationSP), templateTSSP);
 
-                //add default sparing structures
+                new GeneralUIhelper().ClearList(templateCreateRingsSP);
+                List<Tuple<string, double, double, double>> rings = new List<Tuple<string, double, double, double>>(new RingUIHelper().ParseCreateRingList(createRingsSP));
+                if (rings.Any()) AddRingStructures(rings, templateCreateRingsSP);
+
+                //add tuning structure manipulations
                 ClearStructureManipulationsList(templateClearSpareStructuresBtn);
-                List<Tuple<string, string, double>> spareStructs = new List<Tuple<string, string, double>>(new StructureTuningUIHelper().ParseTSManipulationList(structureManipulationSP));
-                if (spareStructs.Any()) AddStructureManipulationVolumes(spareStructs, templateStructuresSP);
+                List<Tuple<string, string, double>> TSManipulations = new List<Tuple<string, string, double>>(new StructureTuningUIHelper().ParseTSManipulationList(structureManipulationSP));
+                if (TSManipulations.Any()) AddStructureManipulationVolumes(TSManipulations, templateStructuresSP);
 
                 //add optimization constraints
                 List<Tuple<string, List<Tuple<string, string, double, double, int>>>> optParametersListList = new OptimizationSetupUIHelper().ParseOptConstraints(optParametersSP);
-
                 PopulateOptimizationTab(templateOptParams_sp, optParametersListList, false);
             }
         }
 
-        private void generateTemplatePreview_Click(object sender, RoutedEventArgs e)
+        private void GenerateTemplatePreview_Click(object sender, RoutedEventArgs e)
         {
-            if (selectedSS == null) { MessageBox.Show("Error! Please select a Structure Set before add sparing volumes!"); return; }
+            if (selectedSS == null) 
+            { 
+                MessageBox.Show("Error! Please select a Structure Set before add sparing volumes!"); 
+                return; 
+            }
             prospectiveTemplate = new CSIAutoPlanTemplate();
             prospectiveTemplate.SetTemplateName(templateNameTB.Text);
 
@@ -1644,8 +1661,10 @@ namespace VMATAutoPlanMT.VMAT_CSI
             }
 
             TemplateBuilder builder = new TemplateBuilder();
+            //sort targets by prescription dose (ascending order)
             prospectiveTemplate.SetTargets(new TargetsUIHelper().ParseTargets(targetTemplate_sp, selectedSS).OrderBy(x => x.Item2).ToList());
             prospectiveTemplate.SetCreateTSStructures(builder.ParseTSStructureList(templateTSSP));
+            prospectiveTemplate.SetCreateRings(new RingUIHelper().ParseCreateRingList(templateCreateRingsSP));
             prospectiveTemplate.SetTSManipulations(new StructureTuningUIHelper().ParseTSManipulationList(templateStructuresSP));
             List<Tuple<string, List<Tuple<string, string, double, double, int>>>> templateOptParametersListList = new OptimizationSetupUIHelper().ParseOptConstraints(templateOptParams_sp);
             prospectiveTemplate.SetInitOptimizationConstraints(templateOptParametersListList.First().Item2);
@@ -1655,11 +1674,19 @@ namespace VMATAutoPlanMT.VMAT_CSI
             templatePreviewScroller.ScrollToTop();
         }
 
-        private void serializeNewTemplate_Click(object sender, RoutedEventArgs e)
+        private void SerializeNewTemplate_Click(object sender, RoutedEventArgs e)
         {
-            if (selectedSS == null) { MessageBox.Show("Error! Please select a Structure Set before add sparing volumes!"); return; }
-            if (prospectiveTemplate == null) { MessageBox.Show("Error! Please preview the requested template before building!"); return; }
-            string fileName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\CSI_" + prospectiveTemplate.GetTemplateName() + ".ini";
+            if (selectedSS == null) 
+            { 
+                MessageBox.Show("Error! Please select a Structure Set before add sparing volumes!"); 
+                return; 
+            }
+            if (prospectiveTemplate == null) 
+            { 
+                MessageBox.Show("Error! Please preview the requested template before building!"); 
+                return; 
+            }
+            string fileName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\CSI\\CSI_" + prospectiveTemplate.GetTemplateName() + ".ini";
             if (File.Exists(fileName))
             {
                 confirmUI CUI = new confirmUI();
@@ -1668,9 +1695,9 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 CUI.cancelBTN.Text = "No";
                 CUI.ShowDialog();
                 if (!CUI.confirm) return;
-                if(PlanTemplates.FirstOrDefault(x => x.GetTemplateName() == prospectiveTemplate.GetTemplateName()) != null)
+                if(PlanTemplates.Any(x => string.Equals(x.GetTemplateName(), prospectiveTemplate.GetTemplateName())))
                 {
-                    int index = PlanTemplates.IndexOf(PlanTemplates.FirstOrDefault(x => x.GetTemplateName() == prospectiveTemplate.GetTemplateName()));
+                    int index = PlanTemplates.IndexOf(PlanTemplates.FirstOrDefault(x => string.Equals(x.GetTemplateName(), prospectiveTemplate.GetTemplateName())));
                     PlanTemplates.RemoveAt(index);
                 }
             }

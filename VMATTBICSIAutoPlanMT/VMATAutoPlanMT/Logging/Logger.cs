@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Windows;
 using System.Text;
 using System.IO;
 using VMS.TPS.Common.Model.Types;
@@ -39,6 +39,7 @@ namespace VMATAutoPlanMT.Logging
         private string logPath = "";
         //stringbuilder object to log output from ts generation/manipulation and beam placement
         private StringBuilder _logFromOperations;
+        private StringBuilder _logFromErrors;
         private string userId;
         private string mrn;
         private string planType;
@@ -70,6 +71,8 @@ namespace VMATAutoPlanMT.Logging
             planUIDs = new List<string> { };
             optimizationConstraints = new List<Tuple<string, List<Tuple<string, string, double, double, int>>>> { };
             _logFromOperations = new StringBuilder();
+            _logFromErrors = new StringBuilder();
+
         }
 
         //called after TS generation and beam placement are performed to copy the immediate log output from MTProgress window to the log file
@@ -84,6 +87,13 @@ namespace VMATAutoPlanMT.Logging
         {
             _logFromOperations.AppendLine(info);
             _logFromOperations.AppendLine("");
+        }
+
+        public void LogError(string error)
+        {
+            MessageBox.Show(error);
+            _logFromErrors.AppendLine(error);
+            _logFromErrors.AppendLine("");
         }
 
         public bool Dump()
@@ -160,15 +170,22 @@ namespace VMATAutoPlanMT.Logging
                 }
             }
             sb.AppendLine(String.Format(""));
-            sb.AppendLine("Detailed log output");
+
+            sb.AppendLine("Errors and warnings:");
+            sb.Append(_logFromErrors);
             sb.AppendLine(String.Format(""));
 
+            sb.AppendLine("Detailed log output");
+            sb.Append(_logFromOperations);
+            sb.AppendLine(String.Format(""));
             try
             {
                 File.WriteAllText(fileName, sb.ToString());
-                File.AppendAllText(fileName, _logFromOperations.ToString());
             }
-            catch (Exception e) { throw new Exception(e.Message); }
+            catch (Exception e) 
+            { 
+                throw new Exception(e.Message); 
+            }
             return false;
         }
     }
