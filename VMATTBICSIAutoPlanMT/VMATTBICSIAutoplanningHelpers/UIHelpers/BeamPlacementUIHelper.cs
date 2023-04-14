@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using VMATTBICSIAutoplanningHelpers.Prompts;
@@ -9,7 +10,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
 {
     public class BeamPlacementUIHelper
     {
-        public List<StackPanel> populateBeamsTabHelper(StackPanel theSP, List<string> linacs, List<string> beamEnergies, List<string> isoNames, int[] beamsPerIso, int numIsos, int numVMATIsos)
+        public List<StackPanel> PopulateBeamsTabHelper(StackPanel theSP, List<string> linacs, List<string> beamEnergies, List<string> isoNames, int[] beamsPerIso, int numIsos, int numVMATIsos)
         {
             List<StackPanel> theSPList = new List<StackPanel> { };
             StackPanel sp = new StackPanel();
@@ -125,7 +126,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return theSPList;
         }
 
-        public List<StackPanel> populateBeamsTabHelper(StackPanel theSP, List<string> linacs, List<string> beamEnergies, List<Tuple<string, List<string>>> isoNames, int[] beamsPerIso)
+        public List<StackPanel> PopulateBeamsTabHelper(StackPanel theSP, List<string> linacs, List<string> beamEnergies, List<Tuple<string, List<string>>> isoNames, int[] beamsPerIso)
         {
             List<StackPanel> theSPList = new List<StackPanel> { };
             StackPanel sp = new StackPanel();
@@ -261,8 +262,9 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return theSPList;
         }
 
-        public (string, string, List<List<int>>) GetBeamSelections(StackPanel theSP, List<Tuple<string,List<string>>> isos)
+        public (string, string, List<List<int>>, StringBuilder) GetBeamSelections(StackPanel theSP, List<Tuple<string,List<string>>> isos)
         {
+            StringBuilder sb = new StringBuilder();
             int count = 0;
             bool firstCombo = true;
             string chosenLinac = "";
@@ -290,18 +292,18 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
                         // MessageBox.Show(count.ToString());
                         if (!int.TryParse((obj1 as TextBox).Text, out int beamTMP))
                         {
-                            MessageBox.Show(String.Format("Error! \nNumber of beams entered in iso {0} is NaN!", isos.ElementAt(count)));
-                            return ("","",new List<List<int>>());
+                            sb.AppendLine(String.Format("Error! \nNumber of beams entered in iso {0} is NaN!", isos.ElementAt(count)));
+                            return ("","",new List<List<int>>(), sb);
                         }
                         else if (beamTMP < 1)
                         {
-                            MessageBox.Show(String.Format("Error! \nNumber of beams entered in iso {0} is < 1!", isos.ElementAt(count)));
-                            return ("", "", new List<List<int>>());
+                            sb.AppendLine(String.Format("Error! \nNumber of beams entered in iso {0} is < 1!", isos.ElementAt(count)));
+                            return ("", "", new List<List<int>>(), sb);
                         }
                         else if (beamTMP > 4)
                         {
-                            MessageBox.Show(String.Format("Error! \nNumber of beams entered in iso {0} is > 4!", isos.ElementAt(count)));
-                            return ("", "", new List<List<int>>());
+                            sb.AppendLine(String.Format("Error! \nNumber of beams entered in iso {0} is > 4!", isos.ElementAt(count)));
+                            return ("", "", new List<List<int>>(), sb);
                         }
                         else numBeams_temp.Add(beamTMP);
                         count++;
@@ -318,7 +320,20 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             }
             numBeams.Add(new List<int>(numBeams_temp));
 
-            return (chosenLinac, chosenEnergy, numBeams);
+            return (chosenLinac, chosenEnergy, numBeams, sb);
+        }
+
+        public void GeneratePlanIsoBeamList(List<Tuple<string, List<string>>> isoNames, List<List<int>> numBeams)
+        {
+            List<Tuple<string, List<Tuple<string, int>>>> planIsoBeamInfo = new List<Tuple<string, List<Tuple<string, int>>>> { };
+            int count = 0;
+            foreach (Tuple<string, List<string>> itr in isoNames)
+            {
+                List<Tuple<string, int>> isoNameBeams = new List<Tuple<string, int>> { };
+                for (int i = 0; i < itr.Item2.Count; i++) isoNameBeams.Add(new Tuple<string, int>(itr.Item2.ElementAt(i), numBeams.ElementAt(count).ElementAt(i)));
+                planIsoBeamInfo.Add(new Tuple<string, List<Tuple<string, int>>>(itr.Item1, new List<Tuple<string, int>>(isoNameBeams)));
+                count++;
+            }
         }
     }
 }

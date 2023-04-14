@@ -9,11 +9,12 @@ using VMS.TPS.Common.Model.Types;
 using System.IO;
 using System.Diagnostics;
 using Microsoft.Win32;
+using VMATAutoPlanMT.VMAT_TBI;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 using VMATTBICSIAutoplanningHelpers.UIHelpers;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 
-namespace VMATAutoPlanMT
+namespace VMATAutoPlanMT.VMAT_TBI
 {
     public partial class TBIAutoPlanMW : Window
     {
@@ -179,9 +180,9 @@ namespace VMATAutoPlanMT
         Tuple<int, DoseValue> prescription = null;
         bool useFlash = false;
         string flashType = "";
-        List<Structure> jnxs = new List<Structure> { };
+        List<Tuple<ExternalPlanSetup,List<Structure>>> jnxs = new List<Tuple<ExternalPlanSetup, List<Structure>>> { };
         Structure flashStructure = null;
-        planPrep_TBI prep = null;
+        PlanPrep_TBI prep = null;
         public VMS.TPS.Common.Model.API.Application app = null;
         bool isModified = false;
         bool autoSave = false;
@@ -438,7 +439,7 @@ namespace VMATAutoPlanMT
         //add the header to the structure sparing list (basically just add some labels to make it look nice)
         private void add_sp_header()
         {
-            structures_sp.Children.Add(new StructureTuningUIHelper().getSpareStructHeader(structures_sp));
+            structures_sp.Children.Add(new StructureTuningUIHelper().GetTSManipulationHeader(structures_sp));
 
             //bool to indicate that the header has been added
             firstSpareStruct = false;
@@ -452,7 +453,7 @@ namespace VMATAutoPlanMT
             for (int i = 0; i < defaultList.Count; i++)
             {
                 clearSpareBtnCounter++;
-                structures_sp.Children.Add(helper.addSpareStructVolume(structures_sp, selectedSS.Structures.Select(x => x.Id).ToList(), defaultList[i], "clearSpareStructBtn", clearSpareBtnCounter, new SelectionChangedEventHandler(type_cb_change), new RoutedEventHandler(this.clearStructBtn_click)));
+                structures_sp.Children.Add(helper.AddTSManipulation(structures_sp, selectedSS.Structures.Select(x => x.Id).ToList(), defaultList[i], "clearSpareStructBtn", clearSpareBtnCounter, new SelectionChangedEventHandler(type_cb_change), new RoutedEventHandler(this.clearStructBtn_click)));
             }
         }
 
@@ -479,7 +480,7 @@ namespace VMATAutoPlanMT
         }
 
         //method to clear and individual row in the structure sparing list (i.e., remove a single structure)
-        private void clearStructBtn_click(object sender, EventArgs e) { if (new GeneralUIhelper().clearRow(sender, structures_sp)) clear_spare_list(); }
+        private void clearStructBtn_click(object sender, EventArgs e) { if (new GeneralUIhelper().ClearRow(sender, structures_sp)) clear_spare_list(); }
 
         private void SSID_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -604,15 +605,13 @@ namespace VMATAutoPlanMT
                 return;
             }
 
-            List<Tuple<string, string, double>> structureSpareList = new StructureTuningUIHelper().parseSpareStructList(structures_sp);
+            List<Tuple<string, string, double>> structureSpareList = new StructureTuningUIHelper().ParseTSManipulationList(structures_sp).Item1;
             if (!structureSpareList.Any()) return;
 
             //create an instance of the generateTS class, passing the structure sparing list vector, the selected structure set, and if this is the scleroderma trial treatment regiment
             //The scleroderma trial contouring/margins are specific to the trial, so this trial needs to be handled separately from the generic VMAT treatment type
-            generateTS_TBI generate;
+            GenerateTS_TBI generate = new GenerateTS_TBI(TS_structures, scleroStructures, structureSpareList, selectedSS, targetMargin, sclero_chkbox.IsChecked.Value, useFlash, flashStructure, flashMargin);
             //overloaded constructor depending on if the user requested to use flash or not. If so, pass the relevant flash parameters to the generateTS class
-            if (!useFlash) generate = new generateTS_TBI(TS_structures, scleroStructures, structureSpareList, selectedSS, targetMargin, sclero_chkbox.IsChecked.Value);
-            else generate = new generateTS_TBI(TS_structures, scleroStructures, structureSpareList, selectedSS, targetMargin, sclero_chkbox.IsChecked.Value, useFlash, flashStructure, flashMargin);
             pi.BeginModifications();
             if (generate.Execute()) return;
             //does the structure sparing list need to be updated? This occurs when structures the user elected to spare with option of 'Mean Dose < Rx Dose' are high resolution. Since Eclipse can't perform
@@ -627,8 +626,8 @@ namespace VMATAutoPlanMT
                 add_sp_volumes(selectedSS, structureSpareList);
             }
             optParameters = generate.GetOptParameters();
-            numIsos = generate.numIsos;
-            numVMATIsos = generate.numVMATIsos;
+            numIsos = generate.GetNumberOfIsocenters();
+            numVMATIsos = generate.GetNumberOfVMATIsocenters();
             isoNames = generate.GetIsoNames().First().Item2;
 
             //get prescription
@@ -674,7 +673,7 @@ namespace VMATAutoPlanMT
 
             ////subtract a beam from the first isocenter (head) if the user is NOT interested in sparing the brain
             if (!optParameters.Where(x => x.Item1.ToLower().Contains("brain")).Any()) beamsPerIso[0]--;
-            List<StackPanel> SPList = new BeamPlacementUIHelper().populateBeamsTabHelper(structures_sp, linacs, beamEnergies, isoNames, beamsPerIso, numIsos, numVMATIsos);
+            List<StackPanel> SPList = new BeamPlacementUIHelper().PopulateBeamsTabHelper(structures_sp, linacs, beamEnergies, isoNames, beamsPerIso, numIsos, numVMATIsos);
             if (!SPList.Any()) return;
             foreach (StackPanel s in SPList) BEAMS_SP.Children.Add(s);
             ////subtract a beam from the second isocenter (chest/abdomen area) if the user is NOT interested in sparing the kidneys
@@ -694,7 +693,7 @@ namespace VMATAutoPlanMT
                 if (!optParameters.Where(x => x.Item1.ToLower().Contains("brain")).Any()) beamsPerIso[0]++;
                 numIsos += tmp - numVMATIsos;
                 numVMATIsos = tmp;
-                isoNames = new List<string>(new IsoNameHelper().getIsoNames(numVMATIsos, numIsos));
+                isoNames = new List<string>(new IsoNameHelper().GetIsoNames(numVMATIsos, numIsos));
                 populateBeamsTab();
             }
         }
@@ -766,33 +765,36 @@ namespace VMATAutoPlanMT
             }
 
             //Added code to account for the scenario where the user either requested or did not request to contour the overlap between fields in adjacent isocenters
-            placeBeams_TBI place;
+            bool contourOverlap = false;
+            double contourOverlapMargin = 0.0;
             if (contourOverlap_chkbox.IsChecked.Value)
             {
                 //ensure the value entered in the added margin text box for contouring field overlap is a valid double
-                if (!double.TryParse(contourOverlapTB.Text, out double contourOverlapMargin))
+                if (!double.TryParse(contourOverlapTB.Text, out contourOverlapMargin))
                 {
                     MessageBox.Show("Error! The entered added margin for the contour overlap text box is NaN! Please enter a valid number and try again!");
                     return;
                 }
+                contourOverlap = true;
                 //convert from mm to cm
                 contourOverlapMargin *= 10.0;
                 //overloaded constructor for the placeBeams class
-                place = new placeBeams_TBI(selectedSS, isoNames, numIsos, numVMATIsos, singleAPPAplan, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, useFlash, contourOverlapMargin);
             }
-            else place = new placeBeams_TBI(selectedSS, isoNames, numIsos, numVMATIsos, singleAPPAplan, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, useFlash);
+            PlaceBeams_TBI place = new PlaceBeams_TBI(selectedSS, isoNames, numIsos, numVMATIsos, singleAPPAplan, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, useFlash, contourOverlap, contourOverlapMargin);
 
             place.Initialize("VMAT TBI", new List<Tuple<string, string, int, DoseValue, double>> { Tuple.Create("VMAT TBI", "", prescription.Item1, prescription.Item2, 0.0) });
             place.Execute();
-            VMATplan = place.plans.First();
+            VMATplan = place.GetGeneratedPlans().First();
             //VMATplan = place.generatePlans("VMAT TBI", new List<Tuple<string, string, int, DoseValue, double>> { Tuple.Create("VMAT TBI", "", prescription.Item1, prescription.Item2, 0.0)}).First();
             if (VMATplan == null) return;
 
-            //if the user elected to contour the overlap between fields in adjacent isocenters, get this list of structures from the placeBeams class and copy them to the jnxs vector
-            if (contourOverlap_chkbox.IsChecked.Value) jnxs = place.jnxs;
-
-            //if the user requested to contour the overlap between fields in adjacent VMAT isocenters, repopulate the optimization tab (will include the newly added field junction structures)!
-            if (contourOverlap_chkbox.IsChecked.Value) populateOptimizationTab();
+            if (contourOverlap_chkbox.IsChecked.Value)
+            {
+                //if the user elected to contour the overlap between fields in adjacent isocenters, get this list of structures from the placeBeams class and copy them to the jnxs vector
+                jnxs = place.GetFieldJunctionStructures();
+                //if the user requested to contour the overlap between fields in adjacent VMAT isocenters, repopulate the optimization tab (will include the newly added field junction structures)!
+                populateOptimizationTab();
+            }
         }
 
         //stuff related to optimization setup tab
@@ -888,7 +890,7 @@ namespace VMATAutoPlanMT
                 //we want to insert the optimization constraints for these junction structure right after the ptv constraints, so find the last index of the target ptv structure and insert
                 //the junction structure constraints directly after the target structure constraints
                 int index = defaultList.FindLastIndex(x => x.Item1.ToLower().Contains("ptv"));
-                foreach (Structure s in jnxs)
+                foreach (Structure s in jnxs.First().Item2)
                 {
                     //per Nataliya's instructions, add both a lower and upper constraint to the junction volumes. Make the constraints match those of the ptv target
                     defaultList.Insert(++index, new Tuple<string, string, double, double, int>(s.Id, "Lower", prescription.Item2.Dose * prescription.Item1, 100.0, 100));
@@ -911,7 +913,10 @@ namespace VMATAutoPlanMT
                 MessageBox.Show("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
                 prescription = Tuple.Create(1, new DoseValue(0.1, DoseValue.DoseUnit.cGy));
             }
-            if (selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ts_jnx")).Any()) jnxs = selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ts_jnx")).ToList();
+            if (selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ts_jnx")).Any())
+            {
+                jnxs = new List<Tuple<ExternalPlanSetup, List<Structure>>> { new Tuple<ExternalPlanSetup, List<Structure>>(null, selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ts_jnx")).ToList()) };
+            }
 
             populateOptimizationTab();
         }
@@ -920,7 +925,7 @@ namespace VMATAutoPlanMT
         {
             OptimizationSetupUIHelper helper = new OptimizationSetupUIHelper();
             //12/5/2022 super janky, but works for now. Needed to accomodate multiple plans for VMAT CSI. Will fix later
-            List<Tuple<string, string, double, double, int>> optParametersList = helper.parseOptConstraints(opt_parameters).First().Item2;
+            List<Tuple<string, string, double, double, int>> optParametersList = helper.ParseOptConstraints(opt_parameters).Item1.First().Item2;
             if (!optParametersList.Any()) return;
             if (VMATplan == null)
             {
@@ -979,7 +984,7 @@ namespace VMATAutoPlanMT
 
         private void add_opt_header()
         {
-            opt_parameters.Children.Add(new OptimizationSetupUIHelper().getOptHeader(structures_sp.Width));
+            opt_parameters.Children.Add(new OptimizationSetupUIHelper().GetOptHeader(structures_sp.Width));
             firstOptStruct = false;
         }
 
@@ -991,7 +996,7 @@ namespace VMATAutoPlanMT
             for (int i = 0; i < defaultList.Count; i++)
             {
                 clearOptBtnCounter++;
-                opt_parameters.Children.Add(helper.addOptVolume(opt_parameters, selectedSS, defaultList[i], "clearOptStructBtn", clearOptBtnCounter, new RoutedEventHandler(this.clearOptStructBtn_click)));
+                opt_parameters.Children.Add(helper.AddOptVolume(opt_parameters, selectedSS, defaultList[i], "clearOptStructBtn", clearOptBtnCounter, new RoutedEventHandler(this.clearOptStructBtn_click)));
             }
         }
 
@@ -1002,7 +1007,7 @@ namespace VMATAutoPlanMT
 
         private void clearOptStructBtn_click(object sender, EventArgs e)
         {
-            if (new GeneralUIhelper().clearRow(sender, opt_parameters)) clear_optimization_parameter_list();
+            if (new GeneralUIhelper().ClearRow(sender, opt_parameters)) clear_optimization_parameter_list();
         }
 
         private void clear_optimization_parameter_list()
@@ -1156,9 +1161,9 @@ namespace VMATAutoPlanMT
                 }
 
                 //create an instance of the planPep class and pass it the vmatPlan and appaPlan objects as arguments. Get the shift note for the plan of interest
-                prep = new planPrep_TBI(vmatPlan, appaPlan);
+                prep = new PlanPrep_TBI(vmatPlan, appaPlan);
             }
-            if (prep.getShiftNote()) return;
+            if (prep.GetShiftNote()) return;
 
             //let the user know this step has been completed (they can now do the other steps like separate plans and calculate dose)
             shiftTB.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -1176,7 +1181,7 @@ namespace VMATAutoPlanMT
 
             //separate the plans
             pi.BeginModifications();
-            if (prep.separate()) return;
+            if (prep.SeparatePlans()) return;
 
             //let the user know this step has been completed
             separateTB.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -1210,7 +1215,7 @@ namespace VMATAutoPlanMT
             calcDoseTB.Background = System.Windows.Media.Brushes.Yellow;
             calcDoseTB.Text = "WORKING";
 
-            prep.calculateDose();
+            prep.CalculateDose();
 
             //let the user know this step has been completed
             calcDoseTB.Background = System.Windows.Media.Brushes.ForestGreen;

@@ -4,55 +4,32 @@ using System.Linq;
 using System.Windows;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using VMATAutoPlanMT.baseClasses;
-using VMATAutoPlanMT.Prompts;
+using VMATTBICSIAutoplanningHelpers.BaseClasses;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 using System.Runtime.ExceptionServices;
 
-namespace VMATAutoPlanMT
+namespace VMATAutoPlanMT.VMAT_TBI
 {
-    public class placeBeams_TBI : placeBeamsBase
+    public class PlaceBeams_TBI : PlaceBeamsBase
     {
-        int numIsos;
-        int[] numBeams;
-        public List<string> isoNames;
-        double isoSeparation = 0;
-        ExternalPlanSetup legs_planUpper = null;
-        bool singleAPPAplan;
-        public ExternalPlanSetup plan = null;
+        private int numIsos;
+        private int[] numBeams;
+        private List<string> isoNames;
+        private double isoSeparation = 0;
+        private ExternalPlanSetup legs_planUpper = null;
+        private bool singleAPPAplan;
+        private ExternalPlanSetup plan = null;
 
         //5-5-2020 ask nataliya about importance of matching collimator angles to CW and CCW rotations...
-        double[] collRot;
-        double[] CW = { 181.0, 179.0 };
-        double[] CCW = { 179.0, 181.0 };
-        ExternalBeamMachineParameters ebmpArc;
-        ExternalBeamMachineParameters ebmpStatic;
-        List<VRect<double>> jawPos;
+        private double[] collRot;
+        private double[] CW = { 181.0, 179.0 };
+        private double[] CCW = { 179.0, 181.0 };
+        private ExternalBeamMachineParameters ebmpArc;
+        private ExternalBeamMachineParameters ebmpStatic;
+        private List<VRect<double>> jawPos;
         private bool useFlash;
 
-        public placeBeams_TBI(StructureSet ss, List<string> i, int iso, int vmatIso, bool appaPlan, int[] beams, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool flash)
-        {
-            selectedSS = ss;
-            isoNames = new List<string>(i);
-            numIsos = iso;
-            numVMATIsos = vmatIso;
-            singleAPPAplan = appaPlan;
-            numBeams = beams;
-            collRot = coll;
-            jawPos = new List<VRect<double>>(jp);
-            ebmpArc = new ExternalBeamMachineParameters(linac, energy, 600, "ARC", null);
-            //AP/PA beams always use 6X
-            ebmpStatic = new ExternalBeamMachineParameters(linac, "6X", 600, "STATIC", null);
-            //copy the calculation model
-            calculationModel = calcModel;
-            optimizationModel = optModel;
-            useGPUdose = gpuDose;
-            useGPUoptimization = gpuOpt;
-            MRrestart = mr;
-            useFlash = flash;
-        }
-
-        public placeBeams_TBI(StructureSet ss, List<string> i, int iso, int vmatIso, bool appaPlan, int[] beams, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool flash, double overlapMargin)
+        public PlaceBeams_TBI(StructureSet ss, List<string> i, int iso, int vmatIso, bool appaPlan, int[] beams, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool flash, bool overlap, double overlapMargin)
         {
             selectedSS = ss;
             isoNames = new List<string>(i);
@@ -73,7 +50,7 @@ namespace VMATAutoPlanMT
             MRrestart = mr;
             useFlash = flash;
             //user wants to contour the overlap between fields in adjacent VMAT isocenters
-            contourOverlap = true;
+            contourOverlap = overlap;
             contourOverlapMargin = overlapMargin;
         }
 

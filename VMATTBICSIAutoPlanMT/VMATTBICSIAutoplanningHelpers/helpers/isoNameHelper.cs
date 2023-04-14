@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace VMATTBICSIAutoplanningHelpers.Helpers
 {
     public class IsoNameHelper
     {
-        public List<string> getIsoNames(int numVMATIsos, int numIsos, bool isCSI = false)
+        public List<string> GetIsoNames(int numVMATIsos, int numIsos, bool isCSI = false)
         {
             List<string> isoNames = new List<string> { };
 

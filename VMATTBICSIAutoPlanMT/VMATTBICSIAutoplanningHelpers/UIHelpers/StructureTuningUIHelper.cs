@@ -4,12 +4,127 @@ using System.Linq;
 using VMS.TPS.Common.Model.API;
 using System.Windows;
 using System.Windows.Controls;
+using System.Text;
 
 namespace VMATTBICSIAutoplanningHelpers.UIHelpers
 {
     public class StructureTuningUIHelper
     {
-        public StackPanel getSpareStructHeader(StackPanel theSP)
+        public StackPanel AddTemplateTSHeader(StackPanel theSP)
+        {
+            StackPanel sp = new StackPanel();
+            sp.Height = 30;
+            sp.Width = theSP.Width;
+            sp.Orientation = Orientation.Horizontal;
+            sp.HorizontalAlignment = HorizontalAlignment.Center;
+            sp.Margin = new Thickness(5, 0, 5, 5);
+
+            Label dcmType = new Label();
+            dcmType.Content = "DICOM Type";
+            dcmType.HorizontalAlignment = HorizontalAlignment.Center;
+            dcmType.VerticalAlignment = VerticalAlignment.Top;
+            dcmType.Width = 115;
+            dcmType.FontSize = 14;
+            dcmType.Margin = new Thickness(5, 0, 0, 0);
+
+            Label strName = new Label();
+            strName.Content = "Structure Name";
+            strName.HorizontalAlignment = HorizontalAlignment.Center;
+            strName.VerticalAlignment = VerticalAlignment.Top;
+            strName.Width = 150;
+            strName.FontSize = 14;
+            strName.Margin = new Thickness(80, 0, 0, 0);
+
+            sp.Children.Add(dcmType);
+            sp.Children.Add(strName);
+
+            return sp;
+        }
+
+        public StackPanel AddTSVolume(StackPanel theSP, StructureSet selectedSS, Tuple<string, string> listItem, string clearBtnPrefix, int clearBtnCounter, RoutedEventHandler clearEvtHndl)
+        {
+            StackPanel sp = new StackPanel();
+            sp.Height = 30;
+            sp.Width = theSP.Width;
+            sp.Orientation = Orientation.Horizontal;
+            sp.HorizontalAlignment = HorizontalAlignment.Center;
+            sp.Margin = new Thickness(5, 0, 5, 5);
+
+            ComboBox type_cb = new ComboBox();
+            type_cb.Name = "type_cb";
+            type_cb.Width = 150;
+            type_cb.Height = sp.Height - 5;
+            type_cb.HorizontalAlignment = HorizontalAlignment.Left;
+            type_cb.VerticalAlignment = VerticalAlignment.Top;
+            type_cb.Margin = new Thickness(45, 5, 0, 0);
+            type_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
+            string[] types = new string[] { "--select--", 
+                                            "AVOIDANCE", 
+                                            "CAVITY", 
+                                            "CONTRAST_AGENT", 
+                                            "CTV", 
+                                            "EXTERNAL", 
+                                            "GTV", 
+                                            "IRRAD_VOLUME",
+                                            "ORGAN", 
+                                            "PTV", 
+                                            "TREATED_VOLUME", 
+                                            "SUPPORT", 
+                                            "FIXATION",
+                                            "CONTROL", 
+                                            "DOSE_REGION" };
+            
+            foreach (string s in types) type_cb.Items.Add(s);
+            type_cb.Text = listItem.Item1;
+            sp.Children.Add(type_cb);
+
+            ComboBox str_cb = new ComboBox();
+            str_cb.Name = "str_cb";
+            str_cb.Width = 150;
+            str_cb.Height = sp.Height - 5;
+            str_cb.HorizontalAlignment = HorizontalAlignment.Left;
+            str_cb.VerticalAlignment = VerticalAlignment.Top;
+            str_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
+            str_cb.Margin = new Thickness(50, 5, 0, 0);
+
+            if (!string.Equals(listItem.Item2, "--select--")) str_cb.Items.Add("--select--");
+            //this code is used to fix the issue where the structure exists in the structure set, but doesn't populate as the default option in the combo box.
+            int index = 0;
+            //j is initially 1 because we already added "--select--" to the combo box
+            int j = 1;
+            foreach (Structure s in selectedSS.Structures)
+            {
+                str_cb.Items.Add(s.Id);
+                if (string.Equals(s.Id.ToLower(),listItem.Item2.ToLower())) index = j;
+                j++;
+            }
+            //if the structure does not exist in the structure set, add the requested structure id to the combobox option and set the selected index to the last item
+            if (!selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), listItem.Item2.ToLower())))
+            {
+                str_cb.Items.Add(listItem.Item2);
+                str_cb.SelectedIndex = str_cb.Items.Count - 1;
+            }
+            else
+            {
+                str_cb.SelectedIndex = index;
+            }
+            sp.Children.Add(str_cb);
+
+            Button clearStructBtn = new Button();
+            clearStructBtn.Name = clearBtnPrefix + clearBtnCounter;
+            clearStructBtn.Content = "Clear";
+            clearStructBtn.Click += clearEvtHndl;
+            clearStructBtn.Width = 50;
+            clearStructBtn.Height = sp.Height - 5;
+            clearStructBtn.HorizontalAlignment = HorizontalAlignment.Left;
+            clearStructBtn.VerticalAlignment = VerticalAlignment.Top;
+            clearStructBtn.Margin = new Thickness(20, 5, 0, 0);
+            sp.Children.Add(clearStructBtn);
+
+            return sp;
+        }
+
+        public StackPanel GetTSManipulationHeader(StackPanel theSP)
         {
             StackPanel sp = new StackPanel();
             sp.Height = 30;
@@ -48,7 +163,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return sp;
         }
 
-        public StackPanel addSpareStructVolume(StackPanel theSP, List<string> structureIds, Tuple<string, string, double> listItem, string clearBtnPrefix, int clearSpareBtnCounter, SelectionChangedEventHandler typeChngHndl, RoutedEventHandler clearEvtHndl)
+        public StackPanel AddTSManipulation(StackPanel theSP, List<string> structureIds, Tuple<string, string, double> listItem, string clearBtnPrefix, int clearSpareBtnCounter, SelectionChangedEventHandler typeChngHndl, RoutedEventHandler clearEvtHndl)
         {
             StackPanel sp = new StackPanel();
             sp.Height = 30;
@@ -87,7 +202,12 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             type_cb.VerticalAlignment = VerticalAlignment.Top;
             type_cb.Margin = new Thickness(5, 5, 0, 0);
             type_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
-            string[] types = new string[] { "--select--", "Crop target from structure", "Contour overlap", "Crop from Body", "Mean Dose < Rx Dose", "Dmax ~ Rx Dose" };
+            string[] types = new string[] { "--select--", 
+                                            "Crop target from structure", 
+                                            "Contour overlap", 
+                                            "Crop from Body", 
+                                            "Mean Dose < Rx Dose", 
+                                            "Dmax ~ Rx Dose" };
             foreach (string s in types) type_cb.Items.Add(s);
             if (types.FirstOrDefault(x => x == listItem.Item2) != null) type_cb.Text = listItem.Item2;
             else type_cb.Text = "--select--";
@@ -121,53 +241,10 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return sp;
         }
 
-        public List<Tuple<Structure, Structure, string>> checkStructuresToUnion(StructureSet selectedSS)
+        public (List<Tuple<string, string, double>>, StringBuilder) ParseTSManipulationList(StackPanel theSP)
         {
-            //left structure, right structure, unioned structure name
-            List<Tuple<Structure, Structure, string>> structuresToUnion = new List<Tuple<Structure, Structure, string>> { };
-            List<Structure> LStructs = selectedSS.Structures.Where(x => x.Id.Substring(x.Id.Length - 2, 2).ToLower() == "_l" || x.Id.Substring(x.Id.Length - 2, 2).ToLower() == " l").ToList();
-            List<Structure> RStructs = selectedSS.Structures.Where(x => x.Id.Substring(x.Id.Length - 2, 2).ToLower() == "_r" || x.Id.Substring(x.Id.Length - 2, 2).ToLower() == " r").ToList();
-            foreach (Structure itr in LStructs)
-            {
-                Structure RStruct = RStructs.FirstOrDefault(x => x.Id.Substring(0, x.Id.Length - 2) == itr.Id.Substring(0, itr.Id.Length - 2));
-                string newName = AddProperEndingToName(itr.Id.Substring(0, itr.Id.Length - 2).ToLower());
-                if (RStruct != null && selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == newName && !x.IsEmpty) == null)
-                {
-                    if (selectedSS.Structures.FirstOrDefault(x => x.Id == newName) == null) structuresToUnion.Add(new Tuple<Structure, Structure, string>(itr, RStruct, newName));
-                }
-            }
-            return structuresToUnion;
-        }
-
-        private string AddProperEndingToName(string initName)
-        {
-            string unionedName;
-            if (initName.Substring(initName.Length - 1, 1) == "y" && initName.Substring(initName.Length - 2, 2) != "ey") unionedName = initName.Substring(0, initName.Length - 1) + "ies";
-            else if (initName.Substring(initName.Length - 1, 1) == "s") unionedName = initName + "es";
-            else unionedName = initName + "s";
-            return unionedName;
-        }
-
-        public (bool, string) unionLRStructures(Tuple<Structure, Structure, string> itr, StructureSet selectedSS)
-        {
-            Structure newStructure = null;
-            string newName = itr.Item3;
-            try
-            {
-                Structure existStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == newName);
-                //a structure already exists in the structure set with the intended name
-                if (existStructure != null) newStructure = existStructure;
-                else newStructure = selectedSS.AddStructure("CONTROL", newName);
-                newStructure.SegmentVolume = itr.Item1.Margin(0.0);
-                newStructure.SegmentVolume = newStructure.Or(itr.Item2.Margin(0.0));
-            }
-            catch (Exception except) { string message = String.Format("Warning! Could not add structure: {0}\nBecause: {1}", newName, except.Message); return (true, message); }
-            return (false, "");
-        }
-
-        public List<Tuple<string, string, double>> parseSpareStructList(StackPanel theSP)
-        {
-            List<Tuple<string, string, double>> structureSpareList = new List<Tuple<string, string, double>> { };
+            StringBuilder sb = new StringBuilder();
+            List<Tuple<string, string, double>> TSManipulationList = new List<Tuple<string, string, double>> { };
             string structure = "";
             string spareType = "";
             double margin = -1000.0;
@@ -195,24 +272,65 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
                     }
                     if (structure == "--select--" || spareType == "--select--")
                     {
-                        MessageBox.Show("Error! \nStructure or Sparing Type not selected! \nSelect an option and try again");
-                        return new List<Tuple<string, string, double>> { };
+                        sb.AppendLine("Error! \nStructure or Sparing Type not selected! \nSelect an option and try again");
+                        return (new List<Tuple<string, string, double>> { }, sb);
                     }
                     //margin will not be assigned from the default value (-1000) if the input is empty, a whitespace, or NaN
                     else if (margin == -1000.0)
                     {
-                        MessageBox.Show("Error! \nEntered margin value is invalid! \nEnter a new margin and try again");
-                        return new List<Tuple<string, string, double>> { };
+                        sb.AppendLine("Error! \nEntered margin value is invalid! \nEnter a new margin and try again");
+                        return (new List<Tuple<string, string, double>> { }, sb);
                     }
                     //only add the current row to the structure sparing list if all the parameters were successful parsed
-                    else structureSpareList.Add(Tuple.Create(structure, spareType, margin));
+                    else TSManipulationList.Add(Tuple.Create(structure, spareType, margin));
                     firstCombo = true;
                     margin = -1000.0;
                 }
                 else headerObj = false;
             }
 
-            return structureSpareList;
+            return (TSManipulationList, sb);
+        }
+
+        public (List<Tuple<string, string>>, StringBuilder) ParseCreateTSStructureList(StackPanel theSP)
+        {
+            StringBuilder sb = new StringBuilder();
+            List<Tuple<string, string>> TSStructureList = new List<Tuple<string, string>> { };
+            string dcmType = "";
+            string structure = "";
+            bool firstCombo = true;
+            bool headerObj = true;
+            foreach (object obj in theSP.Children)
+            {
+                //skip over the header row
+                if (!headerObj)
+                {
+                    foreach (object obj1 in ((StackPanel)obj).Children)
+                    {
+                        if (obj1.GetType() == typeof(ComboBox))
+                        {
+                            //first combo box is the structure and the second is the sparing type
+                            if (firstCombo)
+                            {
+                                dcmType = (obj1 as ComboBox).SelectedItem.ToString();
+                                firstCombo = false;
+                            }
+                            else structure = (obj1 as ComboBox).SelectedItem.ToString();
+                        }
+                    }
+                    if (dcmType == "--select--" || structure == "--select--")
+                    {
+                        sb.AppendLine("Error! \nStructure or DICOM Type not selected! \nSelect an option and try again");
+                        return (new List<Tuple<string, string>> { }, sb);
+                    }
+                    //only add the current row to the structure sparing list if all the parameters were successful parsed
+                    else TSStructureList.Add(Tuple.Create(dcmType, structure));
+                    firstCombo = true;
+                }
+                else headerObj = false;
+            }
+
+            return (TSStructureList, sb);
         }
     }
 }

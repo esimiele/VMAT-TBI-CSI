@@ -88,6 +88,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="baseClasses\OptimizationLoopBase.cs" />
     <Compile Include="Prompts\SelectPatient.xaml.cs">
       <DependentUpon>SelectPatient.xaml</DependentUpon>
     </Compile>
@@ -101,27 +102,18 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="baseClasses\MTBase.cs" />
     <Compile Include="Helpers\dataContainer.cs" />
     <Compile Include="PlanEvaluation\EvalPlanStruct.cs" />
     <Compile Include="optLoopMW.xaml.cs">
       <DependentUpon>optLoopMW.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Page Include="MTProgressInfo\progressWindow.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
     <Page Include="Prompts\SelectPatient.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="baseClasses\optimizationLoopBase.cs" />
-    <Compile Include="MTProgressInfo\progressWindow.xaml.cs">
-      <DependentUpon>progressWindow.xaml</DependentUpon>
-    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -154,11 +146,16 @@
     <Resource Include="Images\StanfordMedicine1.png" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\OptimizationProgressWindow\OptimizationProgressWindow.csproj">
+      <Project>{66caaa05-0903-43da-879a-9ef766f1b742}</Project>
+      <Name>OptimizationProgressWindow</Name>
+    </ProjectReference>
     <ProjectReference Include="..\VMATTBICSIAutoplanningHelpers\VMATTBICSIAutoPlanningHelpers.csproj">
       <Project>{b3fbf7b5-9e18-43ba-b40f-144682a3956e}</Project>
       <Name>VMATTBICSIAutoPlanningHelpers</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent>if NOT EXIST "$(ProjectDir)$(OutDir)\configuration\" (

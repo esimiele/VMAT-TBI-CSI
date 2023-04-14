@@ -1,18 +1,17 @@
 ﻿using System;
 using System.Text;
-using System.Threading;
 using System.Windows.Threading;
-using VMATTBICSIAutoplanningHelpers.MTWorker;
-using VMATAutoPlanMT.MTProgressInfo;
+using ESAPIThreadWorker;
 
-namespace VMATAutoPlanMT.baseClasses
+namespace SimpleProgressWindow
 {
-    public class MTbase
+    public class SimpleMTbase
     {
-        private Dispatcher _dispatch;
-        private MTProgress _pw;
-        private StringBuilder  _logOutput;
         public StringBuilder GetLogOutput() { return _logOutput; }
+
+        private Dispatcher _dispatch;
+        private SimpleMTProgress _pw;
+        private StringBuilder  _logOutput;
 
         public virtual bool Run()
         {
@@ -21,14 +20,14 @@ namespace VMATAutoPlanMT.baseClasses
 
         public bool Execute()
         {
-            ESAPIworker slave = new ESAPIworker();
+            ESAPIWorker slave = new ESAPIWorker();
             //create a new frame (multithreading jargon)
             DispatcherFrame frame = new DispatcherFrame();
             slave.RunOnNewThread(() =>
             {
                 //pass the progress window the newly created thread and this instance of the optimizationLoop class.
-                MTProgress pw = new MTProgress();
-                pw.setCallerClass(slave, this);
+                SimpleMTProgress pw = new SimpleMTProgress();
+                pw.SetCallerClass(slave, this);
                 pw.ShowDialog();
 
                 //tell the code to hold until the progress window closes.
@@ -38,29 +37,29 @@ namespace VMATAutoPlanMT.baseClasses
             return slave.isError;
         }
 
-        public void SetDispatcherAndUIInstance(Dispatcher d, MTProgress p)
+        public void SetDispatcherAndUIInstance(Dispatcher d, SimpleMTProgress p)
         {
             _dispatch = d;
             _pw = p;
             _logOutput = new StringBuilder();
         }
 
-        public void UpdateUILabel(string message) 
+        protected void UpdateUILabel(string message) 
         { 
             _logOutput.AppendLine(message); 
             _dispatch.BeginInvoke((Action)(() => { _pw.UpdateLabel(message); })); 
         }
 
-        public void ProvideUIUpdate(int percentComplete, string message = "", bool fail = false) 
+        protected void ProvideUIUpdate(int percentComplete, string message = "", bool fail = false) 
         {
             if(!string.IsNullOrEmpty(message)) _logOutput.AppendLine(message);
-            _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(percentComplete, message, fail); })); 
+            _dispatch.BeginInvoke((Action)(() => { _pw.ProvideUpdate(percentComplete, message, fail); })); 
         }
 
-        public void ProvideUIUpdate(string message, bool fail = false) 
+        protected void ProvideUIUpdate(string message, bool fail = false) 
         {
             _logOutput.AppendLine(message);
-            _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(message, fail); })); 
+            _dispatch.BeginInvoke((Action)(() => { _pw.ProvideUpdate(message, fail); })); 
         }
     }
 }

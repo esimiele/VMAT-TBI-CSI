@@ -1,19 +1,15 @@
 ﻿using System;
-using System.Text;
 using System.Windows.Threading;
-using VMATTBICSIAutoplanningHelpers.MTWorker;
-using VMATTBICSIOptLoopMT.MTProgressInfo;
+using ESAPIThreadWorker;
 
-namespace VMATTBICSIOptLoopMT.baseClasses
+namespace OptimizationProgressWindow
 {
-    public class MTbase
+    public class OptimizationMTbase
     {
         private Dispatcher _dispatch;
-        protected progressWindow _pw;
-        //private StringBuilder  _logOutput;
+        protected OptimizationMTProgress _pw;
         protected string logPath;
         protected string fileName;
-        //public StringBuilder GetLogOutput() { return _logOutput; }
 
         public virtual bool Run()
         {
@@ -22,14 +18,14 @@ namespace VMATTBICSIOptLoopMT.baseClasses
 
         public bool Execute()
         {
-            ESAPIworker slave = new ESAPIworker();
+            ESAPIWorker slave = new ESAPIWorker();
             //create a new frame (multithreading jargon)
             DispatcherFrame frame = new DispatcherFrame();
             slave.RunOnNewThread(() =>
             {
                 //pass the progress window the newly created thread and this instance of the optimizationLoop class.
-                progressWindow pw = new progressWindow();
-                pw.setCallerClass(slave, this);
+                OptimizationMTProgress pw = new OptimizationMTProgress();
+                pw.SetCallerClass(slave, this);
                 pw.ShowDialog();
 
                 //tell the code to hold until the progress window closes.
@@ -39,18 +35,16 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             return slave.isError;
         }
 
-        public void SetDispatcherAndUIInstance(Dispatcher d, progressWindow p)
+        public void SetDispatcherAndUIInstance(Dispatcher d, OptimizationMTProgress p)
         {
             _dispatch = d;
             _pw = p;
             //perform logging on progress window UI thread
             _dispatch.BeginInvoke((Action)(() => { _pw.InitializeLogFile(logPath, fileName); }));
-            //_logOutput = new StringBuilder();
         }
 
         protected void SetAbortUIStatus(string message)
         {
-            //if (!string.IsNullOrEmpty(message)) _logOutput.AppendLine(message);
             _dispatch.BeginInvoke((Action)(() => { _pw.abortStatus.Text = message; }));
         }
 
@@ -61,40 +55,38 @@ namespace VMATTBICSIOptLoopMT.baseClasses
 
         protected void ProvideUIUpdate(int percentComplete, string message = "", bool fail = false) 
         {
-            //if(!string.IsNullOrEmpty(message)) _logOutput.AppendLine(message);
-            _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(percentComplete, message, fail); })); 
+            _dispatch.BeginInvoke((Action)(() => { _pw.ProvideUpdate(percentComplete, message, fail); })); 
         }
 
         protected void ProvideUIUpdate(string message, bool fail = false) 
         {
-            //_logOutput.AppendLine(message);
-            _dispatch.BeginInvoke((Action)(() => { _pw.provideUpdate(message, fail); })); 
+            _dispatch.BeginInvoke((Action)(() => { _pw.ProvideUpdate(message, fail); })); 
         }
 
         protected void UpdateOverallProgress(int percentComplete)
         {
-            _dispatch.BeginInvoke((Action)(() => { _pw.updateOverallProgress(percentComplete); }));
+            _dispatch.BeginInvoke((Action)(() => { _pw.UpdateOverallProgress(percentComplete); }));
         }
 
         protected bool GetAbortStatus()
         {
-            return _pw.abortOpt;
+            return _pw.GetAbortStatus();
         }
 
         protected void KillOptimizationLoop()
         {
-            _dispatch.BeginInvoke((Action)(() => { _pw.setAbortStatus(); }));
+            _dispatch.BeginInvoke((Action)(() => { _pw.OptimizationRunAborted(); }));
         }
 
         protected void OptimizationLoopFinished()
         {
             ProvideUIUpdate(100, Environment.NewLine + " Finished!");
-            _dispatch.BeginInvoke((Action)(() => { _pw.isFinished = true;  _pw.setAbortStatus(); }));
+            _dispatch.BeginInvoke((Action)(() => { _pw.SetFinishStatus(true);  _pw.OptimizationRunCompleted(); }));
         }
 
         protected string GetElapsedTime()
         {
-            return _pw.currentTime;
+            return _pw.GetElapsedTime();
         }
     }
 }

@@ -11,10 +11,11 @@ using VMATTBICSIOptLoopMT.Helpers;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 using VMATTBICSIAutoplanningHelpers.UIHelpers;
 using VMATTBICSIAutoplanningHelpers.Prompts;
+using OptimizationProgressWindow;
 
 namespace VMATTBICSIOptLoopMT.baseClasses
 {
-    public class optimizationLoopBase : MTbase
+    public class OptimizationLoopBase : OptimizationMTbase
     {
         protected dataContainer _data;
         protected bool _checkSupportStructures = false;
@@ -196,8 +197,8 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                         }
                         else
                         {
-                            if (itr1.Item1.Contains("Dmax")) msg += String.Format(" {0,-59} | {1,-10} |", " ", String.Format("{0}{1}{2}%", itr1.Item1, itr1.Item3, itr1.Item4));
-                            else if (itr1.Item1.Contains("V")) msg += String.Format(" {0,-59} | {1,-10} |", " ", String.Format("{0}{1}%{2}{3}%", itr1.Item1, itr1.Item2, itr1.Item3, itr1.Item4));
+                            if (itr1.Item1.Contains("Dmax")) msg += String.Format(" {0,-60} | {1,-10} |", " ", String.Format("{0}{1}{2}%", itr1.Item1, itr1.Item3, itr1.Item4));
+                            else if (itr1.Item1.Contains("V")) msg += String.Format(" {0,-60} | {1,-10} |", " ", String.Format("{0}{1}%{2}{3}%", itr1.Item1, itr1.Item2, itr1.Item3, itr1.Item4));
                             else msg += String.Format(" {0,-60} | {1,-10} |", " ", String.Format("{0}", itr1.Item1));
                         }
                         index++;
@@ -494,11 +495,17 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             for (int i = 0; i < 3; i++)
             {
                 //check that isocenter positions are rounded to the nearest 5 mm
-                //ProvideUIUpdate(String.Format("i, pos[i], pos[i] % 1, beam id \n{0}, {1}, {2}, {3}", i, pos[i], Math.Abs(pos[i]) % 5, beamId));
-                if (Math.Abs(pos[i]) % 5 > 1e-3)
+                //calculate the modulus of the iso position and 5 mm
+                double mod = Math.Abs(pos[i]) % 5;
+                if(mod >= 2.5)
+                {
+                    //mod is > 2.5 --> check to see the 5 - mod isn't 4.99999999999999 
+                    mod = 5 - mod;
+                }
+                if (mod > 1e-3)
                 {
                     ProvideUIUpdate("Isocenter position is NOT rounded off!");
-                    ProvideUIUpdate(String.Format("x, y, z, pos[i] % 1, beam id \n{0}, {1}, {2}, {3}, {4}", pos.x, pos.y, pos.z, Math.Abs(pos[i]) % 10, beamId), true);
+                    ProvideUIUpdate(String.Format("x, y, z, pos[i] % 5, beam id \n{0}, {1}, {2}, {3}, {4}", pos.x, pos.y, pos.z, Math.Abs(pos[i]) % 5, beamId), true);
                     return true;
                 }
             }
@@ -553,7 +560,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
 
                 //normalize
-                NormalizePlan(itr, new TargetsHelper().GetTargetForPlan(_data.selectedSS, GetNormaliztionVolumeIdForPlan(itr.Id), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
+                NormalizePlan(itr, new TargetsHelper().GetTargetStructureForPlanType(_data.selectedSS, GetNormaliztionVolumeIdForPlan(itr.Id), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
                 UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
                 ProvideUIUpdate(String.Format(" {0} normalized!", itr.Id));
 
@@ -598,7 +605,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
 
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Dose calculated, normalizing plan!");
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
-                NormalizePlan(plan, new TargetsHelper().GetTargetForPlan(_data.selectedSS, GetNormaliztionVolumeIdForPlan(plan.Id), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
+                NormalizePlan(plan, new TargetsHelper().GetTargetStructureForPlanType(_data.selectedSS, GetNormaliztionVolumeIdForPlan(plan.Id), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
 
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Plan normalized! Evaluating plan quality and updating constraints!"); ;
                 //evaluate the new plan for quality and make any adjustments to the optimization parameters
@@ -1029,17 +1036,14 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             //calculate the dose difference between the actual plan dose and the optimization dose constraint (separate based on constraint type). If the difference is less than 0, truncate the dose difference to 0
             if (goal.Item2.ToLower() == "upper")
             {
-                //diff = plan.GetDoseAtVolume(s, opt.Item4, VolumePresentation.Relative, DoseValuePresentation.Absolute).Dose - currentDose;
                 diff = plan.GetDoseAtVolume(s, goal.Item4, VolumePresentation.Relative, DoseValuePresentation.Absolute).Dose - goal.Item3;
             }
             else if (goal.Item2.ToLower() == "lower")
             {
-                //diff = currentDose - plan.GetDoseAtVolume(s, opt.Item4, VolumePresentation.Relative, DoseValuePresentation.Absolute).Dose;
                 diff = goal.Item3 - plan.GetDoseAtVolume(s, goal.Item4, VolumePresentation.Relative, DoseValuePresentation.Absolute).Dose;
             }
             else if (goal.Item2.ToLower() == "mean")
             {
-                //diff = dvh.MeanDose.Dose - currentDose;
                 diff = dvh.MeanDose.Dose - goal.Item3;
             }
             if (diff <= 0.0) diff = 0.0;
@@ -1126,7 +1130,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             }
             string targetId = "";
             if (plansTargets.Where(x => x.Item1 == plan.Id).Any()) targetId = plansTargets.FirstOrDefault(x => x.Item1 == plan.Id).Item2;
-            Structure target = new TargetsHelper().GetTargetForPlan(_data.selectedSS, targetId, _data.useFlash, _data.planType);
+            Structure target = new TargetsHelper().GetTargetStructureForPlanType(_data.selectedSS, targetId, _data.useFlash, _data.planType);
             if (target == null)
             {
                 ProvideUIUpdate(String.Format("Error! Target structure not found for plan: {0}! Exiting!", plan.Id));

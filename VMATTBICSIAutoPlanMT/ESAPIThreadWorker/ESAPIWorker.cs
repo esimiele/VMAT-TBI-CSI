@@ -2,16 +2,16 @@
 using System.Threading;
 using System.Windows.Threading;
 
-namespace VMATTBICSIAutoplanningHelpers.MTWorker
+namespace ESAPIThreadWorker
 {
     //separate class to help facilitate multithreading
-    public class ESAPIworker
+    public class ESAPIWorker
     {
         public bool isError = false;
         public readonly Dispatcher _dispatcher;
 
         //constructor
-        public ESAPIworker()
+        public ESAPIWorker()
         {
             _dispatcher = Dispatcher.CurrentDispatcher;
         }

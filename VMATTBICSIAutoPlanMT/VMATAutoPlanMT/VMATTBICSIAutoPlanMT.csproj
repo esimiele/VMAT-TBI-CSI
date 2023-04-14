@@ -122,22 +122,11 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="baseClasses\MTBase.cs" />
-    <Compile Include="baseClasses\generateTSbase.cs" />
-    <Compile Include="baseClasses\planPrepBase.cs" />
-    <Compile Include="Logging\Logger.cs" />
-    <Compile Include="MTProgressInfo\MTProgress.xaml.cs">
-      <DependentUpon>MTProgress.xaml</DependentUpon>
-    </Compile>
-    <Page Include="MTProgressInfo\MTProgress.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
     <Page Include="VMAT_CSI\CSIAutoPlanMW.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="VMAT-TBI\TBIAutoPlanMW.xaml">
+    <Page Include="VMAT_TBI\TBIAutoPlanMW.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -145,29 +134,28 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Launcher\launchVMATTBICSIautoPlan.cs" />
-    <Compile Include="VMAT_CSI\generateTS_CSI.cs" />
-    <Compile Include="VMAT_CSI\placeBeams_CSI.cs" />
-    <Compile Include="VMAT_CSI\planPrep_CSI.cs" />
-    <Compile Include="VMAT-TBI\generateTS_TBI.cs" />
+    <Compile Include="Launcher\LaunchVMATTBICSIautoPlan.cs" />
+    <Compile Include="VMAT_CSI\GenerateTS_CSI.cs" />
+    <Compile Include="VMAT_CSI\PlaceBeams_CSI.cs" />
+    <Compile Include="VMAT_CSI\PlanPrep_CSI.cs" />
+    <Compile Include="VMAT_TBI\GenerateTS_TBI.cs" />
     <Compile Include="Prompts\selectOption.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Prompts\selectOption.Designer.cs">
       <DependentUpon>selectOption.cs</DependentUpon>
     </Compile>
-    <Compile Include="baseClasses\placeBeamsBase.cs" />
     <Compile Include="VMAT_CSI\CSIAutoPlanMW.xaml.cs">
       <DependentUpon>CSIAutoPlanMW.xaml</DependentUpon>
     </Compile>
-    <Compile Include="VMAT-TBI\TBIAutoPlanMW.xaml.cs">
+    <Compile Include="VMAT_TBI\TBIAutoPlanMW.xaml.cs">
       <DependentUpon>TBIAutoPlanMW.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="VMAT-TBI\placeBeams_TBI.cs" />
-    <Compile Include="VMAT-TBI\planPrep_TBI.cs" />
+    <Compile Include="VMAT_TBI\PlaceBeams_TBI.cs" />
+    <Compile Include="VMAT_TBI\PlanPrep_TBI.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -204,6 +192,10 @@
     <Resource Include="Images\Stanford.png" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\SimpleProgressWindow\SimpleProgressWindow.csproj">
+      <Project>{e7300c6c-2781-406e-a6be-ac949b893c99}</Project>
+      <Name>SimpleProgressWindow</Name>
+    </ProjectReference>
     <ProjectReference Include="..\VMATTBICSIAutoplanningHelpers\VMATTBICSIAutoPlanningHelpers.csproj">
       <Project>{b3fbf7b5-9e18-43ba-b40f-144682a3956e}</Project>
       <Name>VMATTBICSIAutoPlanningHelpers</Name>

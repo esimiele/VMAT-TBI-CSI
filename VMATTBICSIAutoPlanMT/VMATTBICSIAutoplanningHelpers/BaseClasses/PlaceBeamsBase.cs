@@ -5,20 +5,20 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Forms;
 using System.Windows.Media.Media3D;
-using VMATAutoPlanMT.Prompts;
 using VMATTBICSIAutoplanningHelpers.Prompts;
-using System.Windows.Threading;
-using VMATAutoPlanMT.MTProgressInfo;
-using System.Diagnostics;
-using System.Reflection;
+using VMATTBICSIAutoplanningHelpers.Helpers;
+using SimpleProgressWindow;
 
-namespace VMATAutoPlanMT.baseClasses
+namespace VMATTBICSIAutoplanningHelpers.BaseClasses
 {
-    public class placeBeamsBase : MTbase
+    public class PlaceBeamsBase : SimpleMTbase
     {
+        public List<ExternalPlanSetup> GetGeneratedPlans() { return plans; }
+        public List<Tuple<ExternalPlanSetup, List<Structure>>> GetFieldJunctionStructures() { return jnxs; }
+
         protected bool contourOverlap = false;
         protected bool checkIsoPlacement = false;
-        public List<ExternalPlanSetup> plans = new List<ExternalPlanSetup> { };
+        protected List<ExternalPlanSetup> plans = new List<ExternalPlanSetup> { };
         protected double checkIsoPlacementLimit = 5.0;
         private string courseId;
         protected Course theCourse;
@@ -31,7 +31,7 @@ namespace VMATAutoPlanMT.baseClasses
         protected string useGPUoptimization = "";
         protected string MRrestart = "";
         protected double contourOverlapMargin;
-        public List<Structure> jnxs = new List<Structure> { };
+        protected List<Tuple<ExternalPlanSetup,List<Structure>>> jnxs = new List<Tuple<ExternalPlanSetup, List<Structure>>> { };
         protected Structure target = null;
         protected int numVMATIsos;
 
@@ -243,8 +243,9 @@ namespace VMATAutoPlanMT.baseClasses
         //this option is requested by the user by selecting the checkbox on the main UI on the beam placement tab
         private bool ContourFieldOverlap(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> isoLocations, int isoCount)
         {
-            //2/13/2023
-            //add provide ui updates to this method!
+            UpdateUILabel("Contour field overlap:");
+            int percentCompletion = 0;
+            int calcItems = 3 + 7 * isoLocations.Item2.Count - 1;
             //grab target Id for this prescription item
             if(prescriptions.FirstOrDefault(y => y.Item1 == isoLocations.Item1.Id) == null)
             {
@@ -258,43 +259,71 @@ namespace VMATAutoPlanMT.baseClasses
                 ProvideUIUpdate(String.Format("Error getting target structure ({0}) for plan: {1}! Exiting!", targetId, prescriptions.FirstOrDefault(y => y.Item1 == isoLocations.Item1.Id)), true);
                 return true;
             }
+            ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), String.Format("Retrieved target: {0} for plan: {1}", target_tmp.Id, isoLocations.Item1.Id));
             //grab the image and get the z resolution and dicom origin (we only care about the z position of the dicom origin)
             Image image = selectedSS.Image;
             double zResolution = image.ZRes;
             VVector dicomOrigin = image.Origin;
+            ProvideUIUpdate(String.Format("Retrived image: {0}", image.Id));
+            ProvideUIUpdate(String.Format("Z resolution: {0} mm", zResolution));
+            ProvideUIUpdate(String.Format("DICOM origin: ({0}, {1}, {2}) mm", dicomOrigin.x, dicomOrigin.y, dicomOrigin.z));
+
             //center position between adjacent isocenters, number of image slices to contour on, start image slice location for contouring
             List<Tuple<double, int, int>> overlap = new List<Tuple<double, int, int>> { };
-
             //calculate the center position between adjacent isocenters, number of image slices to contour on based on overlap and with additional user-specified margin (from main UI)
             //and the slice where the contouring should begin
+            List<Structure> tmpJnxList = new List<Structure> { };
             for (int i = 1; i < isoLocations.Item2.Count; i++)
             {
-                //calculate the center position between adjacent isocenters. NOTE: this calculation works from superior to inferior!
-                double center = isoLocations.Item2.ElementAt(i - 1).Item1.z + (isoLocations.Item2.ElementAt(i).Item1.z - isoLocations.Item2.ElementAt(i - 1).Item1.z) / 2;
+                ProvideUIUpdate(String.Format("Junction: {0}", i));
                 //this is left as a double so I can cast it to an int in the second overlap item and use it in the calculation in the third overlap item
                 //logic to consider the situation where the y extent of the fields are NOT 40 cm!
-                Beam iso1Beam1 = isoLocations.Item1.Beams.First(x => x.IsocenterPosition.z == isoLocations.Item2.ElementAt(i - 1).Item1.z);
-                Beam iso2Beam1 = isoLocations.Item1.Beams.First(x => x.IsocenterPosition.z == isoLocations.Item2.ElementAt(i).Item1.z);
+                CalculationHelper helper = new CalculationHelper();
+                Beam iso1Beam1 = isoLocations.Item1.Beams.First(x => helper.AreEqual(x.IsocenterPosition.z, isoLocations.Item2.ElementAt(i - 1).Item1.z));
+                ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), String.Format("First beam in isocenter {0}: {1}", i - 1, iso1Beam1.Id));
+
+                Beam iso2Beam1 = isoLocations.Item1.Beams.First(x => helper.AreEqual(x.IsocenterPosition.z, isoLocations.Item2.ElementAt(i).Item1.z));
+                ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), String.Format("First beam in isocenter {0}: {1}", i, iso2Beam1.Id));
+
                 //assumes iso1beam1 y1 is oriented inferior on patient and iso2beam1 is oriented superior on patient
                 double fieldLength = Math.Abs(iso1Beam1.GetEditableParameters().ControlPoints.First().JawPositions.Y1) + Math.Abs(iso2Beam1.GetEditableParameters().ControlPoints.First().JawPositions.Y2);
+                ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), String.Format("Field length ({0} Y1 + {1} Y2): {2} mm", iso1Beam1.Id, iso2Beam1.Id, fieldLength));
+
                 double numSlices = Math.Ceiling(fieldLength + contourOverlapMargin - Math.Abs(isoLocations.Item2.ElementAt(i).Item1.z - isoLocations.Item2.ElementAt(i - 1).Item1.z));
-                overlap.Add(new Tuple<double, int, int>(center, // the center location
+                ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), String.Format("Number of slices to contour: {0}", (int)(numSlices / zResolution)));
+
+                //calculate the center position between adjacent isocenters. NOTE: this calculation works from superior to inferior!
+                double overlapCenter = isoLocations.Item2.ElementAt(i - 1).Item1.z + iso1Beam1.GetEditableParameters().ControlPoints.First().JawPositions.Y1  - contourOverlapMargin / 2 + numSlices / 2;
+                ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), String.Format("Overlap center position: {0} mm", overlapCenter));
+
+                overlap.Add(new Tuple<double, int, int>(overlapCenter, // the center location
                                                         (int)(numSlices / zResolution), //total number of slices to contour
-                                                        (int)(Math.Abs(dicomOrigin.z - center + numSlices / 2) / zResolution))); // starting slice to contour
+                                                        (int)(Math.Abs(dicomOrigin.z - overlapCenter + numSlices / 2) / zResolution))); // starting slice to contour
+                ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), String.Format("Starting slice to contour: {0}", (int)(Math.Abs(dicomOrigin.z - overlapCenter + numSlices / 2) / zResolution)));
                 //add a new junction structure (named TS_jnx<i>) to the stack. Contours will be added to these structure later
-                jnxs.Add(selectedSS.AddStructure("CONTROL", string.Format("TS_jnx{0}", isoCount + i)));
+                tmpJnxList.Add(selectedSS.AddStructure("CONTROL", string.Format("TS_jnx{0}", isoCount + i)));
+                ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), String.Format("Added TS junction to stack: TS_jnx{0}", isoCount + 1));
             }
+            jnxs.Add(Tuple.Create(isoLocations.Item1, tmpJnxList));
 
-            //make a box at the min/max x,y positions of the target structure with 5 cm margin
-            VVector[] targetBoundingBox = CreateTargetBoundingBox(target_tmp, 5.0);
-
+            //make a box at the min/max x,y positions of the target structure with no margin
+            VVector[] targetBoundingBox = CreateTargetBoundingBox(target_tmp, 0.0);
+            ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), String.Format("Created target bounding box for contouring overlap"));
+           
             //add the contours to each relevant plan for each structure in the jnxs stack
             int count = 0;
             foreach (Tuple<double, int, int> value in overlap)
             {
-                for (int i = value.Item3; i < (value.Item3 + value.Item2); i++) jnxs.ElementAt(count).AddContourOnImagePlane(targetBoundingBox, i);
+                percentCompletion = 0;
+                calcItems = value.Item2;
+                ProvideUIUpdate(0, String.Format("Contouring junction: {0}", tmpJnxList.ElementAt(count).Id));
+                for (int i = value.Item3; i < (value.Item3 + value.Item2); i++)
+                {
+                    tmpJnxList.ElementAt(count).AddContourOnImagePlane(targetBoundingBox, i);
+                    ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems));
+                }
                 //only keep the portion of the box contour that overlaps with the target
-                jnxs.ElementAt(count).SegmentVolume = jnxs.ElementAt(count).And(target_tmp.Margin(0));
+                tmpJnxList.ElementAt(count).SegmentVolume = tmpJnxList.ElementAt(count).And(target_tmp.Margin(0));
                 count++;
             }
             return false;
