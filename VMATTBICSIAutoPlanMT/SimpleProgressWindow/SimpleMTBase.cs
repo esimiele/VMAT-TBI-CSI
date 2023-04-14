@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Text;
 using System.Windows.Threading;
-using VMATTBICSIAutoplanningHelpers.MTWorker;
+using ESAPIThreadWorker;
 
-namespace VMATTBICSIAutoplanningHelpers.SimpleMTProgressWindow
+namespace SimpleProgressWindow
 {
     public class SimpleMTbase
     {
@@ -20,7 +20,7 @@ namespace VMATTBICSIAutoplanningHelpers.SimpleMTProgressWindow
 
         public bool Execute()
         {
-            ESAPIworker slave = new ESAPIworker();
+            ESAPIWorker slave = new ESAPIWorker();
             //create a new frame (multithreading jargon)
             DispatcherFrame frame = new DispatcherFrame();
             slave.RunOnNewThread(() =>

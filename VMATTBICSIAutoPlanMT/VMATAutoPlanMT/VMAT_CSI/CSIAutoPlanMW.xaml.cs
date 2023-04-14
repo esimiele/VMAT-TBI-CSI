@@ -943,17 +943,17 @@ namespace VMATAutoPlanMT.VMAT_CSI
             (List<Tuple<string, string>>, StringBuilder) parseCreateTSList = new StructureTuningUIHelper().ParseCreateTSStructureList(TSGenerationSP);
             (List<Tuple<string, double, double, double>>, StringBuilder) parseCreateRingList = new RingUIHelper().ParseCreateRingList(createRingsSP);
             (List<Tuple<string, string, double>>, StringBuilder) parseTSManipulationList = new StructureTuningUIHelper().ParseTSManipulationList(structureManipulationSP);
-            if (!parseCreateTSList.Item1.Any())
+            if (!string.IsNullOrEmpty(parseCreateTSList.Item2.ToString()))
             {
                 log.LogError(parseCreateTSList.Item2);
                 return;
             }
-            if (!parseCreateRingList.Item1.Any())
+            if (!string.IsNullOrEmpty(parseCreateRingList.Item2.ToString()))
             {
                 log.LogError(parseCreateRingList.Item2);
                 return;
             }
-            if (!parseTSManipulationList.Item1.Any())
+            if (!string.IsNullOrEmpty(parseTSManipulationList.Item2.ToString()))
             {
                 log.LogError(parseTSManipulationList.Item2);
                 return;
@@ -1723,7 +1723,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                 //add create tuning structures structures
                 TemplateBuilder builder = new TemplateBuilder();
                 (List<Tuple<string, string>>, StringBuilder) parsedCreateTSList = new StructureTuningUIHelper().ParseCreateTSStructureList(TSGenerationSP);
-                if(!parsedCreateTSList.Item1.Any())
+                if(!string.IsNullOrEmpty(parsedCreateTSList.Item2.ToString()))
                 {
                     log.LogError(parsedCreateTSList.Item2);
                     return;
@@ -1733,7 +1733,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
                 new GeneralUIhelper().ClearList(templateCreateRingsSP);
                 (List<Tuple<string, double, double, double>>, StringBuilder) parsedCreateRingList = new RingUIHelper().ParseCreateRingList(createRingsSP);
-                if(!parsedCreateRingList.Item1.Any())
+                if(!string.IsNullOrEmpty(parsedCreateRingList.Item2.ToString()))
                 {
                     log.LogError(parsedCreateRingList.Item2);
                     return;
@@ -1742,7 +1742,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
 
                 //add tuning structure manipulations
                 (List<Tuple<string, string, double>>, StringBuilder) parsedTSManipulationList = new StructureTuningUIHelper().ParseTSManipulationList(structureManipulationSP);
-                if(parsedTSManipulationList.Item1.Any())
+                if(!string.IsNullOrEmpty(parsedTSManipulationList.Item2.ToString()))
                 {
                     log.LogError(parsedTSManipulationList.Item2);
                     return;

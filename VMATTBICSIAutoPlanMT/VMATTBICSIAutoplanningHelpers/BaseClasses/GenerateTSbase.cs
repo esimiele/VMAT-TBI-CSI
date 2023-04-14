@@ -4,7 +4,7 @@ using System.Linq;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Media.Media3D;
-using VMATTBICSIAutoplanningHelpers.SimpleMTProgressWindow;
+using SimpleProgressWindow;
 
 namespace VMATTBICSIAutoplanningHelpers.BaseClasses
 {

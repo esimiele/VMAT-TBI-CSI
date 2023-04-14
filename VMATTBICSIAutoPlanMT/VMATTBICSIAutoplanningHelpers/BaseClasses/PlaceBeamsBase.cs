@@ -7,7 +7,7 @@ using System.Windows.Forms;
 using System.Windows.Media.Media3D;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 using VMATTBICSIAutoplanningHelpers.Helpers;
-using VMATTBICSIAutoplanningHelpers.SimpleMTProgressWindow;
+using SimpleProgressWindow;
 
 namespace VMATTBICSIAutoplanningHelpers.BaseClasses
 {

@@ -6,7 +6,6 @@ using VMS.TPS.Common.Model.Types;
 using System.Windows.Media.Media3D;
 using VMATTBICSIAutoplanningHelpers.BaseClasses;
 using VMATTBICSIAutoplanningHelpers.Helpers;
-using VMATTBICSIAutoplanningHelpers.UIHelpers;
 using System.Runtime.ExceptionServices;
 using System.Text;
 

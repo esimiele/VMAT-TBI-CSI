@@ -111,7 +111,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BaseClasses\GenerateTSbase.cs" />
-    <Compile Include="SimpleMTProgressWindow\SimpleMTBase.cs" />
     <Compile Include="BaseClasses\PlaceBeamsBase.cs" />
     <Compile Include="BaseClasses\PlanPrepBase.cs" />
     <Compile Include="Helpers\CalculationHelper.cs" />
@@ -120,9 +119,6 @@
     <Compile Include="Helpers\StructureTuningHelper.cs" />
     <Compile Include="Helpers\TargetsHelper.cs" />
     <Compile Include="Logging\Logger.cs" />
-    <Compile Include="SimpleMTProgressWindow\SimpleMTProgress.xaml.cs">
-      <DependentUpon>SimpleMTProgress.xaml</DependentUpon>
-    </Compile>
     <Compile Include="UIHelpers\BeamPlacementUIHelper.cs" />
     <Compile Include="Helpers\ConfigurationHelper.cs" />
     <Compile Include="Helpers\CTImageExport.cs" />
@@ -184,10 +180,10 @@
     <Compile Include="UIHelpers\PlanObjectiveSetupUIHelper.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="SimpleMTProgressWindow\SimpleMTProgress.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
+    <ProjectReference Include="..\SimpleProgressWindow\SimpleProgressWindow.csproj">
+      <Project>{e7300c6c-2781-406e-a6be-ac949b893c99}</Project>
+      <Name>SimpleProgressWindow</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

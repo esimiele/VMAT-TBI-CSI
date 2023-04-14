@@ -73,6 +73,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
                                             "FIXATION",
                                             "CONTROL", 
                                             "DOSE_REGION" };
+            
             foreach (string s in types) type_cb.Items.Add(s);
             type_cb.Text = listItem.Item1;
             sp.Children.Add(type_cb);
@@ -86,7 +87,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             str_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
             str_cb.Margin = new Thickness(50, 5, 0, 0);
 
-            if (listItem.Item2 != "--select--") str_cb.Items.Add("--select--");
+            if (!string.Equals(listItem.Item2, "--select--")) str_cb.Items.Add("--select--");
             //this code is used to fix the issue where the structure exists in the structure set, but doesn't populate as the default option in the combo box.
             int index = 0;
             //j is initially 1 because we already added "--select--" to the combo box
@@ -94,16 +95,19 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             foreach (Structure s in selectedSS.Structures)
             {
                 str_cb.Items.Add(s.Id);
-                if (s.Id.ToLower() == listItem.Item2.ToLower()) index = j;
+                if (string.Equals(s.Id.ToLower(),listItem.Item2.ToLower())) index = j;
                 j++;
             }
             //if the structure does not exist in the structure set, add the requested structure id to the combobox option and set the selected index to the last item
-            if (selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), listItem.Item2.ToLower())))
+            if (!selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), listItem.Item2.ToLower())))
             {
                 str_cb.Items.Add(listItem.Item2);
                 str_cb.SelectedIndex = str_cb.Items.Count - 1;
             }
-            else str_cb.SelectedIndex = index;
+            else
+            {
+                str_cb.SelectedIndex = index;
+            }
             sp.Children.Add(str_cb);
 
             Button clearStructBtn = new Button();

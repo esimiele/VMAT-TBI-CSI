@@ -2,13 +2,13 @@
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
-using VMATTBICSIAutoplanningHelpers.MTWorker;
+using ESAPIThreadWorker;
 
-namespace VMATTBICSIAutoplanningHelpers.SimpleMTProgressWindow
+namespace SimpleProgressWindow
 {
     public partial class SimpleMTProgress : Window
     {
-        private ESAPIworker slave;
+        private ESAPIWorker slave;
         private SimpleMTbase callerClass;
 
         public SimpleMTProgress()
@@ -17,7 +17,7 @@ namespace VMATTBICSIAutoplanningHelpers.SimpleMTProgressWindow
         }
 
         //template function
-        public void SetCallerClass<T>(ESAPIworker e, T caller)
+        public void SetCallerClass<T>(ESAPIWorker e, T caller)
         {
             //Make all worker classes derive from MTbase. This simplifies the type casting as opposed to try and figure out the class at run time
             callerClass = caller as SimpleMTbase;

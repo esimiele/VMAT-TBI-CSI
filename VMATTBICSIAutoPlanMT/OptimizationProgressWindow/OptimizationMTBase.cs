@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Windows.Threading;
-using VMATTBICSIAutoplanningHelpers.MTWorker;
-using VMATTBICSIOptLoopMT.MTProgressInfo;
+using ESAPIThreadWorker;
 
-namespace VMATTBICSIOptLoopMT.baseClasses
+namespace OptimizationProgressWindow
 {
-    public class MTbase
+    public class OptimizationMTbase
     {
         private Dispatcher _dispatch;
-        protected progressWindow _pw;
+        protected OptimizationMTProgress _pw;
         protected string logPath;
         protected string fileName;
 
@@ -19,13 +18,13 @@ namespace VMATTBICSIOptLoopMT.baseClasses
 
         public bool Execute()
         {
-            ESAPIworker slave = new ESAPIworker();
+            ESAPIWorker slave = new ESAPIWorker();
             //create a new frame (multithreading jargon)
             DispatcherFrame frame = new DispatcherFrame();
             slave.RunOnNewThread(() =>
             {
                 //pass the progress window the newly created thread and this instance of the optimizationLoop class.
-                progressWindow pw = new progressWindow();
+                OptimizationMTProgress pw = new OptimizationMTProgress();
                 pw.SetCallerClass(slave, this);
                 pw.ShowDialog();
 
@@ -36,7 +35,7 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             return slave.isError;
         }
 
-        public void SetDispatcherAndUIInstance(Dispatcher d, progressWindow p)
+        public void SetDispatcherAndUIInstance(Dispatcher d, OptimizationMTProgress p)
         {
             _dispatch = d;
             _pw = p;

@@ -5,7 +5,7 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Forms;
 using VMATTBICSIAutoplanningHelpers.Prompts;
-using VMATTBICSIAutoplanningHelpers.SimpleMTProgressWindow;
+using SimpleProgressWindow;
 
 namespace VMATTBICSIAutoplanningHelpers.BaseClasses
 {

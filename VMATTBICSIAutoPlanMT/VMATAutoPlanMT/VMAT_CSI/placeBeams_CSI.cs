@@ -328,14 +328,14 @@ namespace VMATAutoPlanMT.VMAT_CSI
                         //original (3/28/23) 30.0,40.0,30.0,30.0
                         b.FitCollimatorToStructure(new FitToStructureMargins(45.0, 40.0, 45.0, 30.0), target, true, true, false);
                         ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Fit collimator to: {0}", target.Id));
-                        ProvideUIUpdate(String.Format("Asymmetric margin: {0} cm Lat, {1} cm Sup, {2} cm Inf", 3.0, 3.0, 4.0));
+                        ProvideUIUpdate(String.Format("Asymmetric margin: {0} cm Lat, {1} cm Sup, {2} cm Inf", 4.5, 3.0, 4.0));
                     }
                     else
                     {
                         //original (3/28/23) 30.0
                         b.FitCollimatorToStructure(new FitToStructureMargins(45.0,30.0,45.0,30.0), target, true, true, false);
                         ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Fit collimator to: {0}", target.Id));
-                        ProvideUIUpdate(String.Format("Uniform margin: {0} cm", 3.0));
+                        ProvideUIUpdate(String.Format("Asymmetric margin: {0} cm Lat, {1} cm Sup-Inf", 4.5, 3.0));
                     }
 
                     b.Id = beamName;

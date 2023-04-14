@@ -72,7 +72,6 @@ namespace VMATTBICSIAutoplanningHelpers.Logging
             optimizationConstraints = new List<Tuple<string, List<Tuple<string, string, double, double, int>>>> { };
             _logFromOperations = new StringBuilder();
             _logFromErrors = new StringBuilder();
-
         }
 
         //called after TS generation and beam placement are performed to copy the immediate log output from MTProgress window to the log file
@@ -123,13 +122,13 @@ namespace VMATTBICSIAutoplanningHelpers.Logging
 
             StringBuilder sb = new StringBuilder();
             sb.AppendLine(String.Format(DateTime.Now.ToString()));
-            sb.AppendLine(String.Format("user={0}", userId));
-            sb.AppendLine(String.Format("patient={0}", mrn));
-            sb.AppendLine(String.Format("plan type={0}", planType));
-            sb.AppendLine(String.Format("structure set={0}", selectedSS));
-            sb.AppendLine(String.Format("template={0}", template));
+            sb.AppendLine(String.Format("User={0}", userId));
+            sb.AppendLine(String.Format("Patient={0}", mrn));
+            sb.AppendLine(String.Format("Plan type={0}", planType));
+            sb.AppendLine(String.Format("Structure set={0}", selectedSS));
+            sb.AppendLine(String.Format("Template={0}", template));
             sb.AppendLine(String.Format(""));
-            sb.AppendLine(String.Format("prescriptions:"));
+            sb.AppendLine(String.Format("Prescriptions:"));
 
             foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions) sb.AppendLine(String.Format("    {{{0},{1},{2},{3},{4}}}",itr.Item1,itr.Item2,itr.Item3,itr.Item4.Dose,itr.Item5));
             sb.AppendLine(String.Format(""));
@@ -142,7 +141,7 @@ namespace VMATTBICSIAutoplanningHelpers.Logging
             foreach (Tuple<string, string, double> itr in structureManipulations) sb.AppendLine(String.Format("    {{{0},{1},{2}}}", itr.Item1, itr.Item2, itr.Item3));
             sb.AppendLine(String.Format(""));
 
-            sb.AppendLine(String.Format("isocenter names:"));
+            sb.AppendLine(String.Format("Isocenter names:"));
             foreach (Tuple<string, List<string>> itr in isoNames)
             {
                 sb.AppendLine(String.Format("    {0}", itr.Item1));
@@ -153,14 +152,14 @@ namespace VMATTBICSIAutoplanningHelpers.Logging
             }
             sb.AppendLine(String.Format(""));
 
-            sb.AppendLine(String.Format("plan UIDs:"));
+            sb.AppendLine(String.Format("Plan UIDs:"));
             foreach (string itr in planUIDs)
             {
                 sb.AppendLine(String.Format("    {0}", itr));
             }
             sb.AppendLine(String.Format(""));
 
-            sb.AppendLine("normalization volumes:");
+            sb.AppendLine("Normalization volumes:");
             foreach(Tuple<string,string> itr in normVolumes)
             {
                 sb.AppendLine(String.Format("    {{{0},{1}}}", itr.Item1, itr.Item2));
@@ -182,7 +181,7 @@ namespace VMATTBICSIAutoplanningHelpers.Logging
             sb.Append(_logFromErrors);
             sb.AppendLine(String.Format(""));
 
-            sb.AppendLine("Detailed log output");
+            sb.AppendLine("Detailed log output:");
             sb.Append(_logFromOperations);
             sb.AppendLine(String.Format(""));
             try

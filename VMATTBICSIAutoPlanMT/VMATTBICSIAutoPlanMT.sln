@@ -10,10 +10,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VMATTBICSIAutoPlanMT", "VMA
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VMATTBICSIOptLoopMT", "VMATOptLoopMT\VMATTBICSIOptLoopMT.csproj", "{0D8218FD-0F0D-4370-8402-4A8730032EFF}"
 	ProjectSection(ProjectDependencies) = postProject
+		{66CAAA05-0903-43DA-879A-9EF766F1B742} = {66CAAA05-0903-43DA-879A-9EF766F1B742}
 		{B3FBF7B5-9E18-43BA-B40F-144682A3956E} = {B3FBF7B5-9E18-43BA-B40F-144682A3956E}
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VMATTBICSIAutoPlanningHelpers", "VMATTBICSIAutoplanningHelpers\VMATTBICSIAutoPlanningHelpers.csproj", "{B3FBF7B5-9E18-43BA-B40F-144682A3956E}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E7300C6C-2781-406E-A6BE-AC949B893C99} = {E7300C6C-2781-406E-A6BE-AC949B893C99}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParallelTest", "ParallelTest\ParallelTest.csproj", "{F66246AF-812B-412D-9375-FBF20EC79E41}"
 EndProject
@@ -37,6 +41,18 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TBI", "TBI", "{1CECA9E7-ABC6-4E64-8154-4A2D392C12CA}"
 	ProjectSection(SolutionItems) = preProject
 		_planTemplates\TBI\TBI_regimen1.ini = _planTemplates\TBI\TBI_regimen1.ini
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleProgressWindow", "SimpleProgressWindow\SimpleProgressWindow.csproj", "{E7300C6C-2781-406E-A6BE-AC949B893C99}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0AAD3C94-288A-4872-BAA2-6564ECE0D980} = {0AAD3C94-288A-4872-BAA2-6564ECE0D980}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ESAPIThreadWorker", "ESAPIThreadWorker\ESAPIThreadWorker.csproj", "{0AAD3C94-288A-4872-BAA2-6564ECE0D980}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OptimizationProgressWindow", "OptimizationProgressWindow\OptimizationProgressWindow.csproj", "{66CAAA05-0903-43DA-879A-9EF766F1B742}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0AAD3C94-288A-4872-BAA2-6564ECE0D980} = {0AAD3C94-288A-4872-BAA2-6564ECE0D980}
 	EndProjectSection
 EndProject
 Global
@@ -79,6 +95,30 @@ Global
 		{F66246AF-812B-412D-9375-FBF20EC79E41}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F66246AF-812B-412D-9375-FBF20EC79E41}.Release|x64.ActiveCfg = Release|Any CPU
 		{F66246AF-812B-412D-9375-FBF20EC79E41}.Release|x64.Build.0 = Release|Any CPU
+		{E7300C6C-2781-406E-A6BE-AC949B893C99}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E7300C6C-2781-406E-A6BE-AC949B893C99}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E7300C6C-2781-406E-A6BE-AC949B893C99}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E7300C6C-2781-406E-A6BE-AC949B893C99}.Debug|x64.Build.0 = Debug|Any CPU
+		{E7300C6C-2781-406E-A6BE-AC949B893C99}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E7300C6C-2781-406E-A6BE-AC949B893C99}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E7300C6C-2781-406E-A6BE-AC949B893C99}.Release|x64.ActiveCfg = Release|Any CPU
+		{E7300C6C-2781-406E-A6BE-AC949B893C99}.Release|x64.Build.0 = Release|Any CPU
+		{0AAD3C94-288A-4872-BAA2-6564ECE0D980}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0AAD3C94-288A-4872-BAA2-6564ECE0D980}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0AAD3C94-288A-4872-BAA2-6564ECE0D980}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0AAD3C94-288A-4872-BAA2-6564ECE0D980}.Debug|x64.Build.0 = Debug|Any CPU
+		{0AAD3C94-288A-4872-BAA2-6564ECE0D980}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0AAD3C94-288A-4872-BAA2-6564ECE0D980}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0AAD3C94-288A-4872-BAA2-6564ECE0D980}.Release|x64.ActiveCfg = Release|Any CPU
+		{0AAD3C94-288A-4872-BAA2-6564ECE0D980}.Release|x64.Build.0 = Release|Any CPU
+		{66CAAA05-0903-43DA-879A-9EF766F1B742}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{66CAAA05-0903-43DA-879A-9EF766F1B742}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{66CAAA05-0903-43DA-879A-9EF766F1B742}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{66CAAA05-0903-43DA-879A-9EF766F1B742}.Debug|x64.Build.0 = Debug|Any CPU
+		{66CAAA05-0903-43DA-879A-9EF766F1B742}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{66CAAA05-0903-43DA-879A-9EF766F1B742}.Release|Any CPU.Build.0 = Release|Any CPU
+		{66CAAA05-0903-43DA-879A-9EF766F1B742}.Release|x64.ActiveCfg = Release|Any CPU
+		{66CAAA05-0903-43DA-879A-9EF766F1B742}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

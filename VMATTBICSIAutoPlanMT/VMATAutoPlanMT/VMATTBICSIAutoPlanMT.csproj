@@ -192,6 +192,10 @@
     <Resource Include="Images\Stanford.png" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\SimpleProgressWindow\SimpleProgressWindow.csproj">
+      <Project>{e7300c6c-2781-406e-a6be-ac949b893c99}</Project>
+      <Name>SimpleProgressWindow</Name>
+    </ProjectReference>
     <ProjectReference Include="..\VMATTBICSIAutoplanningHelpers\VMATTBICSIAutoPlanningHelpers.csproj">
       <Project>{b3fbf7b5-9e18-43ba-b40f-144682a3956e}</Project>
       <Name>VMATTBICSIAutoPlanningHelpers</Name>

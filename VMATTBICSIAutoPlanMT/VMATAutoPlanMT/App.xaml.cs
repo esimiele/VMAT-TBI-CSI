@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Windows;
@@ -14,7 +13,6 @@ namespace VMATAutoPlanMT
         private void Application_Startup(object sender, StartupEventArgs e)
         {
             selectOption SO;
-
             if (e.Args.Length == 3) SO = new selectOption(true);
             else SO = new selectOption(false);
             SO.ShowDialog();
@@ -24,7 +22,11 @@ namespace VMATAutoPlanMT
             {
                 Window mw;
                 List<string> theArguments = new List<string> { };
-                for (int i = 0; i < e.Args.Length; i++) theArguments.Add(e.Args[i]);
+                if (e.Args.Length > 1)
+                {
+                    //only add first two arguments (patient id and structure set). Don't care about 3rd argument
+                    for (int i = 0; i < 2; i++) theArguments.Add(e.Args[i]);
+                }
                 theArguments.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\General_configuration.ini");
                 if (SO.isVMATTBI)
                 {

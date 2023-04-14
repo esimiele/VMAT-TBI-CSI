@@ -891,33 +891,33 @@ namespace VMATTBICSIOptLoopMT
                             {
                                 string parameter = line.Substring(0, line.IndexOf("="));
                                 string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
-                                if (parameter == "plan type")
+                                if (parameter == "Plan type")
                                 {
                                     if(value.Contains("CSI")) planType = VMATTBICSIAutoplanningHelpers.Helpers.PlanType.VMAT_CSI;
                                     else planType = VMATTBICSIAutoplanningHelpers.Helpers.PlanType.VMAT_TBI;
                                     planTypeLabel.Content = planType;
                                 }
-                                else if (parameter == "template")
+                                else if (parameter == "Template")
                                 {
                                     //plan objectives will be updated in OpenPatient method
                                     selectedTemplateName = value;
                                 }
                             }
-                            else if (line.Contains("prescriptions:"))
+                            else if (line.Contains("Prescriptions:"))
                             {
                                 while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {
                                     prescriptions.Add(helper.ParsePrescriptionsFromLogFile(line));
                                 }
                             }
-                            else if (line.Contains("plan UIDs:"))
+                            else if (line.Contains("Plan UIDs:"))
                             {
                                 while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {
                                     planUIDs.Add(line);
                                 }
                             }
-                            else if (line.Contains("normalization volumes:"))
+                            else if (line.Contains("Normalization volumes:"))
                             {
                                 while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {

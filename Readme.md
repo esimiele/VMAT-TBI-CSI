@@ -1,6 +1,36 @@
 # VMAT TBI and CSI autoplanning code
 
 ## updates
+update 4/14/23
+### general
+- Major refactoring of code to simplify and improve efficiency
+- Major improvements in logging, particularly organization and error reporting
+- All uses of the script will be logged in separate text files. Each patient will have their own folder
+where the logs will be stored. All uses with unsaved changes are saved in a folder for that patient called 'unsaved'.
+Only one log file will be placed in the same directory as the unsaved directory, which contains the logs from the prep script use
+where the changed WERE saved to the database. It is this log file that the optimization script loads and uses for the optimization loop.
+- Started migrating sections of code to separate projects to provide better separation and improve re-usability of code
+
+### structure tuning
+- ring generation is now controlled through a separate tab on the UI
+- do not add rings to the create TS call in the configuration file (it will not work). Instead use a call to 'create ring'
+- no need to explicitly add optimization constraints for rings, automatically handled by code for the appropriate plan
+- enhanced logging of errors
+
+###beam placement 
+- Contour overlap feature now works
+- optimization constraints are automatically to the appropriate plan for added field junctions
+- enhanced logging of errors
+
+### optimization setup
+- minimal changes (mainly removing unused pieces of code)
+
+### template building
+- updated logic to include ring generation from the UI
+
+### optimization
+- updated search for log file from prep script (primarily updated which directories are searched to match the updated logic in the prep script)
+
 update 3/28/23
 ### general
 - introduced sequential optimization as a feature
@@ -50,8 +80,3 @@ update 1/3/2023
 - fixed VMAT CSI iso naming (brain, upspine, lowspine)
 - changed button content from 'add target' to 'create target'
 - added logic for scan SS and create targets to exclude any structure with 'ts_' in the Id
-
-## Still to do
-todo:
-- reconcile when differences between init bst in template and UI
-

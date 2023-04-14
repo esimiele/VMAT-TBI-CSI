@@ -11,10 +11,11 @@ using VMATTBICSIOptLoopMT.Helpers;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 using VMATTBICSIAutoplanningHelpers.UIHelpers;
 using VMATTBICSIAutoplanningHelpers.Prompts;
+using OptimizationProgressWindow;
 
 namespace VMATTBICSIOptLoopMT.baseClasses
 {
-    public class OptimizationLoopBase : MTbase
+    public class OptimizationLoopBase : OptimizationMTbase
     {
         protected dataContainer _data;
         protected bool _checkSupportStructures = false;
@@ -196,8 +197,8 @@ namespace VMATTBICSIOptLoopMT.baseClasses
                         }
                         else
                         {
-                            if (itr1.Item1.Contains("Dmax")) msg += String.Format(" {0,-59} | {1,-10} |", " ", String.Format("{0}{1}{2}%", itr1.Item1, itr1.Item3, itr1.Item4));
-                            else if (itr1.Item1.Contains("V")) msg += String.Format(" {0,-59} | {1,-10} |", " ", String.Format("{0}{1}%{2}{3}%", itr1.Item1, itr1.Item2, itr1.Item3, itr1.Item4));
+                            if (itr1.Item1.Contains("Dmax")) msg += String.Format(" {0,-60} | {1,-10} |", " ", String.Format("{0}{1}{2}%", itr1.Item1, itr1.Item3, itr1.Item4));
+                            else if (itr1.Item1.Contains("V")) msg += String.Format(" {0,-60} | {1,-10} |", " ", String.Format("{0}{1}%{2}{3}%", itr1.Item1, itr1.Item2, itr1.Item3, itr1.Item4));
                             else msg += String.Format(" {0,-60} | {1,-10} |", " ", String.Format("{0}", itr1.Item1));
                         }
                         index++;
@@ -1035,17 +1036,14 @@ namespace VMATTBICSIOptLoopMT.baseClasses
             //calculate the dose difference between the actual plan dose and the optimization dose constraint (separate based on constraint type). If the difference is less than 0, truncate the dose difference to 0
             if (goal.Item2.ToLower() == "upper")
             {
-                //diff = plan.GetDoseAtVolume(s, opt.Item4, VolumePresentation.Relative, DoseValuePresentation.Absolute).Dose - currentDose;
                 diff = plan.GetDoseAtVolume(s, goal.Item4, VolumePresentation.Relative, DoseValuePresentation.Absolute).Dose - goal.Item3;
             }
             else if (goal.Item2.ToLower() == "lower")
             {
-                //diff = currentDose - plan.GetDoseAtVolume(s, opt.Item4, VolumePresentation.Relative, DoseValuePresentation.Absolute).Dose;
                 diff = goal.Item3 - plan.GetDoseAtVolume(s, goal.Item4, VolumePresentation.Relative, DoseValuePresentation.Absolute).Dose;
             }
             else if (goal.Item2.ToLower() == "mean")
             {
-                //diff = dvh.MeanDose.Dose - currentDose;
                 diff = dvh.MeanDose.Dose - goal.Item3;
             }
             if (diff <= 0.0) diff = 0.0;
