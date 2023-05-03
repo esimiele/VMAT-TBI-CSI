@@ -7,7 +7,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows.Forms;
 using ESAPIThreadWorker;
-using VMATTBICSIAutoplanningHelpers.Prompts;
 
 namespace OptimizationProgressWindow
 {
@@ -229,10 +228,8 @@ namespace OptimizationProgressWindow
                     abortStatus.Background = Brushes.Yellow;
                     abortOpt = true;
                 }
-                confirmUI CUI = new confirmUI();
-                CUI.message.Text = String.Format("I can't close until the optimization loop has stopped!"
-                    + Environment.NewLine + "Please wait until the abort status says 'Aborted' or 'Finished' and then click 'Confirm'.");
-                CUI.ShowDialog();
+                System.Windows.Forms.MessageBox.Show(String.Format("I can't close until the optimization loop has stopped!"
+                    + Environment.NewLine + "Please wait until the abort status says 'Aborted' or 'Finished' and then click 'Confirm'."));
             }
         }
     }

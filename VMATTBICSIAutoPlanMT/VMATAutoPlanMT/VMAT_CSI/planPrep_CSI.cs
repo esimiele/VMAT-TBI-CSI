@@ -8,7 +8,7 @@ using VMATTBICSIAutoplanningHelpers.BaseClasses;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 
-namespace VMATAutoPlanMT.VMAT_CSI
+namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
     class PlanPrep_CSI : PlanPrepBase
     {

@@ -6,18 +6,17 @@ using System.Threading;
 using System.Diagnostics;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using VMATTBICSIOptLoopMT.PlanEvaluation;
-using VMATTBICSIOptLoopMT.Helpers;
+using VMATTBICSIAutoplanningHelpers.PlanEvaluation;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 using VMATTBICSIAutoplanningHelpers.UIHelpers;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 using OptimizationProgressWindow;
 
-namespace VMATTBICSIOptLoopMT.baseClasses
+namespace VMATTBICSIAutoplanningHelpers.BaseClasses
 {
     public class OptimizationLoopBase : OptimizationMTbase
     {
-        protected dataContainer _data;
+        protected OptDataContainer _data;
         protected bool _checkSupportStructures = false;
         protected int overallPercentCompletion = 0;
         protected int overallCalcItems = 1;

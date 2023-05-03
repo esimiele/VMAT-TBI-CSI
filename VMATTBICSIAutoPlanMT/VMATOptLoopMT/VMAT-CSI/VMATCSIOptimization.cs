@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using VMATTBICSIOptLoopMT.PlanEvaluation;
-using VMATTBICSIOptLoopMT.baseClasses;
-using VMATTBICSIOptLoopMT.Helpers;
+using VMATTBICSIAutoplanningHelpers.PlanEvaluation;
+using VMATTBICSIAutoplanningHelpers.BaseClasses;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 using VMATTBICSIAutoplanningHelpers.UIHelpers;
 
@@ -15,7 +14,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
     {
         ExternalPlanSetup evalPlan = null;
 
-        public VMATCSIOptimization(dataContainer _d)
+        public VMATCSIOptimization(OptDataContainer _d)
         {
             _data = _d;
             InitializeLogPathAndName();

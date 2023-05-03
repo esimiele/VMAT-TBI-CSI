@@ -9,7 +9,7 @@ using VMATTBICSIAutoplanningHelpers.Helpers;
 using System.Runtime.ExceptionServices;
 using System.Text;
 
-namespace VMATAutoPlanMT.VMAT_CSI
+namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
     public class GenerateTS_CSI : GenerateTSbase
     {

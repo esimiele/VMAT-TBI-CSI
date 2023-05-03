@@ -19,8 +19,13 @@ namespace VMS.TPS
                 if (context.Patient != null)
                 {
                     bool addOptLaunchOption = false;
+                    bool isCSIPlan = false;
                     ExternalPlanSetup plan = context.ExternalPlanSetup;
-                    if (plan != null && (plan.Id.ToLower() == "_vmat tbi" || plan.Id.ToLower() == "_vmat csi") && !plan.IsDoseValid) addOptLaunchOption = true;
+                    if (plan != null && (plan.Id.ToLower() == "_vmat tbi" || plan.Id.ToLower() == "_vmat csi") && !plan.IsDoseValid)
+                    {
+                        addOptLaunchOption = true;
+                        if (plan.Id.ToLower().Contains("csi")) isCSIPlan = true;
+                    }
                     else
                     {
                         List<Course> courses = context.Patient.Courses.Where(x => x.Id.ToLower().Contains("vmat tbi") || x.Id.ToLower().Contains("vmat csi")).ToList();
@@ -30,13 +35,14 @@ namespace VMS.TPS
                             {
                                 if (c.ExternalPlanSetups.Where(x => (x.Id.ToLower().Contains("tbi") || x.Id.ToLower().Contains("csi")) && !x.IsDoseValid).Any())
                                 {
+                                    if (c.ExternalPlanSetups.Where(x => x.Id.ToLower().Contains("csi")).Any()) isCSIPlan = true;
                                     addOptLaunchOption = true;
                                     break;
                                 }
                             }
                         }
                     }
-                    string exeName = "VMATTBICSIAutoPlanMT";
+                    string exeName = "Launcher";
                     string path = AppExePath(exeName);
                     if (!string.IsNullOrEmpty(path))
                     {
@@ -44,7 +50,11 @@ namespace VMS.TPS
                         if (context.Patient != null)
                         {
                             if (!addOptLaunchOption) p.Arguments = String.Format("{0} {1}", context.Patient.Id, context.StructureSet.Id);
-                            else p.Arguments = String.Format("{0} {1} {2}", context.Patient.Id, context.StructureSet.Id, "true");
+                            else
+                            {
+                                if(isCSIPlan) p.Arguments = String.Format("{0} {1} {2} {3}", context.Patient.Id, context.StructureSet.Id, "true", "true");
+                                else p.Arguments = String.Format("{0} {1} {2}", context.Patient.Id, context.StructureSet.Id, "true");
+                            }
                         }
                         Process.Start(p);
                     }
@@ -54,6 +64,7 @@ namespace VMS.TPS
             }
             catch (Exception e) { MessageBox.Show(e.Message); };
         }
+
         private string AppExePath(string exeName)
         {
             return FirstExePathIn(Path.GetDirectoryName(GetSourceFilePath()), exeName);

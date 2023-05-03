@@ -64,10 +64,6 @@
       <Project>{0aad3c94-288a-4872-baa2-6564ece0d980}</Project>
       <Name>ESAPIThreadWorker</Name>
     </ProjectReference>
-    <ProjectReference Include="..\VMATTBICSIAutoplanningHelpers\VMATTBICSIAutoPlanningHelpers.csproj">
-      <Project>{b3fbf7b5-9e18-43ba-b40f-144682a3956e}</Project>
-      <Name>VMATTBICSIAutoPlanningHelpers</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

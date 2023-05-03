@@ -1,0 +1,17 @@
+﻿<Window x:Class="Launcher.LauncherMainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Launcher"
+        mc:Ignorable="d"
+        Title="Launcher" SizeToContent="WidthAndHeight" Background="DarkGray" WindowStartupLocation="CenterScreen">
+    <Grid Margin="10">
+        <StackPanel>
+            <Label Content="Please select an option:" HorizontalAlignment="Center" FontWeight="Bold" Margin="5"/>
+            <Button Content="VMAT TBI" Width="160" Margin="5" Click="VMATTBIBtn_Click"/>
+            <Button Content="VMAT CSI" Width="160" Margin="5" Click="VMATCSIBtn_Click"/>
+            <Button x:Name="LaunchOptBtn" Content="Launch Optimization Loop" Width="160" Margin="5" Visibility="Collapsed" Click="LaunchOptLoopBtn_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

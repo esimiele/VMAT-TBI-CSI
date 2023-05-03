@@ -3,12 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using VMATTBICSIAutoplanningHelpers.Helpers;
 
-namespace VMATTBICSIOptLoopMT.Helpers
+namespace VMATTBICSIAutoplanningHelpers.Helpers
 {
     //data structure to hold all the relevant information
-    public struct dataContainer
+    public struct OptDataContainer
     {
         //data members
         public Application app;
@@ -31,7 +30,7 @@ namespace VMATTBICSIOptLoopMT.Helpers
         public double lowDoseLimit;
         public bool isDemo;
         public string logFilePath;
-        public VMATTBICSIAutoplanningHelpers.Helpers.PlanType planType;
+        public PlanType planType;
 
         //simple method to automatically assign/initialize the above data members
         public void construct(List<ExternalPlanSetup> p, 
@@ -41,7 +40,7 @@ namespace VMATTBICSIOptLoopMT.Helpers
                               List<Tuple<string, double, double, double, int, 
                               List<Tuple<string, double, string, double>>>> RTS,
                               List<Tuple<string,string,double,string>> info,
-                              VMATTBICSIAutoplanningHelpers.Helpers.PlanType type,
+                              PlanType type,
                               double targetNorm, 
                               int numOpt, 
                               bool coverMe, 

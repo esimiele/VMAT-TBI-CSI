@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using VMATTBICSIOptLoopMT.baseClasses;
-using VMATTBICSIOptLoopMT.Helpers;
+using VMATTBICSIAutoplanningHelpers.BaseClasses;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 using VMATTBICSIAutoplanningHelpers.UIHelpers;
 
@@ -12,7 +11,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
 {
     class VMATTBIOptimization : OptimizationLoopBase
     {
-        public VMATTBIOptimization(dataContainer _d)
+        public VMATTBIOptimization(OptDataContainer _d)
         {
             _data = _d;
             InitializeLogPathAndName();

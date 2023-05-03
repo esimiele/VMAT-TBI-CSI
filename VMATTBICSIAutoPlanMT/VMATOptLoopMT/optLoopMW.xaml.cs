@@ -7,8 +7,7 @@ using System.IO;
 using Microsoft.Win32;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using VMATTBICSIOptLoopMT.Helpers;
-using VMATTBICSIOptLoopMT.baseClasses;
+using VMATTBICSIAutoplanningHelpers.BaseClasses;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 using VMATTBICSIAutoplanningHelpers.UIHelpers;
 using VMATTBICSIAutoplanningHelpers.Prompts;
@@ -566,7 +565,7 @@ namespace VMATTBICSIOptLoopMT
             planDoseInfo = new List<Tuple<string, string, double, string>>(ConstructPlanDoseInfo());
 
             //create a new instance of the structure dataContainer and assign the optimization loop parameters entered by the user to the various data members
-            dataContainer data = new dataContainer();
+            OptDataContainer data = new OptDataContainer();
             data.construct(plans, 
                            prescriptions,
                            normalizationVolumes,

@@ -17,7 +17,7 @@ using VMATTBICSIAutoplanningHelpers.Helpers;
 using VMATTBICSIAutoplanningHelpers.UIHelpers;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 
-namespace VMATAutoPlanMT.VMAT_CSI
+namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
     public partial class CSIAutoPlanMW : Window
     {

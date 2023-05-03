@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{D708CC35-888E-4FE5-B9C6-B858B9BA0015}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>VMATAutoPlanMT</RootNamespace>
-    <AssemblyName>VMATTBICSIAutoPlanMT</AssemblyName>
+    <RootNamespace>VMATCSIAutoPlanMT</RootNamespace>
+    <AssemblyName>VMATCSIAutoPlanMT</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -130,16 +130,9 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Launcher\LaunchVMATTBICSIautoPlan.cs" />
     <Compile Include="VMAT_CSI\GenerateTS_CSI.cs" />
     <Compile Include="VMAT_CSI\PlaceBeams_CSI.cs" />
     <Compile Include="VMAT_CSI\PlanPrep_CSI.cs" />
-    <Compile Include="Prompts\selectOption.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Prompts\selectOption.Designer.cs">
-      <DependentUpon>selectOption.cs</DependentUpon>
-    </Compile>
     <Compile Include="VMAT_CSI\CSIAutoPlanMW.xaml.cs">
       <DependentUpon>CSIAutoPlanMW.xaml</DependentUpon>
     </Compile>
@@ -158,9 +151,6 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
-    <EmbeddedResource Include="Prompts\selectOption.resx">
-      <DependentUpon>selectOption.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -197,8 +187,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy "$(ProjectDir)Launcher\*" "$(ProjectDir)$(OutDir)"
-copy "$(ProjectDir)Configuration\*" "$(ProjectDir)$(OutDir)\configuration"
+    <PostBuildEvent>copy "$(ProjectDir)Configuration\*" "$(ProjectDir)$(OutDir)\configuration"
 copy "$(ProjectDir)PlanTemplates\*" "$(ProjectDir)$(OutDir)\templates\CSI"</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>

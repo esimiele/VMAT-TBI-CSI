@@ -1,10 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Windows;
-using System.IO;
-using System.Reflection;
 
-namespace VMATCSIAutoPlanMT
+namespace Launcher
 {
+    /// <summary>
+    /// Interaction logic for App.xaml
+    /// </summary>
     public partial class App : Application
     {
         private void Application_Startup(object sender, StartupEventArgs e)
@@ -16,14 +17,10 @@ namespace VMATCSIAutoPlanMT
             //if (!SO.isVMATCSI && !SO.isVMATTBI && !SO.launchOptimization) Current.Shutdown();
 
             List<string> theArguments = new List<string> { };
-            if (e.Args.Length > 1)
-            {
-                //only add first two arguments (patient id and structure set). Don't care about 3rd argument
-                for (int i = 0; i < 2; i++) theArguments.Add(e.Args[i]);
-            }
-            theArguments.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\General_configuration.ini");
-                
-            Window mw = new VMAT_CSI.CSIAutoPlanMW(theArguments);
+            //only add first two arguments (patient id and structure set). Don't care about 3rd argument
+            for (int i = 0; i < e.Args.Length; i++) theArguments.Add(e.Args[i]);
+
+            Window mw = new LauncherMainWindow(theArguments);
             mw.Show();
             //else
             //{

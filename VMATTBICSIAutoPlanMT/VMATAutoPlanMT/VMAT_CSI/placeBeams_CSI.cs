@@ -7,7 +7,7 @@ using System.Windows.Media.Media3D;
 using VMATTBICSIAutoplanningHelpers.BaseClasses;
 using System.Runtime.ExceptionServices;
 
-namespace VMATAutoPlanMT.VMAT_CSI
+namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
     public class PlaceBeams_CSI : PlaceBeamsBase
     {
@@ -196,7 +196,7 @@ namespace VMATAutoPlanMT.VMAT_CSI
                     else
                     {
                         //assign y isocenter position to the y position of the user origin. This will likely change
-                        v.y = userOrigin.y;
+                        v.y = longestTargetInPlan.CenterPoint.y;
                         //assumes one isocenter if the target is not ptv_csi
                         v.z = longestTargetInPlan.CenterPoint.z;
                     }
