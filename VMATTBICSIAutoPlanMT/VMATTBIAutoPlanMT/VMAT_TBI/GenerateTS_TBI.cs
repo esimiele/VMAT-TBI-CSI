@@ -9,7 +9,7 @@ using VMATTBICSIAutoplanningHelpers.BaseClasses;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 
-namespace VMATAutoPlanMT.VMAT_TBI
+namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
     public class GenerateTS_TBI : GenerateTSbase
     {

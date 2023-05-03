@@ -9,12 +9,11 @@ using VMS.TPS.Common.Model.Types;
 using System.IO;
 using System.Diagnostics;
 using Microsoft.Win32;
-using VMATAutoPlanMT.VMAT_TBI;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 using VMATTBICSIAutoplanningHelpers.UIHelpers;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 
-namespace VMATAutoPlanMT.VMAT_TBI
+namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
     public partial class TBIAutoPlanMW : Window
     {
@@ -195,16 +194,12 @@ namespace VMATAutoPlanMT.VMAT_TBI
             catch (Exception e) { MessageBox.Show(String.Format("Warning! Could not generate Aria application instance because: {0}", e.Message)); }
             string mrn = "";
             string ss = "";
-            List<string> configurationFiles = new List<string> { };
-            if (args.Count == 1) configurationFiles.Add(args.ElementAt(0));
-            else
+            if (args.Any())
             {
                 mrn = args.ElementAt(0);
                 ss = args.ElementAt(1);
-                configurationFiles.Add(args.ElementAt(2));
             }
-            configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_TBI_config.ini");
-
+            
             if (app != null)
             {
                 if (string.IsNullOrEmpty(mrn) || string.IsNullOrWhiteSpace(mrn))
@@ -233,8 +228,11 @@ namespace VMATAutoPlanMT.VMAT_TBI
                 else MessageBox.Show("Could not open patient!");
             }
 
+            List<string> configurationFiles = new List<string> { };
+            configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\General_configuration.ini");
+            configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_TBI_config.ini");
             //load script configuration and display the settings
-            if (configurationFiles.Any()) foreach(string itr in configurationFiles) loadConfigurationSettings(itr);
+            foreach(string itr in configurationFiles) loadConfigurationSettings(itr);
             displayConfigurationParameters();
 
             //pre-populate the flash comboxes (set global flash as default)

@@ -8,7 +8,7 @@ using VMATTBICSIAutoplanningHelpers.BaseClasses;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 using System.Runtime.ExceptionServices;
 
-namespace VMATAutoPlanMT.VMAT_TBI
+namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
     public class PlaceBeams_TBI : PlaceBeamsBase
     {

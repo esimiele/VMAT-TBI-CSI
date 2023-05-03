@@ -126,10 +126,6 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="VMAT_TBI\TBIAutoPlanMW.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -138,7 +134,6 @@
     <Compile Include="VMAT_CSI\GenerateTS_CSI.cs" />
     <Compile Include="VMAT_CSI\PlaceBeams_CSI.cs" />
     <Compile Include="VMAT_CSI\PlanPrep_CSI.cs" />
-    <Compile Include="VMAT_TBI\GenerateTS_TBI.cs" />
     <Compile Include="Prompts\selectOption.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -148,14 +143,8 @@
     <Compile Include="VMAT_CSI\CSIAutoPlanMW.xaml.cs">
       <DependentUpon>CSIAutoPlanMW.xaml</DependentUpon>
     </Compile>
-    <Compile Include="VMAT_TBI\TBIAutoPlanMW.xaml.cs">
-      <DependentUpon>TBIAutoPlanMW.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="VMAT_TBI\PlaceBeams_TBI.cs" />
-    <Compile Include="VMAT_TBI\PlanPrep_TBI.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -176,7 +165,12 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <None Include="Configuration\VMAT_CSI_config.ini" />
     <None Include="packages.config" />
+    <None Include="PlanTemplates\CSI_mediumRisk.ini" />
+    <None Include="PlanTemplates\CSI_reduceDose.ini" />
+    <None Include="PlanTemplates\CSI_regimen1.ini" />
+    <None Include="PlanTemplates\CSI_regimen2.ini" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -204,9 +198,8 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>copy "$(ProjectDir)Launcher\*" "$(ProjectDir)$(OutDir)"
-copy "$(SolutionDir)_configuration\*" "$(ProjectDir)$(OutDir)\configuration"
-copy "$(SolutionDir)_planTemplates\CSI\*" "$(ProjectDir)$(OutDir)\templates\CSI"
-copy "$(SolutionDir)_planTemplates\TBI\*" "$(ProjectDir)$(OutDir)\templates\TBI"</PostBuildEvent>
+copy "$(ProjectDir)Configuration\*" "$(ProjectDir)$(OutDir)\configuration"
+copy "$(ProjectDir)PlanTemplates\*" "$(ProjectDir)$(OutDir)\templates\CSI"</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent>if NOT EXIST "$(ProjectDir)$(OutDir)\configuration\" (
@@ -214,9 +207,6 @@ mkdir "$(ProjectDir)$(OutDir)\configuration\"
 )
 if NOT EXIST "$(ProjectDir)$(OutDir)templates\CSI\" (
 mkdir "$(ProjectDir)$(OutDir)\templates\CSI\"
-)
-if NOT EXIST "$(ProjectDir)$(OutDir)templates\TBI\" (
-mkdir "$(ProjectDir)$(OutDir)\templates\TBI\"
 )
 if NOT EXIST "$(ProjectDir)$(OutDir)..\log_files\" (
 mkdir "$(ProjectDir)$(OutDir)..\log_files\"

@@ -4,16 +4,16 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{0D8218FD-0F0D-4370-8402-4A8730032EFF}</ProjectGuid>
+    <ProjectGuid>{67E25E0B-FF2C-4AB6-9B8F-7E61AEC78A72}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>VMATTBICSIOptLoopMT</RootNamespace>
-    <AssemblyName>VMATTBICSIOptLoopMT</AssemblyName>
+    <RootNamespace>VMATTBIAutoPlanMT</RootNamespace>
+    <AssemblyName>VMATTBIAutoPlanMT</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
-    <Deterministic>false</Deterministic>
-    <TargetFrameworkProfile />
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>x64</PlatformTarget>
@@ -34,32 +34,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
-    <DebugSymbols>true</DebugSymbols>
-    <OutputPath>..\..\bin\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <DebugType>full</DebugType>
-    <PlatformTarget>x64</PlatformTarget>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <Prefer32Bit>true</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
-    <OutputPath>..\..\bin\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <Optimize>true</Optimize>
-    <DebugType>pdbonly</DebugType>
-    <PlatformTarget>x64</PlatformTarget>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <Prefer32Bit>true</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup>
-    <ApplicationIcon>optLoop.ico</ApplicationIcon>
-  </PropertyGroup>
   <ItemGroup>
-    <Reference Include="PresentationCore" />
-    <Reference Include="PresentationFramework" />
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
@@ -82,35 +57,27 @@
       <HintPath>..\..\VMS_TPS_resources\v15\VMS.TPS.Common.Model.Types.dll</HintPath>
     </Reference>
     <Reference Include="WindowsBase" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="baseClasses\OptimizationLoopBase.cs" />
-    <Compile Include="Prompts\SelectPatient.xaml.cs">
-      <DependentUpon>SelectPatient.xaml</DependentUpon>
+    <Compile Include="VMAT_TBI\GenerateTS_TBI.cs" />
+    <Compile Include="VMAT_TBI\PlaceBeams_TBI.cs" />
+    <Compile Include="VMAT_TBI\PlanPrep_TBI.cs" />
+    <Compile Include="VMAT_TBI\TBIAutoPlanMW.xaml.cs">
+      <DependentUpon>TBIAutoPlanMW.xaml</DependentUpon>
     </Compile>
-    <Compile Include="VMAT-CSI\VMATCSIOptimization.cs" />
-    <Compile Include="VMAT-TBI\VMATTBIOptimization.cs" />
-    <Page Include="optLoopMW.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Helpers\dataContainer.cs" />
-    <Compile Include="PlanEvaluation\EvalPlanStruct.cs" />
-    <Compile Include="optLoopMW.xaml.cs">
-      <DependentUpon>optLoopMW.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Page Include="Prompts\SelectPatient.xaml">
-      <SubType>Designer</SubType>
+    <Page Include="VMAT_TBI\TBIAutoPlanMW.xaml">
       <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
     </Page>
   </ItemGroup>
   <ItemGroup>
@@ -131,6 +98,8 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <None Include="Configuration\VMAT_TBI_config.ini" />
+    <None Include="PlanTemplates\TBI_regimen1.ini" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -140,38 +109,30 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="optLoop.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\StanfordMedicine1.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\OptimizationProgressWindow\OptimizationProgressWindow.csproj">
-      <Project>{66caaa05-0903-43da-879a-9ef766f1b742}</Project>
-      <Name>OptimizationProgressWindow</Name>
+    <ProjectReference Include="..\ESAPIThreadWorker\ESAPIThreadWorker.csproj">
+      <Project>{0aad3c94-288a-4872-baa2-6564ece0d980}</Project>
+      <Name>ESAPIThreadWorker</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\SimpleProgressWindow\SimpleProgressWindow.csproj">
+      <Project>{e7300c6c-2781-406e-a6be-ac949b893c99}</Project>
+      <Name>SimpleProgressWindow</Name>
     </ProjectReference>
     <ProjectReference Include="..\VMATTBICSIAutoplanningHelpers\VMATTBICSIAutoPlanningHelpers.csproj">
       <Project>{b3fbf7b5-9e18-43ba-b40f-144682a3956e}</Project>
       <Name>VMATTBICSIAutoPlanningHelpers</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PreBuildEvent>if NOT EXIST "$(ProjectDir)$(OutDir)\configuration\" (
 mkdir "$(ProjectDir)$(OutDir)\configuration\"
 )
-if NOT EXIST "$(ProjectDir)$(OutDir)templates\CSI\" (
-mkdir "$(ProjectDir)$(OutDir)\templates\CSI\"
-)
 if NOT EXIST "$(ProjectDir)$(OutDir)templates\TBI\" (
 mkdir "$(ProjectDir)$(OutDir)\templates\TBI\"
-)
-if NOT EXIST "$(ProjectDir)$(OutDir)..\log_files\" (
-mkdir "$(ProjectDir)$(OutDir)..\log_files\"
 )</PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>copy "$(SolutionDir)_configuration\*" "$(ProjectDir)$(OutDir)\configuration"</PostBuildEvent>
+    <PostBuildEvent>copy "$(ProjectDir)Configuration\*" "$(ProjectDir)$(OutDir)\configuration"
+copy "$(ProjectDir)PlanTemplates\*" "$(ProjectDir)$(OutDir)\templates\TBI"</PostBuildEvent>
   </PropertyGroup>
 </Project>
