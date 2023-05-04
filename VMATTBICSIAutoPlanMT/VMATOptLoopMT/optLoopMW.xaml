@@ -168,7 +168,7 @@
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="370"/>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="370"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
                             <Button x:Name="selectPatientBtn" Content="Select Patient" FontWeight="Bold" Width="125" Height="22" Margin="0,5,0,10" HorizontalAlignment="Center" VerticalAlignment="Top" Click="SelectPatient_Click"></Button>
@@ -183,50 +183,50 @@
 
                         <StackPanel Grid.Column="1">
                             <Grid Margin="0,5,0,0">
-                                <Label Content="Base plan:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,160,0"></Label>
-                                <Label Content="Boost plan:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,55,0"></Label>
+                                <Label Content="Base plan:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,122,0"></Label>
+                                <Label Content="Boost plan:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,28,0"></Label>
                             </Grid>
                             <Grid Margin="0,5,0,5">
-                                <Label Content="Dose per fraction (cGy/fraction):" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,228,0"></Label>
-                                <TextBox x:Name="initDosePerFxTB" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,153,0" IsReadOnly="True"></TextBox>
-                                <TextBox x:Name="boostDosePerFxTB" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,53,0" IsReadOnly="True"></TextBox>
+                                <Label Content="Dose per fraction (cGy/fraction):" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,190,0"></Label>
+                                <TextBox x:Name="initDosePerFxTB" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,115,0" IsReadOnly="True"></TextBox>
+                                <TextBox x:Name="boostDosePerFxTB" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,25,0" IsReadOnly="True"></TextBox>
                             </Grid>
                             <Grid Margin="0,0,0,5">
-                                <Label Content="Number of fractions:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,228,0"/>
-                                <TextBox x:Name="initNumFxTB" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,153,0" IsReadOnly="True"></TextBox>
-                                <TextBox x:Name="boostNumFxTB" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,53,0" IsReadOnly="True"></TextBox>
+                                <Label Content="Number of fractions:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,190,0"/>
+                                <TextBox x:Name="initNumFxTB" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,115,0" IsReadOnly="True"></TextBox>
+                                <TextBox x:Name="boostNumFxTB" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,25,0" IsReadOnly="True"></TextBox>
                             </Grid>
                             <Grid Margin="0,0,0,5">
-                                <Label Content="Rx dose (cGy):" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,228,0"></Label>
-                                <TextBox x:Name="initRxTB" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,153,0" IsReadOnly="True"></TextBox>
-                                <TextBox x:Name="boostRxTB" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,53,0" IsReadOnly="True"></TextBox>
+                                <Label Content="Rx dose (cGy):" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,190,0"></Label>
+                                <TextBox x:Name="initRxTB" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,115,0" IsReadOnly="True"></TextBox>
+                                <TextBox x:Name="boostRxTB" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,25,0" IsReadOnly="True"></TextBox>
                             </Grid>
                             <Grid Margin="0,0,0,5">
-                                <Label Content="Normalization volumes:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,228,0"></Label>
-                                <TextBox x:Name="initNormVolume" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,153,0" IsReadOnly="True"></TextBox>
-                                <TextBox x:Name="bstNormVolume" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,53,0" IsReadOnly="True"></TextBox>
+                                <Label Content="Normalization volumes:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,190,0"></Label>
+                                <TextBox x:Name="initNormVolume" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,115,0" IsReadOnly="True"></TextBox>
+                                <TextBox x:Name="bstNormVolume" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,4,25,0" IsReadOnly="True"></TextBox>
                             </Grid>
                             <Grid Margin="0,0,0,5">
-                                <Label Content="Run coverage check:" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,68,0"></Label>
-                                <CheckBox x:Name="runCoverageCk" HorizontalAlignment="Right" Margin="0,7,53,0" VerticalAlignment="Top"/>
+                                <Label Content="Run coverage check:" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,48,0"></Label>
+                                <CheckBox x:Name="runCoverageCk" HorizontalAlignment="Right" Margin="0,7,33,0" VerticalAlignment="Top"/>
                             </Grid>
                             <Grid Margin="0,0,0,5">
-                                <Label Content="Copy and save each optimized plan:" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,68,0"></Label>
-                                <CheckBox x:Name="copyAndSave" HorizontalAlignment="Right" Margin="0,7,53,0" VerticalAlignment="Top"/>
+                                <Label Content="Copy and save each optimized plan:" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,48,0"></Label>
+                                <CheckBox x:Name="copyAndSave" HorizontalAlignment="Right" Margin="0,7,33,0" VerticalAlignment="Top"/>
                             </Grid>
                             <Grid Margin="0,0,0,5">
-                                <Label Content="Max number optimizations:" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,140,0"></Label>
-                                <TextBox x:Name="numOptLoops" Height="22" Width="85" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,53,0"></TextBox>
+                                <Label Content="Max number optimizations:" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,120,0"></Label>
+                                <TextBox x:Name="numOptLoops" Height="22" Width="85" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,33,0"></TextBox>
                             </Grid>
                             <Grid Margin="0,0,0,5">
-                                <Label Content="Run additional optimization to lower hotspots:" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,68,0"></Label>
-                                <CheckBox x:Name="runAdditionalOpt" HorizontalAlignment="Right" Margin="0,7,53,0" VerticalAlignment="Top"/>
+                                <Label Content="Run additional optimization to lower hotspots:" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,48,0"></Label>
+                                <CheckBox x:Name="runAdditionalOpt" HorizontalAlignment="Right" Margin="0,7,33,0" VerticalAlignment="Top"/>
                             </Grid>
 
                             <Grid Margin="0,0,0,5">
-                                <Label Content="PTV V100% (in %):" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,150,0"></Label>
-                                <TextBox x:Name="targetNormTB" Height="22" Width="60" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,90,0"></TextBox>
-                                <Button x:Name="targetNormInfo" Content="?" Height="22" Width="20" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,53,0" Click="targetNormInfo_Click"></Button>
+                                <Label Content="PTV V100% (in %):" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,130,0"></Label>
+                                <TextBox x:Name="targetNormTB" Height="22" Width="70" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,60,0"></TextBox>
+                                <Button x:Name="targetNormInfo" Content="?" Height="22" Width="20" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,33,0" Click="targetNormInfo_Click"></Button>
                             </Grid>
                         </StackPanel>
                     </Grid>
@@ -261,7 +261,7 @@
                                 <ScrollViewer x:Name="optimizationParamScroller" Height="444" Width="595" Margin="0,0,5,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                     <StackPanel Name="optimizationParamSP" Margin="5"></StackPanel>
                                 </ScrollViewer>
-                                <Button Content="Confirm and Begin Optimization" FontWeight="Bold" Width="240" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,10,0,0" Click="startOpt_Click"></Button>
+                                <Button Content="Confirm and Begin Optimization" FontWeight="Bold" Width="240" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,10,0,0" Click="StartOpt_Click"></Button>
                             </StackPanel>
                         </Border>
                     </TabItem>
@@ -272,7 +272,7 @@
                                 <ScrollViewer x:Name ="configScroller" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="590" Height="472" Margin="0,5,5,0" BorderBrush="Black">
                                     <TextBlock x:Name="configTB" FontSize="12" FontFamily="Courier New" Width="575" Background="White" TextWrapping="Wrap"></TextBlock>
                                 </ScrollViewer>
-                                <Button x:Name="loadNewConfigFile" Content="Load new configuration file" Width="160" HorizontalAlignment="Center" Margin="0,8,0,0" Click="loadNewConfigFile_Click"></Button>
+                                <Button x:Name="loadNewConfigFile" Content="Load new configuration file" Width="160" HorizontalAlignment="Center" Margin="0,8,0,0" Click="LoadNewConfigFile_Click"></Button>
                             </StackPanel>
                         </Border>
                     </TabItem>

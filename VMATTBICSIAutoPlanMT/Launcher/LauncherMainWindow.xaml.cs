@@ -23,6 +23,7 @@ namespace Launcher
             {
                 if (startupArgs.Count > 2) LaunchOptBtn.Visibility = Visibility.Visible;
                 if (startupArgs.Count > 3) isCSIPlan = true;
+                //patient mrn, structure set
                 arguments = String.Format("{0} {1}", startupArgs.ElementAt(0), startupArgs.ElementAt(1));
             }
         }
@@ -50,8 +51,10 @@ namespace Launcher
             string path = AppExePath(exeName);
             if (!string.IsNullOrEmpty(path))
             {
-                ProcessStartInfo p = new ProcessStartInfo(path);
-                p.Arguments = arguments;
+                ProcessStartInfo p = new ProcessStartInfo(path)
+                {
+                    Arguments = arguments
+                };
                 Process.Start(p);
                 this.Close();
             }

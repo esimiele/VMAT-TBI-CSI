@@ -278,11 +278,10 @@ namespace VMATTBICSIAutoplanningHelpers.BaseClasses
                 ProvideUIUpdate(String.Format("Junction: {0}", i));
                 //this is left as a double so I can cast it to an int in the second overlap item and use it in the calculation in the third overlap item
                 //logic to consider the situation where the y extent of the fields are NOT 40 cm!
-                CalculationHelper helper = new CalculationHelper();
-                Beam iso1Beam1 = isoLocations.Item1.Beams.First(x => helper.AreEqual(x.IsocenterPosition.z, isoLocations.Item2.ElementAt(i - 1).Item1.z));
+                Beam iso1Beam1 = isoLocations.Item1.Beams.First(x => CalculationHelper.AreEqual(x.IsocenterPosition.z, isoLocations.Item2.ElementAt(i - 1).Item1.z));
                 ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), String.Format("First beam in isocenter {0}: {1}", i - 1, iso1Beam1.Id));
 
-                Beam iso2Beam1 = isoLocations.Item1.Beams.First(x => helper.AreEqual(x.IsocenterPosition.z, isoLocations.Item2.ElementAt(i).Item1.z));
+                Beam iso2Beam1 = isoLocations.Item1.Beams.First(x => CalculationHelper.AreEqual(x.IsocenterPosition.z, isoLocations.Item2.ElementAt(i).Item1.z));
                 ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), String.Format("First beam in isocenter {0}: {1}", i, iso2Beam1.Id));
 
                 //assumes iso1beam1 y1 is oriented inferior on patient and iso2beam1 is oriented superior on patient

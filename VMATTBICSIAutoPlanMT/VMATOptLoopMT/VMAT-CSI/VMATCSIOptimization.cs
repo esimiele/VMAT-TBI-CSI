@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using VMATTBICSIAutoplanningHelpers.PlanEvaluation;
+using VMATTBICSIAutoplanningHelpers.Structs;
 using VMATTBICSIAutoplanningHelpers.BaseClasses;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 using VMATTBICSIAutoplanningHelpers.UIHelpers;
@@ -147,7 +147,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             EvaluationDose summed = evalPlan.CreateEvaluationDose();
             if (summed == null)
             {
-                ProvideUIUpdate("summed is null", true);
+                ProvideUIUpdate("Eval plan summed dose distribution is null", true);
                 return true;
             }
             try

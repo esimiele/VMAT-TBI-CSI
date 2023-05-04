@@ -2,10 +2,10 @@
 
 namespace VMATTBICSIAutoplanningHelpers.Helpers
 {
-    public class CalculationHelper
+    public static class CalculationHelper
     {
         //tolerance of 1um
-        public bool AreEqual(double x, double y, double tolerance = 0.001)
+        public static bool AreEqual(double x, double y, double tolerance = 0.001)
         {
             bool equal = false;
             double squareDiff = Math.Pow(x - y, 2);

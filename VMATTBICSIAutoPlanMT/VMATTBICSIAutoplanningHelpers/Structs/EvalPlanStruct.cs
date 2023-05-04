@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using VMS.TPS.Common.Model.API;
 
-namespace VMATTBICSIAutoplanningHelpers.PlanEvaluation
+namespace VMATTBICSIAutoplanningHelpers.Structs
 {
     //data structure to hold the results of the plan evaluation following an optimization
     public struct EvalPlanStruct

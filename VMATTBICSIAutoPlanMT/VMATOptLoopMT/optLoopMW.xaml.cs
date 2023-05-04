@@ -9,15 +9,17 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoplanningHelpers.BaseClasses;
 using VMATTBICSIAutoplanningHelpers.Helpers;
+using VMATTBICSIAutoplanningHelpers.Structs;
 using VMATTBICSIAutoplanningHelpers.UIHelpers;
 using VMATTBICSIAutoplanningHelpers.Prompts;
-using VMATTBICSIAutoplanningHelpers.TemplateClasses;
+using VMATTBICSIAutoplanningHelpers.PlanTemplateClasses;
 using VMATTBICSIOptLoopMT.VMAT_CSI;
 using VMATTBICSIOptLoopMT.VMAT_TBI;
 using VMATTBICSIOptLoopMT.Prompts;
 using System.Collections.ObjectModel;
 using System.Reflection;
 using System.Text;
+using PlanType = VMATTBICSIAutoplanningHelpers.Helpers.PlanType;
 
 namespace VMATTBICSIOptLoopMT
 {
@@ -82,20 +84,10 @@ namespace VMATTBICSIOptLoopMT
             PlanTemplates = new ObservableCollection<CSIAutoPlanTemplate>() { new CSIAutoPlanTemplate("--select--") };
             DataContext = this;
             string patmrn = "";
-            List<string> configurationFiles = new List<string> { Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\General_configuration.ini" };
-            for (int i = 0; i < args.Length; i++)
-            {
-                if (i == 0) patmrn = args[i];
-                if (i == 1) configurationFiles.Add(args[i]);
-            }
-            
-            foreach(string itr in configurationFiles)
-            {
-                if (File.Exists(itr))
-                {
-                    loadConfigurationSettings(itr);
-                }
-            }
+            if (args.Any()) patmrn = args[0];
+
+            string logConfigurationFile = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini";
+            if (File.Exists(logConfigurationFile)) LoadConfigurationSettings(logConfigurationFile);
             
             if (args.Length > 0) OpenPatient(patmrn);
             else LoadPatient();
@@ -141,11 +133,7 @@ namespace VMATTBICSIOptLoopMT
                             LoadLogFile(fullLogName);
                         }
 
-                        string planTypeSpecificConfigurationSettings;
-                        if (planType == VMATTBICSIAutoplanningHelpers.Helpers.PlanType.VMAT_CSI) planTypeSpecificConfigurationSettings = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_CSI_config.ini";
-                        else planTypeSpecificConfigurationSettings = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_TBI_config.ini";
-                        loadConfigurationSettings(planTypeSpecificConfigurationSettings);
-
+                        LoadConfigurationSettingsForPlanType(planType);
                         OpenPatient(mrn);
                         LoadTemplatePlanChoices(planType);
                     }
@@ -160,7 +148,7 @@ namespace VMATTBICSIOptLoopMT
         {
             try
             {
-                clearEverything();
+                ClearEverything();
                 app.ClosePatient();
                 pi = app.OpenPatientById(pat_mrn);
                 //grab instances of the course and VMAT tbi plans that were created using the binary plug in script. This is explicitly here to let the user know if there is a problem with the course OR plan
@@ -175,7 +163,7 @@ namespace VMATTBICSIOptLoopMT
                 PopulateOptimizationTab(optimizationParamSP);
 
                 //populate the prescription text boxes with the prescription stored in the VMAT TBI plan
-                populateRx();
+                PopulateRx();
 
                 planObjectiveHeader.Background = System.Windows.Media.Brushes.PaleVioletRed;
             }
@@ -356,14 +344,15 @@ namespace VMATTBICSIOptLoopMT
                 else theCourse = courses.First();
                 if (theCourse.Id.ToLower().Contains("csi"))
                 {
-                    planType = VMATTBICSIAutoplanningHelpers.Helpers.PlanType.VMAT_CSI;
+                    planType = PlanType.VMAT_CSI;
                     planTypeLabel.Content = "VMAT CSI";
                 }
                 else
                 {
-                    planType = VMATTBICSIAutoplanningHelpers.Helpers.PlanType.VMAT_TBI;
+                    planType = PlanType.VMAT_TBI;
                     planTypeLabel.Content = "VMAT TBI";
                 }
+                LoadConfigurationSettingsForPlanType(planType);
 
                 thePlans = theCourse.ExternalPlanSetups.OrderBy(x => x.CreationDateTime).ToList();
                 if (thePlans.Count > 2)
@@ -386,7 +375,7 @@ namespace VMATTBICSIOptLoopMT
             return (thePlans, ss);
         }
 
-        private void clearEverything()
+        private void ClearEverything()
         {
             //clear all existing content from the main window
             templateList.UnselectAll();
@@ -397,7 +386,7 @@ namespace VMATTBICSIOptLoopMT
             ClearAllItemsFromUIList(planObjectiveParamSP);
         }
 
-        private void populateRx()
+        private void PopulateRx()
         {
             //populate the prescription text boxes
             initDosePerFxTB.Text = plans.First().DosePerFraction.Dose.ToString();
@@ -489,7 +478,7 @@ namespace VMATTBICSIOptLoopMT
         #endregion
 
         #region start optimization
-        private void startOpt_Click(object sender, RoutedEventArgs e)
+        private void StartOpt_Click(object sender, RoutedEventArgs e)
         {
             if (!plans.Any()) 
             { 
@@ -566,7 +555,7 @@ namespace VMATTBICSIOptLoopMT
 
             //create a new instance of the structure dataContainer and assign the optimization loop parameters entered by the user to the various data members
             OptDataContainer data = new OptDataContainer();
-            data.construct(plans, 
+            data.Construct(plans, 
                            prescriptions,
                            normalizationVolumes,
                            objectives, 
@@ -588,7 +577,7 @@ namespace VMATTBICSIOptLoopMT
             //start the optimization loop (all saving to the database is performed in the progressWindow class)
             //use a bit of polymorphism
             OptimizationLoopBase optLoop;
-            if(planType == VMATTBICSIAutoplanningHelpers.Helpers.PlanType.VMAT_CSI) optLoop = new VMATCSIOptimization(data);
+            if(planType == PlanType.VMAT_CSI) optLoop = new VMATCSIOptimization(data);
             else optLoop = new VMATTBIOptimization(data);
             optLoop.Execute();
         }
@@ -783,7 +772,7 @@ namespace VMATTBICSIOptLoopMT
             targetNormTB.Text = defaultPlanNorm;
         }
 
-        private void loadNewConfigFile_Click(object sender, RoutedEventArgs e)
+        private void LoadNewConfigFile_Click(object sender, RoutedEventArgs e)
         {
             configFile = "";
             OpenFileDialog openFileDialog = new OpenFileDialog();
@@ -792,7 +781,7 @@ namespace VMATTBICSIOptLoopMT
 
             if (openFileDialog.ShowDialog().Value) 
             { 
-                if (!loadConfigurationSettings(openFileDialog.FileName)) 
+                if (!LoadConfigurationSettings(openFileDialog.FileName)) 
                 { 
                     if (pi != null) DisplayConfigurationParameters(); 
                 } 
@@ -800,7 +789,26 @@ namespace VMATTBICSIOptLoopMT
             }
         }
 
-        private bool loadConfigurationSettings(string file)
+        private void LoadConfigurationSettingsForPlanType(PlanType type)
+        {
+            List<string> configurationFiles = new List<string> { };
+            if (type == PlanType.VMAT_CSI)
+            {
+                configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_CSI_config.ini");
+                configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\CSI_optimization_config.ini");
+            }
+            else
+            {
+                configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_TBI_config.ini");
+                configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\TBI_optimization_config.ini");
+            }
+            foreach (string itr in configurationFiles)
+            {
+                if (File.Exists(itr)) LoadConfigurationSettings(itr);
+            }
+        }
+
+        private bool LoadConfigurationSettings(string file)
         {
             configFile = file;
             try
@@ -849,14 +857,14 @@ namespace VMATTBICSIOptLoopMT
             catch (Exception e) { MessageBox.Show(String.Format("Error could not load configuration file because: {0}\n\nAssuming default parameters", e.Message)); return true; }
         }
 
-        private void LoadTemplatePlanChoices(VMATTBICSIAutoplanningHelpers.Helpers.PlanType type)
+        private void LoadTemplatePlanChoices(PlanType type)
         {
             ConfigurationHelper helper = new ConfigurationHelper();
             int count = 1;
             SearchOption option = SearchOption.AllDirectories;
             string path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\";
             PlanTemplates.Clear();
-            if (type == VMATTBICSIAutoplanningHelpers.Helpers.PlanType.VMAT_CSI) path += "CSI\\";
+            if (type == PlanType.VMAT_CSI) path += "CSI\\";
             else path += "TBI\\";
             try
             {

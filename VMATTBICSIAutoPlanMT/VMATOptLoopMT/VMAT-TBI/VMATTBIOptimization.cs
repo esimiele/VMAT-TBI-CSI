@@ -6,6 +6,7 @@ using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoplanningHelpers.BaseClasses;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 using VMATTBICSIAutoplanningHelpers.UIHelpers;
+using VMATTBICSIAutoplanningHelpers.Structs;
 
 namespace VMATTBICSIOptLoopMT.VMAT_TBI
 {

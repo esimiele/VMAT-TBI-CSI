@@ -4,7 +4,7 @@ using System.Windows.Controls;
 using System.Windows;
 using System.Collections.Generic;
 using VMS.TPS.Common.Model.API;
-using VMATTBICSIAutoplanningHelpers.TemplateClasses;
+using VMATTBICSIAutoplanningHelpers.PlanTemplateClasses;
 
 namespace VMATTBICSIAutoplanningHelpers.Helpers
 {

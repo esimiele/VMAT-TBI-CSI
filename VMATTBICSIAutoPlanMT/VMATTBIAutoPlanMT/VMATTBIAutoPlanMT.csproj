@@ -132,7 +132,8 @@ mkdir "$(ProjectDir)$(OutDir)\templates\TBI\"
 )</PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>copy "$(ProjectDir)Configuration\*" "$(ProjectDir)$(OutDir)\configuration"
+    <PostBuildEvent>copy "$(SolutionDir)_configuration\*" "$(ProjectDir)$(OutDir)\configuration"
+copy "$(ProjectDir)Configuration\*" "$(ProjectDir)$(OutDir)\configuration"
 copy "$(ProjectDir)PlanTemplates\*" "$(ProjectDir)$(OutDir)\templates\TBI"</PostBuildEvent>
   </PropertyGroup>
 </Project>

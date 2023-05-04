@@ -6,7 +6,7 @@ using System.Windows;
 using System.Text;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using VMATTBICSIAutoplanningHelpers.TemplateClasses;
+using VMATTBICSIAutoplanningHelpers.PlanTemplateClasses;
 
 namespace VMATTBICSIAutoplanningHelpers.UIHelpers
 {

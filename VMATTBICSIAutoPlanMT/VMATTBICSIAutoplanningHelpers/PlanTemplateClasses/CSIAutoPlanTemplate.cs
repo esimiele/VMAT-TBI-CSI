@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using VMS.TPS.Common.Model.Types;
 
-namespace VMATTBICSIAutoplanningHelpers.TemplateClasses
+namespace VMATTBICSIAutoplanningHelpers.PlanTemplateClasses
 {
     public class CSIAutoPlanTemplate
     {

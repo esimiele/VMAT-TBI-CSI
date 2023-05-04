@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
-using VMATTBICSIAutoplanningHelpers.TemplateClasses;
+using VMATTBICSIAutoplanningHelpers.PlanTemplateClasses;
 using VMS.TPS.Common.Model.Types;
 
 namespace VMATTBICSIAutoplanningHelpers.Helpers

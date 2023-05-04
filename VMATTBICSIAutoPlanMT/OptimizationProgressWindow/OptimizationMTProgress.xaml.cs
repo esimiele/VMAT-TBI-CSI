@@ -45,7 +45,7 @@ namespace OptimizationProgressWindow
             slave = e;
             //initialize and start the stopwatch
             runTime.Text = "00:00:00";
-            dt.Tick += new EventHandler(dt_tick);
+            dt.Tick += new EventHandler(Dt_tick);
             dt.Interval = new TimeSpan(0, 0, 1);
             DoStuff();
         }
@@ -69,7 +69,7 @@ namespace OptimizationProgressWindow
             });
         }
 
-        private void dt_tick(object sender, EventArgs e)
+        private void Dt_tick(object sender, EventArgs e)
         {
             //increment the time on the progress window for each "tick", which is set to intervals of 1 second
             if (sw.IsRunning)

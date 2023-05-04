@@ -128,6 +128,8 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <None Include="Configuration\TBI_optimization_config.ini" />
+    <None Include="Configuration\CSI_optimization_config.ini" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -163,12 +165,10 @@ mkdir "$(ProjectDir)$(OutDir)\templates\CSI\"
 )
 if NOT EXIST "$(ProjectDir)$(OutDir)templates\TBI\" (
 mkdir "$(ProjectDir)$(OutDir)\templates\TBI\"
-)
-if NOT EXIST "$(ProjectDir)$(OutDir)..\log_files\" (
-mkdir "$(ProjectDir)$(OutDir)..\log_files\"
 )</PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>copy "$(SolutionDir)_configuration\*" "$(ProjectDir)$(OutDir)\configuration"</PostBuildEvent>
+    <PostBuildEvent>copy "$(SolutionDir)_configuration\*" "$(ProjectDir)$(OutDir)\configuration"
+copy "$(ProjectDir)Configuration\*" "$(ProjectDir)$(OutDir)\configuration"</PostBuildEvent>
   </PropertyGroup>
 </Project>

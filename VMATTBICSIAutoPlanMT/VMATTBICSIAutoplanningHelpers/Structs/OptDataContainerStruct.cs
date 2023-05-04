@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
+using PlanType = VMATTBICSIAutoplanningHelpers.Helpers.PlanType;
 
-namespace VMATTBICSIAutoplanningHelpers.Helpers
+namespace VMATTBICSIAutoplanningHelpers.Structs
 {
     //data structure to hold all the relevant information
     public struct OptDataContainer
@@ -33,7 +34,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
         public PlanType planType;
 
         //simple method to automatically assign/initialize the above data members
-        public void construct(List<ExternalPlanSetup> p, 
+        public void Construct(List<ExternalPlanSetup> p, 
                               List<Tuple<string, string, int, DoseValue, double>> presc,
                               List<Tuple<string,string>> normVols,
                               List<Tuple<string, string, double, double, DoseValuePresentation>> objectives, 
