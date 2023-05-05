@@ -4,6 +4,7 @@ using System.Windows;
 using System.Text;
 using System.IO;
 using VMS.TPS.Common.Model.Types;
+using VMATTBICSIAutoplanningHelpers.Enums;
 
 namespace VMATTBICSIAutoplanningHelpers.Logging
 {
@@ -33,7 +34,7 @@ namespace VMATTBICSIAutoplanningHelpers.Logging
         public List<string> PlanUIDs { set { planUIDs = new List<string>(value); } }
         //optimization setup
         //plan ID, <structure, constraint type, dose cGy, volume %, priority>
-        public List<Tuple<string, List<Tuple<string, string, double, double, int>>>> OptimizationConstraints { set { optimizationConstraints = new List<Tuple<string, List<Tuple<string, string, double, double, int>>>>(value); } }
+        public List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> OptimizationConstraints { set { optimizationConstraints = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>(value); } }
 
         //path to location to write log file
         private string logPath = "";
@@ -53,7 +54,7 @@ namespace VMATTBICSIAutoplanningHelpers.Logging
         private List<Tuple<string, string>> normVolumes { get; set; }
         private List<Tuple<string, List<string>>> isoNames { get; set; }
         private List<string> planUIDs { get; set; }
-        private List<Tuple<string, List<Tuple<string, string, double, double, int>>>> optimizationConstraints { get; set; }
+        private List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> optimizationConstraints { get; set; }
 
         public Logger(string path, string type, string patient)
         {
@@ -69,7 +70,7 @@ namespace VMATTBICSIAutoplanningHelpers.Logging
             normVolumes = new List<Tuple<string, string>> { };
             isoNames = new List<Tuple<string, List<string>>> { };
             planUIDs = new List<string> { };
-            optimizationConstraints = new List<Tuple<string, List<Tuple<string, string, double, double, int>>>> { };
+            optimizationConstraints = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
             _logFromOperations = new StringBuilder();
             _logFromErrors = new StringBuilder();
         }
@@ -167,12 +168,12 @@ namespace VMATTBICSIAutoplanningHelpers.Logging
             sb.AppendLine(String.Format(""));
 
             sb.AppendLine(String.Format("Optimization constraints:"));
-            foreach (Tuple<string, List<Tuple<string, string, double, double, int>>> itr in optimizationConstraints)
+            foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in optimizationConstraints)
             {
                 sb.AppendLine(String.Format("    {0}", itr.Item1));
-                foreach(Tuple<string, string, double, double, int> itr1 in itr.Item2)
+                foreach(Tuple<string, OptimizationObjectiveType, double, double, int> itr1 in itr.Item2)
                 {
-                    sb.AppendLine(String.Format("        {{{0},{1},{2},{3},{4}}}", itr1.Item1, itr1.Item2, itr1.Item3, itr1.Item4, itr1.Item5));
+                    sb.AppendLine(String.Format("        {{{0},{1},{2},{3},{4}}}", itr1.Item1, itr1.Item2.ToString(), itr1.Item3, itr1.Item4, itr1.Item5));
                 }
             }
             sb.AppendLine(String.Format(""));

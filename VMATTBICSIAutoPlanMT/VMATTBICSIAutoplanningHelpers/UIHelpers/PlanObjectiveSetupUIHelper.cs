@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
+using VMATTBICSIAutoplanningHelpers.Enums;
+using VMATTBICSIAutoplanningHelpers.Helpers;
 
 namespace VMATTBICSIAutoplanningHelpers.UIHelpers
 {
@@ -68,10 +66,10 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return sp;
         }
 
-        public List<Tuple<string, string, double, double, DoseValuePresentation>> GetPlanObjectives(StackPanel theSP)
+        public List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> GetPlanObjectives(StackPanel theSP)
         {
             //get constraints
-            List<Tuple<string, string, double, double, DoseValuePresentation>> tmp = new List<Tuple<string, string, double, double, DoseValuePresentation>> { };
+            List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> tmp = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> { };
             string structure = "";
             string constraintType = "";
             double dose = -1.0;
@@ -119,15 +117,15 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
                     if (structure == "--select--" || constraintType == "--select--")
                     {
                         MessageBox.Show("Error! \nStructure or Sparing Type not selected! \nSelect an option and try again");
-                        return new List<Tuple<string, string, double, double, DoseValuePresentation>>{};
+                        return new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>>{};
                     }
                     else if (dose == -1.0 || vol == -1.0)
                     {
                         MessageBox.Show("Error! \nDose, volume, or priority values are invalid! \nEnter new values and try again");
-                        return new List<Tuple<string, string, double, double, DoseValuePresentation>> { };
+                        return new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> { };
                     }
                     //if the row of data passes the above checks, add it the optimization parameter list
-                    else tmp.Add(Tuple.Create(structure, constraintType, Math.Round(dose, 3, MidpointRounding.AwayFromZero), Math.Round(vol, 3, MidpointRounding.AwayFromZero), presentation));
+                    else tmp.Add(Tuple.Create(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), Math.Round(dose, 3, MidpointRounding.AwayFromZero), Math.Round(vol, 3, MidpointRounding.AwayFromZero), presentation));
                     //reset the values of the variables used to parse the data
                     firstCombo = true;
                     txtbxNum = 1;

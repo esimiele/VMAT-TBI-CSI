@@ -8,6 +8,7 @@ using System.Windows.Media.Media3D;
 using VMATTBICSIAutoplanningHelpers.BaseClasses;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 using VMATTBICSIAutoplanningHelpers.Helpers;
+using VMATTBICSIAutoPlanningHelpers.Prompts;
 
 namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
@@ -68,10 +69,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if ((pts.Max(p => p.Z) - pts.Min(p => p.Z)) > 1160.0 && !(selectedSS.Structures.Where(x => x.Id.ToLower() == "matchline").Any()))
             {
                 //check to see if the user wants to proceed even though there is no matchplane contour or the matchplane contour exists, but is not filled
-                confirmUI CUI = new confirmUI();
-                CUI.message.Text = "No matchplane contour found even though patient length > 116.0 cm!" + Environment.NewLine + Environment.NewLine + "Continue?!";
+                ConfirmUI CUI = new ConfirmUI("No matchplane contour found even though patient length > 116.0 cm!" + Environment.NewLine + Environment.NewLine + "Continue?!");
                 CUI.ShowDialog();
-                if (!CUI.confirm) return true;
+                if (!CUI.GetSelection()) return true;
 
                 //checks for LA16 couch and spinning manny couch/bolt will be performed at optimization stage
             }
@@ -89,10 +89,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //matchline structure is present, but empty
                 if (selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").IsEmpty)
                 {
-                    confirmUI CUI = new confirmUI();
-                    CUI.message.Text = "I found a matchline structure in the structure set, but it's empty!" + Environment.NewLine + Environment.NewLine + "Do you want to continue without using the matchline structure?!";
+                    ConfirmUI CUI = new ConfirmUI("I found a matchline structure in the structure set, but it's empty!" + Environment.NewLine + Environment.NewLine + "Do you want to continue without using the matchline structure?!");
                     CUI.ShowDialog();
-                    if (!CUI.confirm) return true;
+                    if (!CUI.GetSelection()) return true;
 
                     //continue and ignore the empty matchline structure (same calculation as VMAT only)
                     numIsos = numVMATIsos = (int)Math.Ceiling(((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 - 20.0)));
@@ -144,11 +143,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             {
                 //ask user if they are ok with converting the relevant high resolution structures to default resolution
                 output += "They must be converted to default resolution before proceeding!";
-                confirmUI CUI = new confirmUI();
-                CUI.message.Text = output + Environment.NewLine + Environment.NewLine + "Continue?!";
-                CUI.message.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+                ConfirmUI CUI = new ConfirmUI(output + Environment.NewLine + Environment.NewLine + "Continue?!");
                 CUI.ShowDialog();
-                if (!CUI.confirm) return true;
+                if (!CUI.GetSelection()) return true;
 
                 List<Tuple<string, string, double>> newData = ConvertHighToLowRes(highResStructList, highResSpareList, spareStructList);
                 if(!newData.Any()) return true;

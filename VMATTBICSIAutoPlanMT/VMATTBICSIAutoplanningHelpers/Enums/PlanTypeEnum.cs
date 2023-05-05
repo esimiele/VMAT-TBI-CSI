@@ -1,4 +1,4 @@
-﻿namespace VMATTBICSIAutoplanningHelpers.Helpers
+﻿namespace VMATTBICSIAutoplanningHelpers.Enums
 {
     public enum PlanType
     {

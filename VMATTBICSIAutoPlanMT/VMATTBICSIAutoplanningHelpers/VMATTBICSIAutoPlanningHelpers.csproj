@@ -115,10 +115,15 @@
     <Compile Include="BaseClasses\OptimizationLoopBase.cs" />
     <Compile Include="BaseClasses\PlaceBeamsBase.cs" />
     <Compile Include="BaseClasses\PlanPrepBase.cs" />
+    <Compile Include="Enums\OptimizationObjectiveTypeEnum.cs" />
     <Compile Include="Helpers\CalculationHelper.cs" />
+    <Compile Include="Helpers\OptimizationTypeHelper.cs" />
+    <Compile Include="Prompts\ConfirmUI.xaml.cs">
+      <DependentUpon>ConfirmUI.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Structs\OptDataContainerStruct.cs" />
     <Compile Include="Helpers\OptimizationSetupHelper.cs" />
-    <Compile Include="Helpers\PlanTypeEnum.cs" />
+    <Compile Include="Enums\PlanTypeEnum.cs" />
     <Compile Include="Helpers\StructureTuningHelper.cs" />
     <Compile Include="Helpers\TargetsHelper.cs" />
     <Compile Include="Logging\Logger.cs" />
@@ -134,12 +139,6 @@
     <Compile Include="UIHelpers\StructureTuningUIHelper.cs" />
     <Compile Include="UIHelpers\TargetsUIHelper.cs" />
     <Compile Include="Helpers\TemplateBuilder.cs" />
-    <Compile Include="Prompts\confirmUI.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Prompts\confirmUI.Designer.cs">
-      <DependentUpon>confirmUI.cs</DependentUpon>
-    </Compile>
     <Compile Include="Prompts\enterMissingInfo.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -162,9 +161,6 @@
     <Compile Include="PlanTemplateClasses\CSIAutoPlanTemplate.cs" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Prompts\confirmUI.resx">
-      <DependentUpon>confirmUI.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="Prompts\enterMissingInfo.resx">
       <DependentUpon>enterMissingInfo.cs</DependentUpon>
     </EmbeddedResource>
@@ -191,6 +187,12 @@
       <Project>{e7300c6c-2781-406e-a6be-ac949b893c99}</Project>
       <Name>SimpleProgressWindow</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="Prompts\ConfirmUI.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

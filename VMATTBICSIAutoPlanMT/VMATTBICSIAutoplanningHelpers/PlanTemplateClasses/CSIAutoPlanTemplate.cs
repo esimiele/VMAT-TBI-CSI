@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using VMS.TPS.Common.Model.Types;
+using VMATTBICSIAutoplanningHelpers.Enums;
 
 namespace VMATTBICSIAutoplanningHelpers.PlanTemplateClasses
 {
@@ -19,9 +20,9 @@ namespace VMATTBICSIAutoplanningHelpers.PlanTemplateClasses
         public List<Tuple<string, double, double, double>> GetCreateRings() { return createRings; }
         public List<Tuple<string, string, double>> GetTSManipulations() { return TSManipulations; }
         public List<string> GetCropAndOverlapStructures() { return cropAndOverlapStructures; }
-        public List<Tuple<string, string, double, double, int>> GetInitOptimizationConstraints() { return initOptConstraints; }
-        public List<Tuple<string, string, double, double, int>> GetBoostOptimizationConstraints() { return bstOptConstraints; }
-        public List<Tuple<string, string, double, double, DoseValuePresentation>> GetPlanObjectives() { return planObj; }
+        public List<Tuple<string, OptimizationObjectiveType, double, double, int>> GetInitOptimizationConstraints() { return initOptConstraints; }
+        public List<Tuple<string, OptimizationObjectiveType, double, double, int>> GetBoostOptimizationConstraints() { return bstOptConstraints; }
+        public List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> GetPlanObjectives() { return planObj; }
         public List<Tuple<string, string, double, string>> GetRequestedPlanDoseInfo() { return requestedPlanDoseInfo; }
         public List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> GetRequestedOptTSStructures() { return requestedOptTSStructures; }
         #endregion
@@ -37,9 +38,9 @@ namespace VMATTBICSIAutoplanningHelpers.PlanTemplateClasses
         public void SetCreateRings(List<Tuple<string, double, double, double>> value) { createRings = new List<Tuple<string, double, double, double>>(value); }
         public void SetTSManipulations(List<Tuple<string, string, double>> value) { TSManipulations = new List<Tuple<string, string, double>>(value); }
         public void SetCropAndOverlapStructures(List<string> value) { cropAndOverlapStructures = new List<string>(value); }
-        public void SetInitOptimizationConstraints(List<Tuple<string, string, double, double, int>> value) { initOptConstraints = new List<Tuple<string, string, double, double, int>>(value); }
-        public void SetBoostOptimizationConstraints(List<Tuple<string, string, double, double, int>> value) { bstOptConstraints = new List<Tuple<string, string, double, double, int>>(value); }
-        public void SetPlanObjectives(List<Tuple<string, string, double, double, DoseValuePresentation>> value) { planObj = new List<Tuple<string, string, double, double, DoseValuePresentation>>(value); }
+        public void SetInitOptimizationConstraints(List<Tuple<string, OptimizationObjectiveType, double, double, int>> value) { initOptConstraints = new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(value); }
+        public void SetBoostOptimizationConstraints(List<Tuple<string, OptimizationObjectiveType, double, double, int>> value) { bstOptConstraints = new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(value); }
+        public void SetPlanObjectives(List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> value) { planObj = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>>(value); }
         public void SetRequestedPlanDoseInfo(List<Tuple<string, string, double, string>> value) { requestedPlanDoseInfo = new List<Tuple<string, string, double, string>>(value); }
         public void SetRequestedOptTSStructures(List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> value) { requestedOptTSStructures = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>(value); }
         #endregion
@@ -60,10 +61,10 @@ namespace VMATTBICSIAutoplanningHelpers.PlanTemplateClasses
         //list of structures that should be cropped from targets and overlap with targets also contoured. these manipulations will be used to update the optimization constraints for all targets
         private List<string> cropAndOverlapStructures = new List<string> { };
         //structure, constraint type, dose cGy, volume %, priority
-        private List<Tuple<string, string, double, double, int>> initOptConstraints = new List<Tuple<string, string, double, double, int>> { };
-        private List<Tuple<string, string, double, double, int>> bstOptConstraints = new List<Tuple<string, string, double, double, int>> { };
+        private List<Tuple<string, OptimizationObjectiveType, double, double, int>> initOptConstraints = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+        private List<Tuple<string, OptimizationObjectiveType, double, double, int>> bstOptConstraints = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
         // plan objectives (ONLY ONE PER TEMPLATE!)
-        private List<Tuple<string, string, double, double, DoseValuePresentation>> planObj = new List<Tuple<string, string, double, double, DoseValuePresentation>> { };
+        private List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> planObj = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> { };
         //requested items to be printed after each successful iteration of the optimization loop
         //structure id, constraint type, dose value (query type), units on dose (VOLUME WILL ALWAYS BE RELATIVE!)
         private List<Tuple<string, string, double, string>> requestedPlanDoseInfo = new List<Tuple<string, string, double, string>> { };

@@ -505,6 +505,72 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return false;
         }
 
+        private bool GenerateTSGlobesLenses(Structure addedStructure)
+        {
+            int counter = 0;
+            int calcItems = 4;
+            bool isGlobes = false;
+            if (addedStructure.Id.ToLower().Contains("globes")) isGlobes = true;
+
+            //try to grab ptv_brain first
+            Structure targetStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_brain" && !x.IsEmpty);
+            double margin = 0;
+
+            if (targetStructure == null)
+            {
+                //could not retrieve ptv_brain
+                calcItems += 1;
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Failed to retrieve PTV_Brain! Attempting to retrieve brain structure: {0}", "Brain"));
+                targetStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "brain" && !x.IsEmpty);
+                //additional 5 mm margin for ring creation to account for the missing 5 mm margin going from brain --> PTV_Vrain
+                margin = 0.5;
+            }
+            if (targetStructure != null)
+            {
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved brain target: {0}", targetStructure.Id));
+                Structure normal = null;
+                if (isGlobes) normal = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("globes") && !x.IsEmpty);
+                else normal = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("lenses") && !x.IsEmpty);
+
+                if (normal != null)
+                {
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved structure: {0}", normal.Id));
+                    ProvideUIUpdate(String.Format("Generating ring {0} for target {1}", addedStructure.Id, targetStructure.Id));
+                    //margin in cm. 
+                    double thickness = 0;
+                    if (isGlobes)
+                    {
+                        //need to add these margins to the existing margin distance to account for the situation where ptv_brain is not retrieved, but the brain structure is.
+                        margin += 0.5;
+                        thickness = 1.0;
+                    }
+                    else
+                    {
+                        margin += 1.5;
+                        thickness = 2.0;
+                    }
+                    if (CreateRing(targetStructure, addedStructure, margin, thickness)) return true;
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Finished contouring ring: {0}", addedStructure.Id));
+
+                    ProvideUIUpdate(String.Format("Contouring overlap between ring and {0}", isGlobes ? "Globes" : "Lenses"));
+                    if (ContourOverlap(normal, addedStructure, 0.0)) return true;
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Overlap Contoured!"));
+
+                    if (addedStructure.IsEmpty)
+                    {
+                        ProvideUIUpdate(String.Format("{0} is empty! Removing now!", addedStructure.Id));
+                        calcItems += 1;
+                        selectedSS.RemoveStructure(addedStructure);
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Removed structure: {0}", addedStructure.Id));
+                    }
+                    ProvideUIUpdate(String.Format("Finished contouring: {0}", addedStructure.Id));
+                }
+                else ProvideUIUpdate(String.Format("Warning! Could not retrieve normal structure! Skipping {0}", addedStructure.Id));
+            }
+            else ProvideUIUpdate(String.Format("Warning! Could not retrieve Brain structure! Skipping {0}", addedStructure.Id));
+            return false;
+        }
+
         protected override bool CreateTSStructures()
         {
             UpdateUILabel("Create TS Structures:");
@@ -530,63 +596,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 Structure addedStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.ToLower());
                 if (itr.ToLower().Contains("ts_globes") || itr.ToLower().Contains("ts_lenses"))
                 {
-                    calcItems = 4;
-                    //try to grab ptv_brain first
-                    Structure targetStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_brain" && !x.IsEmpty);
-                    double margin = 0;
-
-                    if (targetStructure == null)
-                    {
-                        //could not retrieve ptv_brain
-                        calcItems += 1;
-                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Failed to retrieve PTV_Brain! Attempting to retrieve brain structure: {0}", "Brain"));
-                        targetStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "brain" && !x.IsEmpty);
-                        //additional 5 mm margin for ring creation to account for the missing 5 mm margin going from brain --> PTV_Vrain
-                        margin = 0.5;
-                    }
-                    if (targetStructure != null)
-                    {
-                        ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved brain target: {0}", targetStructure.Id));
-                        Structure normal = null;
-                        if (itr.ToLower().Contains("globes")) normal = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("globes") && !x.IsEmpty);
-                        else normal = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("lenses") && !x.IsEmpty);
-
-                        if (normal != null)
-                        {
-                            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Retrieved structure: {0}", normal.Id));
-                            ProvideUIUpdate(String.Format("Generating ring {0} for target {1}", itr, targetStructure.Id));
-                            //margin in cm. 
-                            double thickness = 0;
-                            if (itr.ToLower().Contains("globes"))
-                            {
-                                //need to add these margins to the existing margin distance to account for the situation where ptv_brain is not retrieved, but the brain structure is.
-                                margin += 0.5;
-                                thickness = 1.0;
-                            }
-                            else
-                            {
-                                margin += 1.5;
-                                thickness = 2.0;
-                            }
-                            if (CreateRing(targetStructure, addedStructure, margin, thickness)) return true;
-                            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Finished contouring ring: {0}", addedStructure.Id));
-
-                            ProvideUIUpdate(String.Format("Contouring overlap between ring and {0}", itr.ToLower().Contains("globes") ? "Globes" : "Lenses"));
-                            if (ContourOverlap(normal, addedStructure, 0.0)) return true;
-                            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Overlap Contoured!"));
-
-                            if (addedStructure.IsEmpty)
-                            {
-                                ProvideUIUpdate(String.Format("{0} is empty! Removing now!", itr));
-                                calcItems += 1;
-                                selectedSS.RemoveStructure(addedStructure);
-                                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Removed structure: {0}", itr));
-                            }
-                            ProvideUIUpdate(String.Format("Finished contouring: {0}", itr));
-                        }
-                        else ProvideUIUpdate(String.Format("Warning! Could not retrieve normal structure! Skipping {0}", itr));
-                    }
-                    else ProvideUIUpdate(String.Format("Warning! Could not retrieve Brain structure! Skipping {0}", itr));
+                    if (GenerateTSGlobesLenses(addedStructure)) return true;
                 }
                 else if (itr.ToLower().Contains("armsavoid"))
                 {
@@ -667,24 +677,24 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
                 //box with contour points located at (x,y), (x,0), (x,-y), (0,-y), (-x,-y), (-x,0), (-x, y), (0,y)
                 ptsL = new[] {
-                                    new VVector(xMax, yMax, 0),
-                                    new VVector(xMax, 0, 0),
-                                    new VVector(xMax, yMin, 0),
-                                    new VVector(0, yMin, 0),
-                                    new VVector(xMax-boxXWidth, yMin, 0),
-                                    new VVector(xMax-boxXWidth, 0, 0),
-                                    new VVector(xMax-boxXWidth, yMax, 0),
-                                    new VVector(0, yMax, 0)};
+                                new VVector(xMax, yMax, 0),
+                                new VVector(xMax, 0, 0),
+                                new VVector(xMax, yMin, 0),
+                                new VVector(0, yMin, 0),
+                                new VVector(xMax-boxXWidth, yMin, 0),
+                                new VVector(xMax-boxXWidth, 0, 0),
+                                new VVector(xMax-boxXWidth, yMax, 0),
+                                new VVector(0, yMax, 0)};
 
                 ptsR = new[] {
-                                    new VVector(xMin + boxXWidth, yMax, 0),
-                                    new VVector(xMin + boxXWidth, 0, 0),
-                                    new VVector(xMin + boxXWidth, yMin, 0),
-                                    new VVector(0, yMin, 0),
-                                    new VVector(xMin, yMin, 0),
-                                    new VVector(xMin, 0, 0),
-                                    new VVector(xMin, yMax, 0),
-                                    new VVector(0, yMax, 0)};
+                                new VVector(xMin + boxXWidth, yMax, 0),
+                                new VVector(xMin + boxXWidth, 0, 0),
+                                new VVector(xMin + boxXWidth, yMin, 0),
+                                new VVector(0, yMin, 0),
+                                new VVector(xMin, yMin, 0),
+                                new VVector(xMin, 0, 0),
+                                new VVector(xMin, yMax, 0),
+                                new VVector(0, yMax, 0)};
 
                 //add contours on this slice
                 dummyBoxL.AddContourOnImagePlane(ptsL, slice);
@@ -711,7 +721,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             selectedSS.RemoveStructure(dummyBoxR);
             selectedSS.RemoveStructure(dummyBoxL);
             ProvideUIUpdate(100, String.Format("Finished contouring arms avoid!"));
-
             return false;
         }
 
@@ -845,7 +854,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
         }
 
-        private (bool, Structure) CreateAndContourCropStructure(Structure target)
+        private (bool, Structure) CreateCropStructure(Structure target)
         {
             bool fail = false;
             string cropName = String.Format("{0}crop", target.Id);
@@ -919,14 +928,14 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), String.Format("Retrieved target: {0}", targetId));
                     if (target != null)
                     {
-                        (bool, Structure) cropResult = CreateAndContourCropStructure(target);
-                        if (cropResult.Item1) return true;
-                        tmp.Add(Tuple.Create(cropResult.Item2.Id, "crop"));
+                        (bool fail, Structure cropStructure) cropResult = CreateCropStructure(target);
+                        if (cropResult.fail) return true;
+                        tmp.Add(Tuple.Create(cropResult.cropStructure.Id, "crop"));
                         ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), String.Format("Added crop structure ({0}) to stack", cropResult.Item2.Id));
 
-                        (bool, Structure) overlapRresult = CreateOverlapStructure(target, i);
-                        if (overlapRresult.Item1) return true;
-                        tmp.Add(Tuple.Create(overlapRresult.Item2.Id, "overlap"));
+                        (bool fail, Structure overlapStructure) overlapRresult = CreateOverlapStructure(target, i);
+                        if (overlapRresult.fail) return true;
+                        tmp.Add(Tuple.Create(overlapRresult.overlapStructure.Id, "overlap"));
                         ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), String.Format("Added overlap structure ({0}) to stack", overlapRresult.Item2.Id));
 
                         foreach (string itr in cropAndOverlapStructures)

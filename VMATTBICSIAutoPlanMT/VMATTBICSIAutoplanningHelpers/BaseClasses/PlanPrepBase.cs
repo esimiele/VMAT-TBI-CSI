@@ -6,6 +6,7 @@ using VMS.TPS.Common.Model.Types;
 using System.Windows.Forms;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 using SimpleProgressWindow;
+using VMATTBICSIAutoPlanningHelpers.Prompts;
 
 namespace VMATTBICSIAutoplanningHelpers.BaseClasses
 {
@@ -183,12 +184,10 @@ namespace VMATTBICSIAutoplanningHelpers.BaseClasses
                 message = "The following plans have dose calculated and use the same structure set:" + System.Environment.NewLine + message + System.Environment.NewLine;
                 message += "I need to remove the calculated dose from these plans before removing the flash structures." + System.Environment.NewLine;
                 message += "Continue?";
-                confirmUI CUI = new confirmUI();
-                CUI.message.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-                CUI.message.Text = message;
+                ConfirmUI CUI = new ConfirmUI(message);
                 CUI.ShowDialog();
                 //need to return from this function regardless of what the user decides
-                if (!CUI.confirm) return true;
+                if (!CUI.GetSelection()) return true;
                 foreach (ExternalPlanSetup p in otherPlans)
                 {
                     string calcModel = p.GetCalculationModel(CalculationType.PhotonVolumeDose);

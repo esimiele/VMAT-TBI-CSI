@@ -7,6 +7,7 @@ using VMATTBICSIAutoplanningHelpers.Structs;
 using VMATTBICSIAutoplanningHelpers.BaseClasses;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 using VMATTBICSIAutoplanningHelpers.UIHelpers;
+using VMATTBICSIAutoplanningHelpers.Enums;
 
 namespace VMATTBICSIOptLoopMT.VMAT_CSI
 {
@@ -251,7 +252,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 else
                 {
                     ProvideUIUpdate("All plan objectives NOT met! Updating heater and cooler structures!");
-                    (bool, List<Tuple<string, string, double, double, int>>) result = UpdateHeaterCoolerStructures(evalPlan, isFinalOpt);
+                    (bool, List<Tuple<string, OptimizationObjectiveType, double, double, int>>) result = UpdateHeaterCoolerStructures(evalPlan, isFinalOpt);
                     //did the user abort the program while updating the heater and cooler structures
                     if (result.Item1)
                     {
@@ -262,7 +263,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                     foreach (ExternalPlanSetup itr in plans)
                     {
                         ProvideUIUpdate(String.Format("Adjusting optimization parameters for plan: {0}!", itr.Id));
-                        List<Tuple<string, string, double, double, int>> optParams = new OptimizationSetupUIHelper().ReadConstraintsFromPlan(itr);
+                        List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams = new OptimizationSetupUIHelper().ReadConstraintsFromPlan(itr);
                         ProvideUIUpdate(String.Format("Evaluating quality of plan: {0}!", itr.Id));
                         EvalPlanStruct e = EvaluatePlanSumComponentPlans(itr, optParams);
                         if (e.wasKilled) return true;
@@ -283,17 +284,17 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             return false;
         }
 
-        private List<Tuple<string, string, double, double, int>> ScaleHeaterCoolerOptConstraints(double planTotalDose, double sumTotalDose, List<Tuple<string, string, double, double, int>> originalConstraints)
+        private List<Tuple<string, OptimizationObjectiveType, double, double, int>> ScaleHeaterCoolerOptConstraints(double planTotalDose, double sumTotalDose, List<Tuple<string, OptimizationObjectiveType, double, double, int>> originalConstraints)
         {
-            List<Tuple<string, string, double, double, int>> updatedOpt = new List<Tuple<string, string, double, double, int>> { };
-            foreach(Tuple<string,string,double,double,int> itr in originalConstraints)
+            List<Tuple<string, OptimizationObjectiveType, double, double, int>> updatedOpt = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+            foreach(Tuple<string, OptimizationObjectiveType, double,double,int> itr in originalConstraints)
             {
                 updatedOpt.Add(Tuple.Create(itr.Item1, itr.Item2, itr.Item3 * planTotalDose / sumTotalDose, itr.Item4, itr.Item5));
             }
             return updatedOpt;
         }
 
-        private EvalPlanStruct EvaluatePlanSumComponentPlans(ExternalPlanSetup plan, List<Tuple<string, string, double, double, int>> optParams)
+        private EvalPlanStruct EvaluatePlanSumComponentPlans(ExternalPlanSetup plan, List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams)
         {
             EvalPlanStruct e = new EvalPlanStruct();
             e.Construct(); 
@@ -304,11 +305,11 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             return e;
         }
 
-        private bool EvaluatePlanSumQuality(ExternalPlanSetup plan, List<Tuple<string, string, double, double, DoseValuePresentation>> planObj)
+        private bool EvaluatePlanSumQuality(ExternalPlanSetup plan, List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> planObj)
         {
             UpdateUILabel(String.Format("Plan sum evaluation: {0}", plan.Id));
             ProvideUIUpdate(String.Format("Parsing optimization objectives from plan: {0}", plan.Id));
-            List<Tuple<string, string, double, double, int>> optParams = new OptimizationSetupUIHelper().ReadConstraintsFromPlan(plan);
+            List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams = new OptimizationSetupUIHelper().ReadConstraintsFromPlan(plan);
             //get current optimization objectives from plan (we could use the optParams list, but we want the actual instances of the OptimizationObjective class so we can get the results from each objective)
             (int, int, double, List<Tuple<Structure, DVHData, double, double>>) planObjectiveEvaluation = EvaluateResultVsPlanObjectives(plan, planObj, optParams);
             //all constraints met, exiting

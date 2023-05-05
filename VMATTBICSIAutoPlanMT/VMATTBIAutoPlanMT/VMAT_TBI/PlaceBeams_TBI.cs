@@ -7,6 +7,7 @@ using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoplanningHelpers.BaseClasses;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 using System.Runtime.ExceptionServices;
+using VMATTBICSIAutoPlanningHelpers.Prompts;
 
 namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
@@ -103,11 +104,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 double isoSeparationInf = Math.Round((selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - target.MeshGeometry.Positions.Min(p => p.Z) - 380.0) / 10.0f) * 10.0f;
                 if (isoSeparationSup > 380.0 || isoSeparationInf > 380.0)
                 {
-                    var CUI = new confirmUI();
-                    CUI.message.Text = "Calculated isocenter separation > 38.0 cm, which reduces the overlap between adjacent fields!" + Environment.NewLine + Environment.NewLine + "Truncate isocenter separation to 38.0 cm?!";
-                    CUI.cancelBTN.Text = "No";
+                    ConfirmUI CUI = new ConfirmUI("Calculated isocenter separation > 38.0 cm, which reduces the overlap between adjacent fields!" + Environment.NewLine + Environment.NewLine + "Truncate isocenter separation to 38.0 cm?!");
                     CUI.ShowDialog();
-                    if (CUI.confirm)
+                    if (CUI.GetSelection())
                     {
                         if (isoSeparationSup > 380.0 && isoSeparationInf > 380.0) isoSeparationSup = isoSeparationInf = 380.0;
                         else if (isoSeparationSup > 380.0) isoSeparationSup = 380.0;
@@ -172,10 +171,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
                 if (isoSeparation > 380.0)
                 {
-                    var CUI = new confirmUI();
-                    CUI.message.Text = "Calculated isocenter separation > 38.0 cm, which reduces the overlap between adjacent fields!" + Environment.NewLine + Environment.NewLine + "Truncate isocenter separation to 38.0 cm?!";
+                    ConfirmUI CUI = new ConfirmUI("Calculated isocenter separation > 38.0 cm, which reduces the overlap between adjacent fields!" + Environment.NewLine + Environment.NewLine + "Truncate isocenter separation to 38.0 cm?!");
                     CUI.ShowDialog();
-                    if (CUI.confirm) isoSeparation = 380.0;
+                    if (CUI.GetSelection()) isoSeparation = 380.0;
                 }
 
                 for (int i = 0; i < numIsos; i++)

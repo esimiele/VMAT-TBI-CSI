@@ -5,6 +5,7 @@ using System.Windows;
 using System.Collections.Generic;
 using VMS.TPS.Common.Model.API;
 using VMATTBICSIAutoplanningHelpers.PlanTemplateClasses;
+using VMATTBICSIAutoplanningHelpers.Enums;
 
 namespace VMATTBICSIAutoplanningHelpers.Helpers
 {
@@ -61,7 +62,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             {
                 output += String.Format(" {0} template initial plan optimization parameters:", prospectiveTemplate.GetTemplateName()) + Environment.NewLine;
                 output += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + Environment.NewLine;
-                foreach (Tuple<string, string, double, double, int> opt in prospectiveTemplate.GetInitOptimizationConstraints()) output += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
+                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in prospectiveTemplate.GetInitOptimizationConstraints()) output += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5);
                 output += Environment.NewLine;
             }
             else output += String.Format(" No iniital plan optimization constraints for template: {0}", prospectiveTemplate.GetTemplateName()) + Environment.NewLine + Environment.NewLine;
@@ -70,7 +71,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             {
                 output += String.Format(" {0} template boost plan optimization parameters:", prospectiveTemplate.GetTemplateName()) + Environment.NewLine;
                 output += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + Environment.NewLine;
-                foreach (Tuple<string, string, double, double, int> opt in prospectiveTemplate.GetBoostOptimizationConstraints()) output += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
+                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in prospectiveTemplate.GetBoostOptimizationConstraints()) output += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5);
             }
             else output += String.Format(" No boost plan optimization constraints for template: {0}", prospectiveTemplate.GetTemplateName()) + Environment.NewLine + Environment.NewLine;
 
@@ -125,14 +126,14 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
 
             if (prospectiveTemplate.GetInitOptimizationConstraints().Any())
             {
-                foreach (Tuple<string, string, double, double, int> itr in prospectiveTemplate.GetInitOptimizationConstraints()) output += String.Format("add init opt constraint{{{0},{1},{2},{3},{4}}}", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5) + Environment.NewLine;
+                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> itr in prospectiveTemplate.GetInitOptimizationConstraints()) output += String.Format("add init opt constraint{{{0},{1},{2},{3},{4}}}", itr.Item1, itr.Item2.ToString(), itr.Item3, itr.Item4, itr.Item5) + Environment.NewLine;
                 output += "%" + Environment.NewLine;
                 output += "%" + Environment.NewLine;
             }
 
             if (prospectiveTemplate.GetBoostOptimizationConstraints().Any())
             {
-                foreach (Tuple<string, string, double, double, int> itr in prospectiveTemplate.GetBoostOptimizationConstraints()) output += String.Format("add boost opt constraint{{{0},{1},{2},{3},{4}}}", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5) + Environment.NewLine;
+                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> itr in prospectiveTemplate.GetBoostOptimizationConstraints()) output += String.Format("add boost opt constraint{{{0},{1},{2},{3},{4}}}", itr.Item1, itr.Item2.ToString(), itr.Item3, itr.Item4, itr.Item5) + Environment.NewLine;
                 output += "%" + Environment.NewLine;
                 output += "%" + Environment.NewLine;
             }

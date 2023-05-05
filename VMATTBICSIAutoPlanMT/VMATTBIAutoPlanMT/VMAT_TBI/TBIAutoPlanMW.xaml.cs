@@ -9,9 +9,11 @@ using VMS.TPS.Common.Model.Types;
 using System.IO;
 using System.Diagnostics;
 using Microsoft.Win32;
+using VMATTBICSIAutoplanningHelpers.Enums;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 using VMATTBICSIAutoplanningHelpers.UIHelpers;
 using VMATTBICSIAutoplanningHelpers.Prompts;
+using VMATTBICSIAutoPlanningHelpers.Prompts;
 
 namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
@@ -25,56 +27,56 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         double scleroDosePerFx = 200;
         int scleroNumFx = 4;
         //structure, constraint type, dose cGy, volume %, priority
-        List<Tuple<string, string, double, double, int>> optConstDefaultSclero = new List<Tuple<string, string, double, double, int>>
+        List<Tuple<string, OptimizationObjectiveType, double, double, int>> optConstDefaultSclero = new List<Tuple<string, OptimizationObjectiveType, double, double, int>>
         {
-            new Tuple<string, string, double, double, int>("TS_PTV_VMAT", "Lower", 800.0, 100.0, 100),
-            new Tuple<string, string, double, double, int>("TS_PTV_VMAT", "Upper", 808.0, 0.0, 100),
-            new Tuple<string, string, double, double, int>("TS_PTV_VMAT", "Lower", 802.0, 98.0, 100),
-            new Tuple<string, string, double, double, int>("Kidneys", "Mean", 100.0, 0.0, 80),
-            new Tuple<string, string, double, double, int>("Kidneys-1cm", "Mean", 25.0, 0.0, 80),
-            new Tuple<string, string, double, double, int>("Lungs", "Mean", 150.0, 0.0, 80),
-            new Tuple<string, string, double, double, int>("Lungs-1cm", "Mean", 100.0, 0.0, 80),
-            new Tuple<string, string, double, double, int>("Lungs-2cm", "Mean", 50.0, 0.0, 80),
-            new Tuple<string, string, double, double, int>("Bowel", "Upper", 850.0, 0.0, 50)
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_PTV_VMAT", OptimizationObjectiveType.Lower, 800.0, 100.0, 100),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_PTV_VMAT", OptimizationObjectiveType.Upper, 808.0, 0.0, 100),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_PTV_VMAT", OptimizationObjectiveType.Lower, 802.0, 98.0, 100),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Kidneys", OptimizationObjectiveType.Mean, 100.0, 0.0, 80),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Kidneys-1cm", OptimizationObjectiveType.Mean, 25.0, 0.0, 80),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Lungs", OptimizationObjectiveType.Mean, 150.0, 0.0, 80),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Lungs-1cm", OptimizationObjectiveType.Mean, 100.0, 0.0, 80),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Lungs-2cm", OptimizationObjectiveType.Mean, 50.0, 0.0, 80),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Bowel", OptimizationObjectiveType.Upper, 850.0, 0.0, 50)
         };
         double myeloDosePerFx = 200;
         int myeloNumFx = 6;
-        List<Tuple<string, string, double, double, int>> optConstDefaultMyelo = new List<Tuple<string, string, double, double, int>>
+        List<Tuple<string, OptimizationObjectiveType, double, double, int>> optConstDefaultMyelo = new List<Tuple<string, OptimizationObjectiveType, double, double, int>>
         {
-            new Tuple<string, string, double, double, int>("TS_PTV_VMAT", "Lower", 1200.0, 100.0, 100),
-            new Tuple<string, string, double, double, int>("TS_PTV_VMAT", "Upper", 1212.0, 0.0, 100),
-            new Tuple<string, string, double, double, int>("TS_PTV_VMAT", "Lower", 1202.0, 98.0, 100),
-            new Tuple<string, string, double, double, int>("Kidneys", "Mean", 750, 0.0, 80),
-            new Tuple<string, string, double, double, int>("Kidneys-1cm", "Mean", 400.0, 0.0, 50),
-            new Tuple<string, string, double, double, int>("Lenses", "Upper", 1140, 0.0, 50),
-            new Tuple<string, string, double, double, int>("Lungs", "Mean", 600.0, 0.0, 90),
-            new Tuple<string, string, double, double, int>("Lungs-1cm", "Mean", 300.0, 0.0, 80),
-            new Tuple<string, string, double, double, int>("Lungs-2cm", "Mean", 200.0, 0.0, 70),
-            new Tuple<string, string, double, double, int>("Bowel", "Upper", 1205.0, 0.0, 50)
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_PTV_VMAT", OptimizationObjectiveType.Lower, 1200.0, 100.0, 100),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_PTV_VMAT", OptimizationObjectiveType.Upper, 1212.0, 0.0, 100),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_PTV_VMAT", OptimizationObjectiveType.Lower, 1202.0, 98.0, 100),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Kidneys", OptimizationObjectiveType.Mean, 750, 0.0, 80),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Kidneys-1cm", OptimizationObjectiveType.Mean, 400.0, 0.0, 50),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Lenses", OptimizationObjectiveType.Upper, 1140, 0.0, 50),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Lungs", OptimizationObjectiveType.Mean, 600.0, 0.0, 90),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Lungs-1cm", OptimizationObjectiveType.Mean, 300.0, 0.0, 80),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Lungs-2cm", OptimizationObjectiveType.Mean, 200.0, 0.0, 70),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Bowel", OptimizationObjectiveType.Upper, 1205.0, 0.0, 50)
         };
         double nonmyeloDosePerFx = 200;
         int nonmyeloNumFx = 1;
-        List<Tuple<string, string, double, double, int>> optConstDefaultNonMyelo = new List<Tuple<string, string, double, double, int>>
+        List<Tuple<string, OptimizationObjectiveType, double, double, int>> optConstDefaultNonMyelo = new List<Tuple<string, OptimizationObjectiveType, double, double, int>>
         {
-            new Tuple<string, string, double, double, int>("TS_PTV_VMAT", "Lower", 200.0, 100.0, 100),
-            new Tuple<string, string, double, double, int>("TS_PTV_VMAT", "Upper", 202.0, 0.0, 100),
-            new Tuple<string, string, double, double, int>("TS_PTV_VMAT", "Lower", 201.0, 98.0, 100),
-            new Tuple<string, string, double, double, int>("Kidneys", "Mean", 120.0, 0.0, 80),
-            new Tuple<string, string, double, double, int>("Kidneys-1cm", "Mean", 75.0, 0.0, 50),
-            new Tuple<string, string, double, double, int>("Lungs", "Mean", 75.0, 0.0, 90),
-            new Tuple<string, string, double, double, int>("Lungs-1cm", "Mean", 50.0, 0.0, 80),
-            new Tuple<string, string, double, double, int>("Lungs-2cm", "Mean", 25.0, 0.0, 70),
-            new Tuple<string, string, double, double, int>("Ovaries", "Mean", 50.0, 0.0, 50),
-            new Tuple<string, string, double, double, int>("Ovaries", "Upper", 75.0, 0.0, 70),
-            new Tuple<string, string, double, double, int>("Testes", "Mean", 50.0, 0.0, 50),
-            new Tuple<string, string, double, double, int>("Testes", "Upper", 75.0, 0.0, 70),
-            new Tuple<string, string, double, double, int>("Lenses", "Upper", 190.0, 0.0, 50),
-            new Tuple<string, string, double, double, int>("Brain", "Mean", 150.0, 0.0, 60),
-            new Tuple<string, string, double, double, int>("Brain-1cm", "Mean", 100.0, 0.0, 50),
-            new Tuple<string, string, double, double, int>("Brain-2cm", "Mean", 75.0, 0.0, 50),
-            new Tuple<string, string, double, double, int>("Brain-3cm", "Mean", 50.0, 0.0, 50),
-            new Tuple<string, string, double, double, int>("Bowel", "Upper", 201.0, 0.0, 50),
-            new Tuple<string, string, double, double, int>("Thyroid", "Mean", 100.0, 0.0, 50)
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_PTV_VMAT", OptimizationObjectiveType.Lower, 200.0, 100.0, 100),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_PTV_VMAT", OptimizationObjectiveType.Upper, 202.0, 0.0, 100),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_PTV_VMAT", OptimizationObjectiveType.Lower, 201.0, 98.0, 100),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Kidneys", OptimizationObjectiveType.Mean, 120.0, 0.0, 80),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Kidneys-1cm", OptimizationObjectiveType.Mean, 75.0, 0.0, 50),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Lungs", OptimizationObjectiveType.Mean, 75.0, 0.0, 90),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Lungs-1cm", OptimizationObjectiveType.Mean, 50.0, 0.0, 80),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Lungs-2cm", OptimizationObjectiveType.Mean, 25.0, 0.0, 70),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Ovaries", OptimizationObjectiveType.Mean, 50.0, 0.0, 50),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Ovaries", OptimizationObjectiveType.Upper, 75.0, 0.0, 70),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Testes", OptimizationObjectiveType.Mean, 50.0, 0.0, 50),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Testes", OptimizationObjectiveType.Upper, 75.0, 0.0, 70),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Lenses", OptimizationObjectiveType.Upper, 190.0, 0.0, 50),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Brain", OptimizationObjectiveType.Mean, 150.0, 0.0, 60),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Brain-1cm", OptimizationObjectiveType.Mean, 100.0, 0.0, 50),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Brain-2cm", OptimizationObjectiveType.Mean, 75.0, 0.0, 50),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Brain-3cm", OptimizationObjectiveType.Mean, 50.0, 0.0, 50),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Bowel", OptimizationObjectiveType.Upper, 201.0, 0.0, 50),
+            new Tuple<string, OptimizationObjectiveType, double, double, int>("Thyroid", OptimizationObjectiveType.Mean, 100.0, 0.0, 50)
         };
 
         //general tuning structures to be added (if selected for sparing) to all case types
@@ -324,10 +326,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             configTB.Text += String.Format("Requested scleroderma trial tuning structures:") + System.Environment.NewLine;
             configTB.Text += String.Format(" {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + System.Environment.NewLine;
             foreach (Tuple<string, string> sts in scleroStructures) configTB.Text += String.Format(" {0, -10} | {1, -15} |" + System.Environment.NewLine, sts.Item1, sts.Item2);
-            configTB.Text += System.Environment.NewLine;
+            configTB.Text += Environment.NewLine;
             configTB.Text += String.Format("Optimization parameters:") + System.Environment.NewLine;
             configTB.Text += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + System.Environment.NewLine;
-            foreach (Tuple<string, string, double, double, int> opt in optConstDefaultSclero) configTB.Text += String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
+            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in optConstDefaultSclero) configTB.Text += String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5);
             configTB.Text += System.Environment.NewLine;
 
             configTB.Text += "-----------------------------------------------------------------------------" + System.Environment.NewLine;
@@ -344,7 +346,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             else configTB.Text += String.Format("No additional sparing structures for Myeloablative case") + System.Environment.NewLine + System.Environment.NewLine;
             configTB.Text += String.Format("Optimization parameters:") + System.Environment.NewLine;
             configTB.Text += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + System.Environment.NewLine;
-            foreach (Tuple<string, string, double, double, int> opt in optConstDefaultMyelo) configTB.Text += String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
+            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in optConstDefaultMyelo) configTB.Text += String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5);
             configTB.Text += System.Environment.NewLine;
 
             configTB.Text += "-----------------------------------------------------------------------------" + System.Environment.NewLine;
@@ -361,7 +363,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             else configTB.Text += String.Format("No additional sparing structures for Non-Myeloablative case") + System.Environment.NewLine + System.Environment.NewLine;
             configTB.Text += String.Format("Optimization parameters:") + System.Environment.NewLine;
             configTB.Text += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + System.Environment.NewLine;
-            foreach (Tuple<string, string, double, double, int> opt in optConstDefaultNonMyelo) configTB.Text += String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
+            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in optConstDefaultNonMyelo) configTB.Text += String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5);
             configTB.Text += "-----------------------------------------------------------------------------" + System.Environment.NewLine;
             configScroller.ScrollToTop();
         }
@@ -796,8 +798,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         //stuff related to optimization setup tab
         private void PopulateOptimizationTab()
         {
-            List<Tuple<string, string, double, double, int>> tmp = new List<Tuple<string, string, double, double, int>> { };
-            List<Tuple<string, string, double, double, int>> defaultList = new List<Tuple<string, string, double, double, int>> { };
+            List<Tuple<string, OptimizationObjectiveType, double, double, int>> tmp = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+            List<Tuple<string, OptimizationObjectiveType, double, double, int>> defaultList = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
 
             //non-meyloabalative regime
             if (nonmyelo_chkbox.IsChecked.Value) tmp = optConstDefaultNonMyelo;
@@ -810,7 +812,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             {
                 double RxDose = prescription.Item2.Dose * prescription.Item1;
                 double baseDose;
-                List<Tuple<string, string, double, double, int>> dummy = new List<Tuple<string, string, double, double, int>> { };
+                List<Tuple<string, OptimizationObjectiveType, double, double, int>> dummy = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
                 //use optimization objects of the closer of the two default regiments (6-18-2021)
                 if (Math.Pow(RxDose - (nonmyeloNumFx * nonmyeloDosePerFx), 2) <= Math.Pow(RxDose - (myeloNumFx * myeloDosePerFx), 2))
                 {
@@ -822,7 +824,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     dummy = optConstDefaultMyelo;
                     baseDose = myeloDosePerFx * myeloNumFx;
                 }
-                foreach (Tuple<string, string, double, double, int> opt in dummy) tmp.Add(Tuple.Create(opt.Item1, opt.Item2, opt.Item3 * (RxDose / baseDose), opt.Item4, opt.Item5));
+                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in dummy) tmp.Add(Tuple.Create(opt.Item1, opt.Item2, opt.Item3 * (RxDose / baseDose), opt.Item4, opt.Item5));
             }
             else
             {
@@ -833,7 +835,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (optParameters.Any())
             {
                 //there are items in the optParameters vector, indicating the TSgeneration was performed. Use the values in the OptParameters vector.
-                foreach (Tuple<string, string, double, double, int> opt in tmp)
+                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in tmp)
                 {
                     //always add PTV objectives to optimization objectives list
                     if (opt.Item1.Contains("PTV"))
@@ -846,7 +848,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     else if (optParameters.Where(x => x.Item1.ToLower().Contains(opt.Item1.ToLower())).Any())
                     {
                         //12-22-2020 coded added to account for the situation where the structure selected for sparing had to be converted to a low resolution structure
-                        if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()) != null && !selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()).IsEmpty) defaultList.Add(Tuple.Create(optParameters.FirstOrDefault(x => x.Item1.ToLower() == (opt.Item1 + "_lowRes").ToLower()).Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
+                        if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()) != null && 
+                            !selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()).IsEmpty) defaultList.Add(Tuple.Create(optParameters.FirstOrDefault(x => x.Item1.ToLower() == (opt.Item1 + "_lowRes").ToLower()).Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
                         else if (!selectedSS.Structures.First(x => x.Id.ToLower() == opt.Item1.ToLower()).IsEmpty) defaultList.Add(Tuple.Create(optParameters.FirstOrDefault(x => x.Item1.ToLower() == opt.Item1.ToLower()).Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
                     }
                 }
@@ -857,7 +860,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //In this case, just search through the structure set to see if any of the contoured structure IDs match the structures in the optimization parameter templates
                 if (selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ptv")).Any())
                 {
-                    foreach (Tuple<string, string, double, double, int> opt in tmp)
+                    foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in tmp)
                     {
                         if (opt.Item1.Contains("PTV"))
                         {
@@ -889,8 +892,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 foreach (Structure s in jnxs.First().Item2)
                 {
                     //per Nataliya's instructions, add both a lower and upper constraint to the junction volumes. Make the constraints match those of the ptv target
-                    defaultList.Insert(++index, new Tuple<string, string, double, double, int>(s.Id, "Lower", prescription.Item2.Dose * prescription.Item1, 100.0, 100));
-                    defaultList.Insert(++index, new Tuple<string, string, double, double, int>(s.Id, "Upper", prescription.Item2.Dose * prescription.Item1 * 1.01, 0.0, 100));
+                    defaultList.Insert(++index, new Tuple<string, OptimizationObjectiveType, double, double, int>(s.Id, OptimizationObjectiveType.Lower, prescription.Item2.Dose * prescription.Item1, 100.0, 100));
+                    defaultList.Insert(++index, new Tuple<string, OptimizationObjectiveType, double, double, int>(s.Id, OptimizationObjectiveType.Upper, prescription.Item2.Dose * prescription.Item1 * 1.01, 0.0, 100));
                 }
             }
 
@@ -921,7 +924,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             OptimizationSetupUIHelper helper = new OptimizationSetupUIHelper();
             //12/5/2022 super janky, but works for now. Needed to accomodate multiple plans for VMAT CSI. Will fix later
-            List<Tuple<string, string, double, double, int>> optParametersList = helper.ParseOptConstraints(opt_parameters).Item1.First().Item2;
+            List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParametersList = helper.ParseOptConstraints(opt_parameters).Item1.First().Item2;
             if (!optParametersList.Any()) return;
             if (VMATplan == null)
             {
@@ -974,7 +977,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         private void Add_constraint_Click(object sender, RoutedEventArgs e)
         {
-            Add_opt_volumes(selectedSS, new List<Tuple<string, string, double, double, int>> { Tuple.Create("--select--", "--select--", 0.0, 0.0, 0) });
+            Add_opt_volumes(selectedSS, new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { Tuple.Create("--select--", OptimizationObjectiveType.None, 0.0, 0.0, 0) });
             optParamScroller.ScrollToBottom();
         }
 
@@ -984,7 +987,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             firstOptStruct = false;
         }
 
-        private void Add_opt_volumes(StructureSet selectedSS, List<Tuple<string, string, double, double, int>> defaultList)
+        private void Add_opt_volumes(StructureSet selectedSS, List<Tuple<string, OptimizationObjectiveType, double, double, int>> defaultList)
         {
             //if (selectedSS == null) { MessageBox.Show("Error! The structure set has not been assigned! Choose a structure set and try again!"); return; }
             if (firstOptStruct) Add_opt_header();
@@ -1202,10 +1205,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
 
             //ask the user if they are sure they want to do this. Each plan will calculate dose sequentially, which will take time
-            confirmUI CUI = new confirmUI();
-            CUI.message.Text = "Warning!" + Environment.NewLine + "This will take some time as each plan needs to be calculated sequentionally!" + Environment.NewLine + "Continue?!";
+            ConfirmUI CUI = new ConfirmUI("Warning!" + Environment.NewLine + "This will take some time as each plan needs to be calculated sequentionally!" + Environment.NewLine + "Continue?!");
             CUI.ShowDialog();
-            if (!CUI.confirm) return;
+            if (!CUI.GetSelection()) return;
 
             //let the user know the script is working
             calcDoseTB.Background = System.Windows.Media.Brushes.Yellow;
@@ -1258,9 +1260,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     List<Tuple<string, string, double>> defaultSpareStruct_temp = new List<Tuple<string, string, double>> { };
                     List<Tuple<string, string>> TSstructures_temp = new List<Tuple<string, string>> { };
                     List<Tuple<string, string>> scleroTSstructures_temp = new List<Tuple<string, string>> { };
-                    List<Tuple<string, string, double, double, int>> optConstDefaultSclero_temp = new List<Tuple<string, string, double, double, int>> { };
-                    List<Tuple<string, string, double, double, int>> optConstDefaultMyelo_temp = new List<Tuple<string, string, double, double, int>> { };
-                    List<Tuple<string, string, double, double, int>> optConstDefaultNonMyelo_temp = new List<Tuple<string, string, double, double, int>> { };
+                    List<Tuple<string, OptimizationObjectiveType, double, double, int>> optConstDefaultSclero_temp = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+                    List<Tuple<string, OptimizationObjectiveType, double, double, int>> optConstDefaultMyelo_temp = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+                    List<Tuple<string, OptimizationObjectiveType, double, double, int>> optConstDefaultNonMyelo_temp = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
                     List<Tuple<string, string, double>> scleroSpareStruct_temp = new List<Tuple<string, string, double>> { };
                     List<Tuple<string, string, double>> myeloSpareStruct_temp = new List<Tuple<string, string, double>> { };
                     List<Tuple<string, string, double>> nonmyeloSpareStruct_temp = new List<Tuple<string, string, double>> { };
@@ -1428,9 +1430,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     if (scleroSpareStruct_temp.Any()) scleroSpareStruct = new List<Tuple<string, string, double>>(scleroSpareStruct_temp);
                     if (myeloSpareStruct_temp.Any()) myeloSpareStruct = new List<Tuple<string, string, double>>(myeloSpareStruct_temp);
                     if (nonmyeloSpareStruct_temp.Any()) nonmyeloSpareStruct = new List<Tuple<string, string, double>>(nonmyeloSpareStruct_temp);
-                    if (optConstDefaultSclero_temp.Any()) optConstDefaultSclero = new List<Tuple<string, string, double, double, int>>(optConstDefaultSclero_temp);
-                    if (optConstDefaultMyelo_temp.Any()) optConstDefaultMyelo = new List<Tuple<string, string, double, double, int>>(optConstDefaultMyelo_temp);
-                    if (optConstDefaultNonMyelo_temp.Any()) optConstDefaultNonMyelo = new List<Tuple<string, string, double, double, int>>(optConstDefaultNonMyelo_temp);
+                    if (optConstDefaultSclero_temp.Any()) optConstDefaultSclero = new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(optConstDefaultSclero_temp);
+                    if (optConstDefaultMyelo_temp.Any()) optConstDefaultMyelo = new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(optConstDefaultMyelo_temp);
+                    if (optConstDefaultNonMyelo_temp.Any()) optConstDefaultNonMyelo = new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(optConstDefaultNonMyelo_temp);
                 }
                 return false;
             }
@@ -1470,7 +1472,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             return Tuple.Create(structure, spareType, val);
         }
 
-        private Tuple<string, string, double, double, int> parseOptimizationConstraint(string line)
+        private Tuple<string, OptimizationObjectiveType, double, double, int> parseOptimizationConstraint(string line)
         {
             //known array format --> can take shortcuts in parsing the data
             //structure id, constraint type, dose (cGy), volume (%), priority
@@ -1489,7 +1491,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             volumeVal = double.Parse(line.Substring(0, line.IndexOf(",")));
             line = cropLine(line, ",");
             priorityVal = int.Parse(line.Substring(0, line.IndexOf("}")));
-            return Tuple.Create(structure, constraintType, doseVal, volumeVal, priorityVal);
+            return Tuple.Create(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), doseVal, volumeVal, priorityVal);
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -1499,12 +1501,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (autoSave) app.SaveModifications();
             else if (isModified)
             {
-                confirmUI CUI = new confirmUI();
-                CUI.message.Text = "Save work to database?";
+                ConfirmUI CUI = new ConfirmUI("Save work to database?");
                 CUI.ShowDialog();
-                CUI.confirmBTN.Text = "YES";
-                CUI.cancelBTN.Text = "No";
-                if (CUI.confirm) app.SaveModifications();
+                if (CUI.GetSelection()) app.SaveModifications();
             }
             if(app != null)
             {

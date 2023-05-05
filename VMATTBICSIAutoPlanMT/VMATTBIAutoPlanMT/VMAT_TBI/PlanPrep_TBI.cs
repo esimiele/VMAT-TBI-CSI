@@ -7,6 +7,7 @@ using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoplanningHelpers.BaseClasses;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 using VMATTBICSIAutoplanningHelpers.Helpers;
+using VMATTBICSIAutoPlanningHelpers.Prompts;
 
 namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
@@ -125,20 +126,17 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 string problemPlan = "";
                 if (!vmatPlan.Beams.Where(x => x.IsSetupField).Any()) problemPlan = "VMAT plan";
                 else problemPlan = "AP/PA plan(s)";
-                confirmUI CUI = new confirmUI();
-                CUI.message.Text = String.Format("I didn't find any setup fields in the {0}.", problemPlan) + Environment.NewLine + Environment.NewLine + "Are you sure you want to continue?!";
+                ConfirmUI CUI = new ConfirmUI(String.Format("I didn't find any setup fields in the {0}.", problemPlan) + Environment.NewLine + Environment.NewLine + "Are you sure you want to continue?!");
                 CUI.ShowDialog();
-                if (!CUI.confirm) return true;
+                if (!CUI.GetSelection()) return true;
             }
 
             //check if flash was used in the plan. If so, ask the user if they want to remove these structures as part of cleanup
             if (CheckForFlash())
             {
-                confirmUI CUI = new confirmUI();
-                CUI.message.Text = "I found some structures in the structure set for generating flash." + Environment.NewLine + Environment.NewLine + "Do you want me to remove them?!";
-                CUI.cancelBTN.Text = "No";
+                ConfirmUI CUI = new ConfirmUI("I found some structures in the structure set for generating flash." + Environment.NewLine + Environment.NewLine + "Should I remove them?!");
                 CUI.ShowDialog();
-                if (CUI.confirm) if (RemoveFlashStructures()) return true;
+                if (CUI.GetSelection()) if (RemoveFlashStructures()) return true;
             }
             //counter for indexing names
             int count = 0;

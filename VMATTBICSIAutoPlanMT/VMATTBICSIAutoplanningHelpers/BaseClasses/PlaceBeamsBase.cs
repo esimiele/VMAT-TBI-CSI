@@ -8,6 +8,7 @@ using System.Windows.Media.Media3D;
 using VMATTBICSIAutoplanningHelpers.Prompts;
 using VMATTBICSIAutoplanningHelpers.Helpers;
 using SimpleProgressWindow;
+using VMATTBICSIAutoPlanningHelpers.Prompts;
 
 namespace VMATTBICSIAutoplanningHelpers.BaseClasses
 {
@@ -178,10 +179,9 @@ namespace VMATTBICSIAutoplanningHelpers.BaseClasses
                     //just an FYI that the calculation will likely run out of memory and crash the optimization when Acuros is used
                     if (calculationModel.ToLower().Contains("acuros") || calculationModel.ToLower().Contains("axb"))
                     {
-                        confirmUI CUI = new confirmUI();
-                        CUI.message.Text = "Warning!" + Environment.NewLine + "The optimization will likely crash (i.e., run out of memory) if Acuros is used!" + Environment.NewLine + "Continue?!";
+                        ConfirmUI CUI = new ConfirmUI("Warning!" + Environment.NewLine + "The optimization will likely crash (i.e., run out of memory) if Acuros is used!" + Environment.NewLine + "Continue?!");
                         CUI.ShowDialog();
-                        if (!CUI.confirm) return true;
+                        if (!CUI.GetSelection()) return true;
                     }
                 }
 

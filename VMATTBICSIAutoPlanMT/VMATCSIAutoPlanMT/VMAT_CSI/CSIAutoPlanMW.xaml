@@ -162,33 +162,74 @@
                 <Label Content="VMAT CSI auto planning" FontSize="20" HorizontalAlignment="Center" Margin="0,0,0,0" VerticalAlignment="Top"/>
                 <Button Content="Help" HorizontalAlignment="Right" Margin="0,10,30,0" VerticalAlignment="Top" Width="75" Click="HelpButton_Click"/>
                 <Button x:Name="quickStart" Content="Quick Start" HorizontalAlignment="Left" Margin="30,10,0,0" VerticalAlignment="Top" Width="75" Click="QuickStart_Click"/>
+            </Grid>
+                
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"></ColumnDefinition>
+                    <ColumnDefinition Width="*"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"></RowDefinition>
+                    <RowDefinition Height="*"></RowDefinition>
+                    <RowDefinition Height="*"></RowDefinition>
+                    <RowDefinition Height="*"></RowDefinition>
+                    <RowDefinition Height="*"></RowDefinition>
+                    <RowDefinition Height="*"></RowDefinition>
+                </Grid.RowDefinitions>
 
-                <Grid Width="250" Height="34" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,39,0,0">
-                    <Label Content="Structure Set ID:" HorizontalAlignment="Right" Margin="0,5,145,0" VerticalAlignment="Top"/>
-                    <ComboBox x:Name="SSID" HorizontalContentAlignment="Center" HorizontalAlignment="Right" Margin="0,5,20,0" VerticalAlignment="Top" Width="120" SelectionChanged="StructureSetId_SelectionChanged"/>
+                <Grid Grid.ColumnSpan="2" Grid.Row="0" HorizontalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Label Content="Patient MRN:" Grid.Column="0" Grid.Row="0" HorizontalAlignment="Right" Margin="0" VerticalAlignment="Center"/>
+                    <Label x:Name="patientMRNLabel" Grid.Column="1" Grid.Row="0" FontWeight="Bold" HorizontalAlignment="Center" Margin="0" VerticalAlignment="Center"/>
+                    
+                    <Label Content="Structure Set ID:" Grid.Column="0" Grid.Row="1" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    <ComboBox x:Name="SSID" Grid.Column="1" Grid.Row="1" HorizontalContentAlignment="Center" HorizontalAlignment="Center" Width="140" SelectionChanged="StructureSetId_SelectionChanged"/>
                 </Grid>
 
-                <Grid Width="250" Height="140" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,60,440,0">
-                    <Label Content="Plan Templates" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,10,0"></Label>
-                    <ListBox x:Name="templateList" ItemsSource="{Binding PlanTemplates}" VerticalAlignment="Bottom" HorizontalContentAlignment="Center" Height="110" DisplayMemberPath="TemplateName" Margin="0" SelectionChanged="Templates_SelectionChanged">
-                    </ListBox>
+                <Grid Grid.Column="0" Grid.Row="2" Grid.RowSpan="4">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="3*"/>
+                    </Grid.RowDefinitions>
+                    <Label Content="Plan Templates" Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,10,0"></Label>
+                    <ListBox x:Name="templateList" ItemsSource="{Binding PlanTemplates}" Grid.Row="1" Width="300" HorizontalContentAlignment="Center" DisplayMemberPath="TemplateName" SelectionChanged="Templates_SelectionChanged"/>
                 </Grid>
+                
 
-                <Grid x:Name ="baseBoostInfo" Width="170" Height="120" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,85,35,0" Visibility="Visible">
-                    <Label Content="Base plan" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,0,0,0" ></Label>
-                    <Label Content="Boost plan" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,0,5,0" ></Label>
-                    <TextBox x:Name="boostDosePerFxTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,29,0,0" TextChanged="BoostDosePerFx_TextChanged"></TextBox>
-                    <TextBox x:Name="boostNumFxTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,59,0,0" TextChanged="BoostNumFx_TextChanged"></TextBox>
-                    <TextBox x:Name="boostRxTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,89,0,0" IsReadOnly="True"></TextBox>
-                </Grid>
+                <Grid Grid.Column="1" Grid.Row="2" Grid.RowSpan="4">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.5*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Label Content="Base plan" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"></Label>
+                    <Label Content="Boost plan" Grid.Row="0" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center"></Label>
+                    
+                    <Label Content="Dose per fraction (cGy/fx):" Grid.Row="1" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center"></Label>
+                    <Label Content="Number of fractions:" Grid.Row="2" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center"></Label>
+                    <Label Content="Rx dose (cGy):" Grid.Row="3" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center"></Label>
 
-                <Grid Width="300" Height="92" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,107,103,0">
-                    <Label Content="Dose per fraction (cGy/fraction):" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,115,0"></Label>
-                    <Label Content="Number of fractions:" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,35,115,0"></Label>
-                    <Label Content="Rx dose (cGy):" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,65,115,0"></Label>
-                    <TextBox x:Name="initDosePerFxTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,7,35,0" TextChanged="InitDosePerFx_TextChanged"></TextBox>
-                    <TextBox x:Name="initNumFxTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,37,35,0" TextChanged="InitNumFx_TextChanged"></TextBox>
-                    <TextBox x:Name="initRxTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,67,35,0" IsReadOnly="True"></TextBox>
+                    <TextBox x:Name="initDosePerFxTB" Grid.Row="1" Grid.Column="1" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Width="75" TextChanged="InitDosePerFx_TextChanged"></TextBox>
+                    <TextBox x:Name="initNumFxTB" Grid.Row="2" Grid.Column="1" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Width="75" TextChanged="InitNumFx_TextChanged"></TextBox>
+                    <TextBox x:Name="initRxTB" Grid.Row="3" Grid.Column="1" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Width="75" IsReadOnly="True"></TextBox>
+
+                    <TextBox x:Name="boostDosePerFxTB" Grid.Row="1" Grid.Column="2" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Width="75" TextChanged="BoostDosePerFx_TextChanged"></TextBox>
+                    <TextBox x:Name="boostNumFxTB" Grid.Row="2" Grid.Column="2" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Width="75" TextChanged="BoostNumFx_TextChanged"></TextBox>
+                    <TextBox x:Name="boostRxTB" Grid.Row="3" Grid.Column="2" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Width="75" IsReadOnly="True"></TextBox>
                 </Grid>
             </Grid>
 
