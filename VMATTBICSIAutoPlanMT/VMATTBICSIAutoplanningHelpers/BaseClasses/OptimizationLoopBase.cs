@@ -4,15 +4,14 @@ using System.Linq;
 using System.Threading;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using VMATTBICSIAutoplanningHelpers.Structs;
-using VMATTBICSIAutoplanningHelpers.Enums;
-using VMATTBICSIAutoplanningHelpers.Helpers;
-using VMATTBICSIAutoplanningHelpers.UIHelpers;
-using VMATTBICSIAutoplanningHelpers.Prompts;
-using OptimizationProgressWindow;
+using VMATTBICSIAutoPlanningHelpers.Structs;
+using VMATTBICSIAutoPlanningHelpers.Enums;
+using VMATTBICSIAutoPlanningHelpers.Helpers;
+using VMATTBICSIAutoPlanningHelpers.UIHelpers;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
+using OptimizationProgressWindow;
 
-namespace VMATTBICSIAutoplanningHelpers.BaseClasses
+namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 {
     public class OptimizationLoopBase : OptimizationMTbase
     {
@@ -277,9 +276,9 @@ namespace VMATTBICSIAutoplanningHelpers.BaseClasses
             //check to see if the couch and rail structures are present in the structure set. If not, let the user know as an FYI. At this point, the user can choose to stop the optimization loop and add the couch structures
             if (!couchAndRails.Any())
             {
-                ConfirmUI CUI = new ConfirmUI(String.Format("I didn't found any couch structures in the structure set!") + Environment.NewLine + Environment.NewLine + "Continue?!");
-                CUI.ShowDialog();
-                if (!CUI.GetSelection())
+                ConfirmPrompt CP = new ConfirmPrompt(String.Format("I didn't found any couch structures in the structure set!") + Environment.NewLine + Environment.NewLine + "Continue?!");
+                CP.ShowDialog();
+                if (!CP.GetSelection())
                 {
                     ProvideUIUpdate("Quitting!", true);
                     return true;
@@ -318,9 +317,9 @@ namespace VMATTBICSIAutoplanningHelpers.BaseClasses
                 //If not, let the user know so they can decide if they want to continue of stop the optimization loop
                 if (spinningManny == null || spinningManny.IsEmpty)
                 {
-                    ConfirmUI CUI = new ConfirmUI(String.Format("I found a matchline, but no spinning manny couch or it's empty!") + Environment.NewLine + Environment.NewLine + "Continue?!");
-                    CUI.ShowDialog();
-                    if (!CUI.GetSelection()) return true;
+                    ConfirmPrompt CP = new ConfirmPrompt(String.Format("I found a matchline, but no spinning manny couch or it's empty!") + Environment.NewLine + Environment.NewLine + "Continue?!");
+                    CP.ShowDialog();
+                    if (!CP.GetSelection()) return true;
                 }
             }
 
@@ -345,12 +344,12 @@ namespace VMATTBICSIAutoplanningHelpers.BaseClasses
             //We've found that eclipse will throw warning messages after each dose calculation if the couch structures are on the last slices of the CT image. The reason is because a beam could exit the support
             //structure (i.e., the couch) through the end of the couch thus exiting the CT image altogether. Eclipse warns that you are transporting radiation through a structure at the end of the CT image, which
             //defines the world volume (i.e., outside this volume, the radiation transport is killed)
-            ConfirmUI CUI = new ConfirmUI(String.Format("I found couch contours on the first or last slices of the CT image!") + Environment.NewLine + Environment.NewLine +
+            ConfirmPrompt CP = new ConfirmPrompt(String.Format("I found couch contours on the first or last slices of the CT image!") + Environment.NewLine + Environment.NewLine +
                                                 "Do you want to remove them?!" + Environment.NewLine + "(The script will be less likely to throw warnings)");
-            CUI.ShowDialog();
+            CP.ShowDialog();
             ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems));
             //remove all applicable contours on the first and last CT slices
-            if (CUI.GetSelection())
+            if (CP.GetSelection())
             {
                 //If dose has been calculated for this plan, need to clear the dose in this and any and all plans that reference this structure set
                 //check to see if this structure set is used in any other calculated plans
@@ -373,10 +372,10 @@ namespace VMATTBICSIAutoplanningHelpers.BaseClasses
                 {
                     message += Environment.NewLine + "I need to reset the dose matrix, crop the structures, then re-calculate the dose." + Environment.NewLine + "Continue?!";
                     //8-15-2020 dumbass way around the whole "dose has been calculated, you can't change anything!" issue.
-                    CUI = new ConfirmUI(message);
-                    CUI.ShowDialog();
+                    CP = new ConfirmPrompt(message);
+                    CP.ShowDialog();
                     //the user dosen't want to continue
-                    if (!CUI.GetSelection()) return true;
+                    if (!CP.GetSelection()) return true;
                     else
                     {
                         List<ExternalPlanSetup> planRecalcList = new List<ExternalPlanSetup> { };

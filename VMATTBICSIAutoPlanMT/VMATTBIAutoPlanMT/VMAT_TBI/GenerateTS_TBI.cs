@@ -5,10 +5,10 @@ using System.Windows;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Media.Media3D;
-using VMATTBICSIAutoplanningHelpers.BaseClasses;
-using VMATTBICSIAutoplanningHelpers.Prompts;
-using VMATTBICSIAutoplanningHelpers.Helpers;
+using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
+using VMATTBICSIAutoPlanningHelpers.Helpers;
+using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
 
 namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
@@ -29,12 +29,12 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private Structure flashStructure = null;
         private double flashMargin;
 
-        public GenerateTS_TBI(List<Tuple<string, string>> ts, List<Tuple<string, string>> sclero_ts, List<Tuple<string, string, double>> list, StructureSet ss, double tm, bool st, bool flash, Structure fSt, double fM)
+        public GenerateTS_TBI(List<Tuple<string, string>> ts, List<Tuple<string, string>> sclero_ts, List<Tuple<string, TSManipulationType, double>> list, StructureSet ss, double tm, bool st, bool flash, Structure fSt, double fM)
         {
             //overloaded constructor for the case where the user wants to include flash in the simulation
             TS_structures = new List<Tuple<string, string>>(ts);
             scleroStructures = new List<Tuple<string, string>>(sclero_ts);
-            spareStructList = new List<Tuple<string, string, double>>(list);
+            TSManipulationList = new List<Tuple<string, TSManipulationType, double>>(list);
             selectedSS = ss;
             targetMargin = tm;
             scleroTrial = st;
@@ -69,9 +69,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if ((pts.Max(p => p.Z) - pts.Min(p => p.Z)) > 1160.0 && !(selectedSS.Structures.Where(x => x.Id.ToLower() == "matchline").Any()))
             {
                 //check to see if the user wants to proceed even though there is no matchplane contour or the matchplane contour exists, but is not filled
-                ConfirmUI CUI = new ConfirmUI("No matchplane contour found even though patient length > 116.0 cm!" + Environment.NewLine + Environment.NewLine + "Continue?!");
-                CUI.ShowDialog();
-                if (!CUI.GetSelection()) return true;
+                ConfirmPrompt CP = new ConfirmPrompt("No matchplane contour found even though patient length > 116.0 cm!" + Environment.NewLine + Environment.NewLine + "Continue?!");
+                CP.ShowDialog();
+                if (!CP.GetSelection()) return true;
 
                 //checks for LA16 couch and spinning manny couch/bolt will be performed at optimization stage
             }
@@ -89,9 +89,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //matchline structure is present, but empty
                 if (selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").IsEmpty)
                 {
-                    ConfirmUI CUI = new ConfirmUI("I found a matchline structure in the structure set, but it's empty!" + Environment.NewLine + Environment.NewLine + "Do you want to continue without using the matchline structure?!");
-                    CUI.ShowDialog();
-                    if (!CUI.GetSelection()) return true;
+                    ConfirmPrompt CP = new ConfirmPrompt("I found a matchline structure in the structure set, but it's empty!" + Environment.NewLine + Environment.NewLine + "Do you want to continue without using the matchline structure?!");
+                    CP.ShowDialog();
+                    if (!CP.GetSelection()) return true;
 
                     //continue and ignore the empty matchline structure (same calculation as VMAT only)
                     numIsos = numVMATIsos = (int)Math.Ceiling(((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 - 20.0)));
@@ -120,10 +120,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //check if selected structures are empty or of high-resolution (i.e., no operations can be performed on high-resolution structures)
             string output = "The following structures are high-resolution:" + System.Environment.NewLine;
             List<Structure> highResStructList = new List<Structure> { };
-            List<Tuple<string, string, double>> highResSpareList = new List<Tuple<string, string, double>> { };
-            foreach (Tuple<string, string, double> itr in spareStructList)
+            List<Tuple<string, TSManipulationType, double>> highResSpareList = new List<Tuple<string, TSManipulationType, double>> { };
+            foreach (Tuple<string, TSManipulationType, double> itr in TSManipulationList)
             {
-                if (itr.Item2 == "Mean Dose < Rx Dose")
+                if (itr.Item2 == TSManipulationType.CropTargetFromStructure)
                 {
                     if (selectedSS.Structures.First(x => x.Id == itr.Item1).IsEmpty)
                     {
@@ -143,13 +143,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             {
                 //ask user if they are ok with converting the relevant high resolution structures to default resolution
                 output += "They must be converted to default resolution before proceeding!";
-                ConfirmUI CUI = new ConfirmUI(output + Environment.NewLine + Environment.NewLine + "Continue?!");
-                CUI.ShowDialog();
-                if (!CUI.GetSelection()) return true;
+                ConfirmPrompt CP = new ConfirmPrompt(output + Environment.NewLine + Environment.NewLine + "Continue?!");
+                CP.ShowDialog();
+                if (!CP.GetSelection()) return true;
 
-                List<Tuple<string, string, double>> newData = ConvertHighToLowRes(highResStructList, highResSpareList, spareStructList);
+                List<Tuple<string, TSManipulationType, double>> newData = ConvertHighToLowRes(highResStructList, highResSpareList, TSManipulationList);
                 if(!newData.Any()) return true;
-                spareStructList = new List<Tuple<string, string, double>>(newData);
+                TSManipulationList = new List<Tuple<string, TSManipulationType, double>>(newData);
                 //inform the main UI class that the UI needs to be updated
                 updateSparingList = true;
             }
@@ -185,10 +185,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //determine if any TS structures need to be added to the selected structure set (i.e., were not present or were removed in the first foreach loop)
             //this is provided here to only add additional TS if they are relevant to the current case (i.e., it doesn't make sense to add the brain TS's if we 
             //are not interested in sparing brain)
-            foreach (Tuple<string, string, double> itr in spareStructList)
+            foreach (Tuple<string, TSManipulationType, double> itr in TSManipulationList)
             {
                 optParameters.Add(Tuple.Create(itr.Item1, itr.Item2));
-                if (itr.Item2 == "Mean Dose < Rx Dose")
+                if (itr.Item2 == TSManipulationType.CropTargetFromStructure)
                 {
                     if (itr.Item1.ToLower().Contains("lungs"))
                     {
@@ -311,9 +311,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     tmp.SegmentVolume = tmp1.Margin(-targetMargin * 10);
 
                     //subtract all the structures the user wants to spare from PTV_Body
-                    foreach (Tuple<string, string, double> spare in spareStructList)
+                    foreach (Tuple<string, TSManipulationType, double> spare in TSManipulationList)
                     {
-                        if (spare.Item2 == "Mean Dose < Rx Dose")
+                        if (spare.Item2 == TSManipulationType.CropTargetFromStructure)
                         {
                             if (spare.Item1.ToLower() == "kidneys" && scleroTrial)
                             {
@@ -451,11 +451,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //copy the NEW body structure (i.e., body + bolus_flash) with a 3 mm inner margin
             ptv_flash.SegmentVolume = selectedSS.Structures.First(x => x.Id.ToLower() == "body").Margin(-targetMargin * 10);
 
-            //now subtract all the structures in the spareStructList from ts_ptv_flash (same code as used in the createTSStructures method)
+            //now subtract all the structures in the TSManipulationList from ts_ptv_flash (same code as used in the createTSStructures method)
             Structure tmp1;
-            foreach (Tuple<string, string, double> spare in spareStructList)
+            foreach (Tuple<string, TSManipulationType, double> spare in TSManipulationList)
             {
-                if (spare.Item2 == "Mean Dose < Rx Dose")
+                if (spare.Item2 == TSManipulationType.CropTargetFromStructure)
                 {
                     if (spare.Item1.ToLower() == "kidneys" && scleroTrial)
                     {

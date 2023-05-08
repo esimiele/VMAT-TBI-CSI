@@ -5,22 +5,23 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Media.Media3D;
 using SimpleProgressWindow;
+using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
 
-namespace VMATTBICSIAutoplanningHelpers.BaseClasses
+namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 {
     public class GenerateTSbase : SimpleMTbase
     {
         public List<Tuple<string, List<string>>> GetIsoNames() { return isoNames; }
         public List<string> GetAddedStructures() { return addedStructures; }
-        public List<Tuple<string, string>> GetOptParameters() { return optParameters; }
-        public List<Tuple<string, string, double>> GetSparingList() { return spareStructList; }
+        public List<Tuple<string, TSManipulationType>> GetOptParameters() { return optParameters; }
+        public List<Tuple<string, TSManipulationType, double>> GetSparingList() { return TSManipulationList; }
         public bool GetUpdateSparingListStatus() { return updateSparingList; }
 
         protected StructureSet selectedSS;
         //structure, sparing type, added margin
-        protected List<Tuple<string, string, double>> spareStructList;
+        protected List<Tuple<string, TSManipulationType, double>> TSManipulationList;
         protected List<string> addedStructures = new List<string> { };
-        protected List<Tuple<string, string>> optParameters = new List<Tuple<string, string>> { };
+        protected List<Tuple<string, TSManipulationType>> optParameters = new List<Tuple<string, TSManipulationType>> { };
         protected bool useFlash = false;
         //plan Id, list of isocenter names for this plan
         protected List<Tuple<string,List<string>>> isoNames = new List<Tuple<string, List<string>>> { };
@@ -107,7 +108,7 @@ namespace VMATTBICSIAutoplanningHelpers.BaseClasses
             return false;
         }
 
-        protected List<Tuple<string, string, double>> ConvertHighToLowRes(List<Structure> highRes, List<Tuple<string, string, double>> highResSpareList, List<Tuple<string, string, double>> dataList)
+        protected List<Tuple<string, TSManipulationType, double>> ConvertHighToLowRes(List<Structure> highRes, List<Tuple<string, TSManipulationType, double>> highResSpareList, List<Tuple<string, TSManipulationType, double>> dataList)
         {
             int count = 0;
             foreach (Structure s in highRes)
@@ -132,7 +133,7 @@ namespace VMATTBICSIAutoplanningHelpers.BaseClasses
                 else
                 {
                     ProvideUIUpdate(String.Format("Error! Cannot add new structure: {0}!\nCorrect this issue and try again!", newName), true);
-                    return new List<Tuple<string, string, double>> { };
+                    return new List<Tuple<string, TSManipulationType, double>> { };
                 }
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Added low-res structure: {0}", newName));
 
@@ -154,7 +155,7 @@ namespace VMATTBICSIAutoplanningHelpers.BaseClasses
                 //get the index of the high resolution structure in the structure sparing list and repace this entry with the newly created low resolution structure
                 int index = dataList.IndexOf(highResSpareList.ElementAt(count));
                 dataList.RemoveAt(index);
-                dataList.Insert(index, new Tuple<string, string, double>(newName, highResSpareList.ElementAt(count).Item2, highResSpareList.ElementAt(count).Item3));
+                dataList.Insert(index, new Tuple<string, TSManipulationType, double>(newName, highResSpareList.ElementAt(count).Item2, highResSpareList.ElementAt(count).Item3));
                 count++;
             }
 
@@ -170,7 +171,7 @@ namespace VMATTBICSIAutoplanningHelpers.BaseClasses
             {
                 addedStructure = selectedSS.AddStructure(dicomType, structName);
                 addedStructures.Add(structName);
-                optParameters.Add(Tuple.Create(structName, ""));
+                optParameters.Add(Tuple.Create(structName, TSManipulationType.None));
             }
             else ProvideUIUpdate(String.Format("Can't add {0} to the structure set!", structName));
             return addedStructure;

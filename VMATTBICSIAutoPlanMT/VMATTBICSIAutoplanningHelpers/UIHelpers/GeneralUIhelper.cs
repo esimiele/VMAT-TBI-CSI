@@ -1,6 +1,6 @@
 ﻿using System.Windows.Controls;
 
-namespace VMATTBICSIAutoplanningHelpers.UIHelpers
+namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
     public class GeneralUIhelper
     {

@@ -2,17 +2,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using VMS.TPS.Common.Model.API;
+using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
 
-namespace VMATTBICSIAutoplanningHelpers.Helpers
+namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public class StructureTuningHelper
     {
         //helper method to easily add sparing structures to a sparing structure list. The reason this is its own method is because of the logic used to include/remove sex-specific organs
-        public List<Tuple<string, string, double>> AddTemplateSpecificStructureManipulations(List<Tuple<string, string, double>> caseSpareStruct, List<Tuple<string, string, double>> template, string sex)
+        public List<Tuple<string, TSManipulationType, double>> AddTemplateSpecificStructureManipulations(List<Tuple<string, TSManipulationType, double>> caseSpareStruct, List<Tuple<string, TSManipulationType, double>> template, string sex)
         {
-            foreach (Tuple<string, string, double> s in caseSpareStruct)
+            foreach (Tuple<string, TSManipulationType, double> s in caseSpareStruct)
             {
                 if (s.Item1.ToLower() == "ovaries" || s.Item1.ToLower() == "testes")
                 {

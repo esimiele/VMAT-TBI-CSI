@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using VMS.TPS.Common.Model.Types;
-using VMATTBICSIAutoplanningHelpers.Enums;
+using VMATTBICSIAutoPlanningHelpers.Enums;
 
-namespace VMATTBICSIAutoplanningHelpers.PlanTemplateClasses
+namespace VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses
 {
     public class CSIAutoPlanTemplate
     {
@@ -18,7 +18,7 @@ namespace VMATTBICSIAutoplanningHelpers.PlanTemplateClasses
         public List<Tuple<string, double, string>> GetTargets() { return targets; }
         public List<Tuple<string, string>> GetCreateTSStructures() { return createTSStructures; }
         public List<Tuple<string, double, double, double>> GetCreateRings() { return createRings; }
-        public List<Tuple<string, string, double>> GetTSManipulations() { return TSManipulations; }
+        public List<Tuple<string, TSManipulationType, double>> GetTSManipulations() { return TSManipulations; }
         public List<string> GetCropAndOverlapStructures() { return cropAndOverlapStructures; }
         public List<Tuple<string, OptimizationObjectiveType, double, double, int>> GetInitOptimizationConstraints() { return initOptConstraints; }
         public List<Tuple<string, OptimizationObjectiveType, double, double, int>> GetBoostOptimizationConstraints() { return bstOptConstraints; }
@@ -36,7 +36,7 @@ namespace VMATTBICSIAutoplanningHelpers.PlanTemplateClasses
         public void SetTargets(List<Tuple<string, double, string>> value) { targets = new List<Tuple<string, double, string>>(value); }
         public void SetCreateTSStructures(List<Tuple<string, string>> value) { createTSStructures = new List<Tuple<string, string>>(value); }
         public void SetCreateRings(List<Tuple<string, double, double, double>> value) { createRings = new List<Tuple<string, double, double, double>>(value); }
-        public void SetTSManipulations(List<Tuple<string, string, double>> value) { TSManipulations = new List<Tuple<string, string, double>>(value); }
+        public void SetTSManipulations(List<Tuple<string, TSManipulationType, double>> value) { TSManipulations = new List<Tuple<string, TSManipulationType, double>>(value); }
         public void SetCropAndOverlapStructures(List<string> value) { cropAndOverlapStructures = new List<string>(value); }
         public void SetInitOptimizationConstraints(List<Tuple<string, OptimizationObjectiveType, double, double, int>> value) { initOptConstraints = new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(value); }
         public void SetBoostOptimizationConstraints(List<Tuple<string, OptimizationObjectiveType, double, double, int>> value) { bstOptConstraints = new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(value); }
@@ -57,7 +57,7 @@ namespace VMATTBICSIAutoplanningHelpers.PlanTemplateClasses
         //target to create ring from, margin, thickness, dose level (cGy)
         private List<Tuple<string, double, double, double>> createRings = new List<Tuple<string, double, double, double>> { };
         //structure ID, sparing type, margin
-        private List<Tuple<string, string, double>> TSManipulations = new List<Tuple<string, string, double>> { };
+        private List<Tuple<string, TSManipulationType, double>> TSManipulations = new List<Tuple<string, TSManipulationType, double>> { };
         //list of structures that should be cropped from targets and overlap with targets also contoured. these manipulations will be used to update the optimization constraints for all targets
         private List<string> cropAndOverlapStructures = new List<string> { };
         //structure, constraint type, dose cGy, volume %, priority

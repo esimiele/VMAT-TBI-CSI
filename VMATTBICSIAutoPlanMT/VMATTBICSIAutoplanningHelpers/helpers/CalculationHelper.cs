@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace VMATTBICSIAutoplanningHelpers.Helpers
+namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public static class CalculationHelper
     {

@@ -5,12 +5,11 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Forms;
 using System.Windows.Media.Media3D;
-using VMATTBICSIAutoplanningHelpers.Prompts;
-using VMATTBICSIAutoplanningHelpers.Helpers;
-using SimpleProgressWindow;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
+using VMATTBICSIAutoPlanningHelpers.Helpers;
+using SimpleProgressWindow;
 
-namespace VMATTBICSIAutoplanningHelpers.BaseClasses
+namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 {
     public class PlaceBeamsBase : SimpleMTbase
     {
@@ -168,20 +167,18 @@ namespace VMATTBICSIAutoplanningHelpers.BaseClasses
                 //ask the user to set the calculation model if not calculation model was set in UI.xaml.cs (up near the top with the global parameters)
                 if (calculationModel == "")
                 {
-                    selectItem SUI = new selectItem();
-                    SUI.title.Text = "No calculation model set!" + Environment.NewLine + "Please select a calculation model!";
-                    foreach (string s in thePlan.GetModelsForCalculationType(CalculationType.PhotonVolumeDose)) SUI.itemCombo.Items.Add(s);
-                    SUI.ShowDialog();
-                    if (!SUI.confirm) return true;
+                    SelectItemPrompt SIP = new SelectItemPrompt("No calculation model set!" + Environment.NewLine + "Please select a calculation model!", thePlan.GetModelsForCalculationType(CalculationType.PhotonVolumeDose).ToList());
+                    SIP.ShowDialog();
+                    if (!SIP.GetSelection()) return true;
                     //get the plan the user chose from the combobox
-                    calculationModel = SUI.itemCombo.SelectedItem.ToString();
+                    calculationModel = SIP.GetSelectedItem();
 
                     //just an FYI that the calculation will likely run out of memory and crash the optimization when Acuros is used
                     if (calculationModel.ToLower().Contains("acuros") || calculationModel.ToLower().Contains("axb"))
                     {
-                        ConfirmUI CUI = new ConfirmUI("Warning!" + Environment.NewLine + "The optimization will likely crash (i.e., run out of memory) if Acuros is used!" + Environment.NewLine + "Continue?!");
-                        CUI.ShowDialog();
-                        if (!CUI.GetSelection()) return true;
+                        ConfirmPrompt CP = new ConfirmPrompt("Warning!" + Environment.NewLine + "The optimization will likely crash (i.e., run out of memory) if Acuros is used!" + Environment.NewLine + "Continue?!");
+                        CP.ShowDialog();
+                        if (!CP.GetSelection()) return true;
                     }
                 }
 

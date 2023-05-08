@@ -6,10 +6,10 @@ using System.Windows;
 using System.Windows.Controls;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using VMATTBICSIAutoplanningHelpers.Enums;
-using VMATTBICSIAutoplanningHelpers.Helpers;
+using VMATTBICSIAutoPlanningHelpers.Enums;
+using VMATTBICSIAutoPlanningHelpers.Helpers;
 
-namespace VMATTBICSIAutoplanningHelpers.UIHelpers
+namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
     public class OptimizationSetupUIHelper
     {

@@ -5,8 +5,10 @@ using VMS.TPS.Common.Model.API;
 using System.Windows;
 using System.Windows.Controls;
 using System.Text;
+using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
+using VMATTBICSIAutoPlanningHelpers.Helpers;
 
-namespace VMATTBICSIAutoplanningHelpers.UIHelpers
+namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
     public class StructureTuningUIHelper
     {
@@ -163,7 +165,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return sp;
         }
 
-        public StackPanel AddTSManipulation(StackPanel theSP, List<string> structureIds, Tuple<string, string, double> listItem, string clearBtnPrefix, int clearSpareBtnCounter, SelectionChangedEventHandler typeChngHndl, RoutedEventHandler clearEvtHndl)
+        public StackPanel AddTSManipulation(StackPanel theSP, List<string> structureIds, Tuple<string, TSManipulationType, double> listItem, string clearBtnPrefix, int clearSpareBtnCounter, SelectionChangedEventHandler typeChngHndl, RoutedEventHandler clearEvtHndl)
         {
             StackPanel sp = new StackPanel();
             sp.Height = 30;
@@ -204,12 +206,12 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             type_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
             string[] types = new string[] { "--select--", 
                                             "Crop target from structure", 
-                                            "Contour overlap", 
+                                            "Contour overlap with target", 
                                             "Crop from Body", 
                                             "Mean Dose < Rx Dose", 
                                             "Dmax ~ Rx Dose" };
             foreach (string s in types) type_cb.Items.Add(s);
-            if (types.FirstOrDefault(x => x == listItem.Item2) != null) type_cb.Text = listItem.Item2;
+            if (types.Any(x => string.Equals(x, listItem.Item2.ToString()))) type_cb.Text = listItem.Item2.ToString();
             else type_cb.Text = "--select--";
             type_cb.SelectionChanged += typeChngHndl;
             sp.Children.Add(type_cb);
@@ -224,7 +226,7 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             addMargin.VerticalContentAlignment = VerticalAlignment.Center;
             addMargin.Margin = new Thickness(5, 5, 0, 0);
             addMargin.Text = Convert.ToString(listItem.Item3);
-            if (listItem.Item2 != "Mean Dose < Rx Dose" && listItem.Item2 != "Crop target from structure" && listItem.Item2 != "Crop from Body") addMargin.Visibility = Visibility.Hidden;
+            if (listItem.Item2 != TSManipulationType.CropTargetFromStructure && listItem.Item2 != TSManipulationType.CropFromBody) addMargin.Visibility = Visibility.Hidden;
             sp.Children.Add(addMargin);
 
             Button clearStructBtn = new Button();
@@ -241,10 +243,10 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return sp;
         }
 
-        public (List<Tuple<string, string, double>>, StringBuilder) ParseTSManipulationList(StackPanel theSP)
+        public (List<Tuple<string, TSManipulationType, double>>, StringBuilder) ParseTSManipulationList(StackPanel theSP)
         {
             StringBuilder sb = new StringBuilder();
-            List<Tuple<string, string, double>> TSManipulationList = new List<Tuple<string, string, double>> { };
+            List<Tuple<string, TSManipulationType, double>> TSManipulationList = new List<Tuple<string, TSManipulationType, double>> { };
             string structure = "";
             string spareType = "";
             double margin = -1000.0;
@@ -273,16 +275,16 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
                     if (structure == "--select--" || spareType == "--select--")
                     {
                         sb.AppendLine("Error! \nStructure or Sparing Type not selected! \nSelect an option and try again");
-                        return (new List<Tuple<string, string, double>> { }, sb);
+                        return (new List<Tuple<string, TSManipulationType, double>> { }, sb);
                     }
                     //margin will not be assigned from the default value (-1000) if the input is empty, a whitespace, or NaN
                     else if (margin == -1000.0)
                     {
                         sb.AppendLine("Error! \nEntered margin value is invalid! \nEnter a new margin and try again");
-                        return (new List<Tuple<string, string, double>> { }, sb);
+                        return (new List<Tuple<string, TSManipulationType, double>> { }, sb);
                     }
                     //only add the current row to the structure sparing list if all the parameters were successful parsed
-                    else TSManipulationList.Add(Tuple.Create(structure, spareType, margin));
+                    else TSManipulationList.Add(Tuple.Create(structure, TSManipulationTypeHelper.GetTSManipulationType(spareType), margin));
                     firstCombo = true;
                     margin = -1000.0;
                 }

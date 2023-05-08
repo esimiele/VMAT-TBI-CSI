@@ -1,4 +1,4 @@
-﻿namespace VMATTBICSIAutoplanningHelpers.Enums
+﻿namespace VMATTBICSIAutoPlanningHelpers.Enums
 {
     public enum OptimizationObjectiveType
     {
@@ -6,6 +6,6 @@
         Lower,
         Exact,
         Mean,
-        None = 99
+        None = 0
     };
 }

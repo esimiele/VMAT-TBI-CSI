@@ -11,7 +11,7 @@
     <AssemblyName>VMATTBICSIAutoplanningHelpers</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <Deterministic>true</Deterministic>
+    <Deterministic>false</Deterministic>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -116,10 +116,21 @@
     <Compile Include="BaseClasses\PlaceBeamsBase.cs" />
     <Compile Include="BaseClasses\PlanPrepBase.cs" />
     <Compile Include="Enums\OptimizationObjectiveTypeEnum.cs" />
+    <Compile Include="Enums\TSManipulationTypeEnum.cs" />
     <Compile Include="Helpers\CalculationHelper.cs" />
     <Compile Include="Helpers\OptimizationTypeHelper.cs" />
-    <Compile Include="Prompts\ConfirmUI.xaml.cs">
-      <DependentUpon>ConfirmUI.xaml</DependentUpon>
+    <Compile Include="Helpers\TSManipulationTypeHelper.cs" />
+    <Compile Include="Prompts\SelectItemPrompt.xaml.cs">
+      <DependentUpon>SelectItemPrompt.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Prompts\SaveChangesPrompt.xaml.cs">
+      <DependentUpon>SaveChangesPrompt.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Prompts\EnterMissingInfoPrompt.xaml.cs">
+      <DependentUpon>EnterMissingInfoPrompt.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Prompts\ConfirmPrompt.xaml.cs">
+      <DependentUpon>ConfirmPrompt.xaml</DependentUpon>
     </Compile>
     <Compile Include="Structs\OptDataContainerStruct.cs" />
     <Compile Include="Helpers\OptimizationSetupHelper.cs" />
@@ -139,37 +150,8 @@
     <Compile Include="UIHelpers\StructureTuningUIHelper.cs" />
     <Compile Include="UIHelpers\TargetsUIHelper.cs" />
     <Compile Include="Helpers\TemplateBuilder.cs" />
-    <Compile Include="Prompts\enterMissingInfo.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Prompts\enterMissingInfo.Designer.cs">
-      <DependentUpon>enterMissingInfo.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Prompts\SaveDialog.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Prompts\SaveDialog.Designer.cs">
-      <DependentUpon>SaveDialog.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Prompts\selectItem.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Prompts\selectItem.Designer.cs">
-      <DependentUpon>selectItem.cs</DependentUpon>
-    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PlanTemplateClasses\CSIAutoPlanTemplate.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Prompts\enterMissingInfo.resx">
-      <DependentUpon>enterMissingInfo.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Prompts\SaveDialog.resx">
-      <DependentUpon>SaveDialog.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Prompts\selectItem.resx">
-      <DependentUpon>selectItem.cs</DependentUpon>
-    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
@@ -189,7 +171,19 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Page Include="Prompts\ConfirmUI.xaml">
+    <Page Include="Prompts\SelectItemPrompt.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Prompts\SaveChangesPrompt.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Prompts\EnterMissingInfoPrompt.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Prompts\ConfirmPrompt.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

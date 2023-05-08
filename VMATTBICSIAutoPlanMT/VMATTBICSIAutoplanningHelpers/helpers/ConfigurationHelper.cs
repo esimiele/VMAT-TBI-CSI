@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
-using VMATTBICSIAutoplanningHelpers.Enums;
-using VMATTBICSIAutoplanningHelpers.PlanTemplateClasses;
+using VMATTBICSIAutoPlanningHelpers.Enums;
+using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
 using VMS.TPS.Common.Model.Types;
 
-namespace VMATTBICSIAutoplanningHelpers.Helpers
+namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public class ConfigurationHelper
     {
@@ -24,7 +24,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
                         if (line.Equals(":begin template case configuration:"))
                         {
                             //preparation
-                            List<Tuple<string, string, double>> TSManipulation_temp = new List<Tuple<string, string, double>> { };
+                            List<Tuple<string, TSManipulationType, double>> TSManipulation_temp = new List<Tuple<string, TSManipulationType, double>> { };
                             List<Tuple<string, string>> TSstructures_temp = new List<Tuple<string, string>> { };
                             List<Tuple<string, double, double, double>> createRings_temp = new List<Tuple<string, double, double, double>> { };
                             List<Tuple<string, OptimizationObjectiveType, double, double, int>> initOptConst_temp = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
@@ -142,7 +142,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             return Tuple.Create(structure, val, planId);
         }
 
-        public Tuple<string, string, double> ParseTSManipulation(string line)
+        public Tuple<string, TSManipulationType, double> ParseTSManipulation(string line)
         {
             //known array format --> can take shortcuts in parsing the data
             //structure id, sparing type, added margin in cm (ignored if sparing type is Dmax ~ Rx Dose)
@@ -155,7 +155,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             spareType = line.Substring(0, line.IndexOf(","));
             line = CropLine(line, ",");
             val = double.Parse(line.Substring(0, line.IndexOf("}")));
-            return Tuple.Create(structure, spareType, val);
+            return Tuple.Create(structure, TSManipulationTypeHelper.GetTSManipulationType(spareType), val);
         }
 
         private string ParseCropAndContourOverlapStruct(string line)

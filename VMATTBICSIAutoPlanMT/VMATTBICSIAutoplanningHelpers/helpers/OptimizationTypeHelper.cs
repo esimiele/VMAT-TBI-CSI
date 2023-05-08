@@ -1,8 +1,8 @@
 ﻿using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using OptimizationObjectiveType = VMATTBICSIAutoplanningHelpers.Enums.OptimizationObjectiveType;
+using OptimizationObjectiveType = VMATTBICSIAutoPlanningHelpers.Enums.OptimizationObjectiveType;
 
-namespace VMATTBICSIAutoplanningHelpers.Helpers
+namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     //placing helper method here to assist with conversion to own enum type
     public static class OptimizationTypeHelper
@@ -19,10 +19,10 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
         //convert from string representation of optimization objective type to internal optimization objective type enum
         public static OptimizationObjectiveType GetObjectiveType(string op)
         {
-            if (op == "Upper") return OptimizationObjectiveType.Upper;
-            else if (op == "Lower") return OptimizationObjectiveType.Lower;
-            else if (op == "Mean") return OptimizationObjectiveType.Mean;
-            else if (op == "Exact") return OptimizationObjectiveType.Exact;
+            if (string.Equals(op, "Upper")) return OptimizationObjectiveType.Upper;
+            else if (string.Equals(op, "Lower")) return OptimizationObjectiveType.Lower;
+            else if (string.Equals(op, "Mean")) return OptimizationObjectiveType.Mean;
+            else if (string.Equals(op, "Exact")) return OptimizationObjectiveType.Exact;
             else return OptimizationObjectiveType.None;
         }
 

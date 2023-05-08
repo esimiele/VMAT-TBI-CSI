@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using VMATTBICSIAutoplanningHelpers.Structs;
-using VMATTBICSIAutoplanningHelpers.BaseClasses;
-using VMATTBICSIAutoplanningHelpers.Helpers;
-using VMATTBICSIAutoplanningHelpers.UIHelpers;
-using VMATTBICSIAutoplanningHelpers.Enums;
+using VMATTBICSIAutoPlanningHelpers.Structs;
+using VMATTBICSIAutoPlanningHelpers.BaseClasses;
+using VMATTBICSIAutoPlanningHelpers.Helpers;
+using VMATTBICSIAutoPlanningHelpers.UIHelpers;
+using VMATTBICSIAutoPlanningHelpers.Enums;
 
 namespace VMATTBICSIOptLoopMT.VMAT_CSI
 {

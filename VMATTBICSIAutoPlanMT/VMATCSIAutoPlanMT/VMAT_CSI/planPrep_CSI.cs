@@ -4,10 +4,9 @@ using System.Linq;
 using System.Windows;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using VMATTBICSIAutoplanningHelpers.BaseClasses;
-using VMATTBICSIAutoplanningHelpers.Prompts;
-using VMATTBICSIAutoplanningHelpers.Helpers;
+using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
+using VMATTBICSIAutoPlanningHelpers.Helpers;
 
 namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
@@ -126,7 +125,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 string problemPlan = "";
                 if (!vmatPlan.Beams.Where(x => x.IsSetupField).Any()) problemPlan = "VMAT plan";
                 else problemPlan = "AP/PA plan(s)";
-                ConfirmUI CUI = new ConfirmUI(String.Format("I didn't find any setup fields in the {0}.", problemPlan) + Environment.NewLine + Environment.NewLine + "Are you sure you want to continue?!");
+                ConfirmPrompt CUI = new ConfirmPrompt(String.Format("I didn't find any setup fields in the {0}.", problemPlan) + Environment.NewLine + Environment.NewLine + "Are you sure you want to continue?!");
                 CUI.ShowDialog();
                 if (!CUI.GetSelection()) return true;
             }
@@ -134,7 +133,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //check if flash was used in the plan. If so, ask the user if they want to remove these structures as part of cleanup
             if (CheckForFlash())
             {
-                ConfirmUI CUI = new ConfirmUI("I found some structures in the structure set for generating flash." + Environment.NewLine + Environment.NewLine + "Should I remove them?!");
+                ConfirmPrompt CUI = new ConfirmPrompt("I found some structures in the structure set for generating flash." + Environment.NewLine + Environment.NewLine + "Should I remove them?!");
                 CUI.ShowDialog();
                 if (CUI.GetSelection()) if (RemoveFlashStructures()) return true;
             }

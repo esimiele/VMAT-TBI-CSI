@@ -4,7 +4,7 @@ using System.Linq;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Media.Media3D;
-using VMATTBICSIAutoplanningHelpers.BaseClasses;
+using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 using System.Runtime.ExceptionServices;
 
 namespace VMATCSIAutoPlanMT.VMAT_CSI

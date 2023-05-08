@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using VMS.TPS.Common.Model.Types;
-using VMATTBICSIAutoplanningHelpers.Enums;
-using VMATTBICSIAutoplanningHelpers.PlanTemplateClasses;
+using VMATTBICSIAutoPlanningHelpers.Enums;
+using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
 using System.Text;
 
-namespace VMATTBICSIAutoplanningHelpers.Helpers
+namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public class OptimizationSetupHelper
     {

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using VMS.TPS.Common.Model.API;
-using OptimizationObjectiveType = VMATTBICSIAutoplanningHelpers.Enums.OptimizationObjectiveType;
+using OptimizationObjectiveType = VMATTBICSIAutoPlanningHelpers.Enums.OptimizationObjectiveType;
 
-namespace VMATTBICSIAutoplanningHelpers.Structs
+namespace VMATTBICSIAutoPlanningHelpers.Structs
 {
     //data structure to hold the results of the plan evaluation following an optimization
     public struct EvalPlanStruct

@@ -4,9 +4,9 @@ using System.Windows;
 using System.Text;
 using System.IO;
 using VMS.TPS.Common.Model.Types;
-using VMATTBICSIAutoplanningHelpers.Enums;
+using VMATTBICSIAutoPlanningHelpers.Enums;
 
-namespace VMATTBICSIAutoplanningHelpers.Logging
+namespace VMATTBICSIAutoPlanningHelpers.Logging
 {
     public class Logger
     {
@@ -25,7 +25,7 @@ namespace VMATTBICSIAutoplanningHelpers.Logging
         //ts generation and manipulation
         public List<string> AddedStructures { set { addedStructures = new List<string>(value); } }
         //structure ID, sparing type, margin
-        public List<Tuple<string, string, double>> StructureManipulations { set { structureManipulations = new List<Tuple<string, string, double>>(value); } }
+        public List<Tuple<string, TSManipulationType, double>> StructureManipulations { set { structureManipulations = new List<Tuple<string, TSManipulationType, double>>(value); } }
         //plan id, normalization volume for plan
         public List<Tuple<string, string>> NormalizationVolumes { set { normVolumes = new List<Tuple<string, string>>(value); } }
         //plan Id, list of isocenter names for this plan
@@ -50,7 +50,7 @@ namespace VMATTBICSIAutoplanningHelpers.Logging
         public List<Tuple<string, double, string>> targets;
         List<Tuple<string, string, int, DoseValue, double>> prescriptions;
         private List<string> addedStructures;
-        private List<Tuple<string, string, double>> structureManipulations { get; set; }
+        private List<Tuple<string, TSManipulationType, double>> structureManipulations { get; set; }
         private List<Tuple<string, string>> normVolumes { get; set; }
         private List<Tuple<string, List<string>>> isoNames { get; set; }
         private List<string> planUIDs { get; set; }
@@ -66,7 +66,7 @@ namespace VMATTBICSIAutoplanningHelpers.Logging
             targets = new List<Tuple<string, double, string>> { };
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
             addedStructures = new List<string> { };
-            structureManipulations = new List<Tuple<string, string, double>> { };
+            structureManipulations = new List<Tuple<string, TSManipulationType, double>> { };
             normVolumes = new List<Tuple<string, string>> { };
             isoNames = new List<Tuple<string, List<string>>> { };
             planUIDs = new List<string> { };
@@ -139,7 +139,7 @@ namespace VMATTBICSIAutoplanningHelpers.Logging
             sb.AppendLine(String.Format(""));
 
             sb.AppendLine(String.Format("Structure manipulations:"));
-            foreach (Tuple<string, string, double> itr in structureManipulations) sb.AppendLine(String.Format("    {{{0},{1},{2}}}", itr.Item1, itr.Item2, itr.Item3));
+            foreach (Tuple<string, TSManipulationType, double> itr in structureManipulations) sb.AppendLine(String.Format("    {{{0},{1},{2}}}", itr.Item1, itr.Item2.ToString(), itr.Item3));
             sb.AppendLine(String.Format(""));
 
             sb.AppendLine(String.Format("Isocenter names:"));

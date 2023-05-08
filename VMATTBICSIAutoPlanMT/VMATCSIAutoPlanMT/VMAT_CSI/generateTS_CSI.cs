@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Windows.Media.Media3D;
+using System.Runtime.ExceptionServices;
+using VMATTBICSIAutoPlanningHelpers.BaseClasses;
+using VMATTBICSIAutoPlanningHelpers.Helpers;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using System.Windows.Media.Media3D;
-using VMATTBICSIAutoplanningHelpers.BaseClasses;
-using VMATTBICSIAutoplanningHelpers.Helpers;
-using System.Runtime.ExceptionServices;
-using System.Text;
+using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
 
 namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
@@ -20,7 +21,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //DICOM types
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
-        private List<Tuple<string, string>> TS_structures;
+        private List<Tuple<string, string>> createTSStructureList;
         //plan id, structure id, num fx, dose per fx, cumulative dose
         private List<Tuple<string, string, int, DoseValue, double>> prescriptions;
         //target id, margin (cm), thickness (cm), dose (cGy)
@@ -33,11 +34,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private List<string> cropAndOverlapStructures = new List<string> { };
         private int numVMATIsos;
 
-        public GenerateTS_CSI(List<Tuple<string, string>> ts, List<Tuple<string, string, double>> list, List<Tuple<string, double, double, double>> tgtRings, List<Tuple<string,string,int,DoseValue,double>> presc, StructureSet ss, List<string> cropStructs)
+        public GenerateTS_CSI(List<Tuple<string, string>> ts, List<Tuple<string, TSManipulationType, double>> list, List<Tuple<string, double, double, double>> tgtRings, List<Tuple<string,string,int,DoseValue,double>> presc, StructureSet ss, List<string> cropStructs)
         {
-            TS_structures = new List<Tuple<string, string>>(ts);
+            createTSStructureList = new List<Tuple<string, string>>(ts);
             rings = new List<Tuple<string, double, double, double>>(tgtRings);
-            spareStructList = new List<Tuple<string, string, double>>(list);
+            TSManipulationList = new List<Tuple<string, TSManipulationType, double>>(list);
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(presc);
             selectedSS = ss;
             cropAndOverlapStructures = new List<string>(cropStructs);
@@ -53,9 +54,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 isoNames.Clear();
                 if (PreliminaryChecks()) return true;
                 if (UnionLRStructures()) return true;
-                if (spareStructList.Any()) if (CheckHighResolution()) return true;
+                if (TSManipulationList.Any()) if (CheckHighResolution()) return true;
                 //remove all only ts structures NOT including targets
-                if (RemoveOldTSStructures(TS_structures.Where(x => !x.Item2.ToLower().Contains("ctv") && !x.Item2.ToLower().Contains("ptv")).ToList())) return true;
+                if (RemoveOldTSStructures(createTSStructureList.Where(x => !x.Item2.ToLower().Contains("ctv") && !x.Item2.ToLower().Contains("ptv")).ToList())) return true;
                 if (CheckForTargetStructures()) return true;
                 //if (createTargetStructures()) return true;
                 if (CreateTSStructures()) return true;
@@ -133,10 +134,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             UpdateUILabel("High-Res Structures: ");
             ProvideUIUpdate("Checking for high resolution structures in structure set: ");
             List<Structure> highResStructList = new List<Structure> { };
-            List<Tuple<string, string, double>> highResSpareList = new List<Tuple<string, string, double>> { };
-            foreach (Tuple<string, string, double> itr in spareStructList)
+            List<Tuple<string, TSManipulationType, double>> highResSpareList = new List<Tuple<string, TSManipulationType, double>> { };
+            foreach (Tuple<string, TSManipulationType, double> itr in TSManipulationList)
             {
-                if (itr.Item2 == "Crop target from structure")
+                if (itr.Item2 == TSManipulationType.CropTargetFromStructure)
                 {
                     if (selectedSS.Structures.First(x => x.Id == itr.Item1).IsEmpty)
                     {
@@ -161,9 +162,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 }
                 ProvideUIUpdate("Now converting to low-resolution!");
                 //convert high res structures queued for TS manipulation to low resolution and update the queue with the resulting low res structure
-                List<Tuple<string, string, double>> newData = ConvertHighToLowRes(highResStructList, highResSpareList, spareStructList);
+                List<Tuple<string, TSManipulationType, double>> newData = ConvertHighToLowRes(highResStructList, highResSpareList, TSManipulationList);
                 if (!newData.Any()) return true;
-                spareStructList = new List<Tuple<string, string, double>>(newData);
+                TSManipulationList = new List<Tuple<string, TSManipulationType, double>>(newData);
                 ProvideUIUpdate(100, "Finishing converting high resolution structures to default resolution");
                 //inform the main UI class that the UI needs to be updated
                 //updateSparingList = true;
@@ -178,7 +179,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             UpdateUILabel("Checking For Missing Target Structures: ");
             ProvideUIUpdate(0, "Checking for missing target structures!");
-            List<Tuple<string, string>> prospectiveTargets = TS_structures.Where(x => x.Item2.ToLower().Contains("ctv") || x.Item2.ToLower().Contains("ptv")).OrderBy(x => x.Item2).ToList();
+            List<Tuple<string, string>> prospectiveTargets = createTSStructureList.Where(x => x.Item2.ToLower().Contains("ctv") || x.Item2.ToLower().Contains("ptv")).OrderBy(x => x.Item2).ToList();
             List<Tuple<string, string>> missingTargets = new List<Tuple<string, string>> { };
             int calcItems = prospectiveTargets.Count;
             int counter = 0;
@@ -208,7 +209,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //create the CTV and PTV structures
             //if these structures were present, they should have been removed (regardless if they were contoured or not). 
             List<Structure> addedTargets = new List<Structure> { };
-            //List<Tuple<string, string>> prospectiveTargets = TS_structures.Where(x => x.Item2.ToLower().Contains("ctv") || x.Item2.ToLower().Contains("ptv")).OrderBy(x => x.Item2).ToList();
+            //List<Tuple<string, string>> prospectiveTargets = createTSStructureList.Where(x => x.Item2.ToLower().Contains("ctv") || x.Item2.ToLower().Contains("ptv")).OrderBy(x => x.Item2).ToList();
             //int calcItems = prospectiveTargets.Count;
             int calcItems = missingTargets.Count;
             int counter = 0;
@@ -541,7 +542,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     if (isGlobes)
                     {
                         //need to add these margins to the existing margin distance to account for the situation where ptv_brain is not retrieved, but the brain structure is.
-                        margin += 0.5;
+                        margin += 1.5;
                         thickness = 1.0;
                     }
                     else
@@ -576,7 +577,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             UpdateUILabel("Create TS Structures:");
             ProvideUIUpdate(String.Format("Adding remaining tuning structures to stack!"));
             //get all TS structures that do not contain 'ctv' or 'ptv' in the title
-            List<Tuple<string, string>> remainingTS = TS_structures.Where(x => !x.Item2.ToLower().Contains("ctv") && !x.Item2.ToLower().Contains("ptv")).ToList();
+            List<Tuple<string, string>> remainingTS = createTSStructureList.Where(x => !x.Item2.ToLower().Contains("ctv") && !x.Item2.ToLower().Contains("ptv")).ToList();
             int calcItems = remainingTS.Count;
             int counter = 0;
             foreach (Tuple<string, string> itr in remainingTS)
@@ -738,7 +739,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             UpdateUILabel("Perform TS Manipulations: ");
             //there are items in the sparing list requiring structure manipulation
-            List<Tuple<string, string, double>> tmpSpareLst = spareStructList.Where(x => x.Item2.Contains("Crop target from structure") || x.Item2.Contains("Contour")).ToList();
+            List<Tuple<string, TSManipulationType, double>> tmpSpareLst = TSManipulationList.Where(x => x.Item2 == TSManipulationType.CropTargetFromStructure || x.Item2 == TSManipulationType.ContourOverlapWithTarget).ToList();
             int counter = 0;
             int calcItems = tmpSpareLst.Count * prescriptions.Count;
             foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
@@ -758,12 +759,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 if (CropStructureFromBody(addedTSTarget, -0.3)) return true;
                 if (tmpSpareLst.Any())
                 {
-                    foreach (Tuple<string, string, double> itr1 in spareStructList)
+                    foreach (Tuple<string, TSManipulationType, double> itr1 in TSManipulationList)
                     {
                         Structure theStructure = selectedSS.Structures.FirstOrDefault(x => x.Id == itr1.Item1);
-                        if (itr1.Item2.Contains("Crop"))
+                        if (itr1.Item2 == TSManipulationType.ContourOverlapWithTarget || itr1.Item2 == TSManipulationType.CropFromBody)
                         {
-                            if(itr1.Item2.Contains("Body"))
+                            if(itr1.Item2 == TSManipulationType.CropFromBody)
                             {
                                 ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Cropping {0} from Body with margin {1} cm", itr1.Item1, itr1.Item3));
                                 //crop from body
@@ -776,7 +777,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                 if(CropTargetFromStructure(addedTSTarget, theStructure, itr1.Item3)) return true;
                             }
                         }
-                        else if(itr1.Item2.Contains("Contour"))
+                        else if(itr1.Item2 == TSManipulationType.ContourOverlapWithTarget)
                         {
                             ProvideUIUpdate(String.Format("Contouring overlap between {0} and {1}", itr1.Item1, newName));
                             newName = String.Format("ts_{0}&&{1}", itr1.Item1, itr.Item2);

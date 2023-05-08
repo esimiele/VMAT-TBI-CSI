@@ -7,20 +7,20 @@ using System.IO;
 using Microsoft.Win32;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using VMATTBICSIAutoplanningHelpers.BaseClasses;
-using VMATTBICSIAutoplanningHelpers.Enums;
-using VMATTBICSIAutoplanningHelpers.Helpers;
-using VMATTBICSIAutoplanningHelpers.Structs;
-using VMATTBICSIAutoplanningHelpers.UIHelpers;
-using VMATTBICSIAutoplanningHelpers.Prompts;
-using VMATTBICSIAutoplanningHelpers.PlanTemplateClasses;
+using VMATTBICSIAutoPlanningHelpers.BaseClasses;
+using VMATTBICSIAutoPlanningHelpers.Enums;
+using VMATTBICSIAutoPlanningHelpers.Helpers;
+using VMATTBICSIAutoPlanningHelpers.Structs;
+using VMATTBICSIAutoPlanningHelpers.UIHelpers;
+using VMATTBICSIAutoPlanningHelpers.Prompts;
+using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
 using VMATTBICSIOptLoopMT.VMAT_CSI;
 using VMATTBICSIOptLoopMT.VMAT_TBI;
 using VMATTBICSIOptLoopMT.Prompts;
 using System.Collections.ObjectModel;
 using System.Reflection;
 using System.Text;
-using PlanType = VMATTBICSIAutoplanningHelpers.Enums.PlanType;
+using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
 
 namespace VMATTBICSIOptLoopMT
 {
@@ -72,7 +72,7 @@ namespace VMATTBICSIOptLoopMT
         public CSIAutoPlanTemplate selectedTemplate;
         string selectedTemplateName = "";
         //to be read from the plan prep log files
-        VMATTBICSIAutoplanningHelpers.Enums.PlanType planType;
+        VMATTBICSIAutoPlanningHelpers.Enums.PlanType planType;
         List<string> planUIDs = new List<string> { };
         //plan id, target id, num fx, dose per fx, cumulative rx for this target
         List<Tuple<string, string, int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
@@ -195,13 +195,10 @@ namespace VMATTBICSIOptLoopMT
                 ExternalPlanSetup thePlan = null;
                 if (plans.Count > 1)
                 {
-                    selectItem SUI = new selectItem();
-                    SUI.title.Text = "Please selct a plan to add a constraint!";
-                    foreach (ExternalPlanSetup itr in plans) SUI.itemCombo.Items.Add(itr.Id);
+                    SelectItemPrompt SIP = new SelectItemPrompt("Please selct a plan to add a constraint!", plans.Select(x => x.Id).ToList());
                     //SUI.itemCombo.Items.Add("Both");
-                    SUI.itemCombo.SelectedIndex = 0;
-                    SUI.ShowDialog();
-                    if (SUI.confirm) thePlan = plans.FirstOrDefault(x => x.Id == SUI.itemCombo.SelectedItem.ToString());
+                    SIP.ShowDialog();
+                    if (SIP.GetSelection()) thePlan = plans.FirstOrDefault(x => string.Equals(x.Id, SIP.GetSelectedItem()));
                     else return;
                     if (thePlan == null) { MessageBox.Show("Plan not found! Exiting!"); return; }
                 }
@@ -334,13 +331,10 @@ namespace VMATTBICSIOptLoopMT
                 if (!courses.Any()) return (thePlans, ss);
                 if (courses.Count > 1)
                 {
-                    selectItem SI = new selectItem();
-                    SI.title.Text = "Please a course:";
-                    foreach (Course itr in courses) SI.itemCombo.Items.Add(itr.Id);
-                    SI.itemCombo.SelectedIndex = 0;
-                    SI.ShowDialog();
-                    if (!SI.confirm) return (thePlans, ss);
-                    theCourse = courses.FirstOrDefault(x => x.Id == SI.itemCombo.SelectedItem.ToString());
+                    SelectItemPrompt SIP = new SelectItemPrompt("Please select a course:", courses.Select(x => x.Id).ToList());
+                    SIP.ShowDialog();
+                    if (!SIP.GetSelection()) return (thePlans, ss);
+                    theCourse = courses.FirstOrDefault(x => string.Equals(x.Id, SIP.GetSelectedItem()));
                 }
                 else theCourse = courses.First();
                 if (theCourse.Id.ToLower().Contains("csi"))
@@ -680,7 +674,7 @@ namespace VMATTBICSIOptLoopMT
                 {
                     configTB.Text += String.Format(" {0} additional sparing structures:", itr.GetTemplateName()) + Environment.NewLine;
                     configTB.Text += String.Format("  {0, -15} | {1, -26} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + Environment.NewLine;
-                    foreach (Tuple<string, string, double> spare in itr.GetTSManipulations()) configTB.Text += String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |" + Environment.NewLine, spare.Item1, spare.Item2, spare.Item3);
+                    foreach (Tuple<string, TSManipulationType, double> spare in itr.GetTSManipulations()) configTB.Text += String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |" + Environment.NewLine, spare.Item1, spare.Item2.ToString(), spare.Item3);
                     configTB.Text += Environment.NewLine;
                 }
                 else configTB.Text += String.Format(" No additional sparing structures for template: {0}", itr.GetTemplateName()) + Environment.NewLine + Environment.NewLine;

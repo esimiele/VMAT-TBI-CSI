@@ -5,9 +5,9 @@ using System.Collections.Generic;
 using System.Linq;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using PlanType = VMATTBICSIAutoplanningHelpers.Enums.PlanType;
+using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
 
-namespace VMATTBICSIAutoplanningHelpers.Helpers
+namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public class TargetsHelper
     {

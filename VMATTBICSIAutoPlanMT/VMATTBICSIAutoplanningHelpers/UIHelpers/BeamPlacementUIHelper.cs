@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
-using VMATTBICSIAutoplanningHelpers.Prompts;
+using VMATTBICSIAutoPlanningHelpers.Prompts;
 
-namespace VMATTBICSIAutoplanningHelpers.UIHelpers
+namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
     public class BeamPlacementUIHelper
     {
@@ -40,10 +40,10 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             if (linacs.Count() > 0) foreach (string s in linacs) linac_cb.Items.Add(s);
             else
             {
-                enterMissingInfo linacName = new enterMissingInfo("Enter the name of the linac you want to use", "Linac:");
+                EnterMissingInfoPrompt linacName = new EnterMissingInfoPrompt("Enter the name of the linac you want to use", "Linac:");
                 linacName.ShowDialog();
-                if (!linacName.confirm) return new List<StackPanel> { };
-                linac_cb.Items.Add(linacName.value.Text);
+                if (!linacName.GetSelection()) return new List<StackPanel> { };
+                linac_cb.Items.Add(linacName.GetEnteredValue());
             }
             linac_cb.SelectedIndex = 0;
             linac_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
@@ -78,10 +78,10 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             if (beamEnergies.Count() > 0) foreach (string s in beamEnergies) energy_cb.Items.Add(s);
             else
             {
-                enterMissingInfo energyName = new enterMissingInfo("Enter the photon beam energy you want to use", "Energy:");
+                EnterMissingInfoPrompt energyName = new EnterMissingInfoPrompt("Enter the photon beam energy you want to use", "Energy:");
                 energyName.ShowDialog();
-                if (!energyName.confirm) return new List<StackPanel> { };
-                energy_cb.Items.Add(energyName.value.Text);
+                if (!energyName.GetSelection()) return new List<StackPanel> { };
+                energy_cb.Items.Add(energyName.GetEnteredValue());
             }
             energy_cb.SelectedIndex = 0;
             energy_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
@@ -156,10 +156,10 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             if (linacs.Count() > 0) foreach (string s in linacs) linac_cb.Items.Add(s);
             else
             {
-                enterMissingInfo linacName = new enterMissingInfo("Enter the name of the linac you want to use", "Linac:");
+                EnterMissingInfoPrompt linacName = new EnterMissingInfoPrompt("Enter the name of the linac you want to use", "Linac:");
                 linacName.ShowDialog();
-                if (!linacName.confirm) return new List<StackPanel> { };
-                linac_cb.Items.Add(linacName.value.Text);
+                if (!linacName.GetSelection()) return new List<StackPanel> { };
+                linac_cb.Items.Add(linacName.GetEnteredValue());
             }
             linac_cb.SelectedIndex = 0;
             linac_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
@@ -194,10 +194,10 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             if (beamEnergies.Count() > 0) foreach (string s in beamEnergies) energy_cb.Items.Add(s);
             else
             {
-                enterMissingInfo energyName = new enterMissingInfo("Enter the photon beam energy you want to use", "Energy:");
+                EnterMissingInfoPrompt energyName = new EnterMissingInfoPrompt("Enter the photon beam energy you want to use", "Energy:");
                 energyName.ShowDialog();
-                if (!energyName.confirm) return new List<StackPanel> { };
-                energy_cb.Items.Add(energyName.value.Text);
+                if (!energyName.GetSelection()) return new List<StackPanel> { };
+                energy_cb.Items.Add(energyName.GetEnteredValue());
             }
             energy_cb.SelectedIndex = 0;
             energy_cb.HorizontalContentAlignment = HorizontalAlignment.Center;

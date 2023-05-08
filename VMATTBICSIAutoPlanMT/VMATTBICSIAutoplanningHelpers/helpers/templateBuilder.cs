@@ -1,13 +1,9 @@
 ﻿using System;
 using System.Linq;
-using System.Windows.Controls;
-using System.Windows;
-using System.Collections.Generic;
-using VMS.TPS.Common.Model.API;
-using VMATTBICSIAutoplanningHelpers.PlanTemplateClasses;
-using VMATTBICSIAutoplanningHelpers.Enums;
+using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
+using VMATTBICSIAutoPlanningHelpers.Enums;
 
-namespace VMATTBICSIAutoplanningHelpers.Helpers
+namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public class TemplateBuilder
     {
@@ -53,7 +49,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             {
                 output += String.Format(" {0} additional tuning structure manipulations:", prospectiveTemplate.GetTemplateName()) + Environment.NewLine;
                 output += String.Format("  {0, -15} | {1, -19} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + Environment.NewLine;
-                foreach (Tuple<string, string, double> spare in prospectiveTemplate.GetTSManipulations()) output += String.Format("  {0, -15} | {1, -19} | {2,-11:N1} |" + Environment.NewLine, spare.Item1, spare.Item2, spare.Item3);
+                foreach (Tuple<string, TSManipulationType, double> spare in prospectiveTemplate.GetTSManipulations()) output += String.Format("  {0, -15} | {1, -19} | {2,-11:N1} |" + Environment.NewLine, spare.Item1, spare.Item2.ToString(), spare.Item3);
                 output += Environment.NewLine;
             }
             else output += String.Format(" No additional sparing structures for template: {0}", prospectiveTemplate.GetTemplateName()) + Environment.NewLine + Environment.NewLine;
@@ -119,7 +115,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
 
             if (prospectiveTemplate.GetTSManipulations().Any())
             {
-                foreach (Tuple<string, string, double> itr in prospectiveTemplate.GetTSManipulations()) output += String.Format("add sparing structure{{{0},{1},{2}}}", itr.Item1, itr.Item2, itr.Item3) + Environment.NewLine;
+                foreach (Tuple<string, TSManipulationType, double> itr in prospectiveTemplate.GetTSManipulations()) output += String.Format("add sparing structure{{{0},{1},{2}}}", itr.Item1, itr.Item2.ToString(), itr.Item3) + Environment.NewLine;
                 output += "%" + Environment.NewLine;
                 output += "%" + Environment.NewLine;
             }

@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using PlanType = VMATTBICSIAutoplanningHelpers.Enums.PlanType;
-using OptimizationObjectiveType = VMATTBICSIAutoplanningHelpers.Enums.OptimizationObjectiveType;
+using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
+using OptimizationObjectiveType = VMATTBICSIAutoPlanningHelpers.Enums.OptimizationObjectiveType;
 
-namespace VMATTBICSIAutoplanningHelpers.Structs
+namespace VMATTBICSIAutoPlanningHelpers.Structs
 {
     //data structure to hold all the relevant information
     public struct OptDataContainer
