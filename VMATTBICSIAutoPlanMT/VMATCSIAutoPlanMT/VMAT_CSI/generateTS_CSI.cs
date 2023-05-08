@@ -56,7 +56,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 if (UnionLRStructures()) return true;
                 if (TSManipulationList.Any()) if (CheckHighResolution()) return true;
                 //remove all only ts structures NOT including targets
-                if (RemoveOldTSStructures(createTSStructureList.Where(x => !x.Item2.ToLower().Contains("ctv") && !x.Item2.ToLower().Contains("ptv")).ToList())) return true;
+                if (RemoveOldTSStructures(createTSStructureList)) return true;
                 if (CheckForTargetStructures()) return true;
                 //if (createTargetStructures()) return true;
                 if (CreateTSStructures()) return true;
@@ -77,8 +77,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             return false;
         }
-
-        
         #endregion
 
         #region Preliminary Checks and Structure Unioning
@@ -92,7 +90,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ProvideUIUpdate((int)(100 * ++counter / calcItems), "User origin is inside body");
 
             //verify brain and spine structures are present
-            if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "brain") == null || selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinalcord" || x.Id.ToLower() == "spinal_cord") == null)
+            if (!selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), "brain") && !x.IsEmpty) || 
+                !selectedSS.Structures.Any(x => (string.Equals(x.Id.ToLower(), "spinalcord") || string.Equals(x.Id.ToLower(), "spinal_cord")) && !x.IsEmpty))
             {
                 ProvideUIUpdate("Missing brain and/or spine structures! Please add and try again!", true);
                 return true;
@@ -115,11 +114,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 int numUnioned = 0;
                 foreach (Tuple<Structure, Structure, string> itr in structuresToUnion)
                 {
-                    (bool, StringBuilder) result = helper.UnionLRStructures(itr, selectedSS);
-                    if (!result.Item1) ProvideUIUpdate((int)(100 * ++numUnioned / calcItems), String.Format("Unioned {0}", itr.Item3));
+                    (bool fail, StringBuilder output) result = helper.UnionLRStructures(itr, selectedSS);
+                    if (!result.fail) ProvideUIUpdate((int)(100 * ++numUnioned / calcItems), String.Format("Unioned {0}", itr.Item3));
                     else 
                     { 
-                        ProvideUIUpdate(result.Item2.ToString(), true); 
+                        ProvideUIUpdate(result.output.ToString(), true); 
                         return true; 
                     }
                 }
@@ -139,12 +138,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 if (itr.Item2 == TSManipulationType.CropTargetFromStructure)
                 {
-                    if (selectedSS.Structures.First(x => x.Id == itr.Item1).IsEmpty)
+                    if (selectedSS.Structures.First(x => string.Equals(x.Id, itr.Item1)).IsEmpty)
                     {
                         ProvideUIUpdate(String.Format("Requested {0} be cropped from target, but {0} is empty!", itr.Item1), true);
                         return true;
                     }
-                    else if (selectedSS.Structures.First(x => x.Id == itr.Item1).IsHighResolution)
+                    else if (selectedSS.Structures.First(x => string.Equals(x.Id, itr.Item1)).IsHighResolution)
                     {
                         highResStructList.Add(selectedSS.Structures.First(x => x.Id == itr.Item1));
                         highResSpareList.Add(itr);
@@ -152,13 +151,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 }
             }
             //if there are high resolution structures, they will need to be converted to default resolution.
-            if (highResStructList.Count() > 0)
+            if (highResStructList.Any())
             {
                 ProvideUIUpdate("High-resolution structures:");
                 foreach (Structure itr in highResStructList)
                 {
-                    string id = itr.Id;
-                    ProvideUIUpdate(String.Format("{0}", id));
+                    ProvideUIUpdate(String.Format("{0}", itr.Id));
                 }
                 ProvideUIUpdate("Now converting to low-resolution!");
                 //convert high res structures queued for TS manipulation to low resolution and update the queue with the resulting low res structure
@@ -166,8 +164,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 if (!newData.Any()) return true;
                 TSManipulationList = new List<Tuple<string, TSManipulationType, double>>(newData);
                 ProvideUIUpdate(100, "Finishing converting high resolution structures to default resolution");
-                //inform the main UI class that the UI needs to be updated
-                //updateSparingList = true;
             }
             else ProvideUIUpdate("No high resolution structures in the structure set!");
             return false;

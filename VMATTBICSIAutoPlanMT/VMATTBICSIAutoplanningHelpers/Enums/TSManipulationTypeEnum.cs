@@ -2,9 +2,9 @@
 {
     public enum TSManipulationType
     {
+        None,
         CropTargetFromStructure,
         ContourOverlapWithTarget,
-        CropFromBody,
-        None = 0
+        CropFromBody
     }
 }

@@ -2,10 +2,10 @@
 {
     public enum OptimizationObjectiveType
     {
+        None,
         Upper,
         Lower,
         Exact,
-        Mean,
-        None = 0
+        Mean
     };
 }

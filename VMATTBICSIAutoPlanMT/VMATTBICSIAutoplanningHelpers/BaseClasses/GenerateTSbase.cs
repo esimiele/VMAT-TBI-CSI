@@ -48,63 +48,139 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         #endregion
 
         #region helper functions related to TS generation and manipulation
-        protected bool RemoveOldTSStructures(List<Tuple<string, string>> structures)
+        private (bool, List<Structure>) VerifyRemoveTSStructures(List<Tuple<string, string>> structuresToRemove)
         {
-            UpdateUILabel("Remove Prior Tuning Structures: ");
-            ProvideUIUpdate(0, "Removing prior tuning structures");
-            //remove existing TS structures if they exist and re-add them to the structure list
-            int calcItems = structures.Count;
-            int counter = 0;
-            foreach (Tuple<string, string> itr in structures)
+            List<Structure> removeList = new List<Structure> { };
+            bool fail = false;
+            int calcItems = structuresToRemove.Count;
+            int counter = 0; 
+            foreach (Tuple<string, string> itr in structuresToRemove)
             {
-                Structure tmp = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.Item2.ToLower());
+                Structure tmp = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), itr.Item2.ToLower()));
                 //structure is present in selected structure set
                 if (tmp != null)
                 {
                     //check to see if the dicom type is "none"
-                    if (!(tmp.DicomType == ""))
+                    if (!string.IsNullOrEmpty(tmp.DicomType))
                     {
                         if (selectedSS.CanRemoveStructure(tmp))
                         {
-                            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Removing: {0}", itr.Item2));
-                            selectedSS.RemoveStructure(tmp);
+                            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Adding: {0} to the structure removal list", itr.Item2));
+                            removeList.Add(tmp);
                         }
                         else
                         {
                             ProvideUIUpdate(0, String.Format("Error! {0} can't be removed from the structure set!", itr.Item2), true);
-                            return true;
-                        }
+                            fail = true;
+                            return (fail, removeList);
 
-                        if (!selectedSS.CanAddStructure(itr.Item1, itr.Item2))
-                        {
-                            ProvideUIUpdate(0, String.Format("Error! {0} can't be added the structure set!", itr.Item2), true);
-                            return true;
                         }
                     }
                     else
                     {
                         ProvideUIUpdate(0, String.Format("{0} is of DICOM type 'None'! ESAPI can't operate on DICOM type 'None'", itr.Item2), true);
-                        return true;
+                        fail = true;
+                        return (fail, removeList);
                     }
                 }
             }
+            return (fail, removeList);
+        }
 
-            ProvideUIUpdate(0, "Removing any remaining tuning structures");
+        private bool VerifyAddTSStructures(List<Tuple<string, string>> structuresToAdd)
+        {
+            bool fail = false;
+            ProvideUIUpdate("Verifying requested TS structures can be added to the structure set!");
+            int counter = 0;
+            int calcItems = structuresToAdd.Count;
+            foreach(Tuple<string, string> itr in structuresToAdd)
+            {
+                if (!selectedSS.CanAddStructure(itr.Item1, itr.Item2))
+                {
+                    ProvideUIUpdate(String.Format("Error! {0} can't be added the structure set!", itr.Item2), true);
+                    fail = true;
+                }
+                ProvideUIUpdate((int)(100 * ++counter / calcItems));
+            }
+            return fail;
+        }
+
+        private bool RemoveStructures(List<Structure> structuresToRemove)
+        {
+            int calcItems = structuresToRemove.Count;
+            int counter = 0;
+            foreach (Structure itr in structuresToRemove)
+            {
+                string id = itr.Id;
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Removing: {0}", id));
+                selectedSS.RemoveStructure(itr);
+            }
+            return false;
+        }
+        
+        protected bool RemoveOldTSStructures(List<Tuple<string, string>> structures, bool removeTSTargetsToo = false)
+        {
+            UpdateUILabel("Remove Prior Tuning Structures: ");
+            ProvideUIUpdate(0, "Removing prior tuning structures");
+            //remove existing TS structures if they exist and re-add them to the structure list
+            
+            List<Tuple<string, string>> structuresToRemove;
+            if (!removeTSTargetsToo) structuresToRemove = structures.Where(x => !x.Item2.ToLower().Contains("ctv") && !x.Item2.ToLower().Contains("ptv")).ToList();
+            else structuresToRemove = structures;
+
+            (bool fail, List<Structure> removeList) = VerifyRemoveTSStructures(structuresToRemove);
+            if (fail) return true;
+            ProvideUIUpdate(0, "Adding any remaining tuning structures to the stack");
             //4-15-2022 
             //remove ALL tuning structures from any previous runs (structure id starts with 'TS_'). Be sure to exclude any requested TS structures from the config file as we just added them!
-            List<Structure> tsStructs = selectedSS.Structures.Where(x => x.Id.Length > 2 && x.Id.ToLower().Substring(0, 3) == "ts_").ToList();
-            calcItems = tsStructs.Count;
-            counter = 0;
-            foreach (Structure itr in tsStructs)
+            List<Structure> tsStructs = selectedSS.Structures.Where(x => x.Id.Length > 2 && string.Equals(x.Id.ToLower().Substring(0, 3), "ts_")).ToList();
+            removeList.AddRange(tsStructs.Except(removeList));
+            RemoveStructures(removeList);
+
+            if (VerifyAddTSStructures(structuresToRemove)) return true;
+            ProvideUIUpdate(100, String.Format("Prior tuning structures successfully removed!"));
+            return false;
+        }
+
+        private (bool, Structure) CreateLowResStructure(Structure highResStructure)
+        {
+            Structure lowRes = null;
+            bool fail = false;
+            string newName = highResStructure.Id + "_lowRes";
+            if (newName.Length > 16) newName = newName.Substring(0, 16);
+            //add a new structure (default resolution by default)
+            if (selectedSS.CanAddStructure("CONTROL", newName)) lowRes = selectedSS.AddStructure("CONTROL", newName);
+            else
             {
-                if (!structures.Where(x => x.Item2.ToLower() == itr.Id.ToLower()).Any() && selectedSS.CanRemoveStructure(itr))
+                ProvideUIUpdate(String.Format("Error! Cannot add new structure: {0}!\nCorrect this issue and try again!", newName), true);
+                fail = true;
+            }
+            return (fail, lowRes);
+        }
+
+        private bool ContourLowResStructure(Structure highResStructure, Structure lowRes, int startSlice, int stopSlice)
+        {
+            ProvideUIUpdate($"Contouring {lowRes.Id} now");
+            int counter = 0;
+            int calcItems = startSlice - stopSlice - 1;
+            //foreach slice that contains contours, get the contours, and determine if you need to add or subtract the contours on the given image plane for the new low resolution structure. You need to subtract contours if the points lie INSIDE the current structure contour.
+            //We can sample three points (first, middle, and last points in array) to see if they are inside the current contour. If any of them are, subtract the set of contours from the image plane. Otherwise, add the contours to the image plane. NOTE: THIS LOGIC ASSUMES
+            //THAT YOU DO NOT OBTAIN THE CUTOUT CONTOUR POINTS BEFORE THE OUTER CONTOUR POINTS (it seems that ESAPI generally passes the main structure contours first before the cutout contours, but more testing is needed)
+            for (int slice = startSlice; slice < stopSlice; slice++)
+            {
+                ProvideUIUpdate((int)(100 * ++counter / calcItems));
+                VVector[][] points = highResStructure.GetContoursOnImagePlane(slice);
+                for (int i = 0; i < points.GetLength(0); i++)
                 {
-                    string id = itr.Id;
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Removing: {0}", id));
-                    selectedSS.RemoveStructure(itr);
+                    if (lowRes.IsPointInsideSegment(points[i][0]) ||
+                        lowRes.IsPointInsideSegment(points[i][points[i].GetLength(0) - 1]) ||
+                        lowRes.IsPointInsideSegment(points[i][(int)(points[i].GetLength(0) / 2)]))
+                    {
+                        lowRes.SubtractContourOnImagePlane(points[i], slice);
+                    }
+                    else lowRes.AddContourOnImagePlane(points[i], slice);
                 }
             }
-            ProvideUIUpdate(100, String.Format("Prior tuning structures successfully removed!"));
             return false;
         }
 
@@ -117,6 +193,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 int calcItems = highRes.Count + 3;
                 string id = s.Id;
                 ProvideUIUpdate(String.Format("Converting: {0}", id));
+                
                 //get the high res structure mesh geometry
                 MeshGeometry3D mesh = s.MeshGeometry;
                 //get the start and stop image planes for this structure
@@ -125,40 +202,19 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Number of slices to contour: {0}", stopSlice - startSlice));
 
                 //create an Id for the low resolution struture that will be created. The name will be '_lowRes' appended to the current structure Id
-                string newName = s.Id + "_lowRes";
-                if (newName.Length > 16) newName = newName.Substring(0, 16);
-                //add a new structure (default resolution by default)
-                Structure lowRes = null;
-                if (selectedSS.CanAddStructure("CONTROL", newName)) lowRes = selectedSS.AddStructure("CONTROL", newName);
-                else
-                {
-                    ProvideUIUpdate(String.Format("Error! Cannot add new structure: {0}!\nCorrect this issue and try again!", newName), true);
-                    return new List<Tuple<string, TSManipulationType, double>> { };
-                }
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Added low-res structure: {0}", newName));
+                (bool fail, Structure lowRes) = CreateLowResStructure(s);
+                if (fail) return new List<Tuple<string, TSManipulationType, double>> { };
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Added low-res structure: {0}", lowRes.Id));
 
-                //foreach slice that contains contours, get the contours, and determine if you need to add or subtract the contours on the given image plane for the new low resolution structure. You need to subtract contours if the points lie INSIDE the current structure contour.
-                //We can sample three points (first, middle, and last points in array) to see if they are inside the current contour. If any of them are, subtract the set of contours from the image plane. Otherwise, add the contours to the image plane. NOTE: THIS LOGIC ASSUMES
-                //THAT YOU DO NOT OBTAIN THE CUTOUT CONTOUR POINTS BEFORE THE OUTER CONTOUR POINTS (it seems that ESAPI generally passes the main structure contours first before the cutout contours, but more testing is needed)
-                for (int slice = startSlice; slice < stopSlice; slice++)
-                {
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems));
-                    VVector[][] points = s.GetContoursOnImagePlane(slice);
-                    for (int i = 0; i < points.GetLength(0); i++)
-                    {
-                        if (lowRes.IsPointInsideSegment(points[i][0]) || lowRes.IsPointInsideSegment(points[i][points[i].GetLength(0) - 1]) || lowRes.IsPointInsideSegment(points[i][(int)(points[i].GetLength(0) / 2)])) lowRes.SubtractContourOnImagePlane(points[i], slice);
-                        else lowRes.AddContourOnImagePlane(points[i], slice);
-                    }
-                }
-
+                ContourLowResStructure(s, lowRes, startSlice, stopSlice);
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Removing existing high-res structure from sparing list and replacing with low-res"));
-                //get the index of the high resolution structure in the structure sparing list and repace this entry with the newly created low resolution structure
+                
+                //get the index of the high resolution structure in the TS Manipulation list and repace this entry with the newly created low resolution structure
                 int index = dataList.IndexOf(highResSpareList.ElementAt(count));
                 dataList.RemoveAt(index);
-                dataList.Insert(index, new Tuple<string, TSManipulationType, double>(newName, highResSpareList.ElementAt(count).Item2, highResSpareList.ElementAt(count).Item3));
+                dataList.Insert(index, new Tuple<string, TSManipulationType, double>(lowRes.Id, highResSpareList.ElementAt(count).Item2, highResSpareList.ElementAt(count).Item3));
                 count++;
             }
-
             return dataList;
         }
 
@@ -179,7 +235,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 
         protected bool IsUOriginInside(StructureSet ss)
         {
-            if (!ss.Image.HasUserOrigin || !(ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").IsPointInsideSegment(ss.Image.UserOrigin)))
+            if (!ss.Image.HasUserOrigin || !ss.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "body")).IsPointInsideSegment(ss.Image.UserOrigin))
             {
                 ProvideUIUpdate("Did you forget to set the user origin? \nUser origin is NOT inside body contour! \nPlease fix and try again!", true);
                 return true;

@@ -53,7 +53,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (useFlash) if (CreateFlash()) return true;
                 MessageBox.Show("Structures generated successfully!\nPlease proceed to the beam placement tab!");
             }
-            catch(Exception e) { ProvideUIUpdate(String.Format("{0}", e.Message)); return true; }
+            catch(Exception e) 
+            { 
+                ProvideUIUpdate(String.Format("{0}", e.Message)); 
+                return true; 
+            }
             return false;
         }
 
@@ -158,8 +162,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         protected override bool CreateTSStructures()
         {
-            if (RemoveOldTSStructures(TS_structures)) return true;
-            if (scleroTrial) if (RemoveOldTSStructures(scleroStructures)) return true;
+            if (RemoveOldTSStructures(TS_structures, true)) return true;
+            if (scleroTrial) if (RemoveOldTSStructures(scleroStructures, true)) return true;
 
             //Need to add the Human body, PTV_BODY, and TS_PTV_VMAT contours manually
             //if these structures were present, they should have been removed (regardless if they were contoured or not). 

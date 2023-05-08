@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:VMATTBICSIAutoPlanningHelpers.Prompts"
         mc:Ignorable="d"
-        Title="Enter Missing Information" WindowStartupLocation="CenterScreen" SizeToContent="WidthAndHeight" Background="DarkGray">
+        Title="Enter Missing Information" WindowStartupLocation="CenterScreen" SizeToContent="WidthAndHeight" Background="DarkGray" FocusManager.FocusedElement="{Binding ElementName=valueTB}">
     <Grid>
         <StackPanel>
             <Grid Height="Auto">
@@ -25,10 +25,10 @@
                         </Border>
                         <Label x:Name="requestedInfo" Content="Requested Info" Grid.Row="1" Grid.Column="0" FontWeight="Bold" HorizontalAlignment="Right"/>
                         <Border Grid.Column="1" Grid.Row="1" Width="120" Background="White" BorderBrush="Black" BorderThickness="1">
-                            <TextBlock x:Name="valueTB" HorizontalAlignment="Center"/>
+                            <TextBox x:Name="valueTB" Width="120" HorizontalAlignment="Center" HorizontalContentAlignment="Center" IsTabStop="True" TabIndex="0" VerticalContentAlignment="Center"/>
                         </Border>
-                        <Button x:Name="Button1" Grid.Column="0" Grid.Row="2" Width="120" Content="Confirm" Margin="10" FontWeight="Bold" Click="Button1_Click"/>
-                        <Button x:Name="Button2" Grid.Column="1" Grid.Row="2" Width="120" Content="Cancel" Margin="10" IsTabStop="True" IsDefault="True" Click="Button2_Click"/>
+                        <Button x:Name="Button1" Grid.Column="0" Grid.Row="2" Width="120" Content="Confirm" Margin="10" IsDefault="True" FontWeight="Bold" IsTabStop="True" Click="Button1_Click"/>
+                        <Button x:Name="Button2" Grid.Column="1" Grid.Row="2" Width="120" Content="Cancel" Margin="10" IsTabStop="True" Click="Button2_Click"/>
                     </Grid>
                 </StackPanel>
             </Grid>

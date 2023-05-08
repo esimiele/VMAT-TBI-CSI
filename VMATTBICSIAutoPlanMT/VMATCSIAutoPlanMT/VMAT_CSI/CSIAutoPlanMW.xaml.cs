@@ -22,6 +22,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
     public partial class CSIAutoPlanMW : Window
     {
+        public bool GetCloseOpenPatientWindowStatus() { return closeOpenPatientWindow; }
         /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// HARD-CODED MAIN PARAMETERS FOR THIS CLASS AND ALL OTHER CLASSES IN THIS PROGRAM
         /// ADJUST THESE PARAMETERS TO YOUR TASTE. THESE PARAMETERS WILL BE OVERWRITTEN BY THE CONFIG.INI FILE IF IT IS SUPPLIED.
@@ -104,6 +105,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //temporary variable to add new templates to the list
         CSIAutoPlanTemplate prospectiveTemplate = null;
         //ProcessStartInfo optLoopProcess;
+        private bool closeOpenPatientWindow = false;
 
         public CSIAutoPlanMW(List<string> args)
         {
@@ -142,8 +144,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                         }
                     }
                     else 
-                    { 
+                    {
                         //needs to be FIXED!
+                        closeOpenPatientWindow = true;
                         this.Close(); 
                         return; 
                     }
