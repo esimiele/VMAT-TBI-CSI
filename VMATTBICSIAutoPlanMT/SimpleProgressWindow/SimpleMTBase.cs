@@ -8,6 +8,7 @@ namespace SimpleProgressWindow
     public class SimpleMTbase
     {
         public StringBuilder GetLogOutput() { return _logOutput; }
+        protected string GetElapsedTime() { return _pw.GetElapsedTime(); }
 
         private Dispatcher _dispatch;
         private SimpleMTProgress _pw;

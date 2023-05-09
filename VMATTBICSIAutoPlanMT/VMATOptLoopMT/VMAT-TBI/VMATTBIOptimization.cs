@@ -26,7 +26,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                 SetAbortUIStatus("Runnning");
                 PrintRunSetupInfo(_data.plans);
                 //preliminary checks
-                if (PreliminaryChecksSSAndImage(_data.selectedSS, new TargetsHelper().GetAllTargetIds(_data.prescriptions))) return true;
+                if (PreliminaryChecksSSAndImage(_data.selectedSS, TargetsHelper.GetAllTargetIds(_data.prescriptions))) return true;
                 if (PreliminaryChecksCouch(_data.selectedSS)) return true;
                 if (PreliminaryChecksSpinningManny(_data.selectedSS)) return true;
                 if (_checkSupportStructures)
@@ -67,7 +67,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
         {
             ProvideUIUpdate(" Running coverage check..." + Environment.NewLine);
             //zero all optimization objectives except those in the target
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams = new OptimizationSetupUIHelper().ReadConstraintsFromPlan(plan);
+            List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
             List<Tuple<string, OptimizationObjectiveType, double, double, int>> targetOnlyObj = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
 
             ProvideUIUpdate(GetOptimizationObjectivesHeader(plan.Id));
@@ -97,7 +97,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Dose calculated for coverage check, normalizing plan!");
 
             //normalize plan
-            NormalizePlan(plan, new TargetsHelper().GetTargetStructureForPlanType(_data.selectedSS, GetNormaliztionVolumeIdForPlan(plan.Id), useFlash, _data.planType), relativeDose, targetVolCoverage);
+            NormalizePlan(plan, TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, GetNormaliztionVolumeIdForPlan(plan.Id), useFlash, _data.planType), relativeDose, targetVolCoverage);
             if (GetAbortStatus())
             {
                 KillOptimizationLoop();
@@ -169,7 +169,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                     CalculateDose(_data.isDemo, itr, _data.app);
                     ProvideUIUpdate((int)(100 * (++overallPercentCompletion) / overallCalcItems), " Dose calculated, normalizing plan!");
                     ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
-                    NormalizePlan(itr, new TargetsHelper().GetTargetStructureForPlanType(_data.selectedSS, GetNormaliztionVolumeIdForPlan(itr.Id), false, _data.planType), _data.relativeDose, _data.targetVolCoverage);
+                    NormalizePlan(itr, TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, GetNormaliztionVolumeIdForPlan(itr.Id), false, _data.planType), _data.relativeDose, _data.targetVolCoverage);
                     ProvideUIUpdate((int)(100 * (++overallPercentCompletion) / overallCalcItems), " Plan normalized!");
                 }
             }

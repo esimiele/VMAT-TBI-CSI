@@ -208,8 +208,7 @@ namespace VMATTBICSIOptLoopMT
                 List<List<Tuple<string, OptimizationObjectiveType, double, double, int>>> tmpList = new List<List<Tuple<string, OptimizationObjectiveType, double, double, int>>> { };
                 if (SPAndSV.Item1.Children.Count > 0)
                 {
-                    OptimizationSetupUIHelper helper = new OptimizationSetupUIHelper();
-                    List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> optParametersListList = helper.ParseOptConstraints(SPAndSV.Item1, false).Item1;
+                    List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> optParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(SPAndSV.Item1, false).Item1;
                     foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in optParametersListList)
                     {
                         if (itr.Item1 == thePlan.Id)
@@ -250,7 +249,7 @@ namespace VMATTBICSIOptLoopMT
         private void ClearItem_Click(object sender, EventArgs e)
         {
             StackPanel theSP = GetSPAndSV(sender as Button).Item1;
-            if (new GeneralUIhelper().ClearRow(sender, theSP)) ClearAllItemsFromUIList(theSP);
+            if (GeneralUIHelper.ClearRow(sender, theSP)) ClearAllItemsFromUIList(theSP);
         }
         #endregion
 
@@ -410,7 +409,7 @@ namespace VMATTBICSIOptLoopMT
         {
             //clear the current list of optimization constraints and ones obtained from the plan to the user
             ClearAllItemsFromUIList(theSP);
-            foreach(ExternalPlanSetup itr in plans) AddListItemsToUI(new OptimizationSetupUIHelper().ReadConstraintsFromPlan(itr), itr.Id, theSP);
+            foreach(ExternalPlanSetup itr in plans) AddListItemsToUI(OptimizationSetupUIHelper.ReadConstraintsFromPlan(itr), itr.Id, theSP);
         }
 
         private void PopulatePlanObjectivesTab(StackPanel theSP)
@@ -422,23 +421,22 @@ namespace VMATTBICSIOptLoopMT
 
         private void AddOptimizationConstraintsHeader(StackPanel theSP)
         {
-            theSP.Children.Add(new OptimizationSetupUIHelper().GetOptHeader(theSP.Width));
+            theSP.Children.Add(OptimizationSetupUIHelper.GetOptHeader(theSP.Width));
         }
 
         private void AddPlanObjectivesHeader(StackPanel theSP)
         {
-            theSP.Children.Add(new PlanObjectiveSetupUIHelper().GetObjHeader(theSP.Width));
+            theSP.Children.Add(PlanObjectiveSetupUIHelper.GetObjHeader(theSP.Width));
         }
 
         private void AddListItemsToUI<T>(List<Tuple<string, OptimizationObjectiveType, double, double, T>> defaultList, string planId, StackPanel theSP)
         {
             int counter = 0;
             string clearBtnNamePrefix;
-            OptimizationSetupUIHelper helper = new OptimizationSetupUIHelper();
             if (theSP.Name.ToLower().Contains("optimization"))
             {
                 clearBtnNamePrefix = "clearOptimizationConstraintBtn";
-                theSP.Children.Add(helper.AddPlanIdtoOptList(theSP, planId));
+                theSP.Children.Add(OptimizationSetupUIHelper.AddPlanIdtoOptList(theSP, planId));
                 AddOptimizationConstraintsHeader(theSP);
             }
             else
@@ -451,7 +449,7 @@ namespace VMATTBICSIOptLoopMT
             for (int i = 0; i < defaultList.Count; i++)
             {
                 counter++;
-                theSP.Children.Add(helper.AddOptVolume(theSP, 
+                theSP.Children.Add(OptimizationSetupUIHelper.AddOptVolume(theSP, 
                                                        selectedSS, 
                                                        defaultList[i], 
                                                        clearBtnNamePrefix, 
@@ -508,13 +506,13 @@ namespace VMATTBICSIOptLoopMT
                 return;
             }
 
-            (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) parsedOptimizationConstraints = new OptimizationSetupUIHelper().ParseOptConstraints(optimizationParamSP);
+            (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optimizationParamSP);
             if (!parsedOptimizationConstraints.Item1.Any())
             {
                 MessageBox.Show(parsedOptimizationConstraints.Item2.ToString());
                 return;
             }
-            List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> objectives = new PlanObjectiveSetupUIHelper().GetPlanObjectives(planObjectiveParamSP);
+            List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> objectives = PlanObjectiveSetupUIHelper.GetPlanObjectives(planObjectiveParamSP);
             if (!objectives.Any())
             {
                 MessageBox.Show("Error! Missing plan objectives! Please add plan objectives and try again!");
@@ -525,7 +523,6 @@ namespace VMATTBICSIOptLoopMT
 
             //assign optimization constraints
             pi.BeginModifications();
-            OptimizationSetupUIHelper helper = new OptimizationSetupUIHelper();
             foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in parsedOptimizationConstraints.Item1)
             {
                 ExternalPlanSetup thePlan = null;
@@ -533,8 +530,8 @@ namespace VMATTBICSIOptLoopMT
                 thePlan = plans.FirstOrDefault(x => x.Id == itr.Item1);
                 if (thePlan != null)
                 {
-                    helper.RemoveOptimizationConstraintsFromPLan(thePlan);
-                    helper.AssignOptConstraints(itr.Item2, thePlan, true, 0.0);
+                    OptimizationSetupUIHelper.RemoveOptimizationConstraintsFromPLan(thePlan);
+                    OptimizationSetupUIHelper.AssignOptConstraints(itr.Item2, thePlan, true, 0.0);
                 }
             }
 
@@ -620,7 +617,7 @@ namespace VMATTBICSIOptLoopMT
         {
             //if(useFlash) planObj.Add(Tuple.Create("TS_PTV_FLASH", obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
             //else planObj.Add(Tuple.Create("TS_PTV_VMAT", obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
-            return new TargetsHelper().GetTargetStructureForPlanType(selectedSS, "", useFlash, planType).Id;
+            return TargetsHelper.GetTargetStructureForPlanType(selectedSS, "", useFlash, planType).Id;
         }
         #endregion
 
@@ -854,7 +851,6 @@ namespace VMATTBICSIOptLoopMT
 
         private void LoadTemplatePlanChoices(PlanType type)
         {
-            ConfigurationHelper helper = new ConfigurationHelper();
             int count = 1;
             SearchOption option = SearchOption.AllDirectories;
             string path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\";
@@ -865,7 +861,7 @@ namespace VMATTBICSIOptLoopMT
             {
                 foreach (string itr in Directory.GetFiles(path, "*.ini", option).OrderBy(x => x))
                 {
-                    PlanTemplates.Add(helper.ReadTemplatePlan(itr, count++));
+                    PlanTemplates.Add(ConfigurationHelper.ReadTemplatePlan(itr, count++));
                 }
             }
             catch(Exception e)
@@ -883,7 +879,6 @@ namespace VMATTBICSIOptLoopMT
                 using (StreamReader reader = new StreamReader(fullLogName))
                 {
                     string line;
-                    ConfigurationHelper helper = new ConfigurationHelper();
                     while (!(line = reader.ReadLine()).Equals("Optimization constraints:"))
                     {
                         if (!string.IsNullOrEmpty(line))
@@ -909,7 +904,7 @@ namespace VMATTBICSIOptLoopMT
                             {
                                 while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {
-                                    prescriptions.Add(helper.ParsePrescriptionsFromLogFile(line));
+                                    prescriptions.Add(ConfigurationHelper.ParsePrescriptionsFromLogFile(line));
                                 }
                             }
                             else if (line.Contains("Plan UIDs:"))
@@ -923,7 +918,7 @@ namespace VMATTBICSIOptLoopMT
                             {
                                 while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {
-                                    normalizationVolumes.Add(helper.ParseNormalizationVolumeFromLogFile(line));
+                                    normalizationVolumes.Add(ConfigurationHelper.ParseNormalizationVolumeFromLogFile(line));
                                 }
                             }
                         }

@@ -2,9 +2,9 @@
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
-    public class IsoNameHelper
+    public static class IsoNameHelper
     {
-        public List<string> GetIsoNames(int numVMATIsos, int numIsos, bool isCSI = false)
+        public static List<string> GetIsoNames(int numVMATIsos, int numIsos, bool isCSI = false)
         {
             List<string> isoNames = new List<string> { };
             if(!isCSI)

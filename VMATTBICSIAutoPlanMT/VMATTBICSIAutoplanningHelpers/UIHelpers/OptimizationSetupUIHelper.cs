@@ -11,9 +11,9 @@ using VMATTBICSIAutoPlanningHelpers.Helpers;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
-    public class OptimizationSetupUIHelper
+    public static class OptimizationSetupUIHelper
     {
-        public List<Tuple<string, OptimizationObjectiveType, double, double, int>> ReadConstraintsFromPlan(ExternalPlanSetup plan)
+        public static List<Tuple<string, OptimizationObjectiveType, double, double, int>> ReadConstraintsFromPlan(ExternalPlanSetup plan)
         {
             //grab the optimization constraints in the existing VMAT TBI plan and display them to the user
             List<Tuple<string, OptimizationObjectiveType, double, double, int>> defaultList = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
@@ -37,7 +37,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return defaultList;
         }
 
-        public bool RemoveOptimizationConstraintsFromPLan(ExternalPlanSetup plan)
+        public static bool RemoveOptimizationConstraintsFromPLan(ExternalPlanSetup plan)
         {
             if (plan.OptimizationSetup.Objectives.Count() > 0)
             {
@@ -46,50 +46,60 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return false;
         }
 
-        public StackPanel AddPlanIdtoOptList(StackPanel theSP, string id)
+        public static StackPanel AddPlanIdtoOptList(StackPanel theSP, string id)
         {
-            StackPanel sp = new StackPanel();
-            sp.Height = 30;
-            sp.Width = theSP.Width;
-            sp.Orientation = Orientation.Horizontal;
-            sp.HorizontalAlignment = HorizontalAlignment.Center;
-            sp.Margin = new Thickness(15, 0, 5, 5);
+            StackPanel sp = new StackPanel
+            {
+                Height = 30,
+                Width = theSP.Width,
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(15, 0, 5, 5)
+            };
 
-            Label strName = new Label();
-            strName.Content = String.Format("Plan Id: {0}", id);
-            strName.HorizontalAlignment = HorizontalAlignment.Center;
-            strName.VerticalAlignment = VerticalAlignment.Top;
-            strName.Width = theSP.Width;
-            strName.FontSize = 14;
-            strName.FontWeight = FontWeights.Bold;
+            Label strName = new Label
+            {
+                Content = String.Format("Plan Id: {0}", id),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Width = theSP.Width,
+                FontSize = 14,
+                FontWeight = FontWeights.Bold
+            };
 
             sp.Children.Add(strName);
             return sp;
         }
 
-        public StackPanel GetOptHeader(double theWidth)
+        public static StackPanel GetOptHeader(double theWidth)
         {
-            StackPanel sp = new StackPanel();
-            sp.Height = 30;
-            sp.Width = theWidth;
-            sp.Orientation = Orientation.Horizontal;
-            sp.Margin = new Thickness(30, 0, 5, 5);
+            StackPanel sp = new StackPanel
+            {
+                Height = 30,
+                Width = theWidth,
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(30, 0, 5, 5)
+            };
 
-            Label strName = new Label();
-            strName.Content = "Structure";
-            strName.HorizontalAlignment = HorizontalAlignment.Center;
-            strName.VerticalAlignment = VerticalAlignment.Top;
-            strName.Width = 110;
-            strName.FontSize = 14;
-            strName.Margin = new Thickness(27, 0, 0, 0);
+            Label strName = new Label
+            {
+                Content = "Structure",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Width = 110,
+                FontSize = 14,
+                Margin = new Thickness(27, 0, 0, 0)
+            };
 
-            Label spareType = new Label();
-            spareType.Content = "Constraint";
-            spareType.HorizontalAlignment = HorizontalAlignment.Center;
-            spareType.VerticalAlignment = VerticalAlignment.Top;
-            spareType.Width = 90;
-            spareType.FontSize = 14;
-            spareType.Margin = new Thickness(2, 0, 0, 0);
+            Label spareType = new Label
+            {
+                Content = "Constraint",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Width = 90,
+                FontSize = 14,
+                Margin = new Thickness(2, 0, 0, 0)
+            };
 
             Label volLabel = new Label();
             volLabel.Content = "V (%)";
@@ -99,21 +109,25 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             volLabel.FontSize = 14;
             volLabel.Margin = new Thickness(18, 0, 0, 0);
 
-            Label doseLabel = new Label();
-            doseLabel.Content = "D (cGy)";
-            doseLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            doseLabel.VerticalAlignment = VerticalAlignment.Top;
-            doseLabel.Width = 60;
-            doseLabel.FontSize = 14;
-            doseLabel.Margin = new Thickness(3, 0, 0, 0);
+            Label doseLabel = new Label
+            {
+                Content = "D (cGy)",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Width = 60,
+                FontSize = 14,
+                Margin = new Thickness(3, 0, 0, 0)
+            };
 
-            Label priorityLabel = new Label();
-            priorityLabel.Content = "Priority";
-            priorityLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            priorityLabel.VerticalAlignment = VerticalAlignment.Top;
-            priorityLabel.Width = 65;
-            priorityLabel.FontSize = 14;
-            priorityLabel.Margin = new Thickness(13, 0, 0, 0);
+            Label priorityLabel = new Label
+            {
+                Content = "Priority",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Width = 65,
+                FontSize = 14,
+                Margin = new Thickness(13, 0, 0, 0)
+            };
 
             sp.Children.Add(strName);
             sp.Children.Add(spareType);
@@ -123,21 +137,25 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sp;
         }
 
-        public StackPanel AddOptVolume<T>(StackPanel theSP, StructureSet selectedSS, Tuple<string, OptimizationObjectiveType, double, double, T> listItem, string clearBtnNamePrefix, int clearOptBtnCounter, RoutedEventHandler e, bool addStructureEvenIfNotInSS = false)
+        public static StackPanel AddOptVolume<T>(StackPanel theSP, StructureSet selectedSS, Tuple<string, OptimizationObjectiveType, double, double, T> listItem, string clearBtnNamePrefix, int clearOptBtnCounter, RoutedEventHandler e, bool addStructureEvenIfNotInSS = false)
         {
-            StackPanel sp = new StackPanel();
-            sp.Height = 30;
-            sp.Width = theSP.Width;
-            sp.Orientation = Orientation.Horizontal;
-            sp.Margin = new Thickness(30, 5, 5, 5);
+            StackPanel sp = new StackPanel
+            {
+                Height = 30,
+                Width = theSP.Width,
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(30, 5, 5, 5)
+            };
 
-            ComboBox opt_str_cb = new ComboBox();
-            opt_str_cb.Name = "opt_str_cb";
-            opt_str_cb.Width = 120;
-            opt_str_cb.Height = sp.Height - 5;
-            opt_str_cb.HorizontalAlignment = HorizontalAlignment.Left;
-            opt_str_cb.VerticalAlignment = VerticalAlignment.Top;
-            opt_str_cb.Margin = new Thickness(5, 5, 0, 0);
+            ComboBox opt_str_cb = new ComboBox
+            {
+                Name = "opt_str_cb",
+                Width = 120,
+                Height = sp.Height - 5,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(5, 5, 0, 0)
+            };
 
             opt_str_cb.Items.Add("--select--");
             //this code is used to fix the issue where the structure exists in the structure set, but doesn't populate as the default option in the combo box.
@@ -159,13 +177,15 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             opt_str_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
             sp.Children.Add(opt_str_cb);
 
-            ComboBox constraint_cb = new ComboBox();
-            constraint_cb.Name = "type_cb";
-            constraint_cb.Width = 100;
-            constraint_cb.Height = sp.Height - 5;
-            constraint_cb.HorizontalAlignment = HorizontalAlignment.Left;
-            constraint_cb.VerticalAlignment = VerticalAlignment.Top;
-            constraint_cb.Margin = new Thickness(5, 5, 0, 0);
+            ComboBox constraint_cb = new ComboBox
+            {
+                Name = "type_cb",
+                Width = 100,
+                Height = sp.Height - 5,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(5, 5, 0, 0)
+            };
             string[] types = new string[] { "--select--", "Upper", "Lower", "Mean", "Exact" };
             foreach (string s in types) constraint_cb.Items.Add(s);
             if (listItem.Item2 != OptimizationObjectiveType.None) constraint_cb.Text = listItem.Item2.ToString();
@@ -175,70 +195,80 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 
             //the order of the dose and volume values are switched when they are displayed to the user. This way, the optimization objective appears to the user as it would in the optimization workspace.
             //However, due to the way ESAPI assigns optimization objectives via VMATplan.OptimizationSetup.AddPointObjective, they need to be stored in the order listed in the templates above
-            TextBox vol_tb = new TextBox();
-            vol_tb.Name = "vol_tb";
-            vol_tb.Width = 65;
-            vol_tb.Height = sp.Height - 5;
-            vol_tb.HorizontalAlignment = HorizontalAlignment.Left;
-            vol_tb.VerticalAlignment = VerticalAlignment.Top;
-            vol_tb.Margin = new Thickness(5, 5, 0, 0);
-            vol_tb.Text = String.Format("{0:0.#}", listItem.Item4);
-            vol_tb.TextAlignment = TextAlignment.Center;
+            TextBox vol_tb = new TextBox
+            {
+                Name = "vol_tb",
+                Width = 65,
+                Height = sp.Height - 5,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(5, 5, 0, 0),
+                Text = String.Format("{0:0.#}", listItem.Item4),
+                TextAlignment = TextAlignment.Center
+            };
             sp.Children.Add(vol_tb);
 
-            TextBox dose_tb = new TextBox();
-            dose_tb.Name = "dose_tb";
-            dose_tb.Width = 70;
-            dose_tb.Height = sp.Height - 5;
-            dose_tb.HorizontalAlignment = HorizontalAlignment.Left;
-            dose_tb.VerticalAlignment = VerticalAlignment.Top;
-            dose_tb.Margin = new Thickness(5, 5, 0, 0);
-            dose_tb.Text = String.Format("{0:0.#}", listItem.Item3);
-            dose_tb.TextAlignment = TextAlignment.Center;
+            TextBox dose_tb = new TextBox
+            {
+                Name = "dose_tb",
+                Width = 70,
+                Height = sp.Height - 5,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(5, 5, 0, 0),
+                Text = String.Format("{0:0.#}", listItem.Item3),
+                TextAlignment = TextAlignment.Center
+            };
             sp.Children.Add(dose_tb);
 
             if(listItem.Item5.GetType() == typeof(int))
             {
-                TextBox priority_tb = new TextBox();
-                priority_tb.Name = "priority_tb";
-                priority_tb.Width = 65;
-                priority_tb.Height = sp.Height - 5;
-                priority_tb.HorizontalAlignment = HorizontalAlignment.Left;
-                priority_tb.VerticalAlignment = VerticalAlignment.Top;
-                priority_tb.Margin = new Thickness(5, 5, 0, 0);
-                priority_tb.Text = Convert.ToString(listItem.Item5);
-                priority_tb.TextAlignment = TextAlignment.Center;
+                TextBox priority_tb = new TextBox
+                {
+                    Name = "priority_tb",
+                    Width = 65,
+                    Height = sp.Height - 5,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top,
+                    Margin = new Thickness(5, 5, 0, 0),
+                    Text = Convert.ToString(listItem.Item5),
+                    TextAlignment = TextAlignment.Center
+                };
                 sp.Children.Add(priority_tb);
             }
             else
             {
-                TextBox dvPresentation_tb = new TextBox();
-                dvPresentation_tb.Name = "dvPresentation_tb";
-                dvPresentation_tb.Width = 65;
-                dvPresentation_tb.Height = sp.Height - 5;
-                dvPresentation_tb.HorizontalAlignment = HorizontalAlignment.Left;
-                dvPresentation_tb.VerticalAlignment = VerticalAlignment.Top;
-                dvPresentation_tb.Margin = new Thickness(5, 5, 0, 0);
-                dvPresentation_tb.Text = Convert.ToString(listItem.Item5) == "Absolute" ? "cGy" : "%";
-                dvPresentation_tb.TextAlignment = TextAlignment.Center;
+                TextBox dvPresentation_tb = new TextBox
+                {
+                    Name = "dvPresentation_tb",
+                    Width = 65,
+                    Height = sp.Height - 5,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top,
+                    Margin = new Thickness(5, 5, 0, 0),
+                    Text = Convert.ToString(listItem.Item5) == "Absolute" ? "cGy" : "%",
+                    TextAlignment = TextAlignment.Center
+                };
                 sp.Children.Add(dvPresentation_tb);
             }
 
-            Button clearOptStructBtn = new Button();
-            clearOptStructBtn.Name = clearBtnNamePrefix + clearOptBtnCounter;
-            clearOptStructBtn.Content = "Clear";
-            clearOptStructBtn.Width = 50;
-            clearOptStructBtn.Height = sp.Height - 5;
-            clearOptStructBtn.HorizontalAlignment = HorizontalAlignment.Left;
-            clearOptStructBtn.VerticalAlignment = VerticalAlignment.Top;
-            clearOptStructBtn.Margin = new Thickness(10, 5, 0, 0);
+            Button clearOptStructBtn = new Button
+            {
+                Name = clearBtnNamePrefix + clearOptBtnCounter,
+                Content = "Clear",
+                Width = 50,
+                Height = sp.Height - 5,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(10, 5, 0, 0)
+            };
             clearOptStructBtn.Click += e;
             sp.Children.Add(clearOptStructBtn);
 
             return sp;
         }
 
-        public (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) ParseOptConstraints(StackPanel sp, bool checkInputIntegrity = true)
+        public static (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) ParseOptConstraints(StackPanel sp, bool checkInputIntegrity = true)
         {
             StringBuilder sb = new StringBuilder();
             if (sp.Children.Count == 0)
@@ -330,23 +360,15 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return (optParametersListList, sb);
         }
 
-        public (bool, StringBuilder) AssignOptConstraints(List<Tuple<string, OptimizationObjectiveType, double, double, int>> parameters, ExternalPlanSetup VMATplan, bool useJawTracking, double NTOpriority)
+        public static (bool, StringBuilder) AssignOptConstraints(List<Tuple<string, OptimizationObjectiveType, double, double, int>> parameters, ExternalPlanSetup VMATplan, bool useJawTracking, double NTOpriority)
         {
             bool isError = false;
             StringBuilder sb = new StringBuilder();
             foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in parameters)
             {
-                //assign the constraints to the plan. I haven't found a use for the exact constraint yet, so I just wrote the script to throw a warning if the exact constraint was selected (that row of data will NOT be
-                //assigned to the VMAT plan)
                 Structure s = VMATplan.StructureSet.Structures.First(x => x.Id == opt.Item1);
                 if (opt.Item2 != OptimizationObjectiveType.Mean) VMATplan.OptimizationSetup.AddPointObjective(s, OptimizationTypeHelper.GetObjectiveOperator(opt.Item2), new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item4, (double)opt.Item5);
                 else VMATplan.OptimizationSetup.AddMeanDoseObjective(s, new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), (double)opt.Item5);
-                //else 
-                //{ 
-                //    sb.AppendLine("Constraint type not recognized!"); 
-                //    isError = true;
-                //    return (isError, sb);
-                //}
             }
             //turn on/turn off jaw tracking
             try { VMATplan.OptimizationSetup.UseJawTracking = useJawTracking; }

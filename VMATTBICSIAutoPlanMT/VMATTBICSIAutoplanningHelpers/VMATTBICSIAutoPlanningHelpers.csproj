@@ -143,7 +143,7 @@
     <Compile Include="Helpers\ConfigurationHelper.cs" />
     <Compile Include="Helpers\CTImageExport.cs" />
     <Compile Include="UIHelpers\ExportCTUIHelper.cs" />
-    <Compile Include="UIHelpers\GeneralUIhelper.cs" />
+    <Compile Include="UIHelpers\GeneralUIHelper.cs" />
     <Compile Include="Helpers\IsoNameHelper.cs" />
     <Compile Include="UIHelpers\OptimizationSetupUIHelper.cs" />
     <Compile Include="UIHelpers\RingUIHelper.cs" />

@@ -9,9 +9,9 @@ using VMS.TPS.Common.Model.Types;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
-    public class ConfigurationHelper
+    public static class ConfigurationHelper
     {
-        public CSIAutoPlanTemplate ReadTemplatePlan(string file, int count)
+        public static CSIAutoPlanTemplate ReadTemplatePlan(string file, int count)
         {
             CSIAutoPlanTemplate tempTemplate = new CSIAutoPlanTemplate(count);
             using (StreamReader reader = new StreamReader(file))
@@ -94,9 +94,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         }
 
         //very useful helper method to remove everything in the input string 'line' up to a given character 'cropChar'
-        public string CropLine(string line, string cropChar) { return line.Substring(line.IndexOf(cropChar) + 1, line.Length - line.IndexOf(cropChar) - 1); }
+        public static string CropLine(string line, string cropChar) { return line.Substring(line.IndexOf(cropChar) + 1, line.Length - line.IndexOf(cropChar) - 1); }
 
-        public Tuple<string, string> ParseCreateTS(string line)
+        public static Tuple<string, string> ParseCreateTS(string line)
         {
             //known array format --> can take shortcuts in parsing the data
             //structure id, sparing type, added margin in cm (ignored if sparing type is Dmax ~ Rx Dose)
@@ -109,7 +109,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return Tuple.Create(dicomType, TSstructure);
         }
 
-        private Tuple<string, double, double, double> ParseCreateRing(string line)
+        private static Tuple<string, double, double, double> ParseCreateRing(string line)
         {
             string structure;
             double margin;
@@ -126,7 +126,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return Tuple.Create(structure, margin, thickness, dose);
         }
 
-        private Tuple<string, double, string> ParseTargets(string line)
+        private static Tuple<string, double, string> ParseTargets(string line)
         {
             //known array format --> can take shortcuts in parsing the data
             //structure id, sparing type, added margin in cm (ignored if sparing type is Dmax ~ Rx Dose)
@@ -142,7 +142,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return Tuple.Create(structure, val, planId);
         }
 
-        public Tuple<string, TSManipulationType, double> ParseTSManipulation(string line)
+        public static Tuple<string, TSManipulationType, double> ParseTSManipulation(string line)
         {
             //known array format --> can take shortcuts in parsing the data
             //structure id, sparing type, added margin in cm (ignored if sparing type is Dmax ~ Rx Dose)
@@ -158,7 +158,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return Tuple.Create(structure, TSManipulationTypeHelper.GetTSManipulationType(spareType), val);
         }
 
-        private string ParseCropAndContourOverlapStruct(string line)
+        private static string ParseCropAndContourOverlapStruct(string line)
         {
             string structure;
             line = CropLine(line, "{");
@@ -166,7 +166,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return structure;
         }
 
-        private Tuple<string, OptimizationObjectiveType, double, double, int> ParseOptimizationConstraint(string line)
+        private static Tuple<string, OptimizationObjectiveType, double, double, int> ParseOptimizationConstraint(string line)
         {
             //known array format --> can take shortcuts in parsing the data
             //structure id, constraint type, dose (cGy), volume (%), priority
@@ -188,7 +188,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return Tuple.Create(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), doseVal, volumeVal, priorityVal);
         }
 
-        private Tuple<string, string, double, string> ParseRequestedPlanDoseInfo(string line)
+        private static Tuple<string, string, double, string> ParseRequestedPlanDoseInfo(string line)
         {
             line = CropLine(line, "{");
             string structure = line.Substring(0, line.IndexOf(","));
@@ -222,7 +222,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return Tuple.Create(structure, constraintType, doseVal, representation);
         }
 
-        private Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>> ParseTSstructure(string line)
+        private static Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>> ParseTSstructure(string line)
         {
             //type (Dmax or V), dose value for volume constraint (N/A for Dmax), equality or inequality, volume (%) or dose (%)
             List<Tuple<string, double, string, double>> constraints = new List<Tuple<string, double, string, double>> { };
@@ -299,7 +299,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             }
         }
 
-        private Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation> ParsePlanObjective(string line)
+        private static Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation> ParsePlanObjective(string line)
         {
             string structure;
             string constraintType;
@@ -320,7 +320,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return Tuple.Create(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), doseVal, volumeVal, dvp);
         }
 
-        public Tuple<string,string,int,DoseValue,double> ParsePrescriptionsFromLogFile(string line)
+        public static Tuple<string,string,int,DoseValue,double> ParsePrescriptionsFromLogFile(string line)
         {
             string planId;
             string targetId;
@@ -340,7 +340,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return Tuple.Create(planId, targetId, numFx, new DoseValue(dosePerFx, DoseValue.DoseUnit.cGy), RxDose);
         }
 
-        public Tuple<string,string> ParseNormalizationVolumeFromLogFile(string line)
+        public static Tuple<string,string> ParseNormalizationVolumeFromLogFile(string line)
         {
             string planId;
             string volumeId;

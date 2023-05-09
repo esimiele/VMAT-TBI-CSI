@@ -2,10 +2,10 @@
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
-    public class GeneralUIhelper
+    public static class GeneralUIHelper
     {
         //common to both structure tuning and optimization setup tabs
-        public bool ClearRow(object sender, StackPanel sp)
+        public static bool ClearRow(object sender, StackPanel sp)
         {
             //same deal as the clear sparing structure button (clearStructBtn_click)
             Button btn = (Button)sender;
@@ -27,7 +27,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return false;
         }
 
-        public void ClearList(StackPanel theSP)
+        public static void ClearList(StackPanel theSP)
         {
             theSP.Children.Clear();
         }

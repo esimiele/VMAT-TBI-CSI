@@ -31,7 +31,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 //preliminary checks
                 UpdateUILabel("Preliminary checks:");
                 ProvideUIUpdate("Performing preliminary checks now:");
-                if (PreliminaryChecksSSAndImage(_data.selectedSS, new TargetsHelper().GetAllTargetIds(_data.prescriptions))) return true;
+                if (PreliminaryChecksSSAndImage(_data.selectedSS, TargetsHelper.GetAllTargetIds(_data.prescriptions))) return true;
                 if (PreliminaryChecksCouch(_data.selectedSS)) return true;
                 if (_checkSupportStructures)
                 {
@@ -189,7 +189,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
         protected override bool RunSequentialPlansOptimizationLoop(List<ExternalPlanSetup> plans)
         {
             //a requirement for sequentional optimization
-            List<Tuple<string, string>> plansTargets = new TargetsHelper().GetPlanTargetList(_data.prescriptions);
+            List<Tuple<string, string>> plansTargets = TargetsHelper.GetPlanTargetList(_data.prescriptions);
             if(!plansTargets.Any())
             {
                 ProvideUIUpdate("Error! Prescriptions are missing! Cannot determine the appropriate target for each plan! Exiting!", true);
@@ -231,7 +231,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                     if (CalculateDose(_data.isDemo, itr, _data.app)) return true;
                     ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Dose calculated, normalizing plan!");
                     //normalize
-                    NormalizePlan(itr, new TargetsHelper().GetTargetStructureForPlanType(_data.selectedSS, GetNormaliztionVolumeIdForPlan(itr.Id), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
+                    NormalizePlan(itr, TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, GetNormaliztionVolumeIdForPlan(itr.Id), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
                     if (GetAbortStatus())
                     {
                         KillOptimizationLoop();
@@ -263,7 +263,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                     foreach (ExternalPlanSetup itr in plans)
                     {
                         ProvideUIUpdate(String.Format("Adjusting optimization parameters for plan: {0}!", itr.Id));
-                        List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams = new OptimizationSetupUIHelper().ReadConstraintsFromPlan(itr);
+                        List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(itr);
                         ProvideUIUpdate(String.Format("Evaluating quality of plan: {0}!", itr.Id));
                         EvalPlanStruct e = EvaluatePlanSumComponentPlans(itr, optParams);
                         if (e.wasKilled) return true;
@@ -309,7 +309,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
         {
             UpdateUILabel(String.Format("Plan sum evaluation: {0}", plan.Id));
             ProvideUIUpdate(String.Format("Parsing optimization objectives from plan: {0}", plan.Id));
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams = new OptimizationSetupUIHelper().ReadConstraintsFromPlan(plan);
+            List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
             //get current optimization objectives from plan (we could use the optParams list, but we want the actual instances of the OptimizationObjective class so we can get the results from each objective)
             (int, int, double, List<Tuple<Structure, DVHData, double, double>>) planObjectiveEvaluation = EvaluateResultVsPlanObjectives(plan, planObj, optParams);
             //all constraints met, exiting

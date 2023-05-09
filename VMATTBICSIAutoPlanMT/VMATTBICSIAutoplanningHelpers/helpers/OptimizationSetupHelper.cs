@@ -8,10 +8,10 @@ using System.Text;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
-    public class OptimizationSetupHelper
+    public static class OptimizationSetupHelper
     {
         //for crop/overlap operations with targets
-        public List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> UpdateOptimizationConstraints(List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations,
+        public static List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> UpdateOptimizationConstraints(List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations,
                                                                                                                                       List<Tuple<string, string, int, DoseValue, double>> prescriptions,
                                                                                                                                       object selectedTemplate,
                                                                                                                                       List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> currentList = null)
@@ -62,7 +62,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return updatedList;
         }
 
-        public List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> UpdateOptimizationConstraints(List<Tuple<string, string, double>> addedRings,
+        public static List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> UpdateOptimizationConstraints(List<Tuple<string, string, double>> addedRings,
                                                                                                                                       List<Tuple<string, string, int, DoseValue, double>> prescriptions,
                                                                                                                                       object selectedTemplate,
                                                                                                                                       List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> currentList = null)
@@ -74,10 +74,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 //string tmpTargetId = addedRings.First().Item2;
                 //string tmpPlanId = new TargetsHelper().GetPlanIdFromTargetId(tmpTargetId, prescriptions);
                 //List<Tuple<string, string, double, double, int>> tmpList = new List<Tuple<string, string, double, double, int>> { };
-                TargetsHelper helper = new TargetsHelper();
                 foreach (Tuple<string, string, double> itr in addedRings)
                 {
-                    string planId = helper.GetPlanIdFromTargetId(itr.Item1, prescriptions);
+                    string planId = TargetsHelper.GetPlanIdFromTargetId(itr.Item1, prescriptions);
                     if (currentList.Any(x => string.Equals(x.Item1, planId)))
                     {
                         Tuple<string, OptimizationObjectiveType, double, double, int> ringConstraint = Tuple.Create(itr.Item2, OptimizationObjectiveType.Upper, itr.Item3, 0.0, 80);
@@ -88,7 +87,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return currentList;
         }
 
-        public (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) RetrieveOptConstraintsFromTemplate(CSIAutoPlanTemplate selectedTemplate, List<Tuple<string, string, int, DoseValue, double>> prescriptions)
+        public static (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) RetrieveOptConstraintsFromTemplate(CSIAutoPlanTemplate selectedTemplate, List<Tuple<string, string, int, DoseValue, double>> prescriptions)
         {
             StringBuilder sb = new StringBuilder();
             List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> list = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
@@ -97,7 +96,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             {
                 if (selectedTemplate != null)
                 {
-                    list = CreateOptimizationConstraintList(selectedTemplate, new TargetsHelper().GetPlanTargetList(prescriptions));
+                    list = CreateOptimizationConstraintList(selectedTemplate, TargetsHelper.GetPlanTargetList(prescriptions));
                 }
             }
             else sb.AppendLine("No template selected!");
@@ -105,20 +104,20 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         }
 
         //overload method to accept target list instead of prescription list
-        public (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) RetrieveOptConstraintsFromTemplate(CSIAutoPlanTemplate selectedTemplate, List<Tuple<string, double, string>> targets)
+        public static (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) RetrieveOptConstraintsFromTemplate(CSIAutoPlanTemplate selectedTemplate, List<Tuple<string, double, string>> targets)
         {
             StringBuilder sb = new StringBuilder();
             List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> list = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
             //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose
             if (selectedTemplate != null)
             {
-                list = CreateOptimizationConstraintList(selectedTemplate, new TargetsHelper().GetPlanTargetList(targets));
+                list = CreateOptimizationConstraintList(selectedTemplate, TargetsHelper.GetPlanTargetList(targets));
             }
             else sb.AppendLine("No template selected!");
             return (list, sb);
         }
 
-        private List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> CreateOptimizationConstraintList(CSIAutoPlanTemplate selectedTemplate, List<Tuple<string,string>> planTargets)
+        private static List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> CreateOptimizationConstraintList(CSIAutoPlanTemplate selectedTemplate, List<Tuple<string,string>> planTargets)
         {
             List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> list = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
             //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose

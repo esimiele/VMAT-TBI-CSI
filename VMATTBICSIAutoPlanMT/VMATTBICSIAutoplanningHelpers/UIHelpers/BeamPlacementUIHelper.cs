@@ -8,35 +8,41 @@ using VMATTBICSIAutoPlanningHelpers.Prompts;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
-    public class BeamPlacementUIHelper
+    public static class BeamPlacementUIHelper
     {
-        public List<StackPanel> PopulateBeamsTabHelper(StackPanel theSP, List<string> linacs, List<string> beamEnergies, List<string> isoNames, int[] beamsPerIso, int numIsos, int numVMATIsos)
+        public static List<StackPanel> PopulateBeamsTabHelper(StackPanel theSP, List<string> linacs, List<string> beamEnergies, List<string> isoNames, int[] beamsPerIso, int numIsos, int numVMATIsos)
         {
             List<StackPanel> theSPList = new List<StackPanel> { };
-            StackPanel sp = new StackPanel();
-            sp.Height = 30;
-            sp.Width = theSP.Width;
-            sp.Orientation = Orientation.Horizontal;
-            sp.HorizontalAlignment = HorizontalAlignment.Center;
-            sp.Margin = new Thickness(5);
+            StackPanel sp = new StackPanel
+            {
+                Height = 30,
+                Width = theSP.Width,
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(5)
+            };
 
             //select linac (LA-16 or LA-17)
-            Label linac = new Label();
-            linac.Content = "Linac:";
-            linac.HorizontalAlignment = HorizontalAlignment.Right;
-            linac.VerticalAlignment = VerticalAlignment.Top;
-            linac.Width = 208;
-            linac.FontSize = 14;
-            linac.Margin = new Thickness(0, 0, 10, 0);
+            Label linac = new Label
+            {
+                Content = "Linac:",
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Width = 208,
+                FontSize = 14,
+                Margin = new Thickness(0, 0, 10, 0)
+            };
             sp.Children.Add(linac);
 
-            ComboBox linac_cb = new ComboBox();
-            linac_cb.Name = "linac_cb";
-            linac_cb.Width = 80;
-            linac_cb.Height = sp.Height - 5;
-            linac_cb.HorizontalAlignment = HorizontalAlignment.Right;
-            linac_cb.VerticalAlignment = VerticalAlignment.Center;
-            linac_cb.Margin = new Thickness(0, 0, 65, 0);
+            ComboBox linac_cb = new ComboBox
+            {
+                Name = "linac_cb",
+                Width = 80,
+                Height = sp.Height - 5,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 65, 0)
+            };
             if (linacs.Count() > 0) foreach (string s in linacs) linac_cb.Items.Add(s);
             else
             {
@@ -52,29 +58,35 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             theSPList.Add(sp);
 
             //select energy (6X or 10X)
-            sp = new StackPanel();
-            sp.Height = 30;
-            sp.Width = theSP.Width;
-            sp.Orientation = Orientation.Horizontal;
-            sp.HorizontalAlignment = HorizontalAlignment.Center;
-            sp.Margin = new Thickness(5);
+            sp = new StackPanel
+            {
+                Height = 30,
+                Width = theSP.Width,
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(5)
+            };
 
-            Label energy = new Label();
-            energy.Content = "Beam energy:";
-            energy.HorizontalAlignment = HorizontalAlignment.Right;
-            energy.VerticalAlignment = VerticalAlignment.Top;
-            energy.Width = 215;
-            energy.FontSize = 14;
-            energy.Margin = new Thickness(0, 0, 10, 0);
+            Label energy = new Label
+            {
+                Content = "Beam energy:",
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Width = 215,
+                FontSize = 14,
+                Margin = new Thickness(0, 0, 10, 0)
+            };
             sp.Children.Add(energy);
 
-            ComboBox energy_cb = new ComboBox();
-            energy_cb.Name = "energy_cb";
-            energy_cb.Width = 70;
-            energy_cb.Height = sp.Height - 5;
-            energy_cb.HorizontalAlignment = HorizontalAlignment.Right;
-            energy_cb.VerticalAlignment = VerticalAlignment.Center;
-            energy_cb.Margin = new Thickness(0, 0, 65, 0);
+            ComboBox energy_cb = new ComboBox
+            {
+                Name = "energy_cb",
+                Width = 70,
+                Height = sp.Height - 5,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 65, 0)
+            };
             if (beamEnergies.Count() > 0) foreach (string s in beamEnergies) energy_cb.Items.Add(s);
             else
             {
@@ -92,29 +104,35 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             //add iso names and suggested number of beams
             for (int i = 0; i < numIsos; i++)
             {
-                sp = new StackPanel();
-                sp.Height = 30;
-                sp.Width = theSP.Width;
-                sp.Orientation = Orientation.Horizontal;
-                sp.HorizontalAlignment = HorizontalAlignment.Center;
-                sp.Margin = new Thickness(2);
+                sp = new StackPanel
+                {
+                    Height = 30,
+                    Width = theSP.Width,
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Margin = new Thickness(2)
+                };
 
-                Label iso = new Label();
-                iso.Content = String.Format("Isocenter {0} <{1}>:", (i + 1).ToString(), isoNames.ElementAt(i));
-                iso.HorizontalAlignment = HorizontalAlignment.Right;
-                iso.VerticalAlignment = VerticalAlignment.Top;
-                iso.Width = 230;
-                iso.FontSize = 14;
-                iso.Margin = new Thickness(0, 0, 10, 0);
+                Label iso = new Label
+                {
+                    Content = String.Format("Isocenter {0} <{1}>:", (i + 1).ToString(), isoNames.ElementAt(i)),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Top,
+                    Width = 230,
+                    FontSize = 14,
+                    Margin = new Thickness(0, 0, 10, 0)
+                };
                 sp.Children.Add(iso);
 
-                TextBox beams_tb = new TextBox();
-                beams_tb.Name = "beams_tb";
-                beams_tb.Width = 40;
-                beams_tb.Height = sp.Height - 5;
-                beams_tb.HorizontalAlignment = HorizontalAlignment.Right;
-                beams_tb.VerticalAlignment = VerticalAlignment.Center;
-                beams_tb.Margin = new Thickness(0, 0, 80, 0);
+                TextBox beams_tb = new TextBox
+                {
+                    Name = "beams_tb",
+                    Width = 40,
+                    Height = sp.Height - 5,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 80, 0)
+                };
 
                 if (i >= numVMATIsos) beams_tb.IsReadOnly = true;
                 beams_tb.Text = beamsPerIso[i].ToString();
@@ -126,33 +144,39 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return theSPList;
         }
 
-        public List<StackPanel> PopulateBeamsTabHelper(StackPanel theSP, List<string> linacs, List<string> beamEnergies, List<Tuple<string, List<string>>> isoNames, int[] beamsPerIso)
+        public static List<StackPanel> PopulateBeamsTabHelper(StackPanel theSP, List<string> linacs, List<string> beamEnergies, List<Tuple<string, List<string>>> isoNames, int[] beamsPerIso)
         {
             List<StackPanel> theSPList = new List<StackPanel> { };
-            StackPanel sp = new StackPanel();
-            sp.Height = 30;
-            sp.Width = theSP.Width;
-            sp.Orientation = Orientation.Horizontal;
-            sp.HorizontalAlignment = HorizontalAlignment.Center;
-            sp.Margin = new Thickness(5);
+            StackPanel sp = new StackPanel
+            {
+                Height = 30,
+                Width = theSP.Width,
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(5)
+            };
 
             //select linac (LA-16 or LA-17)
-            Label linac = new Label();
-            linac.Content = "Linac:";
-            linac.HorizontalAlignment = HorizontalAlignment.Right;
-            linac.VerticalAlignment = VerticalAlignment.Top;
-            linac.Width = 208;
-            linac.FontSize = 14;
-            linac.Margin = new Thickness(0, 0, 10, 0);
+            Label linac = new Label
+            {
+                Content = "Linac:",
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Width = 208,
+                FontSize = 14,
+                Margin = new Thickness(0, 0, 10, 0)
+            };
             sp.Children.Add(linac);
 
-            ComboBox linac_cb = new ComboBox();
-            linac_cb.Name = "linac_cb";
-            linac_cb.Width = 80;
-            linac_cb.Height = sp.Height - 5;
-            linac_cb.HorizontalAlignment = HorizontalAlignment.Right;
-            linac_cb.VerticalAlignment = VerticalAlignment.Center;
-            linac_cb.Margin = new Thickness(0, 0, 65, 0);
+            ComboBox linac_cb = new ComboBox
+            {
+                Name = "linac_cb",
+                Width = 80,
+                Height = sp.Height - 5,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 65, 0)
+            };
             if (linacs.Count() > 0) foreach (string s in linacs) linac_cb.Items.Add(s);
             else
             {
@@ -168,29 +192,35 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             theSPList.Add(sp);
 
             //select energy (6X or 10X)
-            sp = new StackPanel();
-            sp.Height = 30;
-            sp.Width = theSP.Width;
-            sp.Orientation = Orientation.Horizontal;
-            sp.HorizontalAlignment = HorizontalAlignment.Center;
-            sp.Margin = new Thickness(5);
+            sp = new StackPanel
+            {
+                Height = 30,
+                Width = theSP.Width,
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(5)
+            };
 
-            Label energy = new Label();
-            energy.Content = "Beam energy:";
-            energy.HorizontalAlignment = HorizontalAlignment.Right;
-            energy.VerticalAlignment = VerticalAlignment.Top;
-            energy.Width = 215;
-            energy.FontSize = 14;
-            energy.Margin = new Thickness(0, 0, 10, 0);
+            Label energy = new Label
+            {
+                Content = "Beam energy:",
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Width = 215,
+                FontSize = 14,
+                Margin = new Thickness(0, 0, 10, 0)
+            };
             sp.Children.Add(energy);
 
-            ComboBox energy_cb = new ComboBox();
-            energy_cb.Name = "energy_cb";
-            energy_cb.Width = 70;
-            energy_cb.Height = sp.Height - 5;
-            energy_cb.HorizontalAlignment = HorizontalAlignment.Right;
-            energy_cb.VerticalAlignment = VerticalAlignment.Center;
-            energy_cb.Margin = new Thickness(0, 0, 65, 0);
+            ComboBox energy_cb = new ComboBox
+            {
+                Name = "energy_cb",
+                Width = 70,
+                Height = sp.Height - 5,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 65, 0)
+            };
             if (beamEnergies.Count() > 0) foreach (string s in beamEnergies) energy_cb.Items.Add(s);
             else
             {
@@ -208,53 +238,63 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             //add iso names and suggested number of beams
             for (int i = 0; i < isoNames.Count; i++)
             {
-                sp = new StackPanel();
-                sp.Height = 30;
-                sp.Width = theSP.Width;
-                sp.Orientation = Orientation.Horizontal;
-                sp.HorizontalAlignment = HorizontalAlignment.Center;
-                sp.Margin = new Thickness(2);
+                sp = new StackPanel
+                {
+                    Height = 30,
+                    Width = theSP.Width,
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Margin = new Thickness(2)
+                };
 
-                Label planID = new Label();
-                planID.Content = "Plan Id: " + isoNames.ElementAt(i).Item1;
-                planID.HorizontalAlignment = HorizontalAlignment.Center;
-                planID.VerticalAlignment = VerticalAlignment.Top;
-                planID.Width = 230;
-                planID.FontSize = 14;
-                planID.FontWeight = FontWeights.Bold;
+                Label planID = new Label
+                {
+                    Content = "Plan Id: " + isoNames.ElementAt(i).Item1,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Top,
+                    Width = 230,
+                    FontSize = 14,
+                    FontWeight = FontWeights.Bold
+                };
                 sp.Children.Add(planID);
                 theSPList.Add(sp);
 
                 for (int j = 0; j < isoNames.ElementAt(i).Item2.Count; j++)
                 {
-                    sp = new StackPanel();
-                    sp.Height = 30;
-                    sp.Width = theSP.Width;
-                    sp.Orientation = Orientation.Horizontal;
-                    sp.HorizontalAlignment = HorizontalAlignment.Center;
-                    sp.Margin = new Thickness(2);
+                    sp = new StackPanel
+                    {
+                        Height = 30,
+                        Width = theSP.Width,
+                        Orientation = Orientation.Horizontal,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        Margin = new Thickness(2)
+                    };
 
-                    Label iso = new Label();
-                    //11/1/22
-                    //interesting issue where the first character of the first plan Id is ignored and not printed on the place beams tab
-                    iso.Content = String.Format("Isocenter {0} <{1}>:", (j + 1).ToString(), isoNames.ElementAt(i).Item2.ElementAt(j));
-                    iso.HorizontalAlignment = HorizontalAlignment.Right;
-                    iso.VerticalAlignment = VerticalAlignment.Top;
-                    iso.Width = 230;
-                    iso.FontSize = 14;
-                    iso.Margin = new Thickness(0, 0, 10, 0);
+                    Label iso = new Label
+                    {
+                        //11/1/22
+                        //interesting issue where the first character of the first plan Id is ignored and not printed on the place beams tab
+                        Content = String.Format("Isocenter {0} <{1}>:", (j + 1).ToString(), isoNames.ElementAt(i).Item2.ElementAt(j)),
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Top,
+                        Width = 230,
+                        FontSize = 14,
+                        Margin = new Thickness(0, 0, 10, 0)
+                    };
                     sp.Children.Add(iso);
 
-                    TextBox beams_tb = new TextBox();
-                    beams_tb.Name = "beams_tb";
-                    beams_tb.Width = 40;
-                    beams_tb.Height = sp.Height - 5;
-                    beams_tb.HorizontalAlignment = HorizontalAlignment.Right;
-                    beams_tb.VerticalAlignment = VerticalAlignment.Center;
-                    beams_tb.Margin = new Thickness(0, 0, 80, 0);
+                    TextBox beams_tb = new TextBox
+                    {
+                        Name = "beams_tb",
+                        Width = 40,
+                        Height = sp.Height - 5,
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(0, 0, 80, 0),
 
-                    beams_tb.Text = beamsPerIso[j].ToString();
-                    beams_tb.TextAlignment = TextAlignment.Center;
+                        Text = beamsPerIso[j].ToString(),
+                        TextAlignment = TextAlignment.Center
+                    };
                     sp.Children.Add(beams_tb);
                     theSPList.Add(sp);
                 }
@@ -262,7 +302,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return theSPList;
         }
 
-        public (string, string, List<List<int>>, StringBuilder) GetBeamSelections(StackPanel theSP, List<Tuple<string,List<string>>> isos)
+        public static (string, string, List<List<int>>, StringBuilder) GetBeamSelections(StackPanel theSP, List<Tuple<string,List<string>>> isos)
         {
             StringBuilder sb = new StringBuilder();
             int count = 0;
@@ -323,7 +363,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return (chosenLinac, chosenEnergy, numBeams, sb);
         }
 
-        public void GeneratePlanIsoBeamList(List<Tuple<string, List<string>>> isoNames, List<List<int>> numBeams)
+        public static void GeneratePlanIsoBeamList(List<Tuple<string, List<string>>> isoNames, List<List<int>> numBeams)
         {
             List<Tuple<string, List<Tuple<string, int>>>> planIsoBeamInfo = new List<Tuple<string, List<Tuple<string, int>>>> { };
             int count = 0;

@@ -7,10 +7,10 @@ using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationTyp
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
-    public class StructureTuningHelper
+    public static class StructureTuningHelper
     {
         //helper method to easily add sparing structures to a sparing structure list. The reason this is its own method is because of the logic used to include/remove sex-specific organs
-        public List<Tuple<string, TSManipulationType, double>> AddTemplateSpecificStructureManipulations(List<Tuple<string, TSManipulationType, double>> caseSpareStruct, List<Tuple<string, TSManipulationType, double>> template, string sex)
+        public static List<Tuple<string, TSManipulationType, double>> AddTemplateSpecificStructureManipulations(List<Tuple<string, TSManipulationType, double>> caseSpareStruct, List<Tuple<string, TSManipulationType, double>> template, string sex)
         {
             foreach (Tuple<string, TSManipulationType, double> s in caseSpareStruct)
             {
@@ -26,7 +26,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return template;
         }
 
-        public List<Tuple<Structure, Structure, string>> CheckStructuresToUnion(StructureSet selectedSS)
+        public static List<Tuple<Structure, Structure, string>> CheckStructuresToUnion(StructureSet selectedSS)
         {
             //left structure, right structure, unioned structure name
             List<Tuple<Structure, Structure, string>> structuresToUnion = new List<Tuple<Structure, Structure, string>> { };
@@ -44,7 +44,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return structuresToUnion;
         }
 
-        private string AddProperEndingToName(string initName)
+        private static string AddProperEndingToName(string initName)
         {
             string unionedName;
             if (initName.Substring(initName.Length - 1, 1) == "y" && initName.Substring(initName.Length - 2, 2) != "ey") unionedName = initName.Substring(0, initName.Length - 1) + "ies";
@@ -53,7 +53,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return unionedName;
         }
 
-        public (bool, StringBuilder) UnionLRStructures(Tuple<Structure, Structure, string> itr, StructureSet selectedSS)
+        public static (bool, StringBuilder) UnionLRStructures(Tuple<Structure, Structure, string> itr, StructureSet selectedSS)
         {
             StringBuilder sb = new StringBuilder();
             Structure newStructure = null;

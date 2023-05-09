@@ -119,7 +119,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
 
             //set isocenter names based on numIsos and numVMATIsos (determined these names from prior cases)
-            isoNames.Add(Tuple.Create("_VMAT TBI",new List<string>(new IsoNameHelper().GetIsoNames(numVMATIsos, numIsos, true))));
+            isoNames.Add(Tuple.Create("_VMAT TBI",new List<string>(IsoNameHelper.GetIsoNames(numVMATIsos, numIsos, true))));
 
             //check if selected structures are empty or of high-resolution (i.e., no operations can be performed on high-resolution structures)
             string output = "The following structures are high-resolution:" + System.Environment.NewLine;

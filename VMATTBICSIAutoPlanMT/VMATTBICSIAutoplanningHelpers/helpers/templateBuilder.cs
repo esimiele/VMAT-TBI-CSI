@@ -5,9 +5,9 @@ using VMATTBICSIAutoPlanningHelpers.Enums;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
-    public class TemplateBuilder
+    public static class TemplateBuilder
     {
-        public string GenerateTemplatePreviewText(CSIAutoPlanTemplate prospectiveTemplate)
+        public static string GenerateTemplatePreviewText(CSIAutoPlanTemplate prospectiveTemplate)
         {
             string output = "";
             output += String.Format(" {0}", DateTime.Now.ToString()) + Environment.NewLine;
@@ -75,7 +75,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return output;
         }
 
-        public string GenerateSerializedTemplate(CSIAutoPlanTemplate prospectiveTemplate)
+        public static string GenerateSerializedTemplate(CSIAutoPlanTemplate prospectiveTemplate)
         {
             string output = ":begin template case configuration:" + Environment.NewLine;
             output += "%template name" + Environment.NewLine;

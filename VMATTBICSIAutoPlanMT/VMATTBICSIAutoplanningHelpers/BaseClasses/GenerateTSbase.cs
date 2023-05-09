@@ -136,6 +136,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 
             if (VerifyAddTSStructures(structuresToRemove)) return true;
             ProvideUIUpdate(100, "Prior tuning structures successfully removed!");
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
 

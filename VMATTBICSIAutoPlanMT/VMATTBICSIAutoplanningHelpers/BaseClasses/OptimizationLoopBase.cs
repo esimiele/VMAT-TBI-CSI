@@ -553,7 +553,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
 
                 //normalize
-                NormalizePlan(itr, new TargetsHelper().GetTargetStructureForPlanType(_data.selectedSS, GetNormaliztionVolumeIdForPlan(itr.Id), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
+                NormalizePlan(itr, TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, GetNormaliztionVolumeIdForPlan(itr.Id), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
                 UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
                 ProvideUIUpdate(String.Format(" {0} normalized!", itr.Id));
 
@@ -598,7 +598,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Dose calculated, normalizing plan!");
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
-                NormalizePlan(plan, new TargetsHelper().GetTargetStructureForPlanType(_data.selectedSS, GetNormaliztionVolumeIdForPlan(plan.Id), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
+                NormalizePlan(plan, TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, GetNormaliztionVolumeIdForPlan(plan.Id), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
 
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Plan normalized! Evaluating plan quality and updating constraints!"); ;
                 //evaluate the new plan for quality and make any adjustments to the optimization parameters
@@ -620,7 +620,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 //the same plan!
                 if (!_data.isDemo && _data.copyAndSavePlanItr && (_data.oneMoreOpt || ((count + 1) != _data.numOptimizations))) CopyAndSavePlan(plan, count);
 
-                PrintPlanOptimizationResultVsConstraints(plan, new OptimizationSetupUIHelper().ReadConstraintsFromPlan(plan), e.diffPlanOpt, e.totalCostPlanOpt);
+                PrintPlanOptimizationResultVsConstraints(plan, OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan), e.diffPlanOpt, e.totalCostPlanOpt);
 
                 //really crank up the priority and lower the dose objective on the cooler on the last iteration of the optimization loop
                 //this is basically here to avoid having to call op.updateConstraints a second time (if this batch of code was placed outside of the loop)
@@ -742,7 +742,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         protected virtual bool InitializeOptimizationConstriants(ExternalPlanSetup plan)
         {
             int percentComplete = 0;
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> originalOptObj = new OptimizationSetupUIHelper().ReadConstraintsFromPlan(plan);
+            List<Tuple<string, OptimizationObjectiveType, double, double, int>> originalOptObj = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
             int calcItems = originalOptObj.Count();
             List<Tuple<string, OptimizationObjectiveType, double, double, int>> optObj = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
             int priority;
@@ -851,7 +851,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             e.Construct();
 
             ProvideUIUpdate(String.Format("Parsing optimization objectives from plan: {0}", plan.Id));
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams = new OptimizationSetupUIHelper().ReadConstraintsFromPlan(plan);
+            List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
             //get current optimization objectives from plan (we could use the optParams list, but we want the actual instances of the OptimizationObjective class so we can get the results from each objective)
             (int, int, double, List<Tuple<Structure, DVHData, double, double>>) planObjectiveEvaluation = EvaluateResultVsPlanObjectives(plan, planObj, optParams);
 
@@ -1111,7 +1111,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             List<Tuple<string, OptimizationObjectiveType, double, double, int>> addedTSstructures = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
             //now create new cooler and heating structures
             ProvideUIUpdate(String.Format("Retrieving target structure for plan: {0}", plan.Id));
-            List<Tuple<string, string>> plansTargets = new TargetsHelper().GetPlanTargetList(_data.prescriptions);
+            List<Tuple<string, string>> plansTargets = TargetsHelper.GetPlanTargetList(_data.prescriptions);
             if (!plansTargets.Any())
             {
                 ProvideUIUpdate(String.Format("Error! Could not retrieve list of plans and associated targets! Exiting"));
@@ -1120,7 +1120,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             }
             string targetId = "";
             if (plansTargets.Where(x => x.Item1 == plan.Id).Any()) targetId = plansTargets.FirstOrDefault(x => x.Item1 == plan.Id).Item2;
-            Structure target = new TargetsHelper().GetTargetStructureForPlanType(_data.selectedSS, targetId, _data.useFlash, _data.planType);
+            Structure target = TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, targetId, _data.useFlash, _data.planType);
             if (target == null)
             {
                 ProvideUIUpdate(String.Format("Error! Target structure not found for plan: {0}! Exiting!", plan.Id));

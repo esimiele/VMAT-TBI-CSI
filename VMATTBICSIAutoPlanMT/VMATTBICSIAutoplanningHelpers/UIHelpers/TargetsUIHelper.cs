@@ -10,9 +10,9 @@ using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
-    public class TargetsUIHelper
+    public static class TargetsUIHelper
     {
-        public List<Tuple<string, double, string>> AddTargetDefaults(CSIAutoPlanTemplate template, StructureSet selectedSS)
+        public static List<Tuple<string, double, string>> AddTargetDefaults(CSIAutoPlanTemplate template, StructureSet selectedSS)
         {
             List<Tuple<string, double, string>> tmpList = new List<Tuple<string, double, string>> { Tuple.Create("--select--", 0.0, "--select--") };
             List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>> { };
@@ -25,7 +25,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return targetList;
         }
 
-        public List<Tuple<string, double, string>> ScanSSAndAddTargets(StructureSet selectedSS)
+        public static List<Tuple<string, double, string>> ScanSSAndAddTargets(StructureSet selectedSS)
         {
             List<Structure> tgt = selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ptv") && !x.Id.ToLower().Contains("ts_")).ToList();
             if (!tgt.Any()) return new List<Tuple<string, double, string>> { };
@@ -39,37 +39,45 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return targetList;
         }
 
-        public StackPanel GetTargetHeader(double width)
+        public static StackPanel GetTargetHeader(double width)
         {
-            StackPanel sp = new StackPanel();
-            sp.Height = 30;
-            sp.Width = width;
-            sp.Orientation = Orientation.Horizontal;
-            sp.Margin = new Thickness(25, 0, 5, 5);
+            StackPanel sp = new StackPanel
+            {
+                Height = 30,
+                Width = width,
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(25, 0, 5, 5)
+            };
 
-            Label strName = new Label();
-            strName.Content = "Target Id";
-            strName.HorizontalAlignment = HorizontalAlignment.Center;
-            strName.VerticalAlignment = VerticalAlignment.Top;
-            strName.Width = 100;
-            strName.FontSize = 14;
-            strName.Margin = new Thickness(45, 0, 0, 0);
+            Label strName = new Label
+            {
+                Content = "Target Id",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Width = 100,
+                FontSize = 14,
+                Margin = new Thickness(45, 0, 0, 0)
+            };
 
-            Label spareType = new Label();
-            spareType.Content = "Prescription (cGy)";
-            spareType.HorizontalAlignment = HorizontalAlignment.Center;
-            spareType.VerticalAlignment = VerticalAlignment.Top;
-            spareType.Width = 130;
-            spareType.FontSize = 14;
-            spareType.Margin = new Thickness(20, 0, 0, 0);
+            Label spareType = new Label
+            {
+                Content = "Prescription (cGy)",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Width = 130,
+                FontSize = 14,
+                Margin = new Thickness(20, 0, 0, 0)
+            };
 
-            Label marginLabel = new Label();
-            marginLabel.Content = "Plan Id";
-            marginLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            marginLabel.VerticalAlignment = VerticalAlignment.Top;
-            marginLabel.Width = 150;
-            marginLabel.FontSize = 14;
-            marginLabel.Margin = new Thickness(30, 0, 0, 0);
+            Label marginLabel = new Label
+            {
+                Content = "Plan Id",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Width = 150,
+                FontSize = 14,
+                Margin = new Thickness(30, 0, 0, 0)
+            };
 
             sp.Children.Add(strName);
             sp.Children.Add(spareType);
@@ -77,22 +85,26 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sp;
         }
 
-        public StackPanel AddTargetVolumes(double width, Tuple<string, double, string> listItem, string clearBtnNamePrefix, int counter, List<string> planIDs, SelectionChangedEventHandler typeChngHndl, RoutedEventHandler clearEvtHndl)
+        public static StackPanel AddTargetVolumes(double width, Tuple<string, double, string> listItem, string clearBtnNamePrefix, int counter, List<string> planIDs, SelectionChangedEventHandler typeChngHndl, RoutedEventHandler clearEvtHndl)
         {
-            StackPanel sp = new StackPanel();
-            sp.Height = 30;
-            sp.Width = width;
-            sp.Orientation = Orientation.Horizontal;
-            sp.Margin = new Thickness(25, 0, 5, 5);
+            StackPanel sp = new StackPanel
+            {
+                Height = 30,
+                Width = width,
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(25, 0, 5, 5)
+            };
 
-            ComboBox str_cb = new ComboBox();
-            str_cb.Name = "str_cb";
-            str_cb.Width = 150;
-            str_cb.Height = sp.Height - 5;
-            str_cb.HorizontalAlignment = HorizontalAlignment.Left;
-            str_cb.VerticalAlignment = VerticalAlignment.Top;
-            str_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
-            str_cb.Margin = new Thickness(5, 5, 0, 0);
+            ComboBox str_cb = new ComboBox
+            {
+                Name = "str_cb",
+                Width = 150,
+                Height = sp.Height - 5,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                HorizontalContentAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(5, 5, 0, 0)
+            };
 
             str_cb.Items.Add(listItem.Item1);
             str_cb.Items.Add("--Add New--");
@@ -100,46 +112,52 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             str_cb.SelectionChanged += typeChngHndl;
             sp.Children.Add(str_cb);
 
-            TextBox RxDose_tb = new TextBox();
-            RxDose_tb.Name = "RxDose_tb";
-            RxDose_tb.Width = 120;
-            RxDose_tb.Height = sp.Height - 5;
-            RxDose_tb.HorizontalAlignment = HorizontalAlignment.Left;
-            RxDose_tb.VerticalAlignment = VerticalAlignment.Top;
-            RxDose_tb.TextAlignment = TextAlignment.Center;
-            RxDose_tb.VerticalContentAlignment = VerticalAlignment.Center;
-            RxDose_tb.Margin = new Thickness(5, 5, 0, 0);
-            RxDose_tb.Text = listItem.Item2.ToString();
+            TextBox RxDose_tb = new TextBox
+            {
+                Name = "RxDose_tb",
+                Width = 120,
+                Height = sp.Height - 5,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                TextAlignment = TextAlignment.Center,
+                VerticalContentAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(5, 5, 0, 0),
+                Text = listItem.Item2.ToString()
+            };
             sp.Children.Add(RxDose_tb);
 
-            ComboBox planId_cb = new ComboBox();
-            planId_cb.Name = "planId_cb";
-            planId_cb.Width = 150;
-            planId_cb.Height = sp.Height - 5;
-            planId_cb.HorizontalAlignment = HorizontalAlignment.Left;
-            planId_cb.VerticalAlignment = VerticalAlignment.Top;
-            planId_cb.Margin = new Thickness(5, 5, 0, 0);
-            planId_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
+            ComboBox planId_cb = new ComboBox
+            {
+                Name = "planId_cb",
+                Width = 150,
+                Height = sp.Height - 5,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(5, 5, 0, 0),
+                HorizontalContentAlignment = HorizontalAlignment.Center
+            };
             foreach (string p in planIDs) planId_cb.Items.Add(p);
             planId_cb.Text = listItem.Item3;
             planId_cb.SelectionChanged += typeChngHndl;
             sp.Children.Add(planId_cb);
 
-            Button clearStructBtn = new Button();
-            clearStructBtn.Name = clearBtnNamePrefix + counter;
-            clearStructBtn.Content = "Clear";
+            Button clearStructBtn = new Button
+            {
+                Name = clearBtnNamePrefix + counter,
+                Content = "Clear",
+                Width = 50,
+                Height = sp.Height - 5,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(10, 5, 0, 0)
+            };
             clearStructBtn.Click += clearEvtHndl;
-            clearStructBtn.Width = 50;
-            clearStructBtn.Height = sp.Height - 5;
-            clearStructBtn.HorizontalAlignment = HorizontalAlignment.Left;
-            clearStructBtn.VerticalAlignment = VerticalAlignment.Top;
-            clearStructBtn.Margin = new Thickness(10, 5, 0, 0);
             sp.Children.Add(clearStructBtn);
 
             return sp;
         }
 
-        public (List<Tuple<string, double, string>>, StringBuilder) ParseTargets(StackPanel theSP, StructureSet selectedSS)
+        public static (List<Tuple<string, double, string>>, StringBuilder) ParseTargets(StackPanel theSP, StructureSet selectedSS)
         {
             StringBuilder sb = new StringBuilder();
             List<Tuple<string, double, string>> listTargets = new List<Tuple<string, double, string>> { };

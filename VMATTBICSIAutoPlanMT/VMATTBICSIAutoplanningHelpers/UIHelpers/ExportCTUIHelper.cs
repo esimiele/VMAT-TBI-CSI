@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Controls;
 using System.Windows;
@@ -9,66 +8,77 @@ using System.Text;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
-    public class ExportCTUIHelper
+    public static class ExportCTUIHelper
     {
-        public void PrintExportImgInfo()
+        public static void PrintExportImgInfo()
         {
             MessageBox.Show("Select a CT image to export to the deep learning model (for autocontouring)");
         }
 
-        public void PopulateCTImageSets(List<StructureSet> structureSets, StructureSet selectedSS, StackPanel theSP)
+        public static void PopulateCTImageSets(List<StructureSet> structureSets, StructureSet selectedSS, StackPanel theSP)
         {
-            ExportCTUIHelper helper = new ExportCTUIHelper();
             //needed to allow automatic selection of CT image for selected CT structure set (nothing will be selected if no structure set is selected)
             if (selectedSS != null)  structureSets.Insert(0, selectedSS);
-            foreach (StructureSet itr in structureSets) theSP.Children.Add(helper.GetCTImageSets(theSP, itr.Image, itr == selectedSS ? true : false));
+            foreach (StructureSet itr in structureSets) theSP.Children.Add(GetCTImageSets(theSP, itr.Image, itr == selectedSS ? true : false));
         }
 
-        private StackPanel GetCTImageSets(StackPanel theSP, VMS.TPS.Common.Model.API.Image theImage, bool isFirst)
+        private static StackPanel GetCTImageSets(StackPanel theSP, VMS.TPS.Common.Model.API.Image theImage, bool isFirst)
         {
-            StackPanel sp = new StackPanel();
-            sp.Height = 30;
-            sp.Width = theSP.Width;
-            sp.Orientation = Orientation.Horizontal;
-            sp.Margin = new Thickness(25, 0, 5, 5);
+            StackPanel sp = new StackPanel
+            {
+                Height = 30,
+                Width = theSP.Width,
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(25, 0, 5, 5)
+            };
 
-            TextBox SID_TB = new TextBox();
-            SID_TB.Text = theImage.Series.Id;
-            SID_TB.HorizontalAlignment = HorizontalAlignment.Center;
-            SID_TB.VerticalAlignment = VerticalAlignment.Center;
-            SID_TB.Width = 80;
-            SID_TB.FontSize = 14;
-            SID_TB.Margin = new Thickness(0);
+            TextBox SID_TB = new TextBox
+            {
+                Text = theImage.Series.Id,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Width = 80,
+                FontSize = 14,
+                Margin = new Thickness(0)
+            };
 
-            TextBox CTID_TB = new TextBox();
-            CTID_TB.Text = theImage.Id;
-            CTID_TB.Name = "theTB";
-            CTID_TB.HorizontalAlignment = HorizontalAlignment.Center;
-            CTID_TB.VerticalAlignment = VerticalAlignment.Center;
-            CTID_TB.Width = 160;
-            CTID_TB.FontSize = 14;
-            CTID_TB.Margin = new Thickness(25, 0, 0, 0);
+            TextBox CTID_TB = new TextBox
+            {
+                Text = theImage.Id,
+                Name = "theTB",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Width = 160,
+                FontSize = 14,
+                Margin = new Thickness(25, 0, 0, 0)
+            };
 
-            TextBox numImg_TB = new TextBox();
-            numImg_TB.Text = theImage.ZSize.ToString();
-            numImg_TB.HorizontalAlignment = HorizontalAlignment.Center;
-            numImg_TB.VerticalAlignment = VerticalAlignment.Center;
-            numImg_TB.Width = 40;
-            numImg_TB.FontSize = 14;
-            numImg_TB.HorizontalContentAlignment = HorizontalAlignment.Center;
-            numImg_TB.Margin = new Thickness(25, 0, 0, 0);
+            TextBox numImg_TB = new TextBox
+            {
+                Text = theImage.ZSize.ToString(),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Width = 40,
+                FontSize = 14,
+                HorizontalContentAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(25, 0, 0, 0)
+            };
 
-            TextBox creation_TB = new TextBox();
-            creation_TB.Text = theImage.HistoryDateTime.ToString("MM/dd/yyyy");
-            creation_TB.HorizontalAlignment = HorizontalAlignment.Center;
-            creation_TB.VerticalAlignment = VerticalAlignment.Center;
-            creation_TB.Width = 90;
-            creation_TB.FontSize = 14;
-            creation_TB.HorizontalContentAlignment = HorizontalAlignment.Center;
-            creation_TB.Margin = new Thickness(25, 0, 0, 0);
+            TextBox creation_TB = new TextBox
+            {
+                Text = theImage.HistoryDateTime.ToString("MM/dd/yyyy"),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Width = 90,
+                FontSize = 14,
+                HorizontalContentAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(25, 0, 0, 0)
+            };
 
-            CheckBox select_CB = new CheckBox();
-            select_CB.Margin = new Thickness(30, 5, 0, 0);
+            CheckBox select_CB = new CheckBox
+            {
+                Margin = new Thickness(30, 5, 0, 0)
+            };
             if (isFirst) select_CB.IsChecked = true;
 
             sp.Children.Add(SID_TB);
@@ -80,7 +90,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sp;
         }
 
-        public string ParseSelectedCTImage(StackPanel theSP)
+        public static string ParseSelectedCTImage(StackPanel theSP)
         {
             string theImageId = "";
             foreach (object obj in theSP.Children)
@@ -104,11 +114,10 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return theImageId;
         }
 
-        public (bool, StringBuilder) ExportImage(StackPanel theSP, List<StructureSet> structureSets, string Id, string imgExportPath, string format)
+        public static(bool, StringBuilder) ExportImage(StackPanel theSP, List<StructureSet> structureSets, string Id, string imgExportPath, string format)
         {
             StringBuilder sb = new StringBuilder();
-            ExportCTUIHelper helper = new ExportCTUIHelper();
-            string selectedCTID = helper.ParseSelectedCTImage(theSP);
+            string selectedCTID = ParseSelectedCTImage(theSP);
             if (!string.IsNullOrWhiteSpace(selectedCTID))
             {
                 VMS.TPS.Common.Model.API.Image theImage = structureSets.FirstOrDefault(x => x.Image.Id == selectedCTID).Image;

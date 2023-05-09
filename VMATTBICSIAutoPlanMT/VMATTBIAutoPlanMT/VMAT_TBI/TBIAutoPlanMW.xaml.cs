@@ -449,7 +449,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         //add the header to the structure sparing list (basically just add some labels to make it look nice)
         private void Add_sp_header()
         {
-            structures_sp.Children.Add(new StructureTuningUIHelper().GetTSManipulationHeader(structures_sp));
+            structures_sp.Children.Add(StructureTuningUIHelper.GetTSManipulationHeader(structures_sp));
 
             //bool to indicate that the header has been added
             firstSpareStruct = false;
@@ -459,11 +459,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private void Add_sp_volumes(StructureSet selectedSS, List<Tuple<string, TSManipulationType, double>> defaultList)
         {
             if (firstSpareStruct) Add_sp_header();
-            StructureTuningUIHelper helper = new StructureTuningUIHelper();
             for (int i = 0; i < defaultList.Count; i++)
             {
                 clearSpareBtnCounter++;
-                structures_sp.Children.Add(helper.AddTSManipulation(structures_sp, selectedSS.Structures.Select(x => x.Id).ToList(), defaultList[i], "clearSpareStructBtn", clearSpareBtnCounter, new SelectionChangedEventHandler(Type_cb_change), new RoutedEventHandler(this.ClearStructBtn_click)));
+                structures_sp.Children.Add(StructureTuningUIHelper.AddTSManipulation(structures_sp, selectedSS.Structures.Select(x => x.Id).ToList(), defaultList[i], "clearSpareStructBtn", clearSpareBtnCounter, new SelectionChangedEventHandler(Type_cb_change), new RoutedEventHandler(this.ClearStructBtn_click)));
             }
         }
 
@@ -490,7 +489,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         }
 
         //method to clear and individual row in the structure sparing list (i.e., remove a single structure)
-        private void ClearStructBtn_click(object sender, EventArgs e) { if (new GeneralUIhelper().ClearRow(sender, structures_sp)) Clear_spare_list(); }
+        private void ClearStructBtn_click(object sender, EventArgs e) { if (GeneralUIHelper.ClearRow(sender, structures_sp)) Clear_spare_list(); }
 
         private void SSID_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -617,7 +616,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 return;
             }
 
-            List<Tuple<string, TSManipulationType, double>> structureSpareList = new StructureTuningUIHelper().ParseTSManipulationList(structures_sp).Item1;
+            List<Tuple<string, TSManipulationType, double>> structureSpareList = StructureTuningUIHelper.ParseTSManipulationList(structures_sp).Item1;
             if (!structureSpareList.Any()) return;
 
             //create an instance of the generateTS class, passing the structure sparing list vector, the selected structure set, and if this is the scleroderma trial treatment regiment
@@ -685,7 +684,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
             ////subtract a beam from the first isocenter (head) if the user is NOT interested in sparing the brain
             if (!optParameters.Where(x => x.Item1.ToLower().Contains("brain")).Any()) beamsPerIso[0]--;
-            List<StackPanel> SPList = new BeamPlacementUIHelper().PopulateBeamsTabHelper(structures_sp, linacs, beamEnergies, isoNames, beamsPerIso, numIsos, numVMATIsos);
+            List<StackPanel> SPList = BeamPlacementUIHelper.PopulateBeamsTabHelper(structures_sp, linacs, beamEnergies, isoNames, beamsPerIso, numIsos, numVMATIsos);
             if (!SPList.Any()) return;
             foreach (StackPanel s in SPList) BEAMS_SP.Children.Add(s);
             ////subtract a beam from the second isocenter (chest/abdomen area) if the user is NOT interested in sparing the kidneys
@@ -704,7 +703,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (!optParameters.Where(x => x.Item1.ToLower().Contains("brain")).Any()) beamsPerIso[0]++;
                 numIsos += tmp - numVMATIsos;
                 numVMATIsos = tmp;
-                isoNames = new List<string>(new IsoNameHelper().GetIsoNames(numVMATIsos, numIsos));
+                isoNames = new List<string>(IsoNameHelper.GetIsoNames(numVMATIsos, numIsos));
                 PopulateBeamsTab();
             }
         }
@@ -932,9 +931,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         private void SetOptConst_Click(object sender, RoutedEventArgs e)
         {
-            OptimizationSetupUIHelper helper = new OptimizationSetupUIHelper();
             //12/5/2022 super janky, but works for now. Needed to accomodate multiple plans for VMAT CSI. Will fix later
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParametersList = helper.ParseOptConstraints(opt_parameters).Item1.First().Item2;
+            List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParametersList = OptimizationSetupUIHelper.ParseOptConstraints(opt_parameters).Item1.First().Item2;
             if (!optParametersList.Any()) return;
             if (VMATplan == null)
             {
@@ -954,7 +952,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 foreach (OptimizationObjective o in VMATplan.OptimizationSetup.Objectives) VMATplan.OptimizationSetup.RemoveObjective(o);
             }
             //optimization parameter list, the plan object, enable jaw tracking?, Auto NTO priority
-            helper.AssignOptConstraints(optParametersList, VMATplan, true, 0.0);
+            OptimizationSetupUIHelper.AssignOptConstraints(optParametersList, VMATplan, true, 0.0);
 
             //confirmUI CUI = new confirmUI();
             //CUI.message.Text = "Optimization objectives have been successfully set!" + Environment.NewLine + Environment.NewLine + "Save changes and launch optimization loop?";
@@ -993,7 +991,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         private void Add_opt_header()
         {
-            opt_parameters.Children.Add(new OptimizationSetupUIHelper().GetOptHeader(structures_sp.Width));
+            opt_parameters.Children.Add(OptimizationSetupUIHelper.GetOptHeader(structures_sp.Width));
             firstOptStruct = false;
         }
 
@@ -1001,11 +999,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             //if (selectedSS == null) { MessageBox.Show("Error! The structure set has not been assigned! Choose a structure set and try again!"); return; }
             if (firstOptStruct) Add_opt_header();
-            OptimizationSetupUIHelper helper = new OptimizationSetupUIHelper();
             for (int i = 0; i < defaultList.Count; i++)
             {
                 clearOptBtnCounter++;
-                opt_parameters.Children.Add(helper.AddOptVolume(opt_parameters, selectedSS, defaultList[i], "clearOptStructBtn", clearOptBtnCounter, new RoutedEventHandler(this.ClearOptStructBtn_click)));
+                opt_parameters.Children.Add(OptimizationSetupUIHelper.AddOptVolume(opt_parameters, selectedSS, defaultList[i], "clearOptStructBtn", clearOptBtnCounter, new RoutedEventHandler(this.ClearOptStructBtn_click)));
             }
         }
 
@@ -1016,7 +1013,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         private void ClearOptStructBtn_click(object sender, EventArgs e)
         {
-            if (new GeneralUIhelper().ClearRow(sender, opt_parameters)) Clear_optimization_parameter_list();
+            if (GeneralUIHelper.ClearRow(sender, opt_parameters)) Clear_optimization_parameter_list();
         }
 
         private void Clear_optimization_parameter_list()
