@@ -136,14 +136,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     }
                     else if (selectedSS.Structures.First(x => x.Id == itr.Item1).IsHighResolution)
                     {
-                        highResStructList.Add(selectedSS.Structures.First(x => x.Id == itr.Item1));
                         highResSpareList.Add(itr);
                         output += String.Format("{0}", itr.Item1) + System.Environment.NewLine;
                     }
                 }
             }
             //if there are high resolution structures, they will need to be converted to default resolution.
-            if (highResStructList.Count() > 0)
+            if (highResSpareList.Count() > 0)
             {
                 //ask user if they are ok with converting the relevant high resolution structures to default resolution
                 output += "They must be converted to default resolution before proceeding!";
@@ -151,11 +150,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 CP.ShowDialog();
                 if (!CP.GetSelection()) return true;
 
-                List<Tuple<string, TSManipulationType, double>> newData = ConvertHighToLowRes(highResStructList, highResSpareList, TSManipulationList);
-                if(!newData.Any()) return true;
-                TSManipulationList = new List<Tuple<string, TSManipulationType, double>>(newData);
-                //inform the main UI class that the UI needs to be updated
-                updateSparingList = true;
+                if(ConvertHighToLowRes(highResSpareList)) return true;
             }
             return false;
         }

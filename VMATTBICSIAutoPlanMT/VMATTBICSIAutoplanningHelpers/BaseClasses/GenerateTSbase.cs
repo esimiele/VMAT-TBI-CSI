@@ -15,17 +15,17 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         public List<string> GetAddedStructures() { return addedStructures; }
         public List<Tuple<string, TSManipulationType>> GetOptParameters() { return optParameters; }
         public List<Tuple<string, TSManipulationType, double>> GetSparingList() { return TSManipulationList; }
-        public bool GetUpdateSparingListStatus() { return updateSparingList; }
+        public bool GetUpdateSparingListStatus() { return updateTSManipulationList; }
 
         protected StructureSet selectedSS;
-        //structure, sparing type, added margin
+        //structure, manipulation type, added margin (if applicable)
         protected List<Tuple<string, TSManipulationType, double>> TSManipulationList;
         protected List<string> addedStructures = new List<string> { };
         protected List<Tuple<string, TSManipulationType>> optParameters = new List<Tuple<string, TSManipulationType>> { };
         protected bool useFlash = false;
         //plan Id, list of isocenter names for this plan
         protected List<Tuple<string,List<string>>> isoNames = new List<Tuple<string, List<string>>> { };
-        protected bool updateSparingList = false;
+        protected bool updateTSManipulationList = false;
 
         #region virtual methods
         protected virtual bool PreliminaryChecks()
@@ -65,22 +65,20 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                     {
                         if (selectedSS.CanRemoveStructure(tmp))
                         {
-                            ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Adding: {0} to the structure removal list", itr.Item2));
+                            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Adding: {itr.Item2} to the structure removal list");
                             removeList.Add(tmp);
                         }
                         else
                         {
-                            ProvideUIUpdate(0, String.Format("Error! {0} can't be removed from the structure set!", itr.Item2), true);
+                            ProvideUIUpdate(0, $"Error! {itr.Item2} can't be removed from the structure set!", true);
                             fail = true;
-                            return (fail, removeList);
 
                         }
                     }
                     else
                     {
-                        ProvideUIUpdate(0, String.Format("{0} is of DICOM type 'None'! ESAPI can't operate on DICOM type 'None'", itr.Item2), true);
+                        ProvideUIUpdate(0, $"{itr.Item2} is of DICOM type 'None'! ESAPI can't operate on DICOM type 'None'", true);
                         fail = true;
-                        return (fail, removeList);
                     }
                 }
             }
@@ -97,7 +95,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             {
                 if (!selectedSS.CanAddStructure(itr.Item1, itr.Item2))
                 {
-                    ProvideUIUpdate(String.Format("Error! {0} can't be added the structure set!", itr.Item2), true);
+                    ProvideUIUpdate($"Error! {itr.Item2} can't be added the structure set!", true);
                     fail = true;
                 }
                 ProvideUIUpdate((int)(100 * ++counter / calcItems));
@@ -111,8 +109,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             int counter = 0;
             foreach (Structure itr in structuresToRemove)
             {
-                string id = itr.Id;
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Removing: {0}", id));
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Removing: {itr.Id}");
                 selectedSS.RemoveStructure(itr);
             }
             return false;
@@ -138,7 +135,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             RemoveStructures(removeList);
 
             if (VerifyAddTSStructures(structuresToRemove)) return true;
-            ProvideUIUpdate(100, String.Format("Prior tuning structures successfully removed!"));
+            ProvideUIUpdate(100, "Prior tuning structures successfully removed!");
             return false;
         }
 
@@ -152,7 +149,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             if (selectedSS.CanAddStructure("CONTROL", newName)) lowRes = selectedSS.AddStructure("CONTROL", newName);
             else
             {
-                ProvideUIUpdate(String.Format("Error! Cannot add new structure: {0}!\nCorrect this issue and try again!", newName), true);
+                ProvideUIUpdate($"Error! Cannot add new structure: {newName}!\nCorrect this issue and try again!", true);
                 fail = true;
             }
             return (fail, lowRes);
@@ -184,38 +181,50 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
-        protected List<Tuple<string, TSManipulationType, double>> ConvertHighToLowRes(List<Structure> highRes, List<Tuple<string, TSManipulationType, double>> highResSpareList, List<Tuple<string, TSManipulationType, double>> dataList)
+        private bool UpdateManipulationList(Tuple<string, TSManipulationType, double> highResManipulationItem, string lowResId)
         {
-            int count = 0;
-            foreach (Structure s in highRes)
+            bool fail = false;
+            //get the index of the high resolution structure in the TS Manipulation list and repace this entry with the newly created low resolution structure
+            int index = TSManipulationList.IndexOf(highResManipulationItem);
+            if (index != -1)
             {
-                int counter = 0;
-                int calcItems = highRes.Count + 3;
-                string id = s.Id;
-                ProvideUIUpdate(String.Format("Converting: {0}", id));
+                TSManipulationList.RemoveAt(index);
+                TSManipulationList.Insert(index, new Tuple<string, TSManipulationType, double>(lowResId, highResManipulationItem.Item2, highResManipulationItem.Item3));
+            }
+            else fail = true;
+            return fail;
+        }
+
+        protected bool ConvertHighToLowRes(List<Tuple<string, TSManipulationType, double>> highResManipulationList)
+        {
+            int percentComplete = 0;
+            int calcItems = highResManipulationList.Count * 5;
+            foreach (Tuple<string, TSManipulationType, double> itr in highResManipulationList)
+            {
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieving high resolution structure: {itr.Item1}");
+                //this structure should be present and contoured in structure set (checked previously)
+                Structure highResStruct = selectedSS.Structures.First(x => string.Equals(x.Id, itr.Item1));
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Converting: {itr.Item1} to low resolution");
                 
                 //get the high res structure mesh geometry
-                MeshGeometry3D mesh = s.MeshGeometry;
+                MeshGeometry3D mesh = highResStruct.MeshGeometry;
                 //get the start and stop image planes for this structure
                 int startSlice = (int)((mesh.Bounds.Z - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes);
                 int stopSlice = (int)(((mesh.Bounds.Z + mesh.Bounds.SizeZ) - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes) + 1;
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Number of slices to contour: {0}", stopSlice - startSlice));
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Number of slices to contour: {stopSlice - startSlice}");
 
                 //create an Id for the low resolution struture that will be created. The name will be '_lowRes' appended to the current structure Id
-                (bool fail, Structure lowRes) = CreateLowResStructure(s);
-                if (fail) return new List<Tuple<string, TSManipulationType, double>> { };
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Added low-res structure: {0}", lowRes.Id));
-
-                ContourLowResStructure(s, lowRes, startSlice, stopSlice);
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), String.Format("Removing existing high-res structure from sparing list and replacing with low-res"));
+                (bool fail, Structure lowRes) = CreateLowResStructure(highResStruct);
+                if (fail) return true;
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Added low-res structure: {lowRes.Id}");
+                ContourLowResStructure(highResStruct, lowRes, startSlice, stopSlice);
                 
-                //get the index of the high resolution structure in the TS Manipulation list and repace this entry with the newly created low resolution structure
-                int index = dataList.IndexOf(highResSpareList.ElementAt(count));
-                dataList.RemoveAt(index);
-                dataList.Insert(index, new Tuple<string, TSManipulationType, double>(lowRes.Id, highResSpareList.ElementAt(count).Item2, highResSpareList.ElementAt(count).Item3));
-                count++;
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), String.Format("Removing existing high-res structure from manipulation list and replacing with low-res"));
+                if(UpdateManipulationList(itr, lowRes.Id)) return true;
             }
-            return dataList;
+            //inform the main UI class that the UI needs to be updated
+            updateTSManipulationList = true;
+            return false;
         }
 
         protected Structure AddTSStructures(Tuple<string, string> itr1)
@@ -229,7 +238,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 addedStructures.Add(structName);
                 optParameters.Add(Tuple.Create(structName, TSManipulationType.None));
             }
-            else ProvideUIUpdate(String.Format("Can't add {0} to the structure set!", structName));
+            else ProvideUIUpdate($"Can't add {structName} to the structure set!");
             return addedStructure;
         }
 

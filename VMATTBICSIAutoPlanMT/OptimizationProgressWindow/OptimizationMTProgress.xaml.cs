@@ -16,7 +16,7 @@ namespace OptimizationProgressWindow
         //and if the GUI can close safely (you don't want to close it if the background thread hasn't stopped working)
         public bool GetAbortStatus() { return abortOpt; }
         public void SetFinishStatus(bool status) { isFinished = status; }
-        public string GetElapsedTime() { return currentTime; }
+        public string GetElapsedTime() { return $"{sw.Elapsed.Hours:00}:{sw.Elapsed.Minutes:00}:{sw.Elapsed.Seconds:00}"; }
 
         private bool abortOpt;
         private bool isFinished;
@@ -31,7 +31,6 @@ namespace OptimizationProgressWindow
         //get instances of the stopwatch and dispatch timer to report how long the calculation takes at each reporting interval
         private Stopwatch sw = new Stopwatch();
         private DispatcherTimer dt = new DispatcherTimer();
-        private string currentTime = "";
 
         public OptimizationMTProgress()
         {
@@ -44,7 +43,6 @@ namespace OptimizationProgressWindow
             callerClass = caller as OptimizationMTbase;
             slave = e;
             //initialize and start the stopwatch
-            runTime.Text = "00:00:00";
             dt.Tick += new EventHandler(Dt_tick);
             dt.Interval = new TimeSpan(0, 0, 1);
             DoStuff();
@@ -75,8 +73,7 @@ namespace OptimizationProgressWindow
             if (sw.IsRunning)
             {
                 TimeSpan ts = sw.Elapsed;
-                currentTime = String.Format("{0:00}:{1:00}:{2:00}", ts.Hours, ts.Minutes, ts.Seconds);
-                runTime.Text = currentTime;
+                runTime.Text = $"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
             }
         }
 
@@ -210,7 +207,7 @@ namespace OptimizationProgressWindow
             sw.Stop();
             dt.Stop();
             canClose = true;
-            ProvideUpdate(String.Format(" Total run time: {0}", currentTime), false);
+            ProvideUpdate($" Total run time: {GetElapsedTime()}", false);
         }
         #endregion
 
