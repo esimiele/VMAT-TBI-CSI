@@ -17,6 +17,7 @@ using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using VMATTBICSIAutoPlanningHelpers.UIHelpers;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
+using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
 
 namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
@@ -31,7 +32,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //point this to the directory holding the documentation files
         string documentationPath = @"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\documentation\";
         //log file path
-        string logPath = @"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\Research\VMAT-TBI-CSI\log_files\";
+        string logPath = @"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\Research\VMAT-TBI\log_files\";
         //location where CT images should be exported
         string imgExportPath = @"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\exportedImages\";
         //image export format
@@ -120,7 +121,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 ss = args.ElementAt(1);
             }
 
-            log = new Logger(logPath, "VMAT CSI", mrn);
+            //load script configuration and display the settings
+            List<string> configurationFiles = new List<string> { };
+            configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
+            configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_CSI_config.ini");
+            foreach (string itr in configurationFiles) LoadConfigurationSettings(itr);
+            log = new Logger(logPath, PlanType.VMAT_CSI, mrn);
             if (app != null)
             {
                 if (string.IsNullOrEmpty(mrn) || string.IsNullOrWhiteSpace(mrn))
@@ -178,12 +184,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             DataContext = this;
             templateBuildOptionCB.Items.Add("Existing template");
             templateBuildOptionCB.Items.Add("Current parameters");
-
-            //load script configuration and display the settings
-            List<string> configurationFiles = new List<string> { };
-            configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
-            configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_CSI_config.ini"); 
-            foreach(string itr in configurationFiles) LoadConfigurationSettings(itr);
 
             LoadPlanTemplates();
             DisplayConfigurationParameters();
@@ -547,7 +547,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                                                                                                                       initRxTB.Text,
                                                                                                                                       boostDosePerFxTB.Text,
                                                                                                                                       boostNumFxTB.Text);
-    if(!parsedPrescriptions.Item1.Any())
+            if(!parsedPrescriptions.Item1.Any())
             {
                 log.LogError(parsedPrescriptions.Item2);
                 return;
@@ -2200,7 +2200,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 if (pi != null)
                 {
                     app.ClosePatient();
-                    log.Dump();
+                    if(log.Dump())
+                    {
+                        MessageBox.Show("Error! Could not save log file!");
+                    }
                 }
                 app.Dispose();
             }

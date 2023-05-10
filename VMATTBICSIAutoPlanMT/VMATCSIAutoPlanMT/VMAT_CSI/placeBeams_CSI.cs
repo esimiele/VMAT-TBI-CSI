@@ -47,6 +47,108 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return GeneratePlanList();
         }
 
+        private (bool, double) GetBrainZCenter(ref int counter, ref int calcItems)
+        {
+            bool fail = false;
+            double brainZCenter = 0.0;
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), "Retrieving PTV_Brain Structure");
+            Structure ptvBrain = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "ptv_brain"));
+            if (ptvBrain == null)
+            {
+                calcItems += 1;
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), "Failed to find PTV_Brain Structure! Retrieving brain structure");
+                ptvBrain = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "brain"));
+                if (ptvBrain == null)
+                {
+                    ProvideUIUpdate("Failed to retrieve brain structure! Cannot calculate isocenter positions! Exiting", true);
+                    fail = true;
+                    return (fail, brainZCenter);
+                }
+            }
+
+            ProvideUIUpdate($"Calculating center of PTV_Brain");
+            brainZCenter = ptvBrain.CenterPoint.z;
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Center of PTV_Brain: {brainZCenter:0.0} mm");
+            return (fail, brainZCenter);
+        }
+
+        private double ScaleSpineYPosition(double spineYMin, double spineYCenter, double scaleFactor)
+        {
+            spineYMin *= scaleFactor;
+            //absolute value accounts for positive or negative y position in DCM coordinates
+            if (Math.Abs(spineYMin) < Math.Abs(spineYCenter))
+            {
+                ProvideUIUpdate($"0.8 * PTV_Spine Ymin is more posterior than center of PTV_Spine!: {spineYMin:0.0} mm vs {spineYCenter:0.0} mm");
+                spineYMin = spineYCenter;
+                ProvideUIUpdate($"Assigning Ant-post iso location to center of PTV_Spine: {spineYMin:0.0} mm");
+            }
+            else
+            {
+                ProvideUIUpdate($"0.8 * Anterior extent of PTV_spine: {spineYMin:0.0} mm");
+            }
+            return spineYMin;
+        }
+
+        private (bool, double, double, double) GetSpineYminZminZMax(ref int counter, ref int calcItems)
+        {
+            bool fail = false;
+            double spineYMin = 0.0;
+            double spineZMax = 0.0;
+            double spineZMin = 0.0;
+            calcItems += 5;
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), "Retrieving PTV_Spine Structure");
+            Structure ptvSpine = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "ptv_spine"));
+            if (ptvSpine == null)
+            {
+                calcItems += 1;
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), "Failed to find PTV_Spine Structure! Retrieving spinal cord structure");
+                ptvSpine = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "spinalcord") || string.Equals(x.Id.ToLower(), "spinal_cord"));
+                if (ptvSpine == null)
+                {
+                    ProvideUIUpdate("Failed to retrieve spinal cord structure! Cannot calculate isocenter positions! Exiting", true);
+                    fail = true;
+                    return (fail, spineYMin, spineZMin, spineZMax);
+                }
+            }
+
+            ProvideUIUpdate("Calculating anterior extent of PTV_Spine");
+            //Place field isocenters in y-direction at 2/3 the max 
+            spineYMin = (ptvSpine.MeshGeometry.Positions.Min(p => p.Y));
+            ProvideUIUpdate("Calculating superior and inferior extent of PTV_Spine");
+            spineZMax = ptvSpine.MeshGeometry.Positions.Max(p => p.Z);
+            spineZMin = ptvSpine.MeshGeometry.Positions.Min(p => p.Z);
+            if (!ptvSpine.Id.ToLower().Contains("ptv"))
+            {
+                ProvideUIUpdate("Adding 5 mm anterior margin to spinal cord structure to mimic anterior extent of PTV_Spine!");
+                spineYMin += 5;
+                ProvideUIUpdate("Adding 10 mm superior margin to spinal cord structure to mimic superior extent of PTV_Spine!");
+                spineZMax += 10.0;
+                ProvideUIUpdate("Adding 15 mm inferior margin to spinal cord structure to mimic inferior extent of PTV_Spine!");
+                spineZMax -= 15.0;
+            }
+            ProvideUIUpdate($"Anterior extent of PTV_Spine: {spineYMin:0.0} mm");
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Superior extent of PTV_Spine: {spineZMax:0.0} mm");
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Inferior extent of PTV_Spine: {spineZMin:0.0} mm");
+
+            spineYMin = ScaleSpineYPosition(spineYMin, ptvSpine.CenterPoint.y, 0.8);
+            ProvideUIUpdate((int)(100 * ++counter / calcItems));
+            return (fail, spineYMin, spineZMin, spineZMax);
+        }
+
+        private VVector RoundIsocenterPositions(VVector v, ExternalPlanSetup plan, ref int counter, ref int calcItems)
+        {
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), "Rounding Y- and Z-positions to nearest integer values");
+            //round z position to the nearest integer
+            v = selectedSS.Image.DicomToUser(v, plan);
+            v.x = Math.Round(v.x / 10.0f) * 10.0f;
+            v.y = Math.Round(v.y / 10.0f) * 10.0f;
+            v.z = Math.Round(v.z / 10.0f) * 10.0f;
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Calculated isocenter position (user coordinates): ({v.x}, {v.y}, {v.z})");
+            v = selectedSS.Image.UserToDicom(v, plan);
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), "Adding calculated isocenter position to stack!");
+            return v;
+        }
+
         protected override List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> GetIsocenterPositions()
         {
             UpdateUILabel("Calculating isocenter positions: ");
@@ -78,140 +180,70 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Longest target in plan {itr.Id}: {longestTargetInPlan.Id}");
 
                 List<Tuple<VVector, string, int>> tmp = new List<Tuple<VVector, string, int>> { };
-                double spineYMin = 0.0;
-                double spineZMax = 0.0;
-                double spineZMin = 0.0;
-                double brainZCenter = 0.0;
+                isoSeparation = 380.0;
                 if (string.Equals(longestTargetInPlan.Id.ToLower(), "ptv_csi"))
                 {
-                    calcItems += 7;
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), "Retrieving PTV_Spine Structure");
-                    Structure ptvSpine = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "ptv_spine"));
-                    if(ptvSpine == null)
-                    {
-                        calcItems += 1;
-                        ProvideUIUpdate((int)(100 * ++counter / calcItems), "Failed to find PTV_Spine Structure! Retrieving spinal cord structure");
-                        ptvSpine = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "spinalcord") || string.Equals(x.Id.ToLower(), "spinal_cord"));
-                        if (ptvSpine == null)
-                        {
-                            ProvideUIUpdate("Failed to retrieve spinal cord structure! Cannot calculate isocenter positions! Exiting", true);
-                            return allIsocenters;
-                        }
-                    }
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), "Retrieving PTV_Brain Structure");
-                    Structure ptvBrain = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "ptv_brain"));
-                    if (ptvBrain == null)
-                    {
-                        calcItems += 1;
-                        ProvideUIUpdate((int)(100 * ++counter / calcItems), "Failed to find PTV_Brain Structure! Retrieving brain structure");
-                        ptvBrain = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "brain"));
-                        if (ptvBrain == null)
-                        {
-                            ProvideUIUpdate("Failed to retrieve brain structure! Cannot calculate isocenter positions! Exiting", true);
-                            return allIsocenters;
-                        }
-                    }
+                    (bool failSpineRetrival, double spineYMin, double spineZMin, double spineZMax) = GetSpineYminZminZMax(ref counter, ref calcItems);
+                    if (failSpineRetrival) return allIsocenters;
 
-                    ProvideUIUpdate("Calculating anterior extent of PTV_Spine");
-                    //Place field isocenters in y-direction at 2/3 the max 
-                    spineYMin = (ptvSpine.MeshGeometry.Positions.Min(p => p.Y));
-                    ProvideUIUpdate("Calculating superior and inferior extent of PTV_Spine");
-                    spineZMax = ptvSpine.MeshGeometry.Positions.Max(p => p.Z);
-                    spineZMin = ptvSpine.MeshGeometry.Positions.Min(p => p.Z);
-                    if (!ptvSpine.Id.ToLower().Contains("ptv"))
-                    {
-                        ProvideUIUpdate("Adding 5 mm anterior margin to spinal cord structure to mimic anterior extent of PTV_Spine!");
-                        spineYMin += 5;
-                        ProvideUIUpdate("Adding 10 mm superior margin to spinal cord structure to mimic superior extent of PTV_Spine!");
-                        spineZMax += 10.0;
-                        ProvideUIUpdate("Adding 15 mm inferior margin to spinal cord structure to mimic inferior extent of PTV_Spine!");
-                        spineZMax -= 15.0;
-                    }
-                    ProvideUIUpdate($"Anterior extent of PTV_Spine: {spineYMin:0.0} mm");
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Superior extent of PTV_Spine: {spineZMax:0.0} mm");
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Inferior extent of PTV_Spine: {spineZMin:0.0} mm");
-
-                    spineYMin *= 0.8;
-                    //absolute value accounts for positive or negative y position in DCM coordinates
-                    if (Math.Abs(spineYMin) < Math.Abs(ptvSpine.CenterPoint.y))
-                    {
-                        ProvideUIUpdate($"0.8 * PTV_Spine Ymin is more posterior than center of PTV_Spine!: {spineYMin:0.0} mm vs {ptvSpine.CenterPoint.y:0.0} mm");
-                        spineYMin = ptvSpine.CenterPoint.y;
-                        ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Assigning Ant-post iso location to center of PTV_Spine: {spineYMin:0.0} mm");
-                    }
-                    else
-                    {
-                        ProvideUIUpdate((int)(100 * ++counter / calcItems), $"0.8 * Anterior extent of PTV_spine: {spineYMin:0.0} mm");
-                    }
-
+                    (bool failBrainRetrival, double brainZCenter) = GetBrainZCenter(ref counter, ref calcItems);
+                    if (failBrainRetrival) return allIsocenters;
                     //since Brain CTV = Brain and PTV = CTV + 5 mm uniform margin, center of brain is unaffected by adding the 5 mm margin if the PTV_Brain structure could not be found
-                    ProvideUIUpdate($"Calculating center of PTV_Brain");
-                    brainZCenter = ptvBrain.CenterPoint.z;
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Center of PTV_Brain: {brainZCenter:0.0} mm");
-
                     ProvideUIUpdate($"Calculating center of PTV_Brain to inf extent of PTV_Spine");
                     maxTargetLength = brainZCenter - spineZMin;
                     ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Extent: {maxTargetLength:0.0} mm");
-                }
-                //The actual correct equation for calculating the isocenter separation is given below for VMAT TBI:
-                //isoSeparation = Math.Round(((targetExtent - 380.0) / (numIsos - 1)) / 10.0f) * 10.0f;
 
-                //It is calculated by setting the most superior and inferior isocenters to be 19.0 cm from the target volume edge in the z-direction. 
-                //The isocenter separtion is then calculated as half the distance between these two isocenters (sep = ((max-19cm)-(min+19cm)/2).
-                //NOTE THAT THIS EQUATION WILL NOT WORK FOR VMAT CSI AS IT RESULTS IN A POORLY POSITIONED UPPER SPINE ISOCENTER IF APPLICABLE
-                isoSeparation = 380.0;
-                
-                for (int i = 0; i < numIsos; i++)
-                {
-                    ProvideUIUpdate($"Determining position for isocenter: {i}");
-                    VVector v = new VVector();
-                    v.x = userOrigin.x;
-                    if (longestTargetInPlan.Id.ToLower() == "ptv_csi")
+                    for (int i = 0; i < numIsos; i++)
                     {
+                        VVector v = new VVector();
+                        ProvideUIUpdate($"Determining position for isocenter: {i + 1}");
                         //special case when the main target is ptv_csi
                         //asign y position to spineYmin
                         v.y = spineYMin;
                         //assign the first isocenter to the center of the ptv_brain
                         if (i == 0) v.z = brainZCenter;
-                        //else v.z = (brainZCenter - i * isoSeparation);
+                        else if (i == 1)
+                        {
+                            //for the second isocenter, check to see if it is placed TOO CLOSE to the brain isocenter. Do this by adding 20 cm (1/2 field length) to the proposed second isocenter.
+                            //if the resulting value is greater than the brain isocenter z position, force the second isocenter position to be equal to the brain isocenter z position - 20 cm.
+                            if (v.z + 200.0 > tmp.ElementAt(0).Item1.z) v.z = tmp.ElementAt(0).Item1.z - 200.0;
+                        }
                         else
                         {
                             //for all other isocenters work your way down towards the inferior extent of ptv_spine
                             v.z = (spineZMin + (numIsos - i - 1) * isoSeparation + 180.0);
-                            if(i == 1)
-                            {
-                                //for the second isocenter, check to see if it is placed TOO CLOSE to the brain isocenter. Do this by adding 20 cm (1/2 field length) to the proposed second isocenter.
-                                //if the resulting value is greater than the brain isocenter z position, force the second isocenter position to be equal to the brain isocenter z position - 20 cm.
-                                if (v.z + 200.0 > tmp.ElementAt(0).Item1.z) v.z = tmp.ElementAt(0).Item1.z - 200.0;
-                            }
                         }
+                        
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Calculated isocenter position {i + 1}");
+                        tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPositions(v, itr, ref counter, ref calcItems),
+                                                                planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, itr.Id)).Item2.ElementAt(i).Item1,
+                                                                planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, itr.Id)).Item2.ElementAt(i).Item2));
                     }
-                    else
+                }
+                else
+                {
+                    //assumes only one isocenter position for the plan (assuming it's the boost plan)
+                    ProvideUIUpdate($"Determining position for isocenter: {1}");
+                    VVector v = new VVector
                     {
-                        //assign y isocenter position to the y position of the user origin. This will likely change
-                        v.y = longestTargetInPlan.CenterPoint.y;
+                        x = userOrigin.x,
+                        //assign y isocenter position to the center of the target
+                        y = longestTargetInPlan.CenterPoint.y,
                         //assumes one isocenter if the target is not ptv_csi
-                        v.z = longestTargetInPlan.CenterPoint.z;
-                    }
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Calculated isocenter position {i + 1}");
-                    
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), "Rounding Y- and Z-positions to nearest integer values");
-                    //round z position to the nearest integer
-                    v = itr.StructureSet.Image.DicomToUser(v, itr);
-                    v.y = Math.Round(v.y / 10.0f) * 10.0f;
-                    v.z = Math.Round(v.z / 10.0f) * 10.0f;
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Calculated isocenter position (user coordinates): ({v.x}, {v.y}, {v.z})");
-                    v = itr.StructureSet.Image.UserToDicom(v, itr);
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), "Adding calculated isocenter position to stack!");
-                    tmp.Add(new Tuple<VVector, string, int>(v, 
-                                                            planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, itr.Id)).Item2.ElementAt(i).Item1, 
-                                                            planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, itr.Id)).Item2.ElementAt(i).Item2));
+                        z = longestTargetInPlan.CenterPoint.z
+                    };
+
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Calculated isocenter position {1}");
+                    tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPositions(v, itr, ref counter, ref calcItems),
+                                                            planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, itr.Id)).Item2.ElementAt(0).Item1,
+                                                            planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, itr.Id)).Item2.ElementAt(0).Item2));
                 }
 
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Finished retrieving isocenters for plan: {itr.Id}");
                 allIsocenters.Add(Tuple.Create(itr, new List<Tuple<VVector, string, int>>(tmp)));
                 count++;
             }
+            ProvideUIUpdate($"Elapsed time: GetElapsedTime()");
             return allIsocenters;
         }
 
@@ -236,19 +268,21 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (tmp.Where(x => x.Item2.ToLower().Contains("ptv_csi")).Any())
             {
                 //verify that BOTH PTV spine and PTV brain exist in the current structure set! If not, create them (used to fit the field jaws to the target
-                if (selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), "ptv_brain")))
+                if (!selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), "ptv_brain")))
                 {
                     //uniform 5mm outer margin to create brain ptv from brain ctv/brain structure
                     if (CreateTargetStructure("PTV_Brain", "brain", new AxisAlignedMargins(StructureMarginGeometry.Outer, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0))) return true;
                 }
-                if (selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), "ptv_spine")))
+                if (!selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), "ptv_spine")))
                 {
                     //ctv_spine = spinal_cord+0.5cm ANT, +1.5cm Inf, and +1.0 cm in all other directions
                     //ptv_spine = ctv_spine + 5 mm outer margin --> add 5 mm to the asymmetric margins used to create the ctv
                     if (CreateTargetStructure("PTV_Spine", "spinalcord", new AxisAlignedMargins(StructureMarginGeometry.Outer, 15.0, 10.0, 20.0, 15.0, 15.0, 15.0), "spinal_cord")) return true;
                 }
+                //grab ptv_brain as we will need it for the first iso field placement
                 target = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "ptv_brain"));
             }
+            //assumes only one target for the boos plan
             else target = selectedSS.Structures.FirstOrDefault(x => x.Id.Contains(tmp.First().Item2));
             ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Retrieved target for plan: {target.Id}");
 
@@ -330,6 +364,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     count++;
                 }
             }
+            ProvideUIUpdate($"Elapsed time: GetElapsedTime()");
             return false;
         }
 
@@ -339,7 +374,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             int counter = 0;
             ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Failed to find {targetStructureId} Structure! Retrieving {baseStructureId} structure");
             Structure baseStructure = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), baseStructureId.ToLower()));
-            if(baseStructure == null && !string.IsNullOrEmpty(alternateBasStructureId)) baseStructure = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), alternateBasStructureId.ToLower()));
+            if(baseStructure == null && !string.IsNullOrEmpty(alternateBasStructureId)) baseStructure = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), 
+                                                                                                                                                                alternateBasStructureId.ToLower()));
             if(baseStructure == null)
             {
                 ProvideUIUpdate($"Could not retrieve base structure {baseStructureId}. Exiting!", true);

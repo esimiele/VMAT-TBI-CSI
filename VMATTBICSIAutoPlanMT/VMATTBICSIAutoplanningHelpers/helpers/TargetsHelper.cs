@@ -74,23 +74,27 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             Structure longestTargetInPlan = null;
             bool fail = false;
             StringBuilder sb = new StringBuilder();
-            foreach (string itr in targetListForAllPlans.Item2)
+            if(targetListForAllPlans != default)
             {
-                Structure targStruct = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id, itr));
-                if (targStruct == null || targStruct.IsEmpty)
+                foreach (string itr in targetListForAllPlans.Item2)
                 {
-                    sb.AppendLine($"Error! No structure named: {itr} found or contoured!");
-                    fail = true;
-                    return (fail, longestTargetInPlan, maxTargetLength, sb);
-                }
-                Point3DCollection pts = targStruct.MeshGeometry.Positions;
-                double diff = pts.Max(p => p.Z) - pts.Min(p => p.Z);
-                if (diff > maxTargetLength) 
-                { 
-                    longestTargetInPlan = targStruct; 
-                    maxTargetLength = diff; 
+                    Structure targStruct = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id, itr));
+                    if (targStruct == null || targStruct.IsEmpty)
+                    {
+                        sb.AppendLine($"Error! No structure named: {itr} found or contoured!");
+                        fail = true;
+                        return (fail, longestTargetInPlan, maxTargetLength, sb);
+                    }
+                    Point3DCollection pts = targStruct.MeshGeometry.Positions;
+                    double diff = pts.Max(p => p.Z) - pts.Min(p => p.Z);
+                    if (diff > maxTargetLength)
+                    {
+                        longestTargetInPlan = targStruct;
+                        maxTargetLength = diff;
+                    }
                 }
             }
+            
             return (fail, longestTargetInPlan, maxTargetLength, sb);
         }
 

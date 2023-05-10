@@ -545,12 +545,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     if (isGlobes)
                     {
                         //need to add these margins to the existing margin distance to account for the situation where ptv_brain is not retrieved, but the brain structure is.
-                        margin += 1.5;
-                        thickness = 1.0;
+                        margin += 1.0;
+                        thickness = 2.0;
                     }
                     else
                     {
-                        margin += 1.5;
+                        margin += 0.7;
                         thickness = 2.0;
                     }
                     if (CreateRing(targetStructure, addedStructure, margin, thickness)) return true;
@@ -562,12 +562,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
                     if (addedStructure.IsEmpty)
                     {
-                        ProvideUIUpdate($"{addedStructure.Id} is empty! Removing now!");
+                        ProvideUIUpdate($"{addedStructure.Id} is empty!");
                         calcItems += 1;
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Removing structure: {addedStructure.Id}");
                         selectedSS.RemoveStructure(addedStructure);
-                        ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Removed structure: {addedStructure.Id}");
                     }
-                    ProvideUIUpdate($"Finished contouring: {addedStructure.Id}");
+                    else ProvideUIUpdate($"Finished contouring: {addedStructure.Id}");
                 }
                 else ProvideUIUpdate($"Warning! Could not retrieve normal structure! Skipping {addedStructure.Id}");
             }

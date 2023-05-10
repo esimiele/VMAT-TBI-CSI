@@ -82,7 +82,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 return true;
             }
             else ProvideUIUpdate(100, $"No plans currently exist in course {courseId}!");
-
+            ProvideUIUpdate($"Elapsed time: GetElapsedTime()");
             return false;
         }
 
@@ -128,6 +128,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 return true;
             }
             ProvideUIUpdate(100, $"Course {courseId} retrieved!");
+            ProvideUIUpdate($"Elapsed time: GetElapsedTime()");
             return false;
         }
 
@@ -233,6 +234,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Added plan {itr.Item1} to stack!");
             }
             ProvideUIUpdate(100, "Finished creating and initializing plans!");
+            ProvideUIUpdate($"Elapsed time: GetElapsedTime()");
             return false;
         }
 
@@ -286,6 +288,14 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), $"Field length ({iso1Beam1.Id} Y1 + {iso2Beam1.Id} Y2): {fieldLength} mm");
 
                 double numSlices = Math.Ceiling(fieldLength + contourOverlapMargin - Math.Abs(isoLocations.Item2.ElementAt(i).Item1.z - isoLocations.Item2.ElementAt(i - 1).Item1.z));
+                if(numSlices <= 0)
+                {
+                    ProvideUIUpdate($"Error! Calculated number of slices is <= 0 ({numSlices}) for junction: {i}!", true);
+                    ProvideUIUpdate($"Field length: {fieldLength} mm");
+                    ProvideUIUpdate($"Contour overlap margin: {contourOverlapMargin} mm");
+                    ProvideUIUpdate($"Isocenter separation: {Math.Abs(isoLocations.Item2.ElementAt(i).Item1.z - isoLocations.Item2.ElementAt(i - 1).Item1.z)}!");
+                    return true;
+                }
                 ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), $"Number of slices to contour: {(int)(numSlices / zResolution)}");
 
                 //calculate the center position between adjacent isocenters. NOTE: this calculation works from superior to inferior!
@@ -322,6 +332,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 tmpJnxList.ElementAt(count).SegmentVolume = tmpJnxList.ElementAt(count).And(target_tmp.Margin(0));
                 count++;
             }
+            ProvideUIUpdate($"Elapsed time: GetElapsedTime()");
             return false;
         }
 

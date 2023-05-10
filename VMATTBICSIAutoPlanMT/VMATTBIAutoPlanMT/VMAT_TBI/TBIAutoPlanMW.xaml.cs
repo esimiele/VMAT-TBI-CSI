@@ -13,6 +13,11 @@ using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using VMATTBICSIAutoPlanningHelpers.UIHelpers;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
+using VMATTBICSIAutoPlanningHelpers.Logging;
+using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
+using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
+using System.Collections.ObjectModel;
+using System.Text;
 
 namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
@@ -166,12 +171,16 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         //data members
+        Logger log = null;
         public Patient pi = null;
         StructureSet selectedSS = null;
         private bool firstSpareStruct = true;
+        private bool firstTemplateSpareStruct = true;
         private bool firstOptStruct = true;
         public int clearSpareBtnCounter = 0;
+        private int clearTemplateSpareBtnCounter = 0;
         public int clearOptBtnCounter = 0;
+        public int clearTemplateOptBtnCounter = 0;
         List<Tuple<string, TSManipulationType>> optParameters = new List<Tuple<string, TSManipulationType>> { };
         ExternalPlanSetup VMATplan = null;
         int numIsos = 0;
@@ -187,6 +196,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         bool isModified = false;
         bool autoSave = false;
         //ProcessStartInfo optLoopProcess;
+        //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
+        public ObservableCollection<CSIAutoPlanTemplate> PlanTemplates { get; set; }
+        //temporary variable to add new templates to the list
+        CSIAutoPlanTemplate prospectiveTemplate = null;
 
         public TBIAutoPlanMW(List<string> args)
         {
@@ -200,7 +213,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 mrn = args.ElementAt(0);
                 ss = args.ElementAt(1);
             }
-            
+
+            //load script configuration and display the settings
+            List<string> configurationFiles = new List<string> { };
+            configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
+            configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_TBI_config.ini");
+            foreach (string itr in configurationFiles) LoadConfigurationSettings(itr);
+            log = new Logger("", PlanType.VMAT_TBI, mrn);
             if (app != null)
             {
                 if (string.IsNullOrEmpty(mrn) || string.IsNullOrWhiteSpace(mrn))
@@ -240,11 +259,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 else MessageBox.Show("Could not open patient!");
             }
 
-            //load script configuration and display the settings
-            List<string> configurationFiles = new List<string> { };
-            configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
-            configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_TBI_config.ini");
-            foreach(string itr in configurationFiles) LoadConfigurationSettings(itr);
             DisplayConfigurationParameters();
 
             //pre-populate the flash comboxes (set global flash as default)
@@ -257,7 +271,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             targetMarginTB.Text = defaultTargetMargin;
         }
 
-        private void Help_Button_Click(object sender, RoutedEventArgs e)
+        private void HelpButton_Click(object sender, RoutedEventArgs e)
         {
             if (!File.Exists(documentationPath + "VMAT_TBI_guide.pdf")) MessageBox.Show("VMAT_TBI_guide PDF file does not exist!");
             else Process.Start(documentationPath + "VMAT_TBI_guide.pdf");
@@ -267,115 +281,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             if (!File.Exists(documentationPath + "TBI_plugIn_quickStart_guide.pdf")) MessageBox.Show("TBI_plugIn_quickStart_guide PDF file does not exist!");
             else Process.Start(documentationPath + "TBI_plugIn_quickStart_guide.pdf");
-        }
-
-        //method to display the loaded configuration settings
-        private void DisplayConfigurationParameters()
-        {
-            configTB.Text = "";
-            configTB.Text = String.Format("{0}", DateTime.Now.ToString()) + System.Environment.NewLine;
-            if (configFile != "") configTB.Text += String.Format("Configuration file: {0}", configFile) + System.Environment.NewLine + System.Environment.NewLine;
-            else configTB.Text += String.Format("Configuration file: none") + System.Environment.NewLine + System.Environment.NewLine;
-            configTB.Text += String.Format("Documentation path: {0}", documentationPath) + System.Environment.NewLine + System.Environment.NewLine;
-            configTB.Text += String.Format("Default parameters:") + System.Environment.NewLine;
-            configTB.Text += String.Format("Include flash by default: {0}", useFlashByDefault) + System.Environment.NewLine;
-            configTB.Text += String.Format("Flash type: {0}", defaultFlashType) + System.Environment.NewLine;
-            configTB.Text += String.Format("Flash margin: {0} cm", defaultFlashMargin) + System.Environment.NewLine;
-            configTB.Text += String.Format("Target inner margin: {0} cm", defaultTargetMargin) + System.Environment.NewLine;
-            configTB.Text += String.Format("Contour field ovelap: {0}", contourOverlap) + System.Environment.NewLine;
-            configTB.Text += String.Format("Contour field overlap margin: {0} cm", contourFieldOverlapMargin) + System.Environment.NewLine;
-            configTB.Text += String.Format("Available linacs:") + System.Environment.NewLine;
-            foreach (string l in linacs) configTB.Text += l + System.Environment.NewLine;
-            configTB.Text += String.Format("Available photon energies:") + System.Environment.NewLine;
-            foreach (string e in beamEnergies) configTB.Text += e + System.Environment.NewLine;
-            configTB.Text += String.Format("Beams per isocenter: ");
-            for (int i = 0; i < beamsPerIso.Length; i++)
-            {
-                configTB.Text += String.Format("{0}", beamsPerIso.ElementAt(i));
-                if (i != beamsPerIso.Length - 1) configTB.Text += String.Format(", ");
-            }
-            configTB.Text += System.Environment.NewLine;
-            configTB.Text += String.Format("Collimator rotation (deg) order: ");
-            for (int i = 0; i < collRot.Length; i++)
-            {
-                configTB.Text += String.Format("{0:0.0}", collRot.ElementAt(i));
-                if (i != collRot.Length - 1) configTB.Text += String.Format(", ");
-            }
-            configTB.Text += System.Environment.NewLine;
-            configTB.Text += String.Format("Field jaw position (cm) order: ") + System.Environment.NewLine;
-            configTB.Text += String.Format("(x1,y1,x2,y2)") + System.Environment.NewLine;
-            foreach (VRect<double> j in jawPos) configTB.Text += String.Format("({0:0.0},{1:0.0},{2:0.0},{3:0.0})", j.X1 / 10, j.Y1 / 10, j.X2 / 10, j.Y2 / 10) + System.Environment.NewLine;
-            configTB.Text += String.Format("Photon dose calculation model: {0}", calculationModel) + System.Environment.NewLine;
-            configTB.Text += String.Format("Use GPU for dose calculation: {0}", useGPUdose) + System.Environment.NewLine;
-            configTB.Text += String.Format("Photon optimization model: {0}", optimizationModel) + System.Environment.NewLine;
-            configTB.Text += String.Format("Use GPU for optimization: {0}", useGPUoptimization) + System.Environment.NewLine;
-            configTB.Text += String.Format("MR level restart at: {0}", MRrestartLevel) + System.Environment.NewLine + System.Environment.NewLine;
-
-            configTB.Text += String.Format("Requested general tuning structures:") + System.Environment.NewLine;
-            configTB.Text += String.Format(" {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + System.Environment.NewLine;
-            foreach (Tuple<string, string> ts in TS_structures) configTB.Text += String.Format(" {0, -10} | {1, -15} |" + System.Environment.NewLine, ts.Item1, ts.Item2);
-            configTB.Text += System.Environment.NewLine;
-
-            configTB.Text += String.Format("Default sparing structures:") + System.Environment.NewLine;
-            configTB.Text += String.Format(" {0, -15} | {1, -19} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + System.Environment.NewLine;
-            foreach (Tuple<string, TSManipulationType, double> spare in defaultSpareStruct) configTB.Text += String.Format(" {0, -15} | {1, -19} | {2,-11:N1} |" + System.Environment.NewLine, spare.Item1, spare.Item2.ToString(), spare.Item3);
-            configTB.Text += System.Environment.NewLine;
-
-            configTB.Text += "-----------------------------------------------------------------------------" + System.Environment.NewLine;
-            configTB.Text += String.Format("Scleroderma trial case parameters:") + System.Environment.NewLine;
-            configTB.Text += String.Format("Dose per fraction: {0} cGy", scleroDosePerFx) + System.Environment.NewLine;
-            configTB.Text += String.Format("Number of fractions: {0}", scleroNumFx) + System.Environment.NewLine;
-            if (scleroSpareStruct.Any())
-            {
-                configTB.Text += String.Format("Scleroderma case additional sparing structures:") + System.Environment.NewLine;
-                configTB.Text += String.Format(" {0, -15} | {1, -19} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + System.Environment.NewLine;
-                foreach (Tuple<string, TSManipulationType, double> spare in scleroSpareStruct) configTB.Text += String.Format(" {0, -15} | {1, -19} | {2,-11:N1} |" + System.Environment.NewLine, spare.Item1, spare.Item2.ToString(), spare.Item3);
-                configTB.Text += System.Environment.NewLine;
-            }
-            else configTB.Text += String.Format("No additional sparing structures for Scleroderma case") + System.Environment.NewLine + System.Environment.NewLine;
-            configTB.Text += String.Format("Requested scleroderma trial tuning structures:") + System.Environment.NewLine;
-            configTB.Text += String.Format(" {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + System.Environment.NewLine;
-            foreach (Tuple<string, string> sts in scleroStructures) configTB.Text += String.Format(" {0, -10} | {1, -15} |" + System.Environment.NewLine, sts.Item1, sts.Item2);
-            configTB.Text += Environment.NewLine;
-            configTB.Text += String.Format("Optimization parameters:") + System.Environment.NewLine;
-            configTB.Text += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + System.Environment.NewLine;
-            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in optConstDefaultSclero) configTB.Text += String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5);
-            configTB.Text += System.Environment.NewLine;
-
-            configTB.Text += "-----------------------------------------------------------------------------" + System.Environment.NewLine;
-            configTB.Text += String.Format("Myeloablative case parameters:") + System.Environment.NewLine;
-            configTB.Text += String.Format("Dose per fraction: {0} cGy", myeloDosePerFx) + System.Environment.NewLine;
-            configTB.Text += String.Format("Number of fractions: {0}", myeloNumFx) + System.Environment.NewLine;
-            if (myeloSpareStruct.Any())
-            {
-                configTB.Text += String.Format("Myeloablative case additional sparing structures:") + System.Environment.NewLine;
-                configTB.Text += String.Format(" {0, -15} | {1, -19} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + System.Environment.NewLine;
-                foreach (Tuple<string, TSManipulationType, double> spare in myeloSpareStruct) configTB.Text += String.Format(" {0, -15} | {1, -19} | {2,-11:N1} |" + System.Environment.NewLine, spare.Item1, spare.Item2.ToString(), spare.Item3);
-                configTB.Text += System.Environment.NewLine;
-            }
-            else configTB.Text += String.Format("No additional sparing structures for Myeloablative case") + System.Environment.NewLine + System.Environment.NewLine;
-            configTB.Text += String.Format("Optimization parameters:") + System.Environment.NewLine;
-            configTB.Text += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + System.Environment.NewLine;
-            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in optConstDefaultMyelo) configTB.Text += String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5);
-            configTB.Text += System.Environment.NewLine;
-
-            configTB.Text += "-----------------------------------------------------------------------------" + System.Environment.NewLine;
-            configTB.Text += String.Format("Non-Myeloablative case parameters:") + System.Environment.NewLine;
-            configTB.Text += String.Format("Dose per fraction: {0} cGy", nonmyeloDosePerFx) + System.Environment.NewLine;
-            configTB.Text += String.Format("Number of fractions: {0}", nonmyeloNumFx) + System.Environment.NewLine;
-            if (nonmyeloSpareStruct.Any())
-            {
-                configTB.Text += String.Format("Non-Myeloablative case additional sparing structures:") + System.Environment.NewLine;
-                configTB.Text += String.Format(" {0, -15} | {1, -19} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + System.Environment.NewLine;
-                foreach (Tuple<string, TSManipulationType, double> spare in nonmyeloSpareStruct) configTB.Text += String.Format(" {0, -15} | {1, -19} | {2,-11:N1} |" + System.Environment.NewLine, spare.Item1, spare.Item2.ToString(), spare.Item3);
-                configTB.Text += System.Environment.NewLine;
-            }
-            else configTB.Text += String.Format("No additional sparing structures for Non-Myeloablative case") + System.Environment.NewLine + System.Environment.NewLine;
-            configTB.Text += String.Format("Optimization parameters:") + System.Environment.NewLine;
-            configTB.Text += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + System.Environment.NewLine;
-            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in optConstDefaultNonMyelo) configTB.Text += String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5);
-            configTB.Text += "-----------------------------------------------------------------------------" + System.Environment.NewLine;
-            configScroller.ScrollToTop();
         }
 
         //flash stuff
@@ -433,13 +338,111 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             MessageBox.Show("Specify the inner body margin (in cm) that should be used to create the PTV. Typical values range from 0.0 to 0.5 cm. Default value at Stanford University is 0.3 cm.");
         }
 
+        private void TsGenerateVsManipulateInfo_Click(object sender, RoutedEventArgs e)
+        {
+            string message = "What's the difference between TS structure generation vs manipulation?" + Environment.NewLine;
+            message += String.Format("TS structure generation involves adding structures to the structure set to shape the dose distribution. These include rings and substructures. E.g.,") + Environment.NewLine;
+            message += String.Format("TS_ring900  -->  ring structure around the targets using a nominal dose level of 900 cGy to determine fall-off") + Environment.NewLine;
+            message += String.Format("Kidneys-1cm  -->  substructure for the Kidneys volume where the Kidneys are contracted by 1 cm") + Environment.NewLine + Environment.NewLine;
+            message += String.Format("TS structure manipulation involves manipulating/modifying the structure itself or target structures. E.g.,") + Environment.NewLine;
+            message += String.Format("(Ovaries, Crop target from structure, 1.5cm)  -->  modify the target structure such that the ovaries structure is cropped from the target with a 1.5 cm margin") + Environment.NewLine;
+            message += String.Format("(Brainstem, Contour overlap, 0.0 cm)  -->  Identify the overlapping regions between the brainstem and target structure(s) and contour them as new structures") + Environment.NewLine + Environment.NewLine;
+            MessageBox.Show(message);
+        }
+
+        //method to clear and individual row in the structure sparing list (i.e., remove a single structure)
+        private void ClearStructureManipulationItem_Click(object sender, EventArgs e)
+        {
+            if (GeneralUIHelper.ClearRow(sender, (sender as Button).Name.Contains("template") ? templateStructuresSP : structureManipulationSP))
+            {
+                ClearStructureManipulationsList((sender as Button).Name.Contains("template") ? templateClearSpareStructuresBtn : ClearStructureManipulationsBtn);
+            }
+        }
+
+        private void ClearStructureManipulationsList(Button theBtn)
+        {
+            if (theBtn.Name.Contains("template"))
+            {
+                firstTemplateSpareStruct = true;
+                templateStructuresSP.Children.Clear();
+                clearTemplateSpareBtnCounter = 0;
+            }
+            else
+            {
+                firstSpareStruct = true;
+                structureManipulationSP.Children.Clear();
+                clearSpareBtnCounter = 0;
+            }
+        }
+
+        private void AddTuningStructure_Click(object sender, RoutedEventArgs e)
+        {
+            //populate the comboboxes
+            Button theBtn = (Button)sender;
+            ScrollViewer theScroller;
+            StackPanel theSP;
+            if (theBtn.Name.Contains("template"))
+            {
+                theScroller = templateTSScroller;
+                theSP = templateTSSP;
+            }
+            else
+            {
+                theScroller = TSGenerationScroller;
+                theSP = TSGenerationSP;
+            }
+            AddTuningStructureVolumes(new List<Tuple<string, string>> { Tuple.Create("--select--", "--select--") }, theSP);
+            theScroller.ScrollToBottom();
+        }
+
+        private void AddTuningStructureVolumes(List<Tuple<string, string>> defaultList, StackPanel theSP)
+        {
+            if (selectedSS == null)
+            {
+                log.LogError("Error! Please select a Structure Set before adding tuning structure manipulations!");
+                return;
+            }
+            if (theSP.Children.Count == 0) theSP.Children.Add(StructureTuningUIHelper.AddTemplateTSHeader(theSP));
+            int counter = 0;
+            string clearBtnName = "ClearTSStructuresBtn";
+            if (theSP.Name.Contains("template"))
+            {
+                clearBtnName = "template" + clearBtnName;
+            }
+            for (int i = 0; i < defaultList.Count; i++)
+            {
+                counter++;
+                theSP.Children.Add(StructureTuningUIHelper.AddTSVolume(theSP,
+                                                       selectedSS,
+                                                       defaultList[i],
+                                                       clearBtnName,
+                                                       counter,
+                                                       new RoutedEventHandler(this.ClearTuningStructureItem_Click)));
+            }
+        }
+
+        private void ClearTuningStructureItem_Click(object sender, RoutedEventArgs e)
+        {
+            Button theBtn = (Button)sender;
+            StackPanel theSP;
+            if (theBtn.Name.Contains("template"))
+            {
+                theSP = templateTSSP;
+            }
+            else
+            {
+                theSP = TSGenerationSP;
+            }
+            if (GeneralUIHelper.ClearRow(sender, theSP)) GeneralUIHelper.ClearList(theSP);
+        }
+
         private void ContourOverlapInfo_Click(object sender, RoutedEventArgs e)
         {
             MessageBox.Show("Selecting this option will contour the (approximate) overlap between fields in adjacent isocenters in the VMAT plan and assign the resulting structures as targets in the optimization.");
         }
 
         //add structure to spare to the list
-        private void Add_str_click(object sender, RoutedEventArgs e)
+        private void AddStructureManipulationItem_Click(object sender, RoutedEventArgs e)
         {
             //populate the comboboxes
             Add_sp_volumes(selectedSS, new List<Tuple<string, TSManipulationType, double>> { Tuple.Create("--select--", TSManipulationType.None, 0.0) });
@@ -449,7 +452,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         //add the header to the structure sparing list (basically just add some labels to make it look nice)
         private void Add_sp_header()
         {
-            structures_sp.Children.Add(StructureTuningUIHelper.GetTSManipulationHeader(structures_sp));
+            structureManipulationSP.Children.Add(StructureTuningUIHelper.GetTSManipulationHeader(structureManipulationSP));
 
             //bool to indicate that the header has been added
             firstSpareStruct = false;
@@ -462,7 +465,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             for (int i = 0; i < defaultList.Count; i++)
             {
                 clearSpareBtnCounter++;
-                structures_sp.Children.Add(StructureTuningUIHelper.AddTSManipulation(structures_sp, selectedSS.Structures.Select(x => x.Id).ToList(), defaultList[i], "clearSpareStructBtn", clearSpareBtnCounter, new SelectionChangedEventHandler(Type_cb_change), new RoutedEventHandler(this.ClearStructBtn_click)));
+                structureManipulationSP.Children.Add(StructureTuningUIHelper.AddTSManipulation(structureManipulationSP, selectedSS.Structures.Select(x => x.Id).ToList(), defaultList[i], "clearSpareStructBtn", clearSpareBtnCounter, new SelectionChangedEventHandler(Type_cb_change), new RoutedEventHandler(this.ClearStructBtn_click)));
             }
         }
 
@@ -472,11 +475,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //the visibility of this textbox based on the sparing type selected for this structure
             ComboBox c = (ComboBox)sender;
             bool row = false;
-            foreach (object obj in structures_sp.Children)
+            foreach (object obj in structureManipulationSP.Children)
             {
                 foreach (object obj1 in ((StackPanel)obj).Children)
                 {
-                    //the btn has a unique tag to it, so we can just loop through all children in the structures_sp children list and find which button is equivalent to our button
+                    //the btn has a unique tag to it, so we can just loop through all children in the structureManipulationSP children list and find which button is equivalent to our button
                     if (row)
                     {
                         if (c.SelectedItem.ToString() != "Mean Dose < Rx Dose") (obj1 as TextBox).Visibility = Visibility.Hidden;
@@ -489,9 +492,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         }
 
         //method to clear and individual row in the structure sparing list (i.e., remove a single structure)
-        private void ClearStructBtn_click(object sender, EventArgs e) { if (GeneralUIHelper.ClearRow(sender, structures_sp)) Clear_spare_list(); }
+        private void ClearStructBtn_click(object sender, EventArgs e) { if (GeneralUIHelper.ClearRow(sender, structureManipulationSP)) Clear_spare_list(); }
 
-        private void SSID_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void StructureSetId_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             //clear sparing structure list
             Clear_spare_list();
@@ -507,14 +510,14 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             foreach (Structure s in selectedSS.Structures) flashVolume.Items.Add(s.Id);
         }
 
-        private void Add_defaults_click(object sender, RoutedEventArgs e)
+        private void AddDefaultStructureManipulations_Click(object sender, RoutedEventArgs e)
         {
             //copy the sparing structures in the defaultSpareStruct list to a temporary vector
             List<Tuple<string, TSManipulationType, double>> templateList = new List<Tuple<string, TSManipulationType, double>>(defaultSpareStruct);
             //add the case-specific sparing structures to the temporary list
-            if (nonmyelo_chkbox.IsChecked.Value) templateList = new List<Tuple<string, TSManipulationType, double>>(AddCaseSpecificSpareStructures(nonmyeloSpareStruct, templateList));
-            else if (myelo_chkbox.IsChecked.Value) templateList = new List<Tuple<string, TSManipulationType, double>>(AddCaseSpecificSpareStructures(myeloSpareStruct, templateList));
-            else if (sclero_chkbox.IsChecked.Value) templateList = new List<Tuple<string, TSManipulationType, double>>(AddCaseSpecificSpareStructures(scleroSpareStruct, templateList));
+            //if (nonmyelo_chkbox.IsChecked.Value) templateList = new List<Tuple<string, TSManipulationType, double>>(AddCaseSpecificSpareStructures(nonmyeloSpareStruct, templateList));
+            //else if (myelo_chkbox.IsChecked.Value) templateList = new List<Tuple<string, TSManipulationType, double>>(AddCaseSpecificSpareStructures(myeloSpareStruct, templateList));
+            //else if (sclero_chkbox.IsChecked.Value) templateList = new List<Tuple<string, TSManipulationType, double>>(AddCaseSpecificSpareStructures(scleroSpareStruct, templateList));
 
             string missOutput = "";
             string emptyOutput = "";
@@ -561,19 +564,122 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         }
 
         //wipe the displayed list of sparing structures
-        private void Clear_list_click(object sender, RoutedEventArgs e) { Clear_spare_list(); }
+        private void ClearStructureManipulations_Click(object sender, RoutedEventArgs e) { Clear_spare_list(); }
 
         private void Clear_spare_list()
         {
             firstSpareStruct = true;
-            structures_sp.Children.Clear();
+            structureManipulationSP.Children.Clear();
             clearSpareBtnCounter = 0;
+        }
+
+        private void AddStructureManipulationHeader(StackPanel theSP)
+        {
+            theSP.Children.Add(StructureTuningUIHelper.GetTSManipulationHeader(theSP));
+
+            //bool to indicate that the header has been added
+            if (theSP.Name.Contains("template")) firstTemplateSpareStruct = false;
+            else firstSpareStruct = false;
+        }
+
+        //populate the structure sparing list. This method is called whether the add structure or add defaults buttons are hit (because a vector containing the list of structures is passed as an argument to this method)
+        private void AddStructureManipulationVolumes(List<Tuple<string, TSManipulationType, double>> defaultList, StackPanel theSP)
+        {
+            if (selectedSS == null)
+            {
+                log.LogError("Error! Please select a Structure Set before add tuning structure manipulations!");
+                return;
+            }
+            bool firstStruct;
+            int counter;
+            string clearBtnNamePrefix;
+            if (theSP.Name.Contains("template"))
+            {
+                firstStruct = firstTemplateSpareStruct;
+                counter = clearTemplateSpareBtnCounter;
+                clearBtnNamePrefix = "templateClearSpareStructBtn";
+            }
+            else
+            {
+                firstStruct = firstSpareStruct;
+                counter = clearSpareBtnCounter;
+                clearBtnNamePrefix = "clearSpareStructBtn";
+            }
+            if (firstStruct) AddStructureManipulationHeader(theSP);
+            foreach (Tuple<string, TSManipulationType, double> itr in defaultList)
+            {
+                counter++;
+                //FIX ME!!
+                theSP.Children.Add(StructureTuningUIHelper.AddTSManipulation(theSP,
+                                                                             selectedSS.Structures.Select(x => x.Id).ToList(),
+                                                                             itr,
+                                                                             clearBtnNamePrefix,
+                                                                             counter,
+                                                                             (delegate (object sender, SelectionChangedEventArgs e) { StructureManipulationType_SelectionChanged(theSP, sender, e); }),
+                                                                             new RoutedEventHandler(this.ClearStructureManipulationItem_Click)));
+            }
+        }
+
+        private void StructureManipulationType_SelectionChanged(StackPanel theSP, object sender, EventArgs e)
+        {
+            //not the most elegent code, but it works. Basically, it finds the combobox where the selection was changed and increments one additional child to get the add margin text box. Then it can change
+            //the visibility of this textbox based on the sparing type selected for this structure
+            ComboBox c = (ComboBox)sender;
+            bool row = false;
+            foreach (object obj in theSP.Children)
+            {
+                foreach (object obj1 in ((StackPanel)obj).Children)
+                {
+                    //the btn has a unique tag to it, so we can just loop through all children in the structureManipulationSP children list and find which button is equivalent to our button
+                    if (row)
+                    {
+                        if (c.SelectedItem.ToString() != "Mean Dose < Rx Dose" &&
+                            c.SelectedItem.ToString() != "Crop target from structure" &&
+                            c.SelectedItem.ToString() != "Crop from Body")
+                        {
+                            (obj1 as TextBox).Visibility = Visibility.Hidden;
+                        }
+                        else (obj1 as TextBox).Visibility = Visibility.Visible;
+                        return;
+                    }
+                    if (obj1.Equals(c)) row = true;
+                }
+            }
+        }
+
+        private void ClearTuningStructureList_Click(object sender, RoutedEventArgs e)
+        {
+            Button theBtn = (Button)sender;
+            StackPanel theSP;
+            if (theBtn.Name.Contains("template"))
+            {
+                theSP = templateTSSP;
+            }
+            else
+            {
+                theSP = TSGenerationSP;
+            }
+            GeneralUIHelper.ClearList(theSP);
+        }
+
+        private void AddDefaultTuningStructures_Click(object sender, RoutedEventArgs e)
+        {
+            //List<Tuple<string, string>> tmp = new List<Tuple<string, string>>(defaultTSStructures);
+            List<Tuple<string, string>> tmp = new List<Tuple<string, string>> { };
+            if (templateList.SelectedItem != null)
+            {
+                foreach (Tuple<string, string> itr in ((CSIAutoPlanTemplate)templateList.SelectedItem).GetCreateTSStructures()) tmp.Add(itr);
+            }
+            GeneralUIHelper.ClearList(TSGenerationSP);
+            //populate the comboboxes
+            AddTuningStructureVolumes(tmp, TSGenerationSP);
+            TSGenerationScroller.ScrollToBottom();
         }
 
         private void GenerateStruct(object sender, RoutedEventArgs e)
         {
             //check that there are actually structures to spare in the sparing list
-            if (structures_sp.Children.Count == 0)
+            if (structureManipulationSP.Children.Count == 0)
             {
                 MessageBox.Show("No structures present to generate tuning structures!");
                 return;
@@ -616,12 +722,14 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 return;
             }
 
-            List<Tuple<string, TSManipulationType, double>> structureSpareList = StructureTuningUIHelper.ParseTSManipulationList(structures_sp).Item1;
+            List<Tuple<string, TSManipulationType, double>> structureSpareList = StructureTuningUIHelper.ParseTSManipulationList(structureManipulationSP).Item1;
             if (!structureSpareList.Any()) return;
 
             //create an instance of the generateTS class, passing the structure sparing list vector, the selected structure set, and if this is the scleroderma trial treatment regiment
             //The scleroderma trial contouring/margins are specific to the trial, so this trial needs to be handled separately from the generic VMAT treatment type
-            GenerateTS_TBI generate = new GenerateTS_TBI(TS_structures, scleroStructures, structureSpareList, selectedSS, targetMargin, sclero_chkbox.IsChecked.Value, useFlash, flashStructure, flashMargin);
+
+            //GenerateTS_TBI generate = new GenerateTS_TBI(TS_structures, scleroStructures, structureSpareList, selectedSS, targetMargin, sclero_chkbox.IsChecked.Value, useFlash, flashStructure, flashMargin);
+            GenerateTS_TBI generate = new GenerateTS_TBI(TS_structures, scleroStructures, structureSpareList, selectedSS, targetMargin, false, useFlash, flashStructure, flashMargin);
             //overloaded constructor depending on if the user requested to use flash or not. If so, pass the relevant flash parameters to the generateTS class
             pi.BeginModifications();
             if (generate.Execute()) return;
@@ -642,7 +750,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             isoNames = generate.GetIsoNames().First().Item2;
 
             //get prescription
-            if (double.TryParse(dosePerFx.Text, out double dose_perFx) && int.TryParse(numFx.Text, out int numFractions)) prescription = Tuple.Create(numFractions, new DoseValue(dose_perFx, DoseValue.DoseUnit.cGy));
+            if (double.TryParse(dosePerFxTB.Text, out double dose_perFx) && int.TryParse(numFxTB.Text, out int numFractions)) prescription = Tuple.Create(numFractions, new DoseValue(dose_perFx, DoseValue.DoseUnit.cGy));
             else
             {
                 MessageBox.Show("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
@@ -678,15 +786,15 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             contourOverlapTB.Visibility = Visibility.Visible;
             contourOverlapTB.Text = contourFieldOverlapMargin;
 
-            BEAMS_SP.Children.Clear();
+            beamPlacementSP.Children.Clear();
 
             numVMATisosTB.Text = numVMATIsos.ToString();
 
             ////subtract a beam from the first isocenter (head) if the user is NOT interested in sparing the brain
             if (!optParameters.Where(x => x.Item1.ToLower().Contains("brain")).Any()) beamsPerIso[0]--;
-            List<StackPanel> SPList = BeamPlacementUIHelper.PopulateBeamsTabHelper(structures_sp, linacs, beamEnergies, isoNames, beamsPerIso, numIsos, numVMATIsos);
+            List<StackPanel> SPList = BeamPlacementUIHelper.PopulateBeamsTabHelper(structureManipulationSP, linacs, beamEnergies, isoNames, beamsPerIso, numIsos, numVMATIsos);
             if (!SPList.Any()) return;
-            foreach (StackPanel s in SPList) BEAMS_SP.Children.Add(s);
+            foreach (StackPanel s in SPList) beamPlacementSP.Children.Add(s);
             ////subtract a beam from the second isocenter (chest/abdomen area) if the user is NOT interested in sparing the kidneys
             ////if (!optParameters.Where(x => x.Item1.ToLower().Contains("kidneys")).Any()) beamsPerIso[1]--;
         }
@@ -710,7 +818,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         private void Place_beams_Click(object sender, RoutedEventArgs e)
         {
-            if (BEAMS_SP.Children.Count == 0)
+            if (beamPlacementSP.Children.Count == 0)
             {
                 MessageBox.Show("No isocenters present to place beams!");
                 return;
@@ -721,7 +829,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             string chosenLinac = "";
             string chosenEnergy = "";
             int[] numBeams = new int[numIsos];
-            foreach (object obj in BEAMS_SP.Children)
+            foreach (object obj in beamPlacementSP.Children)
             {
                 foreach (object obj1 in ((StackPanel)obj).Children)
                 {
@@ -810,13 +918,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             List<Tuple<string, OptimizationObjectiveType, double, double, int>> defaultList = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
 
             //non-meyloabalative regime
-            if (nonmyelo_chkbox.IsChecked.Value) tmp = optConstDefaultNonMyelo;
-            //meylo-abalative regime
-            else if (myelo_chkbox.IsChecked.Value) tmp = optConstDefaultMyelo;
-            //scleroderma trial regiment
-            else if (sclero_chkbox.IsChecked.Value) tmp = optConstDefaultSclero;
+            //if (nonmyelo_chkbox.IsChecked.Value) tmp = optConstDefaultNonMyelo;
+            ////meylo-abalative regime
+            //else if (myelo_chkbox.IsChecked.Value) tmp = optConstDefaultMyelo;
+            ////scleroderma trial regiment
+            //else if (sclero_chkbox.IsChecked.Value) tmp = optConstDefaultSclero;
             //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose
-            else if (prescription != null)
+             if (prescription != null)
             {
                 double RxDose = prescription.Item2.Dose * prescription.Item1;
                 double baseDose;
@@ -915,7 +1023,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private void ScanSS_Click(object sender, RoutedEventArgs e)
         {
             //get prescription
-            if (double.TryParse(dosePerFx.Text, out double dose_perFx) && int.TryParse(numFx.Text, out int numFractions)) prescription = Tuple.Create(numFractions, new DoseValue(dose_perFx, DoseValue.DoseUnit.cGy));
+            if (double.TryParse(dosePerFxTB.Text, out double dose_perFx) && int.TryParse(numFxTB.Text, out int numFractions)) prescription = Tuple.Create(numFractions, new DoseValue(dose_perFx, DoseValue.DoseUnit.cGy));
             else
             {
                 MessageBox.Show("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
@@ -932,7 +1040,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private void SetOptConst_Click(object sender, RoutedEventArgs e)
         {
             //12/5/2022 super janky, but works for now. Needed to accomodate multiple plans for VMAT CSI. Will fix later
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParametersList = OptimizationSetupUIHelper.ParseOptConstraints(opt_parameters).Item1.First().Item2;
+            List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParametersList = OptimizationSetupUIHelper.ParseOptConstraints(optParametersSP).Item1.First().Item2;
             if (!optParametersList.Any()) return;
             if (VMATplan == null)
             {
@@ -983,7 +1091,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             isModified = true;
         }
 
-        private void Add_constraint_Click(object sender, RoutedEventArgs e)
+        private void AddOptimizationConstraint_Click(object sender, RoutedEventArgs e)
         {
             Add_opt_volumes(selectedSS, new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { Tuple.Create("--select--", OptimizationObjectiveType.None, 0.0, 0.0, 0) });
             optParamScroller.ScrollToBottom();
@@ -991,7 +1099,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         private void Add_opt_header()
         {
-            opt_parameters.Children.Add(OptimizationSetupUIHelper.GetOptHeader(structures_sp.Width));
+            optParametersSP.Children.Add(OptimizationSetupUIHelper.GetOptHeader(structureManipulationSP.Width));
             firstOptStruct = false;
         }
 
@@ -1002,105 +1110,112 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             for (int i = 0; i < defaultList.Count; i++)
             {
                 clearOptBtnCounter++;
-                opt_parameters.Children.Add(OptimizationSetupUIHelper.AddOptVolume(opt_parameters, selectedSS, defaultList[i], "clearOptStructBtn", clearOptBtnCounter, new RoutedEventHandler(this.ClearOptStructBtn_click)));
+                optParametersSP.Children.Add(OptimizationSetupUIHelper.AddOptVolume(optParametersSP, selectedSS, defaultList[i], "clearOptStructBtn", clearOptBtnCounter, new RoutedEventHandler(this.ClearOptStructBtn_click)));
             }
         }
 
-        private void Clear_optParams_Click(object sender, RoutedEventArgs e) 
+        private void ClearOptimizationConstraintsList_Click(object sender, RoutedEventArgs e) 
         { 
             Clear_optimization_parameter_list(); 
         }
 
         private void ClearOptStructBtn_click(object sender, EventArgs e)
         {
-            if (GeneralUIHelper.ClearRow(sender, opt_parameters)) Clear_optimization_parameter_list();
+            if (GeneralUIHelper.ClearRow(sender, optParametersSP)) Clear_optimization_parameter_list();
         }
 
         private void Clear_optimization_parameter_list()
         {
-            opt_parameters.Children.Clear();
+            optParametersSP.Children.Clear();
             firstOptStruct = true;
             clearOptBtnCounter = 0;
         }
 
-        private void Sclero_chkbox_Checked(object sender, RoutedEventArgs e)
+        private void ClearOptimizationConstraintsList(StackPanel theSP)
         {
-            if (sclero_chkbox.IsChecked.Value)
-            {
-                if (nonmyelo_chkbox.IsChecked.Value) nonmyelo_chkbox.IsChecked = false;
-                if (myelo_chkbox.IsChecked.Value) myelo_chkbox.IsChecked = false;
-                //first arguement is the dose perfraction and the second argument is the number of fractions
-                SetPresciptionInfo(scleroDosePerFx, scleroNumFx);
-            }
-            else if (!nonmyelo_chkbox.IsChecked.Value && !myelo_chkbox.IsChecked.Value && dosePerFx.Text == scleroDosePerFx.ToString() && numFx.Text == scleroNumFx.ToString())
-            {
-                dosePerFx.Text = "";
-                numFx.Text = "";
-                if (useFlashByDefault) flash_chkbox.IsChecked = false;
-                UpdateUseFlash();
-            }
+            theSP.Children.Clear();
+            if (theSP.Name.Contains("template")) clearTemplateOptBtnCounter = 0;
+            else clearOptBtnCounter = 0;
         }
 
-        private void Myelo_chkbox_Checked(object sender, RoutedEventArgs e)
-        {
-            if (myelo_chkbox.IsChecked.Value)
-            {
-                if (nonmyelo_chkbox.IsChecked.Value) nonmyelo_chkbox.IsChecked = false;
-                if (sclero_chkbox.IsChecked.Value) sclero_chkbox.IsChecked = false;
-                SetPresciptionInfo(myeloDosePerFx, myeloNumFx);
-            }
-            else if (!nonmyelo_chkbox.IsChecked.Value && !sclero_chkbox.IsChecked.Value && dosePerFx.Text == myeloDosePerFx.ToString() && numFx.Text == myeloNumFx.ToString())
-            {
-                dosePerFx.Text = "";
-                numFx.Text = "";
-                if (useFlashByDefault) flash_chkbox.IsChecked = false;
-                UpdateUseFlash();
-            }
-        }
+        //private void Sclero_chkbox_Checked(object sender, RoutedEventArgs e)
+        //{
+        //    if (sclero_chkbox.IsChecked.Value)
+        //    {
+        //        if (nonmyelo_chkbox.IsChecked.Value) nonmyelo_chkbox.IsChecked = false;
+        //        if (myelo_chkbox.IsChecked.Value) myelo_chkbox.IsChecked = false;
+        //        //first arguement is the dose perfraction and the second argument is the number of fractions
+        //        SetPresciptionInfo(scleroDosePerFx, scleroNumFx);
+        //    }
+        //    else if (!nonmyelo_chkbox.IsChecked.Value && !myelo_chkbox.IsChecked.Value && dosePerFx.Text == scleroDosePerFx.ToString() && numFx.Text == scleroNumFx.ToString())
+        //    {
+        //        dosePerFx.Text = "";
+        //        numFx.Text = "";
+        //        if (useFlashByDefault) flash_chkbox.IsChecked = false;
+        //        UpdateUseFlash();
+        //    }
+        //}
 
-        private void NonMyelo_chkbox_Checked(object sender, RoutedEventArgs e)
-        {
-            if (nonmyelo_chkbox.IsChecked.Value)
-            {
-                if (myelo_chkbox.IsChecked.Value) myelo_chkbox.IsChecked = false;
-                if (sclero_chkbox.IsChecked.Value) sclero_chkbox.IsChecked = false;
-                SetPresciptionInfo(nonmyeloDosePerFx, nonmyeloNumFx);
-            }
-            else if (!myelo_chkbox.IsChecked.Value && !sclero_chkbox.IsChecked.Value && dosePerFx.Text == nonmyeloDosePerFx.ToString() && numFx.Text == nonmyeloNumFx.ToString())
-            {
-                dosePerFx.Text = "";
-                numFx.Text = "";
-                if (useFlashByDefault) flash_chkbox.IsChecked = false;
-                UpdateUseFlash();
-            }
-        }
+        //private void Myelo_chkbox_Checked(object sender, RoutedEventArgs e)
+        //{
+        //    if (myelo_chkbox.IsChecked.Value)
+        //    {
+        //        if (nonmyelo_chkbox.IsChecked.Value) nonmyelo_chkbox.IsChecked = false;
+        //        if (sclero_chkbox.IsChecked.Value) sclero_chkbox.IsChecked = false;
+        //        SetPresciptionInfo(myeloDosePerFx, myeloNumFx);
+        //    }
+        //    else if (!nonmyelo_chkbox.IsChecked.Value && !sclero_chkbox.IsChecked.Value && dosePerFx.Text == myeloDosePerFx.ToString() && numFx.Text == myeloNumFx.ToString())
+        //    {
+        //        dosePerFx.Text = "";
+        //        numFx.Text = "";
+        //        if (useFlashByDefault) flash_chkbox.IsChecked = false;
+        //        UpdateUseFlash();
+        //    }
+        //}
+
+        //private void NonMyelo_chkbox_Checked(object sender, RoutedEventArgs e)
+        //{
+        //    if (nonmyelo_chkbox.IsChecked.Value)
+        //    {
+        //        if (myelo_chkbox.IsChecked.Value) myelo_chkbox.IsChecked = false;
+        //        if (sclero_chkbox.IsChecked.Value) sclero_chkbox.IsChecked = false;
+        //        SetPresciptionInfo(nonmyeloDosePerFx, nonmyeloNumFx);
+        //    }
+        //    else if (!myelo_chkbox.IsChecked.Value && !sclero_chkbox.IsChecked.Value && dosePerFx.Text == nonmyeloDosePerFx.ToString() && numFx.Text == nonmyeloNumFx.ToString())
+        //    {
+        //        dosePerFx.Text = "";
+        //        numFx.Text = "";
+        //        if (useFlashByDefault) flash_chkbox.IsChecked = false;
+        //        UpdateUseFlash();
+        //    }
+        //}
 
         bool waitToUpdate = false;
         private void SetPresciptionInfo(double dose_perFx, int num_Fx)
         {
-            if (dosePerFx.Text != dose_perFx.ToString() && numFx.Text != num_Fx.ToString()) waitToUpdate = true;
-            dosePerFx.Text = dose_perFx.ToString();
-            numFx.Text = num_Fx.ToString();
+            if (dosePerFxTB.Text != dose_perFx.ToString() && numFxTB.Text != num_Fx.ToString()) waitToUpdate = true;
+            dosePerFxTB.Text = dose_perFx.ToString();
+            numFxTB.Text = num_Fx.ToString();
         }
 
         private void NumFx_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (!int.TryParse(numFx.Text, out int newNumFx)) Rx.Text = "";
+            if (!int.TryParse(numFxTB.Text, out int newNumFx)) RxTB.Text = "";
             else if (newNumFx < 1)
             {
                 MessageBox.Show("Error! The number of fractions must be non-negative integer and greater than zero!");
-                Rx.Text = "";
+                RxTB.Text = "";
             }
             else ResetRxDose();
         }
-
+        
         private void DosePerFx_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (!double.TryParse(dosePerFx.Text, out double newDoseFx)) Rx.Text = "";
+            if (!double.TryParse(dosePerFxTB.Text, out double newDoseFx)) RxTB.Text = "";
             else if (newDoseFx <= 0)
             {
                 MessageBox.Show("Error! The dose per fraction must be a number and non-negative!");
-                Rx.Text = "";
+                RxTB.Text = "";
             }
             else ResetRxDose();
         }
@@ -1108,14 +1223,14 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private void ResetRxDose()
         {
             if (waitToUpdate) waitToUpdate = false;
-            else if (int.TryParse(numFx.Text, out int newNumFx) && double.TryParse(dosePerFx.Text, out double newDoseFx))
+            else if (int.TryParse(numFxTB.Text, out int newNumFx) && double.TryParse(dosePerFxTB.Text, out double newDoseFx))
             {
-                Rx.Text = (newNumFx * newDoseFx).ToString();
+                RxTB.Text = (newNumFx * newDoseFx).ToString();
                 if (useFlashByDefault) flash_chkbox.IsChecked = true;
                 UpdateUseFlash();
-                if (myelo_chkbox.IsChecked.Value && newNumFx * newDoseFx != myeloDosePerFx * myeloNumFx) myelo_chkbox.IsChecked = false;
-                else if (nonmyelo_chkbox.IsChecked.Value && newNumFx * newDoseFx != nonmyeloDosePerFx * nonmyeloNumFx) nonmyelo_chkbox.IsChecked = false;
-                else if (sclero_chkbox.IsChecked.Value && newNumFx * newDoseFx != scleroDosePerFx * scleroNumFx) sclero_chkbox.IsChecked = false;
+                //if (myelo_chkbox.IsChecked.Value && newNumFx * newDoseFx != myeloDosePerFx * myeloNumFx) myelo_chkbox.IsChecked = false;
+                //else if (nonmyelo_chkbox.IsChecked.Value && newNumFx * newDoseFx != nonmyeloDosePerFx * nonmyeloNumFx) nonmyelo_chkbox.IsChecked = false;
+                //else if (sclero_chkbox.IsChecked.Value && newNumFx * newDoseFx != scleroDosePerFx * scleroNumFx) sclero_chkbox.IsChecked = false;
             }
         }
 
@@ -1229,6 +1344,243 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //do nothing. Eclipse v15.6 doesn't have this capability, but v16 and later does. This method is a placeholder (the planSum button exists in the UI.xaml file, but its visibility is set to 'hidden')
         }
 
+        private void Templates_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
+            if (selectedTemplate == null) return;
+            dosePerFxTB.Text = "";
+            numFxTB.Text = "";
+            if (selectedTemplate.GetTemplateName() != "--select--")
+            {
+                SetPresciptionInfo(selectedTemplate.GetInitialRxDosePerFx(), selectedTemplate.GetInitialRxNumFx());
+                ClearAllCurrentParameters();
+                LoadTemplateDefaults();
+                log.Template = selectedTemplate.GetTemplateName();
+            }
+            else
+            {
+                templateList.UnselectAll();
+            }
+        }
+
+        private void LoadTemplateDefaults()
+        {
+            //AddDefaultTuningStructures_Click(null, null);
+            //AddDefaultStructureManipulations_Click(null, null);
+        }
+
+        private void ClearAllCurrentParameters()
+        {
+            //targets and tuning structures are automatically handled in their respectful AddDefaults event click method
+            //clear isocenter and beams information
+            beamPlacementSP.Children.Clear();
+
+            //clear optimization structure list
+            ClearOptimizationConstraintsList(optParametersSP);
+        }
+
+        #region TemplateBuilder
+        private void TemplateDosePerFx_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            TextBox dosePerFxTB = sender as TextBox;
+            TextBox numFxTB, planRxTB;
+            numFxTB = templateInitPlanNumFxTB;
+            planRxTB = templateInitPlanRxTB;
+            if (!double.TryParse(dosePerFxTB.Text, out double newDoseFx)) planRxTB.Text = "";
+            else if (newDoseFx <= 0)
+            {
+                log.LogError("Error! The dose per fraction must be a number and non-negative!");
+                planRxTB.Text = "";
+            }
+            else ResetTemplateRxDose(dosePerFxTB, numFxTB, planRxTB);
+        }
+
+        private void TemplateNumFx_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            TextBox numFxTB = sender as TextBox;
+            TextBox dosePerFxTB, planRxTB;
+            dosePerFxTB = templateInitPlanDosePerFxTB;
+            planRxTB = templateInitPlanRxTB;
+            if (!int.TryParse(numFxTB.Text, out int newNumFx)) planRxTB.Text = "";
+            else if (newNumFx < 1)
+            {
+                log.LogError("Error! The number of fractions must be an integer and greater than 0!");
+                planRxTB.Text = "";
+            }
+            else ResetTemplateRxDose(dosePerFxTB, numFxTB, planRxTB);
+        }
+
+        private void ResetTemplateRxDose(TextBox dosePerFxTB, TextBox numFxTB, TextBox RxTB)
+        {
+            if (int.TryParse(numFxTB.Text, out int newNumFx) && double.TryParse(dosePerFxTB.Text, out double newDoseFx)) RxTB.Text = (newNumFx * newDoseFx).ToString();
+        }
+
+        private void TemplateBuildOptionCB_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (selectedSS == null)
+            {
+                log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
+                return;
+            }
+            if (templateBuildOptionCB.SelectedItem.ToString().ToLower() == "existing template")
+            {
+                CSIAutoPlanTemplate theTemplate = null;
+                SelectItemPrompt SIP = new SelectItemPrompt("Please select an existing template!", PlanTemplates.Select(x => x.TemplateName).ToList());
+                SIP.ShowDialog();
+                if (SIP.GetSelection()) theTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.GetTemplateName(), SIP.GetSelectedItem()));
+                else return;
+                if (theTemplate == null)
+                {
+                    log.LogError("Template not found! Exiting!");
+                    return;
+                }
+
+                //set name
+                templateNameTB.Text = theTemplate.GetTemplateName() + "_1";
+
+                //setRx
+                templateInitPlanDosePerFxTB.Text = theTemplate.GetInitialRxDosePerFx().ToString();
+                templateInitPlanNumFxTB.Text = theTemplate.GetInitialRxNumFx().ToString();
+
+                //add create TS structures
+                GeneralUIHelper.ClearList(templateTSSP);
+                if (theTemplate.GetCreateTSStructures().Any()) AddTuningStructureVolumes(theTemplate.GetCreateTSStructures(), templateTSSP);
+
+                //add tuning structure manipulations sparing structures
+                ClearStructureManipulationsList(templateClearSpareStructuresBtn);
+                if (theTemplate.GetTSManipulations().Any()) AddStructureManipulationVolumes(theTemplate.GetTSManipulations(), templateStructuresSP);
+
+                //add optimization constraints
+                //(List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(theTemplate, targetList);
+                //if (!parsedConstraints.Item1.Any())
+                //{
+                //    log.LogError(parsedConstraints.Item2);
+                //    return;
+                //}
+                //PopulateOptimizationTab(templateOptParams_sp, parsedConstraints.Item1, false);
+            }
+            else if (templateBuildOptionCB.SelectedItem.ToString().ToLower() == "current parameters")
+            {
+                //if (!parsedTargetList.targetList.Any())
+                //{
+                //    log.LogError("Error! Enter parameters into the UI before trying to use them to make a new plan template!");
+                //    return;
+                //}
+
+                //set name
+                templateNameTB.Text = "--new template--";
+
+                //setRx
+                templateInitPlanDosePerFxTB.Text = dosePerFxTB.Text;
+                templateInitPlanNumFxTB.Text = numFxTB.Text;
+
+                //add create tuning structures structures
+                (List<Tuple<string, string>>, StringBuilder) parsedCreateTSList = StructureTuningUIHelper.ParseCreateTSStructureList(TSGenerationSP);
+                if (!string.IsNullOrEmpty(parsedCreateTSList.Item2.ToString()))
+                {
+                    log.LogError(parsedCreateTSList.Item2);
+                    return;
+                }
+                GeneralUIHelper.ClearList(templateTSSP);
+                AddTuningStructureVolumes(parsedCreateTSList.Item1, templateTSSP);
+
+                //add tuning structure manipulations
+                (List<Tuple<string, TSManipulationType, double>>, StringBuilder) parsedTSManipulationList = StructureTuningUIHelper.ParseTSManipulationList(structureManipulationSP);
+                if (!string.IsNullOrEmpty(parsedTSManipulationList.Item2.ToString()))
+                {
+                    log.LogError(parsedTSManipulationList.Item2);
+                    return;
+                }
+                ClearStructureManipulationsList(templateClearSpareStructuresBtn);
+                AddStructureManipulationVolumes(parsedTSManipulationList.Item1, templateStructuresSP);
+
+                //add optimization constraints
+                (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optParametersSP);
+                if (parsedOptimizationConstraints.Item1.Any())
+                {
+                    log.LogError(parsedOptimizationConstraints.Item2);
+                    return;
+                }
+                ClearOptimizationConstraintsList(templateOptParams_sp);
+                //PopulateOptimizationTab(templateOptParams_sp, parsedOptimizationConstraints.Item1, false);
+            }
+        }
+
+        private void GenerateTemplatePreview_Click(object sender, RoutedEventArgs e)
+        {
+            if (selectedSS == null)
+            {
+                log.LogError("Error! Please select a Structure Set before add sparing volumes!");
+                return;
+            }
+            prospectiveTemplate = new CSIAutoPlanTemplate();
+            prospectiveTemplate.SetTemplateName(templateNameTB.Text);
+
+            if (double.TryParse(templateInitPlanDosePerFxTB.Text, out double initDosePerFx))
+            {
+                prospectiveTemplate.SetInitRxDosePerFx(initDosePerFx);
+            }
+            else
+            {
+                log.LogError("Error! Initial plan dose per fx not parsed successfully! Fix and try again!");
+                return;
+            }
+            if (int.TryParse(templateInitPlanNumFxTB.Text, out int initNumFx))
+            {
+                prospectiveTemplate.SetInitialRxNumFx(initNumFx);
+            }
+            else
+            {
+                log.LogError("Error! Initial plan dose per fx not parsed successfully! Fix and try again!");
+                return;
+            }
+
+            //sort targets by prescription dose (ascending order)
+            prospectiveTemplate.SetCreateTSStructures(StructureTuningUIHelper.ParseCreateTSStructureList(templateTSSP).Item1);
+            prospectiveTemplate.SetTSManipulations(StructureTuningUIHelper.ParseTSManipulationList(templateStructuresSP).Item1);
+            List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> templateOptParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(templateOptParams_sp).Item1;
+            prospectiveTemplate.SetInitOptimizationConstraints(templateOptParametersListList.First().Item2);
+            prospectiveTemplate.SetBoostOptimizationConstraints(templateOptParametersListList.Last().Item2);
+
+            templatePreviewTB.Text = TemplateBuilder.GenerateTemplatePreviewText(prospectiveTemplate);
+            templatePreviewScroller.ScrollToTop();
+        }
+
+        private void SerializeNewTemplate_Click(object sender, RoutedEventArgs e)
+        {
+            if (selectedSS == null)
+            {
+                log.LogError("Error! Please select a Structure Set before add sparing volumes!");
+                return;
+            }
+            if (prospectiveTemplate == null)
+            {
+                log.LogError("Error! Please preview the requested template before building!");
+                return;
+            }
+            string fileName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\CSI\\CSI_" + prospectiveTemplate.GetTemplateName() + ".ini";
+            if (File.Exists(fileName))
+            {
+                ConfirmPrompt CUI = new ConfirmPrompt("Warning! The requested template file already exists! Overwrite?");
+                CUI.ShowDialog();
+                if (!CUI.GetSelection()) return;
+                if (PlanTemplates.Any(x => string.Equals(x.GetTemplateName(), prospectiveTemplate.GetTemplateName())))
+                {
+                    int index = PlanTemplates.IndexOf(PlanTemplates.FirstOrDefault(x => string.Equals(x.GetTemplateName(), prospectiveTemplate.GetTemplateName())));
+                    PlanTemplates.RemoveAt(index);
+                }
+            }
+
+            File.WriteAllText(fileName, TemplateBuilder.GenerateSerializedTemplate(prospectiveTemplate));
+            PlanTemplates.Add(prospectiveTemplate);
+            DisplayConfigurationParameters();
+            templateList.ScrollIntoView(prospectiveTemplate);
+
+            templatePreviewTB.Text += String.Format("New template written to: {0}", fileName) + Environment.NewLine;
+            templatePreviewScroller.ScrollToBottom();
+        }
+        #endregion
+
         //stuff related to script configuration
         private void LoadNewConfigFile_Click(object sender, RoutedEventArgs e)
         {
@@ -1245,6 +1597,115 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (!LoadConfigurationSettings(openFileDialog.FileName)) DisplayConfigurationParameters(); 
                 else MessageBox.Show("Error! Selected file is NOT valid!"); 
             }
+        }
+
+        //method to display the loaded configuration settings
+        private void DisplayConfigurationParameters()
+        {
+            configTB.Text = "";
+            configTB.Text = String.Format("{0}", DateTime.Now.ToString()) + System.Environment.NewLine;
+            if (configFile != "") configTB.Text += String.Format("Configuration file: {0}", configFile) + System.Environment.NewLine + System.Environment.NewLine;
+            else configTB.Text += String.Format("Configuration file: none") + System.Environment.NewLine + System.Environment.NewLine;
+            configTB.Text += String.Format("Documentation path: {0}", documentationPath) + System.Environment.NewLine + System.Environment.NewLine;
+            configTB.Text += String.Format("Default parameters:") + System.Environment.NewLine;
+            configTB.Text += String.Format("Include flash by default: {0}", useFlashByDefault) + System.Environment.NewLine;
+            configTB.Text += String.Format("Flash type: {0}", defaultFlashType) + System.Environment.NewLine;
+            configTB.Text += String.Format("Flash margin: {0} cm", defaultFlashMargin) + System.Environment.NewLine;
+            configTB.Text += String.Format("Target inner margin: {0} cm", defaultTargetMargin) + System.Environment.NewLine;
+            configTB.Text += String.Format("Contour field ovelap: {0}", contourOverlap) + System.Environment.NewLine;
+            configTB.Text += String.Format("Contour field overlap margin: {0} cm", contourFieldOverlapMargin) + System.Environment.NewLine;
+            configTB.Text += String.Format("Available linacs:") + System.Environment.NewLine;
+            foreach (string l in linacs) configTB.Text += l + System.Environment.NewLine;
+            configTB.Text += String.Format("Available photon energies:") + System.Environment.NewLine;
+            foreach (string e in beamEnergies) configTB.Text += e + System.Environment.NewLine;
+            configTB.Text += String.Format("Beams per isocenter: ");
+            for (int i = 0; i < beamsPerIso.Length; i++)
+            {
+                configTB.Text += String.Format("{0}", beamsPerIso.ElementAt(i));
+                if (i != beamsPerIso.Length - 1) configTB.Text += String.Format(", ");
+            }
+            configTB.Text += System.Environment.NewLine;
+            configTB.Text += String.Format("Collimator rotation (deg) order: ");
+            for (int i = 0; i < collRot.Length; i++)
+            {
+                configTB.Text += String.Format("{0:0.0}", collRot.ElementAt(i));
+                if (i != collRot.Length - 1) configTB.Text += String.Format(", ");
+            }
+            configTB.Text += System.Environment.NewLine;
+            configTB.Text += String.Format("Field jaw position (cm) order: ") + System.Environment.NewLine;
+            configTB.Text += String.Format("(x1,y1,x2,y2)") + System.Environment.NewLine;
+            foreach (VRect<double> j in jawPos) configTB.Text += String.Format("({0:0.0},{1:0.0},{2:0.0},{3:0.0})", j.X1 / 10, j.Y1 / 10, j.X2 / 10, j.Y2 / 10) + System.Environment.NewLine;
+            configTB.Text += String.Format("Photon dose calculation model: {0}", calculationModel) + System.Environment.NewLine;
+            configTB.Text += String.Format("Use GPU for dose calculation: {0}", useGPUdose) + System.Environment.NewLine;
+            configTB.Text += String.Format("Photon optimization model: {0}", optimizationModel) + System.Environment.NewLine;
+            configTB.Text += String.Format("Use GPU for optimization: {0}", useGPUoptimization) + System.Environment.NewLine;
+            configTB.Text += String.Format("MR level restart at: {0}", MRrestartLevel) + System.Environment.NewLine + System.Environment.NewLine;
+
+            configTB.Text += String.Format("Requested general tuning structures:") + System.Environment.NewLine;
+            configTB.Text += String.Format(" {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + System.Environment.NewLine;
+            foreach (Tuple<string, string> ts in TS_structures) configTB.Text += String.Format(" {0, -10} | {1, -15} |" + System.Environment.NewLine, ts.Item1, ts.Item2);
+            configTB.Text += System.Environment.NewLine;
+
+            configTB.Text += String.Format("Default sparing structures:") + System.Environment.NewLine;
+            configTB.Text += String.Format(" {0, -15} | {1, -19} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + System.Environment.NewLine;
+            foreach (Tuple<string, TSManipulationType, double> spare in defaultSpareStruct) configTB.Text += String.Format(" {0, -15} | {1, -19} | {2,-11:N1} |" + System.Environment.NewLine, spare.Item1, spare.Item2.ToString(), spare.Item3);
+            configTB.Text += System.Environment.NewLine;
+
+            configTB.Text += "-----------------------------------------------------------------------------" + System.Environment.NewLine;
+            configTB.Text += String.Format("Scleroderma trial case parameters:") + System.Environment.NewLine;
+            configTB.Text += String.Format("Dose per fraction: {0} cGy", scleroDosePerFx) + System.Environment.NewLine;
+            configTB.Text += String.Format("Number of fractions: {0}", scleroNumFx) + System.Environment.NewLine;
+            if (scleroSpareStruct.Any())
+            {
+                configTB.Text += String.Format("Scleroderma case additional sparing structures:") + System.Environment.NewLine;
+                configTB.Text += String.Format(" {0, -15} | {1, -19} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + System.Environment.NewLine;
+                foreach (Tuple<string, TSManipulationType, double> spare in scleroSpareStruct) configTB.Text += String.Format(" {0, -15} | {1, -19} | {2,-11:N1} |" + System.Environment.NewLine, spare.Item1, spare.Item2.ToString(), spare.Item3);
+                configTB.Text += System.Environment.NewLine;
+            }
+            else configTB.Text += String.Format("No additional sparing structures for Scleroderma case") + System.Environment.NewLine + System.Environment.NewLine;
+            configTB.Text += String.Format("Requested scleroderma trial tuning structures:") + System.Environment.NewLine;
+            configTB.Text += String.Format(" {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + System.Environment.NewLine;
+            foreach (Tuple<string, string> sts in scleroStructures) configTB.Text += String.Format(" {0, -10} | {1, -15} |" + System.Environment.NewLine, sts.Item1, sts.Item2);
+            configTB.Text += Environment.NewLine;
+            configTB.Text += String.Format("Optimization parameters:") + System.Environment.NewLine;
+            configTB.Text += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + System.Environment.NewLine;
+            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in optConstDefaultSclero) configTB.Text += String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5);
+            configTB.Text += System.Environment.NewLine;
+
+            configTB.Text += "-----------------------------------------------------------------------------" + System.Environment.NewLine;
+            configTB.Text += String.Format("Myeloablative case parameters:") + System.Environment.NewLine;
+            configTB.Text += String.Format("Dose per fraction: {0} cGy", myeloDosePerFx) + System.Environment.NewLine;
+            configTB.Text += String.Format("Number of fractions: {0}", myeloNumFx) + System.Environment.NewLine;
+            if (myeloSpareStruct.Any())
+            {
+                configTB.Text += String.Format("Myeloablative case additional sparing structures:") + System.Environment.NewLine;
+                configTB.Text += String.Format(" {0, -15} | {1, -19} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + System.Environment.NewLine;
+                foreach (Tuple<string, TSManipulationType, double> spare in myeloSpareStruct) configTB.Text += String.Format(" {0, -15} | {1, -19} | {2,-11:N1} |" + System.Environment.NewLine, spare.Item1, spare.Item2.ToString(), spare.Item3);
+                configTB.Text += System.Environment.NewLine;
+            }
+            else configTB.Text += String.Format("No additional sparing structures for Myeloablative case") + System.Environment.NewLine + System.Environment.NewLine;
+            configTB.Text += String.Format("Optimization parameters:") + System.Environment.NewLine;
+            configTB.Text += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + System.Environment.NewLine;
+            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in optConstDefaultMyelo) configTB.Text += String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5);
+            configTB.Text += System.Environment.NewLine;
+
+            configTB.Text += "-----------------------------------------------------------------------------" + System.Environment.NewLine;
+            configTB.Text += String.Format("Non-Myeloablative case parameters:") + System.Environment.NewLine;
+            configTB.Text += String.Format("Dose per fraction: {0} cGy", nonmyeloDosePerFx) + System.Environment.NewLine;
+            configTB.Text += String.Format("Number of fractions: {0}", nonmyeloNumFx) + System.Environment.NewLine;
+            if (nonmyeloSpareStruct.Any())
+            {
+                configTB.Text += String.Format("Non-Myeloablative case additional sparing structures:") + System.Environment.NewLine;
+                configTB.Text += String.Format(" {0, -15} | {1, -19} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + System.Environment.NewLine;
+                foreach (Tuple<string, TSManipulationType, double> spare in nonmyeloSpareStruct) configTB.Text += String.Format(" {0, -15} | {1, -19} | {2,-11:N1} |" + System.Environment.NewLine, spare.Item1, spare.Item2.ToString(), spare.Item3);
+                configTB.Text += System.Environment.NewLine;
+            }
+            else configTB.Text += String.Format("No additional sparing structures for Non-Myeloablative case") + System.Environment.NewLine + System.Environment.NewLine;
+            configTB.Text += String.Format("Optimization parameters:") + System.Environment.NewLine;
+            configTB.Text += String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + System.Environment.NewLine;
+            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in optConstDefaultNonMyelo) configTB.Text += String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + System.Environment.NewLine, opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5);
+            configTB.Text += "-----------------------------------------------------------------------------" + System.Environment.NewLine;
+            configScroller.ScrollToTop();
         }
 
         //parse the relevant data in the configuration file
@@ -1518,7 +1979,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         //private void autorun_Click(object sender, RoutedEventArgs e)
         //{
-        //    if (string.IsNullOrEmpty(Rx.Text)) { MessageBox.Show("Error! Please select a template regimen or enter the dose per fx and number of fx!"); return; }
+        //    if (string.IsNullOrEmpty(RxTB.Text)) { MessageBox.Show("Error! Please select a template regimen or enter the dose per fx and number of fx!"); return; }
 
         //    //copy the sparing structures in the defaultSpareStruct list to a temporary vector
         //    List<Tuple<string, string, double>> templateList = new List<Tuple<string, string, double>>(defaultSpareStruct);

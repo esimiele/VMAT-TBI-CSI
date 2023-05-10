@@ -5,6 +5,10 @@ using System.Text;
 using System.IO;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.Enums;
+using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
+using FolderBrowserDialog = System.Windows.Forms.FolderBrowserDialog;
+using DialogResult = System.Windows.Forms.DialogResult;
+using System.Reflection;
 
 namespace VMATTBICSIAutoPlanningHelpers.Logging
 {
@@ -12,7 +16,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
     {
         //general patient info
         public string MRN { set { mrn = value; }  }
-        public string PlanType { set { planType = value; } }
+        public void SetPlanType(PlanType type) { planType = type; }
         public string Template { set { template = value; } }
         public string StructureSet { set { selectedSS = value; } }
         public bool ChangesSaved { set { changesSaved = value; } }
@@ -43,7 +47,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         private StringBuilder _logFromErrors;
         private string userId;
         private string mrn;
-        private string planType;
+        private PlanType planType;
         private string template;
         private string selectedSS;
         bool changesSaved = false;
@@ -56,10 +60,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         private List<string> planUIDs { get; set; }
         private List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> optimizationConstraints { get; set; }
 
-        public Logger(string path, string type, string patient)
+        public Logger(string path, PlanType theType, string patient)
         {
             logPath = path;
-            planType = type;
+            planType = theType;
             mrn = patient;
 
             selectedSS = "";
@@ -105,8 +109,21 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
 
         public bool Dump()
         {
-            string type = "CSI";
-            if (planType.Contains("TBI")) type = "TBI";
+            string type;
+            if (planType == PlanType.VMAT_TBI) type = "TBI";
+            else type = "CSI";
+
+            if(string.IsNullOrEmpty(logPath))
+            {
+                MessageBox.Show("Log file path not set during script configuration! Please select a folder to writes the log file!");
+                FolderBrowserDialog FBD = new FolderBrowserDialog();
+                FBD.SelectedPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                if (FBD.ShowDialog() == DialogResult.OK)
+                {
+                    logPath = FBD.SelectedPath;
+                }
+                else return true;
+            }
 
             logPath += "\\preparation\\" + type + "\\" + mrn + "\\";
             string fileName = logPath + mrn + ".txt";

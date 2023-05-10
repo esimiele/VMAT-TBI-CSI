@@ -5,7 +5,6 @@ using System.Windows.Controls;
 using System.Windows;
 using System.Text;
 using VMS.TPS.Common.Model.API;
-using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
@@ -56,12 +55,12 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 VerticalAlignment = VerticalAlignment.Top,
                 Width = 100,
                 FontSize = 14,
-                Margin = new Thickness(45, 0, 0, 0)
+                Margin = new Thickness(50, 0, 0, 0)
             };
 
             Label spareType = new Label
             {
-                Content = "Prescription (cGy)",
+                Content = "Total Rx (cGy)",
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Top,
                 Width = 130,
@@ -76,7 +75,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 VerticalAlignment = VerticalAlignment.Top,
                 Width = 150,
                 FontSize = 14,
-                Margin = new Thickness(30, 0, 0, 0)
+                Margin = new Thickness(25, 0, 0, 0)
             };
 
             sp.Children.Add(strName);
