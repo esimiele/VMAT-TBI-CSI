@@ -6,6 +6,7 @@ using System.Windows;
 using System.Text;
 using VMS.TPS.Common.Model.API;
 using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
+using VMS.TPS.Common.Model.Types;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
@@ -26,7 +27,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 
         public static List<Tuple<string, double, string>> ScanSSAndAddTargets(StructureSet selectedSS)
         {
-            List<Structure> tgt = selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ptv") && !x.Id.ToLower().Contains("ts_")).ToList();
+            List<Structure> tgt = selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ptv") && !x.Id.ToLower().Contains("ts_") && x.ApprovalHistory.First().Equals(StructureApprovalStatus.Approved)).ToList();
             if (!tgt.Any()) return new List<Tuple<string, double, string>> { };
             List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>> { };
             double tgtRx;

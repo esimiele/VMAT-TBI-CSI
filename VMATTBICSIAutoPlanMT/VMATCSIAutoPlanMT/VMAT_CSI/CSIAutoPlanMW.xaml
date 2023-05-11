@@ -256,33 +256,53 @@
                             </StackPanel>
                         </Border>
                     </TabItem>
-                    <TabItem Header="Set Targets" BorderThickness="0,1,1,0" x:Name="targetsTabItem">
-                        <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
-                            <StackPanel HorizontalAlignment="Center" Margin="0">
-                                <Label Content="Specify Targets" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"/>
-                                <Grid Height="25" Width ="600" HorizontalAlignment="Center" Margin="0,5,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="1.5*"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Button Content="Create Target" Width="100" Grid.Column="0" VerticalAlignment="Top" Click="AddTarget_Click"/>
-                                    <Button x:Name="AddDefaultsTargetsBtn" Content="Add defaults" Width="120" Grid.Column="1" VerticalAlignment="Top"  Click="AddTargetDefaults_Click"/>
-                                    <Button x:Name="ScanSSandAddTargetsBtn" Content="Scan SS and Create Targets" Width="180" Grid.Column="2"  VerticalAlignment="Top" Click="ScanSSAndAddTargets_Click"/>
-                                    <Button x:Name="ClearTargetList" Content="Clear List" Width="100" Grid.Column="3"  VerticalAlignment="Top" Click="ClearTargetList_Click"/>
-                                </Grid>
-                                <ScrollViewer x:Name="targetsScroller" Height="365" Width="550" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
-                                    <StackPanel Name="targetsSP" Margin="5">
+                    <TabItem Header="Specify Targets" BorderThickness="0,1,1,0" x:Name="targetsTabItem">
+                        <TabControl TabStripPlacement="Top" Background="DarkGray">
+                            <TabItem x:Name="PrelimTargetsTabItem" Header="Generate Preliminary Targets" Width="295" BorderThickness="1,1,1,1">
+                                <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
+                                    <StackPanel HorizontalAlignment="Center" Margin="0">
+                                        <Grid Width="575" HorizontalAlignment="Center" Margin="0">
+                                            <Label Content="Create Preliminary Targets Structures" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
+                                            <Button Content="?" Width="20" Height="24" HorizontalAlignment="Right" Click="CreatePrelimTargetsInfo_Click"/>
+                                        </Grid>
+                                        <ScrollViewer x:Name="PrelimTargetGenerationScroller" Height="360" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                            <StackPanel x:Name="PrelimTargetGenerationSP" Margin="5">
+                                            </StackPanel>
+                                        </ScrollViewer>
+                                        <Button Content="Create Targets" FontWeight="Bold" Width="150" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="10" Click="CreatePrelimTargets_Click"></Button>
                                     </StackPanel>
-                                </ScrollViewer>
-                                <Button Content="Set Targets" FontWeight="Bold" Width="170" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,7,0,0" Click="SetTargets_Click"></Button>
-                            </StackPanel>
-                        </Border>
+                                </Border>
+                            </TabItem>
+                            <TabItem Header="Set Targets" Width="295" BorderThickness="0,1,1,1" x:Name="setTargetsTabItem">
+                                <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
+                                    <StackPanel HorizontalAlignment="Center" Margin="0">
+                                        <Label Content="Specify Targets" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                                        <Grid Height="25" Width ="600" HorizontalAlignment="Center" Margin="0,5,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="1.5*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Button Content="Add Target" Width="100" Grid.Column="0" VerticalAlignment="Top" Click="AddTarget_Click"/>
+                                            <Button x:Name="AddDefaultsTargetsBtn" Content="Add Defaults" Width="120" Grid.Column="1" VerticalAlignment="Top"  Click="AddTargetDefaults_Click"/>
+                                            <Button x:Name="ScanSSandAddTargetsBtn" Content="Scan SS and Add Targets" Width="180" Grid.Column="2"  VerticalAlignment="Top" Click="ScanSSAndAddTargets_Click"/>
+                                            <Button x:Name="ClearTargetList" Content="Clear List" Width="100" Grid.Column="3"  VerticalAlignment="Top" Click="ClearTargetList_Click"/>
+                                        </Grid>
+                                        <ScrollViewer x:Name="targetsScroller" Height="335" Width="550" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                            <StackPanel Name="targetsSP" Margin="5">
+                                            </StackPanel>
+                                        </ScrollViewer>
+                                        <Button Content="Set Targets" FontWeight="Bold" Width="150" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,7,0,0" Click="SetTargets_Click"></Button>
+                                    </StackPanel>
+                                </Border>
+                            </TabItem>
+                        </TabControl>
+                        
                     </TabItem>
-                    <TabItem Header="Structure Tuning" BorderThickness="0,1,1,0" x:Name="structureTuningTabItem">
+                    <TabItem Header="Structure Tuning" BorderThickness="0,1,1,0" x:Name="structureTuningTabItem" Margin="0,0,1,1">
                         <TabControl Background="DarkGray">
-                            <TabItem Header="Tuning Structure Generation" Width="196" BorderThickness="1,1,1,0">
+                            <TabItem Header="Tuning Structure Generation" Width="196" BorderThickness="1,1,1,1">
                                 <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                                     <StackPanel HorizontalAlignment="Center" Margin="0">
                                         <Grid Width="580" HorizontalAlignment="Center" Margin="0,0,0,0">
@@ -301,7 +321,7 @@
                                     </StackPanel>
                                 </Border>
                             </TabItem>
-                            <TabItem Header="Ring Generation" Width="196" BorderThickness="0,1,1,0">
+                            <TabItem Header="Ring Generation" Width="196" BorderThickness="0,1,1,1">
                                 <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                                     <StackPanel HorizontalAlignment="Center" Margin="0">
                                         <Label Content="Create Ring Structures" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
@@ -317,7 +337,7 @@
                                     </StackPanel>
                                 </Border>
                             </TabItem>
-                            <TabItem Header="Tuning Structure Manipulation" Width="196" BorderThickness="0,1,1,0" x:Name="TSManipulationTabItem">
+                            <TabItem Header="Tuning Structure Manipulation" Width="196" BorderThickness="0,1,1,1" x:Name="TSManipulationTabItem">
                                 <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                                     <StackPanel HorizontalAlignment="Center" Margin="0">
                                         <Label Content="Structure Manipulation" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
@@ -532,7 +552,7 @@
                                 <Label Content="Current Configuration Parameters" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
                                 <Border BorderBrush="Black" BorderThickness="0,1,1,1" Width="580">
                                     <ScrollViewer x:Name ="configScroller" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="580" Height="405" Margin="0" >
-                                        <TextBlock x:Name="configTB" FontSize="12" FontFamily="Courier New" Width="570" Background="White" TextWrapping="Wrap" Margin="0"></TextBlock>
+                                        <TextBlock x:Name="configTB" FontSize="12" FontFamily="Courier New" Background="White" TextWrapping="Wrap" Margin="0" Padding="2"></TextBlock>
                                     </ScrollViewer>
                                 </Border>
                                 <Button x:Name="loadNewConfigFile" Content="Load new configuration file" Width="160" HorizontalAlignment="Center" Click="LoadNewConfigFile_Click" Margin="0,7,0,0"></Button>

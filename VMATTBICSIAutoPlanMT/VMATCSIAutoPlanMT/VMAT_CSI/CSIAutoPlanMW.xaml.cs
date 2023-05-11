@@ -67,10 +67,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         string configFile = "";
         public Patient pi = null;
         StructureSet selectedSS = null;
-        private bool firstTargetStruct = true;
-        private bool firstTargetTemplateStruct = true;
-        private bool firstSpareStruct = true;
-        private bool firstTemplateSpareStruct = true;
         public int clearTargetBtnCounter = 0;
         public int clearTargetTemplateBtnCounter = 0;
         public int clearSpareBtnCounter = 0;
@@ -82,6 +78,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         string contourFieldOverlapMargin = "1.0";
         //structure id, Rx dose, plan Id
         List<Tuple<string, double, string>> targets = new List<Tuple<string, double, string>> { };
+        //requested preliminary targets from configuration file (i.e., starting point for MD when contouring targets). Same structure as TSStructures below
+        List<Tuple<string, string>> prelimTargets = new List<Tuple<string, string>> { };
         //list to hold the current structure ids in the structure set in addition to the prospective ids after unioning the left and right structures together
         List<string> structureIdsPostUnion = new List<string> { };
         //default general tuning structures to be added (specified in CSI_plugin_config.ini file)
@@ -97,10 +95,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //list of junction structures (i.e., overlap regions between adjacent isocenters)
         List<Tuple<ExternalPlanSetup, List<Structure>>> jnxs = new List<Tuple<ExternalPlanSetup, List<Structure>>> { };
         PlanPrep_CSI prep = null;
-        public VMS.TPS.Common.Model.API.Application app = null;
+        private VMS.TPS.Common.Model.API.Application app = null;
         bool isModified = false;
         bool autoSave = false;
         bool checkStructuresToUnion = true;
+        bool preliminaryTargetsPresent = false;
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
         public ObservableCollection<CSIAutoPlanTemplate> PlanTemplates { get; set; }
         //temporary variable to add new templates to the list
@@ -111,73 +110,41 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         public CSIAutoPlanMW(List<string> args)
         {
             InitializeComponent();
-            try { app = VMS.TPS.Common.Model.API.Application.CreateApplication(); }
-            catch (Exception e) { MessageBox.Show(String.Format("Warning! Could not generate Aria application instance because: {0}", e.Message)); }
-            string mrn = "";
-            string ss = "";
-            if (args.Any()) 
-            {
-                mrn = args.ElementAt(0);
-                ss = args.ElementAt(1);
-            }
+            if(InitializeScript(args)) this.Close();
+        }
 
+        private void LoadDefaultConfigurationFiles()
+        {
             //load script configuration and display the settings
             List<string> configurationFiles = new List<string> { };
             configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
             configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_CSI_config.ini");
             foreach (string itr in configurationFiles) LoadConfigurationSettings(itr);
+        }
+
+        private bool InitializeScript(List<string> args)
+        {
+            try { app = VMS.TPS.Common.Model.API.Application.CreateApplication(); }
+            catch (Exception e) { MessageBox.Show(String.Format("Warning! Could not generate Aria application instance because: {0}", e.Message)); }
+            string mrn = "";
+            string ss = "";
+            if (args.Any())
+            {
+                mrn = args.ElementAt(0);
+                ss = args.ElementAt(1);
+            }
+
+            LoadDefaultConfigurationFiles();
             log = new Logger(logPath, PlanType.VMAT_CSI, mrn);
             if (app != null)
             {
-                if (string.IsNullOrEmpty(mrn) || string.IsNullOrWhiteSpace(mrn))
-                {
-                    //missing patient MRN. Need to ask user for it
-                    EnterMissingInfoPrompt EMIP = new EnterMissingInfoPrompt("Missing patient Id!\nPlease enter it below and hit Confirm!", "MRN:");
-                    EMIP.ShowDialog();
-                    if (EMIP.GetSelection())
-                    {
-                        try 
-                        { 
-                            if (app != null) pi = app.OpenPatientById(EMIP.GetEnteredValue());
-                            mrn = EMIP.GetEnteredValue();
-                            log.MRN = mrn;
-                        }
-                        catch (Exception except) 
-                        { 
-                            log.LogError(string.Format("Error! Could not open patient because: {0}! Please try again!", except.Message));
-                            log.LogError(except.StackTrace, true);
-                            pi = null; 
-                        }
-                    }
-                    else 
-                    {
-                        //needs to be FIXED!
-                        closeOpenPatientWindow = true;
-                        this.Close(); 
-                        return; 
-                    }
-                }
-                else pi = app.OpenPatientById(mrn);
+                if(OpenPatient(mrn)) return true;
+                InitializeStructureSetSelection(ss);
+                CheckPreliminaryTargets();
 
                 //check the version information of Eclipse installed on this machine. If it is older than version 15.6, let the user know that this script may not work properly on their system
                 if (!double.TryParse(app.ScriptEnvironment.VersionInfo.Substring(0, app.ScriptEnvironment.VersionInfo.LastIndexOf(".")), out double vinfo)) log.LogError("Warning! Could not parse Eclise version number! Proceed with caution!");
                 else if (vinfo < 15.6) log.LogError(String.Format("Warning! Detected Eclipse version: {0:0.0} is older than v15.6! Proceed with caution!", vinfo));
-
-                if (pi != null)
-                {
-                    foreach (StructureSet s in pi.StructureSets.OrderByDescending(x => x.HistoryDateTime)) SSID.Items.Add(s.Id);
-
-                    //SSID default is the current structure set in the context
-                    if (!string.IsNullOrEmpty(ss)) 
-                    { 
-                        selectedSS = pi.StructureSets.FirstOrDefault(x => x.Id == ss); 
-                        SSID.Text = selectedSS.Id; 
-                    }
-                    else log.LogError("Warning! No structure set in context! Please select a structure set at the top of the GUI!");
-                    ExportCTUIHelper.PopulateCTImageSets(pi.StructureSets.Where(x => x != selectedSS).ToList(), selectedSS, CTimageSP);
-                    patientMRNLabel.Content = pi.Id;
-                }
-                else log.LogError("Could not open patient!");
             }
 
             PlanTemplates = new ObservableCollection<CSIAutoPlanTemplate>() { new CSIAutoPlanTemplate("--select--") };
@@ -187,12 +154,57 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             LoadPlanTemplates();
             DisplayConfigurationParameters();
-            targetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
+            return false;
         }
 
-        public Logger GetLoggerInstance()
+        private bool OpenPatient(string mrn)
         {
-            return log;
+            if (string.IsNullOrEmpty(mrn))
+            {
+                //missing patient MRN. Need to ask user for it
+                EnterMissingInfoPrompt EMIP = new EnterMissingInfoPrompt("Missing patient Id!\nPlease enter it below and hit Confirm!", "MRN:");
+                EMIP.ShowDialog();
+                if (EMIP.GetSelection())
+                {
+                    try
+                    {
+                        if (app != null) pi = app.OpenPatientById(EMIP.GetEnteredValue());
+                        mrn = EMIP.GetEnteredValue();
+                        log.MRN = mrn;
+                    }
+                    catch (Exception except)
+                    {
+                        log.LogError(string.Format("Error! Could not open patient because: {0}! Please try again!", except.Message));
+                        log.LogError(except.StackTrace, true);
+                        pi = null;
+                    }
+                }
+                else
+                {
+                    closeOpenPatientWindow = true;
+                    return true;
+                }
+            }
+            else pi = app.OpenPatientById(mrn);
+            return false;
+        }
+
+        private void InitializeStructureSetSelection(string ss)
+        {
+            if (pi != null)
+            {
+                foreach (StructureSet s in pi.StructureSets.OrderByDescending(x => x.HistoryDateTime)) SSID.Items.Add(s.Id);
+                //SSID default is the current structure set in the context
+                if (!string.IsNullOrEmpty(ss))
+                {
+                    selectedSS = pi.StructureSets.FirstOrDefault(x => string.Equals(x.Id, ss));
+                    SSID.Text = selectedSS.Id;
+                }
+                else log.LogError("Warning! No structure set in context! Please select a structure set at the top of the GUI!");
+                ExportCTUIHelper.PopulateCTImageSets(pi.StructureSets.Where(x => x != selectedSS).ToList(), selectedSS, CTimageSP);
+                patientMRNLabel.Content = pi.Id;
+            }
+            else log.LogError("Could not open patient!");
         }
 
         private void HelpButton_Click(object sender, RoutedEventArgs e)
@@ -212,8 +224,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ClearAllCurrentParameters();
 
             //update selected structure set
-            selectedSS = pi.StructureSets.FirstOrDefault(x => x.Id == SSID.SelectedItem.ToString());
+            selectedSS = pi.StructureSets.FirstOrDefault(x => string.Equals(x.Id, SSID.SelectedItem.ToString()));
             log.StructureSet = selectedSS.Id;
+
+            CheckPreliminaryTargets();
         }
 
         private void ClearAllCurrentParameters()
@@ -365,6 +379,86 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         #region TargetsPlansAssignments
         //stuff related to Set Targets tab
+        private void CheckPreliminaryTargets()
+        {
+            List<string> missingPrelimTargets = new List<string> { };
+            if (selectedSS != null && prelimTargets.Any())
+            {
+                foreach (string itr in prelimTargets.Select(x => x.Item2))
+                {
+                    //needs to be present AND contoured
+                    if (!selectedSS.Structures.Any(x => string.Equals(x.Id, itr) && !x.IsEmpty))
+                    {
+                        missingPrelimTargets.Add(itr);
+                    }
+                }
+            }
+
+            targetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
+            if (missingPrelimTargets.Any())
+            {
+                AddPrelimTargetVolumes(prelimTargets, PrelimTargetGenerationSP);
+                PrelimTargetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
+            }
+            else
+            {
+                PrelimTargetsTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+                targetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
+            }
+        }
+
+        private void CreatePrelimTargetsInfo_Click(object sender, RoutedEventArgs e)
+        {
+            StringBuilder message = new StringBuilder();
+            message.AppendLine("This will generate the preliminary targets that will be sent to the physician for review and modification. Included targets:");
+            foreach(string itr in prelimTargets.Select(x => x.Item2)) message.AppendLine(itr);
+            MessageBox.Show(message.ToString());
+        }
+
+        private void AddPrelimTargetVolumes(List<Tuple<string, string>> defaultList, StackPanel theSP)
+        {
+            if (selectedSS == null)
+            {
+                log.LogError("Error! Please select a Structure Set before adding tuning structure manipulations!");
+                return;
+            }
+            if (theSP.Children.Count == 0) theSP.Children.Add(StructureTuningUIHelper.AddTemplateTSHeader(theSP));
+            string clearBtnName = "ClearPrelimTargetsBtn";
+            int counter = 0;
+            for(int i = 0; i < defaultList.Count; i++)
+            {
+                counter++;
+                theSP.Children.Add(StructureTuningUIHelper.AddTSVolume(theSP,
+                                                       selectedSS,
+                                                       defaultList[i],
+                                                       clearBtnName,
+                                                       counter,
+                                                       new RoutedEventHandler(this.ClearPrelimTargetItem_Click)));
+            }
+        }
+
+        private void ClearPrelimTargetItem_Click(object sender, RoutedEventArgs e)
+        {
+            StackPanel theSP;
+            theSP = PrelimTargetGenerationSP;
+            if (GeneralUIHelper.ClearRow(sender, theSP)) GeneralUIHelper.ClearList(theSP);
+        }
+
+        private void CreatePrelimTargets_Click(object sender, RoutedEventArgs e)
+        {
+            //get sparing structure and tuning structure lists from the UI
+            (List<Tuple<string, string>> createTSStructureList, StringBuilder errorMessage) parseCreatePrelimTargetList = StructureTuningUIHelper.ParseCreateTSStructureList(PrelimTargetGenerationSP);
+            if (!string.IsNullOrEmpty(parseCreatePrelimTargetList.errorMessage.ToString()))
+            {
+                log.LogError(parseCreatePrelimTargetList.errorMessage);
+                return;
+            }
+
+            StringBuilder message = new StringBuilder();
+            foreach (string itr in prelimTargets.Select(x => x.Item2)) message.AppendLine(itr);
+            MessageBox.Show(message.ToString());
+        }
+
         private (ScrollViewer, StackPanel) GetSVAndSPTargetsTab(object sender)
         {
             Button btn = (Button)sender;
@@ -434,13 +528,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if(btn == null || btn.Name == "clear_target_list" || !btn.Name.Contains("template"))
             {
-                firstTargetStruct = true;
                 targetsSP.Children.Clear();
                 clearTargetBtnCounter = 0;
             }
             else
             {
-                firstTargetTemplateStruct = true;
                 targetTemplate_sp.Children.Clear();
                 clearTargetTemplateBtnCounter = 0;
             }
@@ -448,22 +540,19 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
         private void AddTargetVolumes(List<Tuple<string,double,string>> defaultList, StackPanel theSP)
         {
-            bool firstStruct;
             int counter;
             string clearBtnNamePrefix;
             if (theSP.Name == "targetsSP")
             {
-                firstStruct = firstTargetStruct;
                 counter = clearTargetBtnCounter;
                 clearBtnNamePrefix = "clearTargetBtn";
             }
             else
             {
-                firstStruct = firstTargetTemplateStruct;
                 counter = clearTargetTemplateBtnCounter;
                 clearBtnNamePrefix = "templateClearTargetBtn";
             }
-            if (firstStruct) AddTargetHeader(theSP);
+            if (theSP.Children.Count == 0) AddTargetHeader(theSP);
             List<string> planIDs = new List<string> { };
             //assumes each target has a unique planID 
             //TODO: add function to return unique list of planIDs sorted by Rx ascending
@@ -517,8 +606,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private void AddTargetHeader(StackPanel theSP)
         {
             theSP.Children.Add(TargetsUIHelper.GetTargetHeader(theSP.Width));
-            if (theSP.Name == "targetsSP") firstTargetStruct = false;
-            else firstTargetTemplateStruct = false;
         }
 
         private void SetTargets_Click(object sender, RoutedEventArgs e)
@@ -769,10 +856,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private void AddStructureManipulationHeader(StackPanel theSP)
         {
             theSP.Children.Add(StructureTuningUIHelper.GetTSManipulationHeader(theSP));
-
-            //bool to indicate that the header has been added
-            if (theSP.Name.Contains("template")) firstTemplateSpareStruct = false;
-            else firstSpareStruct = false;
         }
 
         //populate the structure sparing list. This method is called whether the add structure or add defaults buttons are hit (because a vector containing the list of structures is passed as an argument to this method)
@@ -783,22 +866,19 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 log.LogError("Error! Please select a Structure Set before add tuning structure manipulations!"); 
                 return; 
             }
-            bool firstStruct;
             int counter;
             string clearBtnNamePrefix;
             if (theSP.Name.Contains("template"))
             {
-                firstStruct = firstTemplateSpareStruct;
                 counter = clearTemplateSpareBtnCounter;
                 clearBtnNamePrefix = "templateClearSpareStructBtn";
             }
             else
             {
-                firstStruct = firstSpareStruct;
                 counter = clearSpareBtnCounter;
                 clearBtnNamePrefix = "clearSpareStructBtn";
             }
-            if (firstStruct) AddStructureManipulationHeader(theSP);
+            if (theSP.Children.Count == 0) AddStructureManipulationHeader(theSP);
             foreach (Tuple<string, TSManipulationType, double> itr in defaultList)
             {
                 counter++;
@@ -909,13 +989,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if(theBtn.Name.Contains("template"))
             {
-                firstTemplateSpareStruct = true;
                 templateStructuresSP.Children.Clear();
                 clearTemplateSpareBtnCounter = 0;
             }
             else
             {
-                firstSpareStruct = true;
                 structureManipulationSP.Children.Clear();
                 clearSpareBtnCounter = 0;
             }
@@ -2010,6 +2088,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     List<string> energy_temp = new List<string> { };
                     List<VRect<double>> jawPos_temp = new List<VRect<double>> { };
                     List<Tuple<string, TSManipulationType, double>> defaultTSManipulations_temp = new List<Tuple<string, TSManipulationType, double>> { };
+                    List<Tuple<string, string>> prelimTargets_temp = new List<Tuple<string, string>> { };
                     List<Tuple<string, string>> defaultTSstructures_temp = new List<Tuple<string, string>> { };
 
                     while ((line = reader.ReadLine()) != null)
@@ -2089,6 +2168,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                 else if (parameter == "contour field overlap margin") { if (value != "") contourFieldOverlapMargin = value; }
                             }
                             else if (line.Contains("add default TS manipulation")) defaultTSManipulations_temp.Add(ConfigurationHelper.ParseTSManipulation(line));
+                            else if (line.Contains("create preliminary target")) prelimTargets_temp.Add(ConfigurationHelper.ParseCreateTS(line));
                             else if (line.Contains("create default TS")) defaultTSstructures_temp.Add(ConfigurationHelper.ParseCreateTS(line));
                             else if (line.Contains("add linac"))
                             {
@@ -2126,6 +2206,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     if (jawPos_temp.Any() && jawPos_temp.Count == 4) jawPos = new List<VRect<double>>(jawPos_temp);
                     if (defaultTSManipulations_temp.Any()) defaultTSStructureManipulations = new List<Tuple<string, TSManipulationType, double>>(defaultTSManipulations_temp);
                     if (defaultTSstructures_temp.Any()) defaultTSStructures = new List<Tuple<string, string>>(defaultTSstructures_temp);
+                    if (prelimTargets_temp.Any()) prelimTargets = new List<Tuple<string, string>>(prelimTargets_temp);
                 }
                 
                 return false;
@@ -2213,5 +2294,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             SizeToContent = SizeToContent.WidthAndHeight;
         }
+
+        
     }
 }

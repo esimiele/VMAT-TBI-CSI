@@ -11,9 +11,13 @@
             <Grid VerticalAlignment="Top" Background="White" Height="Auto">
                 <StackPanel>
                     <Label Content="Manual Entry" FontWeight="Bold" VerticalAlignment="Top" HorizontalAlignment="Center"/>
-                    <Grid Margin="0,5,0,10">
-                        <Label Content="Patient MRN:" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,120,0"></Label>
-                        <TextBox x:Name="MRNTB" Height="22" Width="120" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,80,0"></TextBox>
+                    <Grid Margin="10,0,10,10" HorizontalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Patient MRN:" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0"></Label>
+                        <TextBox x:Name="MRNTB" Height="22" Width="120" Grid.Column="1" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0"></TextBox>
                     </Grid>
                 </StackPanel>
             </Grid>
@@ -22,7 +26,7 @@
                     <Label Content="Select Patient From Script Logs" FontWeight="Bold" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="5"/>
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"></ColumnDefinition>
+                            <ColumnDefinition Width="*"></ColumnDefinition>
                             <ColumnDefinition Width="Auto"></ColumnDefinition>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
@@ -30,9 +34,9 @@
                             <RowDefinition Height="Auto"></RowDefinition>
                         </Grid.RowDefinitions>
                         <Label Content="VMAT CSI" Grid.Column="0" Grid.Row="0" FontWeight="Bold" HorizontalAlignment="Center" Margin="0"/>
-                        <Label Content="VMAT TBI" Grid.Column="1" Grid.Row="0" FontWeight="Bold" HorizontalAlignment="Center" Margin="0"/>
+                        <Label Content="VMAT TBI" Grid.Column="1" Grid.Row="0" FontWeight="Bold" HorizontalAlignment="Center" Margin="0" Visibility="Visible"/>
                         <ListBox x:Name="mrnListCSI" Grid.Column="0" Grid.Row="1" ItemsSource="{Binding PatientMRNsCSI}" HorizontalContentAlignment="Center" Height="200" Width="160" Margin="10,0,10,10" SelectionChanged="mrnListCSI_SelectionChanged"/>
-                        <ListBox x:Name="mrnListTBI" Grid.Column="1" Grid.Row="1" ItemsSource="{Binding PatientMRNsTBI}" HorizontalContentAlignment="Center" Height="200" Width="160" Margin="10,0,10,10" SelectionChanged="mrnListTBI_SelectionChanged"/>
+                        <ListBox x:Name="mrnListTBI" Grid.Column="1" Grid.Row="1" ItemsSource="{Binding PatientMRNsTBI}" HorizontalContentAlignment="Center" Height="200" Width="160" Margin="10,0,10,10" SelectionChanged="mrnListTBI_SelectionChanged" Visibility="Visible"/>
                     </Grid>
                     <Grid>
                     </Grid>
