@@ -16,6 +16,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         public List<Tuple<string, TSManipulationType>> GetOptParameters() { return optParameters; }
         public List<Tuple<string, TSManipulationType, double>> GetSparingList() { return TSManipulationList; }
         public bool GetUpdateSparingListStatus() { return updateTSManipulationList; }
+        public string GetErrorStackTrace() { return stackTraceError; }
 
         protected StructureSet selectedSS;
         //structure, manipulation type, added margin (if applicable)
@@ -26,6 +27,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         //plan Id, list of isocenter names for this plan
         protected List<Tuple<string,List<string>>> isoNames = new List<Tuple<string, List<string>>> { };
         protected bool updateTSManipulationList = false;
+        protected string stackTraceError;
 
         #region virtual methods
         protected virtual bool PreliminaryChecks()

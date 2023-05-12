@@ -258,7 +258,7 @@
                     </TabItem>
                     <TabItem Header="Specify Targets" BorderThickness="0,1,1,0" x:Name="targetsTabItem">
                         <TabControl TabStripPlacement="Top" Background="DarkGray">
-                            <TabItem x:Name="PrelimTargetsTabItem" Header="Generate Preliminary Targets" Width="295" BorderThickness="1,1,1,1">
+                            <TabItem x:Name="PrelimTargetsTabItem" Header="Generate Preliminary Targets" Width="294" BorderThickness="1,1,1,1">
                                 <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                                     <StackPanel HorizontalAlignment="Center" Margin="0">
                                         <Grid Width="575" HorizontalAlignment="Center" Margin="0">
@@ -273,10 +273,10 @@
                                     </StackPanel>
                                 </Border>
                             </TabItem>
-                            <TabItem Header="Set Targets" Width="295" BorderThickness="0,1,1,1" x:Name="setTargetsTabItem">
+                            <TabItem Header="Set Targets" Width="294" BorderThickness="0,1,1,1" x:Name="setTargetsTabItem">
                                 <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                                     <StackPanel HorizontalAlignment="Center" Margin="0">
-                                        <Label Content="Specify Targets" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                                        <Label Content="Select Targets" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"/>
                                         <Grid Height="25" Width ="600" HorizontalAlignment="Center" Margin="0,5,0,0">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
@@ -298,7 +298,6 @@
                                 </Border>
                             </TabItem>
                         </TabControl>
-                        
                     </TabItem>
                     <TabItem Header="Structure Tuning" BorderThickness="0,1,1,0" x:Name="structureTuningTabItem" Margin="0,0,1,1">
                         <TabControl Background="DarkGray">

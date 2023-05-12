@@ -15,6 +15,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
     {
         public List<ExternalPlanSetup> GetGeneratedPlans() { return plans; }
         public List<Tuple<ExternalPlanSetup, List<Structure>>> GetFieldJunctionStructures() { return jnxs; }
+        public string GetErrorStackTrace() { return stackTraceError; }
 
         protected bool contourOverlap = false;
         protected bool checkIsoPlacement = false;
@@ -34,6 +35,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         protected List<Tuple<ExternalPlanSetup,List<Structure>>> jnxs = new List<Tuple<ExternalPlanSetup, List<Structure>>> { };
         protected Structure target = null;
         protected int numVMATIsos;
+        protected string stackTraceError;
 
         #region virtual methods
         protected virtual bool GeneratePlanList()

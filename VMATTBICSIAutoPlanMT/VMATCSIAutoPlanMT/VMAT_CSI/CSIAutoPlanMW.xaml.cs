@@ -32,7 +32,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //point this to the directory holding the documentation files
         string documentationPath = @"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\documentation\";
         //log file path
-        string logPath = @"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\Research\VMAT-TBI\log_files\";
+        string logPath = @"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\Research\VMAT-TBI-CSI\log_files\";
         //location where CT images should be exported
         string imgExportPath = @"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\exportedImages\";
         //image export format
@@ -99,7 +99,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         bool isModified = false;
         bool autoSave = false;
         bool checkStructuresToUnion = true;
-        bool preliminaryTargetsPresent = false;
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
         public ObservableCollection<CSIAutoPlanTemplate> PlanTemplates { get; set; }
         //temporary variable to add new templates to the list
@@ -377,10 +376,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         #endregion
 
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        #region TargetsPlansAssignments
+        #region Preliminary Targets Generation
         //stuff related to Set Targets tab
         private void CheckPreliminaryTargets()
         {
+            if (selectedSS == null) return;
+            PrelimTargetGenerationSP.Children.Clear();
             List<string> missingPrelimTargets = new List<string> { };
             if (selectedSS != null && prelimTargets.Any())
             {
@@ -403,7 +404,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             else
             {
                 PrelimTargetsTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
-                targetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
+                setTargetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             }
         }
 
@@ -454,11 +455,20 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 return;
             }
 
-            StringBuilder message = new StringBuilder();
-            foreach (string itr in prelimTargets.Select(x => x.Item2)) message.AppendLine(itr);
-            MessageBox.Show(message.ToString());
+            GenerateTargets_CSI generateTargets = new GenerateTargets_CSI(prelimTargets, selectedSS);
+            pi.BeginModifications();
+            bool result = generateTargets.Execute();
+            //grab the log output regardless if it passes or fails
+            log.AppendLogOutput("TS Generation and manipulation output:", generateTargets.GetLogOutput());
+            if (result) return;
+            log.AddedPrelimTargetsStructures = generateTargets.GetAddedTargetStructures();
+            PrelimTargetsTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+            MessageBox.Show("Preliminary targets ready for physician review and modification!");
+            isModified = true;
         }
+        #endregion
 
+        #region Set targets
         private (ScrollViewer, StackPanel) GetSVAndSPTargetsTab(object sender)
         {
             Button btn = (Button)sender;
@@ -621,12 +631,20 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 return;
             }
 
+            //target id, target Rx, plan id
             (List<Tuple<string, double, string>>, StringBuilder) parsedTargets = TargetsUIHelper.ParseTargets(targetsSP, selectedSS);
             if (!parsedTargets.Item1.Any())
             {
                 log.LogError(parsedTargets.Item2);
                 return;
             }
+            (bool isTargetError, StringBuilder errorMessage) = VerifySelectedTargetsIntegrity(parsedTargets.Item1);
+            if(isTargetError)
+            {
+                log.LogError(errorMessage);
+                return;
+            }
+
             targets = new List<Tuple<string, double, string>>(parsedTargets.Item1);
             (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) parsedPrescriptions = TargetsHelper.GetPrescriptions(targets,
                                                                                                                                       initDosePerFxTB.Text,
@@ -647,6 +665,33 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             AddDefaultRings_Click(null, null);
             log.targets = targets;
             log.Prescriptions = prescriptions;
+        }
+
+        private (bool, StringBuilder) VerifySelectedTargetsIntegrity(List<Tuple<string, double, string>> parsedTargets)
+        {
+            //verify selected targets are APPROVED
+            bool fail = false;
+            StringBuilder sb = new StringBuilder();
+            foreach (Tuple<string, double, string> itr in parsedTargets)
+            {
+                if (!selectedSS.Structures.Any(x => string.Equals(x.Id, itr.Item1) && !x.IsEmpty))
+                {
+                    sb.AppendLine($"Error! {itr.Item1} is either NOT present in structure set or is not contoured!");
+                    fail = true;
+                }
+                else
+                {
+                    //structure is present and contoured
+                    Structure tgt = selectedSS.Structures.First(x => string.Equals(x.Id, itr.Item1));
+                    if (tgt.ApprovalHistory.First().ApprovalStatus != StructureApprovalStatus.Approved)
+                    {
+                        sb.AppendLine($"Error! {tgt.Id} is NOT approved!");
+                        sb.AppendLine($"{tgt.Id} approval status: {tgt.ApprovalHistory.First().ApprovalStatus}");
+                        fail = true;
+                    }
+                }
+            }
+            return (fail, sb);
         }
         #endregion
 
@@ -1959,6 +2004,15 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             configTB.Text += String.Format(" Photon optimization model: {0}", optimizationModel) + Environment.NewLine;
             configTB.Text += String.Format(" Use GPU for optimization: {0}", useGPUoptimization) + Environment.NewLine;
             configTB.Text += String.Format(" MR level restart at: {0}", MRrestartLevel) + Environment.NewLine + Environment.NewLine;
+
+            if (prelimTargets.Any())
+            {
+                configTB.Text += String.Format(" Requested preliminary taret structures:") + Environment.NewLine;
+                configTB.Text += String.Format("  {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + Environment.NewLine;
+                foreach (Tuple<string, string> ts in prelimTargets) configTB.Text += String.Format("  {0, -10} | {1, -15} |" + Environment.NewLine, ts.Item1, ts.Item2);
+                configTB.Text += Environment.NewLine;
+            }
+            else configTB.Text += String.Format(" No general TS manipulations requested!") + Environment.NewLine + Environment.NewLine;
 
             if (defaultTSStructures.Any())
             {

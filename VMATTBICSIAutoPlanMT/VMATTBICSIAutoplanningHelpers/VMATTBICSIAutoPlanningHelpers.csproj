@@ -7,8 +7,8 @@
     <ProjectGuid>{B3FBF7B5-9E18-43BA-B40F-144682A3956E}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>VMATTBICSIAutoplanningHelpers</RootNamespace>
-    <AssemblyName>VMATTBICSIAutoplanningHelpers</AssemblyName>
+    <RootNamespace>VMATTBICSIAutoPlanningHelpers</RootNamespace>
+    <AssemblyName>VMATTBICSIAutoPlanningHelpers</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>false</Deterministic>
@@ -118,6 +118,7 @@
     <Compile Include="Enums\OptimizationObjectiveTypeEnum.cs" />
     <Compile Include="Enums\TSManipulationTypeEnum.cs" />
     <Compile Include="Helpers\CalculationHelper.cs" />
+    <Compile Include="Helpers\ContourHelper.cs" />
     <Compile Include="Helpers\OptimizationTypeHelper.cs" />
     <Compile Include="Helpers\TSManipulationTypeHelper.cs" />
     <Compile Include="Prompts\SelectItemPrompt.xaml.cs">

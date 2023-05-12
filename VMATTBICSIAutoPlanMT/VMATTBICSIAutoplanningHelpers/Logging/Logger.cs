@@ -26,6 +26,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         public List<Tuple<string, double, string>> Targets { set { targets = new List<Tuple<string, double, string>>(value); } }
         //plan ID, target Id, numFx, dosePerFx, cumulative dose
         public List<Tuple<string, string, int, DoseValue, double>> Prescriptions { set { prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(value); } }
+        public List<string> AddedPrelimTargetsStructures { set { addedPrelimTargets = new List<string>(value); } }
         //ts generation and manipulation
         public List<string> AddedStructures { set { addedStructures = new List<string>(value); } }
         //structure ID, sparing type, margin
@@ -53,6 +54,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         bool changesSaved = false;
         public List<Tuple<string, double, string>> targets;
         List<Tuple<string, string, int, DoseValue, double>> prescriptions;
+        private List<string> addedPrelimTargets;
         private List<string> addedStructures;
         private List<Tuple<string, TSManipulationType, double>> structureManipulations { get; set; }
         private List<Tuple<string, string>> normVolumes { get; set; }
@@ -69,6 +71,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             selectedSS = "";
             targets = new List<Tuple<string, double, string>> { };
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+            addedPrelimTargets = new List<string> { };
             addedStructures = new List<string> { };
             structureManipulations = new List<Tuple<string, TSManipulationType, double>> { };
             normVolumes = new List<Tuple<string, string>> { };
@@ -151,7 +154,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions) sb.AppendLine(String.Format("    {{{0},{1},{2},{3},{4}}}",itr.Item1,itr.Item2,itr.Item3,itr.Item4.Dose,itr.Item5));
             sb.AppendLine(String.Format(""));
 
-            sb.AppendLine(String.Format("Added structures:"));
+            sb.AppendLine(String.Format("Added preliminary targets:"));
+            foreach (string itr in addedPrelimTargets) sb.AppendLine("    " + itr);
+            sb.AppendLine(String.Format(""));
+
+            sb.AppendLine(String.Format("Added TS structures:"));
             foreach (string itr in addedStructures) sb.AppendLine("    " + itr);
             sb.AppendLine(String.Format(""));
 

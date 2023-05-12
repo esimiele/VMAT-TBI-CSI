@@ -13,6 +13,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
     public class PlaceBeams_CSI : PlaceBeamsBase
     {
+
         //plan, list<iso name, number of beams>
         private List<Tuple<string, List<Tuple<string, int>>>> planIsoBeamInfo;
         private double isoSeparation = 0;
@@ -44,7 +45,16 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         [HandleProcessCorruptedStateExceptions]
         public override bool Run()
         {
-            return GeneratePlanList();
+            try
+            {
+                return GeneratePlanList();
+            }
+            catch(Exception e)
+            {
+                ProvideUIUpdate($"{e.Message}", true);
+                stackTraceError = e.StackTrace;
+                return true;
+            }
         }
 
         private (bool, double) GetBrainZCenter(ref int counter, ref int calcItems)
@@ -124,7 +134,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 ProvideUIUpdate("Adding 10 mm superior margin to spinal cord structure to mimic superior extent of PTV_Spine!");
                 spineZMax += 10.0;
                 ProvideUIUpdate("Adding 15 mm inferior margin to spinal cord structure to mimic inferior extent of PTV_Spine!");
-                spineZMax -= 15.0;
+                spineZMin -= 15.0;
             }
             ProvideUIUpdate($"Anterior extent of PTV_Spine: {spineYMin:0.0} mm");
             ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Superior extent of PTV_Spine: {spineZMax:0.0} mm");
@@ -189,7 +199,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     (bool failBrainRetrival, double brainZCenter) = GetBrainZCenter(ref counter, ref calcItems);
                     if (failBrainRetrival) return allIsocenters;
                     //since Brain CTV = Brain and PTV = CTV + 5 mm uniform margin, center of brain is unaffected by adding the 5 mm margin if the PTV_Brain structure could not be found
-                    ProvideUIUpdate($"Calculating center of PTV_Brain to inf extent of PTV_Spine");
+                    ProvideUIUpdate($"Calculating distance between center of PTV_Brain and inf extent of PTV_Spine");
                     maxTargetLength = brainZCenter - spineZMin;
                     ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Extent: {maxTargetLength:0.0} mm");
 
@@ -265,7 +275,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //grab all prescriptions assigned to this plan
             List<Tuple<string, string, int, DoseValue, double>> tmp = prescriptions.Where(x => string.Equals(x.Item1, iso.Item1.Id)).ToList();
             //if any of the targets for this plan are ptv_csi, then you must use the special beam placement logic for the initial plan
-            if (tmp.Where(x => x.Item2.ToLower().Contains("ptv_csi")).Any())
+            if (tmp.Any(x => x.Item2.ToLower().Contains("ptv_csi")))
             {
                 //verify that BOTH PTV spine and PTV brain exist in the current structure set! If not, create them (used to fit the field jaws to the target
                 if (!selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), "ptv_brain")))
@@ -342,15 +352,19 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     //circular margin (in mm), target structure, use asymmetric x Jaws, use asymmetric y jaws, optimize collimator rotation
                     if (target.Id.ToLower().Contains("ptv_brain"))
                     {
+                        double buffer = Math.Abs(target.MeshGeometry.Positions.Min(p => p.Y)) - Math.Abs(b.IsocenterPosition.y);
+                        buffer -= Math.Abs(target.MeshGeometry.Positions.Min(p => p.X)) - Math.Abs(b.IsocenterPosition.x);
+                        if (buffer < 0) buffer = 0;
+                        ProvideUIUpdate($"Delta between lateral and AP projection of {target.Id} structure: {buffer:0.0} mm");
                         //original (3/28/23) 30.0,40.0,30.0,30.0
-                        b.FitCollimatorToStructure(new FitToStructureMargins(45.0, 40.0, 45.0, 30.0), target, true, true, false);
+                        b.FitCollimatorToStructure(new FitToStructureMargins(30.0 + buffer, 40.0, 30.0 + buffer, 30.0), target, true, true, false);
                         ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Fit collimator to: {target.Id}");
-                        ProvideUIUpdate($"Asymmetric margin: {4.5} cm Lat, {3.0} cm Sup, {4.0} cm Inf");
+                        ProvideUIUpdate($"Asymmetric margin: {3.0 + buffer / 10: 0.0} cm Lat, {3.0} cm Sup, {4.0} cm Inf");
                     }
                     else
                     {
                         //original (3/28/23) 30.0
-                        b.FitCollimatorToStructure(new FitToStructureMargins(45.0,30.0,45.0,30.0), target, true, true, false);
+                        b.FitCollimatorToStructure(new FitToStructureMargins(45.0, 30.0, 45.0, 30.0), target, true, true, false);
                         ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Fit collimator to: {target.Id}");
                         ProvideUIUpdate($"Asymmetric margin: {4.5} cm Lat, {3.0} cm Sup-Inf");
                     }

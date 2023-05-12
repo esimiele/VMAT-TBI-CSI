@@ -30,7 +30,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 VerticalAlignment = VerticalAlignment.Top,
                 Width = 115,
                 FontSize = 14,
-                Margin = new Thickness(5, 0, 0, 0)
+                Margin = new Thickness(10, 0, 0, 0)
             };
 
             Label strName = new Label
