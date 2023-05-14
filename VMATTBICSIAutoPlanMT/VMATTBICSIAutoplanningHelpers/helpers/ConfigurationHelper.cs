@@ -109,7 +109,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return Tuple.Create(dicomType, TSstructure);
         }
 
-        private static Tuple<string, double, double, double> ParseCreateRing(string line)
+        public static Tuple<string, double, double, double> ParseCreateRing(string line)
         {
             string structure;
             double margin;
@@ -126,7 +126,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return Tuple.Create(structure, margin, thickness, dose);
         }
 
-        private static Tuple<string, double, string> ParseTargets(string line)
+        public static Tuple<string, double, string> ParseTargets(string line)
         {
             //known array format --> can take shortcuts in parsing the data
             //structure id, sparing type, added margin in cm (ignored if sparing type is Dmax ~ Rx Dose)
@@ -158,7 +158,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return Tuple.Create(structure, TSManipulationTypeHelper.GetTSManipulationType(spareType), val);
         }
 
-        private static string ParseCropAndContourOverlapStruct(string line)
+        public static string ParseCropAndContourOverlapStruct(string line)
         {
             string structure;
             line = CropLine(line, "{");
@@ -166,7 +166,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return structure;
         }
 
-        private static Tuple<string, OptimizationObjectiveType, double, double, int> ParseOptimizationConstraint(string line)
+        public static Tuple<string, OptimizationObjectiveType, double, double, int> ParseOptimizationConstraint(string line)
         {
             //known array format --> can take shortcuts in parsing the data
             //structure id, constraint type, dose (cGy), volume (%), priority
@@ -188,7 +188,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return Tuple.Create(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), doseVal, volumeVal, priorityVal);
         }
 
-        private static Tuple<string, string, double, string> ParseRequestedPlanDoseInfo(string line)
+        public static Tuple<string, string, double, string> ParseRequestedPlanDoseInfo(string line)
         {
             line = CropLine(line, "{");
             string structure = line.Substring(0, line.IndexOf(","));
@@ -222,7 +222,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return Tuple.Create(structure, constraintType, doseVal, representation);
         }
 
-        private static Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>> ParseTSstructure(string line)
+        public static Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>> ParseTSstructure(string line)
         {
             //type (Dmax or V), dose value for volume constraint (N/A for Dmax), equality or inequality, volume (%) or dose (%)
             List<Tuple<string, double, string, double>> constraints = new List<Tuple<string, double, string, double>> { };
@@ -299,7 +299,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             }
         }
 
-        private static Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation> ParsePlanObjective(string line)
+        public static Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation> ParsePlanObjective(string line)
         {
             string structure;
             string constraintType;

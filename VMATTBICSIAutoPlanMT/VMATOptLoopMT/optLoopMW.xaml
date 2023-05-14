@@ -253,10 +253,17 @@
                         <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                             <StackPanel Name="OPT" Width="600" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0">
                                 <Label Content="Optimization Parameters" FontSize="16" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"></Label>
-                                <Grid Height="25" Width ="520" HorizontalAlignment="Center" Margin="0,5,0,0">
-                                    <Button x:Name="addOptimizationConstraintBtn" Content="Add Constraint" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="AddItem_Click"/>
-                                    <Button Content="Get Constraints From Plan" Width="150" HorizontalAlignment="Center" VerticalAlignment="Top" Click="getOptFromPlan_Click"/>
-                                    <Button x:Name="clearAllOptimizationParamsBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="ClearAllItems_Click"/>
+                                <Grid Height="25" Width ="575" HorizontalAlignment="Center" Margin="0,5,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="1.5*"/>
+                                        <ColumnDefinition Width="1.5*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button x:Name="addOptimizationConstraintBtn" Grid.Column="0" Content="Add Constraint" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="AddItem_Click"/>
+                                    <Button Content="Get Constraints From Plan" Grid.Column="1" Width="150" HorizontalAlignment="Center" VerticalAlignment="Top" Click="GetOptFromPlan_Click"/>
+                                    <Button Content="Get Constraints From Logs" Grid.Column="2" Width="150" HorizontalAlignment="Center" VerticalAlignment="Top" Click="GetOptFromLogs_Click"/>
+                                    <Button x:Name="clearAllOptimizationParamsBtn" Grid.Column="3" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="ClearAllItems_Click"/>
                                 </Grid>
                                 <ScrollViewer x:Name="optimizationParamScroller" Height="444" Width="595" Margin="0,0,5,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                     <StackPanel Name="optimizationParamSP" Margin="5"></StackPanel>

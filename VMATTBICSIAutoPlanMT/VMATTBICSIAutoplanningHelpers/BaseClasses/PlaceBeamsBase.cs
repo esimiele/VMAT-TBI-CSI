@@ -208,7 +208,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                     ProvideUIUpdate((int)(100 * ++counter / calcItems), "Set GPU option for dose calculation to No");
                 }
 
-
                 //set MR restart level option for the photon optimization
                 thePlan.SetCalculationOption(optimizationModel, "VMAT/MRLevelAtRestart", MRrestart);
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Set MR Restart level to {MRrestart}");

@@ -402,6 +402,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                         ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Removing structure: {addedStructure.Id}");
                         selectedSS.RemoveStructure(addedStructure);
                     }
+                    else if(addedStructure.Volume <= 0.1)
+                    {
+                        ProvideUIUpdate($"{addedStructure.Id} volume <= 0.1 cc!");
+                        calcItems += 1;
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Removing structure: {addedStructure.Id}");
+                        selectedSS.RemoveStructure(addedStructure);
+                    }
                     else ProvideUIUpdate($"Finished contouring: {addedStructure.Id}");
                 }
                 else ProvideUIUpdate($"Warning! Could not retrieve normal structure! Skipping {addedStructure.Id}");

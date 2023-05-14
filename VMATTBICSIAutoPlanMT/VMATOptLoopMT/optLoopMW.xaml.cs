@@ -49,6 +49,9 @@ namespace VMATTBICSIOptLoopMT
         //lower dose limit
         double lowDoseLimit = 0.1;
 
+        //plan id, list<structure id, optimization objective type, dose, volume, priority>
+        List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> optConstraintsFromLogs = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
+
         //structure, constraint type, dose, relative volume, dose value presentation (unless otherwise specified)
         //note, if the constraint type is "mean", the relative volume value is ignored
         public List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> planObj = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> { };
@@ -67,6 +70,7 @@ namespace VMATTBICSIOptLoopMT
         bool runOneMoreOpt = false;
         bool copyAndSavePlanItr = false;
         bool useFlash = false;
+        bool logFileLoaded = false;
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
         public ObservableCollection<CSIAutoPlanTemplate> PlanTemplates { get; set; }
         public CSIAutoPlanTemplate selectedTemplate;
@@ -131,7 +135,7 @@ namespace VMATTBICSIOptLoopMT
                         planUIDs = new List<string> { };
                         if (!string.IsNullOrEmpty(fullLogName))
                         {
-                            LoadLogFile(fullLogName);
+                            if (!LoadLogFile(fullLogName)) logFileLoaded = true;
                         }
 
                         LoadConfigurationSettingsForPlanType(planType);
@@ -181,9 +185,26 @@ namespace VMATTBICSIOptLoopMT
             LoadPatient();
         }
 
-        private void getOptFromPlan_Click(object sender, RoutedEventArgs e)
+        private void GetOptFromPlan_Click(object sender, RoutedEventArgs e)
         {
             if (pi != null && plans.Any()) PopulateOptimizationTab(optimizationParamSP);
+        }
+
+        private void GetOptFromLogs_Click(object sender, RoutedEventArgs e)
+        {
+            if (pi != null && plans.Any())
+            {
+                if (logFileLoaded)
+                {
+                    if (optConstraintsFromLogs.Any())
+                    {
+                        ClearAllItemsFromUIList(optimizationParamSP);
+                        foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in optConstraintsFromLogs) AddListItemsToUI(itr.Item2, itr.Item1, optimizationParamSP);
+                    }
+                    else MessageBox.Show("No optimization constraints present in log file!");
+                }
+                else MessageBox.Show("Log file was not loaded! Can't show optimization constraints from log file!");
+            }
         }
 
         private void AddItem_Click(object sender, RoutedEventArgs e)
@@ -318,7 +339,7 @@ namespace VMATTBICSIOptLoopMT
                 //should automatically be in order in terms of cumulative Rx (lowest to highest)
                 foreach(string uid in planUIDs)
                 {
-                    ExternalPlanSetup tmp = pi.Courses.SelectMany(x => x.ExternalPlanSetups).FirstOrDefault(x => x.UID == uid);
+                    ExternalPlanSetup tmp = pi.Courses.SelectMany(x => x.ExternalPlanSetups).FirstOrDefault(x => string.Equals(x.UID, uid));
                     if(tmp != null) thePlans.Add(tmp);
                 }
             }
@@ -872,14 +893,14 @@ namespace VMATTBICSIOptLoopMT
             if (selectedTemplate != null) templateList.SelectedItem = selectedTemplate;
         }
 
-        private void LoadLogFile(string fullLogName)
+        private bool LoadLogFile(string fullLogName)
         {
             try
             {
                 using (StreamReader reader = new StreamReader(fullLogName))
                 {
                     string line;
-                    while (!(line = reader.ReadLine()).Equals("Optimization constraints:"))
+                    while (!(line = reader.ReadLine()).Equals("Errors and warnings:"))
                     {
                         if (!string.IsNullOrEmpty(line))
                         {
@@ -921,11 +942,51 @@ namespace VMATTBICSIOptLoopMT
                                     normalizationVolumes.Add(ConfigurationHelper.ParseNormalizationVolumeFromLogFile(line));
                                 }
                             }
+                            else if (line.Contains("Optimization constraints:"))
+                            {
+                                string planId = "";
+                                List<Tuple<string, OptimizationObjectiveType, double, double, int>> tmpConstraints = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+                                while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
+                                {
+                                    if (!line.Contains("{"))
+                                    {
+                                        if(tmpConstraints.Any())
+                                        {
+                                            optConstraintsFromLogs.Add(new Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>(planId, new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(tmpConstraints)));
+                                        }
+                                        planId = line;
+                                        tmpConstraints = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+                                    }
+                                    else
+                                    {
+                                        tmpConstraints.Add(ConfigurationHelper.ParseOptimizationConstraint(line));
+                                    }
+                                }
+                                if (tmpConstraints.Any())
+                                {
+                                    optConstraintsFromLogs.Add(new Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>(planId, new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(tmpConstraints)));
+                                }
+                                //StringBuilder sb = new StringBuilder();
+                                //foreach(Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in optConstraintsFromLogs)
+                                //{
+                                //    sb.Append($"{itr.Item1}");
+                                //    foreach(Tuple<string, OptimizationObjectiveType, double, double, int>  itr1 in itr.Item2)
+                                //    {
+                                //        sb.AppendLine($"{itr1.Item1}, {itr1.Item2}, {itr1.Item3}, {itr1.Item4}, {itr1.Item5}");
+                                //    }
+                                //}
+                                //MessageBox.Show(sb.ToString());
+                            }
                         }
                     }
                 }
+                return false;
             }
-            catch (Exception e) { MessageBox.Show(String.Format("Error could not load log file because: {0}\n\n", e.Message));}
+            catch (Exception e) 
+            { 
+                MessageBox.Show(String.Format("Error could not load log file because: {0}\n\n", e.Message));
+                return true;
+            }
         }
         #endregion
 

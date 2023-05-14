@@ -42,7 +42,11 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 if (RunOptimizationLoop(_data.plans)) return true;
                 OptimizationLoopFinished();
             }
-            catch (Exception e) { ProvideUIUpdate(String.Format("{0}", e.Message), true); return true; }
+            catch (Exception e) 
+            { 
+                ProvideUIUpdate(String.Format("{0}", e.Message), true); 
+                return true; 
+            }
             return false;
         }
 
@@ -178,12 +182,60 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
 
                 if (plans.Count() > 1)
                 {
+                    ExternalPlanSetup initialPlan = plans.First();
+                    (bool needsAdditionalOpt, double dmax) = CheckInitialPlanHotspot(initialPlan);
+                    if (needsAdditionalOpt) AttemptToLowerInitPlanDmax(initialPlan, dmax);
+                    else ProvideUIUpdate($"Initial plan ({plans.First().Id}) Dmax is {dmax * 100:0.0}%");
+
                     UpdateUILabel("Create plan sum:");
                     if (BuildPlanSum(evalPlan, plans)) return true;
                     PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, evalPlan);
                 }
             }
             return false;
+        }
+
+        private bool AttemptToLowerInitPlanDmax(ExternalPlanSetup initialPlan, double dmax)
+        {
+            ProvideUIUpdate($"Initial plan ({initialPlan.Id}) Dmax is {dmax * 100:0.0}%!");
+            ProvideUIUpdate($"Running one additional optimization for {initialPlan.Id} to lower Dmax!");
+
+            int percentComplete = 0;
+            int calcItems = 4;
+            List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> theList = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>
+                        {
+                            new Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>("TS_cooler101",107.0,101.0,0.0,100, new List<Tuple<string, double, string, double>>{ })
+                        };
+            (bool fail, List<Tuple<string, OptimizationObjectiveType, double, double, int>> addedTSCoolerConstraint) = UpdateHeaterCoolerStructures(initialPlan, true, theList, false);
+            if (fail)
+            {
+                //user killed operation while generating heater and cooler structures
+                KillOptimizationLoop();
+                return true;
+            }
+            ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems));
+            List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(initialPlan);
+            optParams.AddRange(addedTSCoolerConstraint);
+            PrintPlanOptimizationConstraints(initialPlan.Id, optParams, calcItems, ref percentComplete);
+            ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems));
+
+            UpdateConstraints(optParams, initialPlan);
+            ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems));
+
+            //set MR restart level option for the photon optimization
+            string optimizationModel = initialPlan.GetCalculationModel(CalculationType.PhotonVMATOptimization);
+            initialPlan.SetCalculationOption(optimizationModel, "VMAT/MRLevelAtRestart", "MR4");
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Set MR Restart level to MR4");
+
+            RunOneMoreOptionizationToLowerHotspots(new List<ExternalPlanSetup> { initialPlan });
+            return true;
+        }
+
+        private (bool, double) CheckInitialPlanHotspot(ExternalPlanSetup plan)
+        {
+            double dmax = plan.Dose.DoseMax3D.Dose / plan.TotalDose.Dose;
+            if (plan.IsDoseValid && dmax > 1.10) return (true, dmax);
+            return (false, dmax);
         }
 
         protected override bool RunSequentialPlansOptimizationLoop(List<ExternalPlanSetup> plans)
@@ -207,7 +259,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             int count = 0;
             while(count < _data.numOptimizations)
             {
-                bool isFinalOpt = (_data.oneMoreOpt && ((count + 1) == _data.numOptimizations));
+                bool oneMoreOptNextItr = (_data.oneMoreOpt && ((count + 1) == _data.numOptimizations));
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format(" Iteration {0}:", count + 1));
                 ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
 
@@ -225,19 +277,19 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                     //Testing t = new Testing(_data.isDemo, itr);
                     //Thread worker = new Thread(t.Run);
                     //worker.Start(t);
-                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format(" Optimizing plan: {0}!", itr.Id));
+                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Optimizing plan: {0}!", itr.Id));
                     if (OptimizePlan(_data.isDemo, new OptimizationOptionsVMAT(OptimizationIntermediateDoseOption.NoIntermediateDose, ""), itr, _data.app)) return true;
-                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Optimization finished! Calculating dose!");
+                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), "Optimization finished! Calculating dose!");
                     if (CalculateDose(_data.isDemo, itr, _data.app)) return true;
-                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), " Dose calculated, normalizing plan!");
+                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), "Dose calculated, normalizing plan!");
                     //normalize
-                    NormalizePlan(itr, TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, GetNormaliztionVolumeIdForPlan(itr.Id), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage);
+                    if(NormalizePlan(itr, TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, GetNormaliztionVolumeIdForPlan(itr.Id), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage)) return true;
                     if (GetAbortStatus())
                     {
                         KillOptimizationLoop();
                         return true;
                     }
-                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format(" Plan normalized!"));
+                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Plan normalized!"));
                     ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
                 }
                 
@@ -252,9 +304,9 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 else
                 {
                     ProvideUIUpdate("All plan objectives NOT met! Updating heater and cooler structures!");
-                    (bool, List<Tuple<string, OptimizationObjectiveType, double, double, int>>) result = UpdateHeaterCoolerStructures(evalPlan, isFinalOpt);
+                    (bool fail, List<Tuple<string, OptimizationObjectiveType, double, double, int>> updatedHeaterCoolerConstraints) = UpdateHeaterCoolerStructures(evalPlan, oneMoreOptNextItr, _data.requestedTSstructures);
                     //did the user abort the program while updating the heater and cooler structures
-                    if (result.Item1)
+                    if (fail)
                     {
                         //user killed operation while generating heater and cooler structures
                         KillOptimizationLoop();
@@ -271,9 +323,9 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                         PrintPlanOptimizationResultVsConstraints(itr, optParams, e.diffPlanOpt, e.totalCostPlanOpt);
 
                         ProvideUIUpdate(String.Format("Scaling optimization parameters for heater cooler structures for plan: {0}!", itr.Id));
-                        e.updatedObj.AddRange(ScaleHeaterCoolerOptConstraints(itr.TotalDose.Dose, evalPlan.TotalDose.Dose, result.Item2));
+                        e.updatedObj.AddRange(ScaleHeaterCoolerOptConstraints(itr.TotalDose.Dose, evalPlan.TotalDose.Dose, updatedHeaterCoolerConstraints));
 
-                        if(isFinalOpt) e.updatedObj = IncreaseOptConstraintPrioritiesForFinalOpt(e.updatedObj);
+                        if(oneMoreOptNextItr) e.updatedObj = IncreaseOptConstraintPrioritiesForFinalOpt(e.updatedObj);
 
                         PrintPlanOptimizationConstraints(itr.Id, e.updatedObj, calcItems, ref percentComplete);
                         UpdateConstraints(e.updatedObj, itr);

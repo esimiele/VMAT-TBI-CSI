@@ -88,5 +88,10 @@ namespace OptimizationProgressWindow
         {
             return _pw.GetElapsedTime();
         }
+
+        protected void CloseWindows()
+        {
+            _dispatch.BeginInvoke((Action)(() => { _pw.LaunchWindowsClosingThread(new System.Threading.CancellationTokenSource().Token); }));
+        }
     }
 }

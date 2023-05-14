@@ -121,6 +121,7 @@
     <Compile Include="Helpers\ContourHelper.cs" />
     <Compile Include="Helpers\OptimizationTypeHelper.cs" />
     <Compile Include="Helpers\TSManipulationTypeHelper.cs" />
+    <Compile Include="Helpers\WinUtilitiesModified.cs" />
     <Compile Include="Prompts\SelectItemPrompt.xaml.cs">
       <DependentUpon>SelectItemPrompt.xaml</DependentUpon>
     </Compile>
