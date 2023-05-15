@@ -33,6 +33,8 @@ namespace OptimizationProgressWindow
         private string logPath = "";
         //filename
         private string fileName = "";
+        // errors and warnings log
+        private string fileNameErrorsWarnings = "";
         //get instances of the stopwatch and dispatch timer to report how long the calculation takes at each reporting interval
         private Stopwatch sw = new Stopwatch();
         private DispatcherTimer dt = new DispatcherTimer();
@@ -129,10 +131,11 @@ namespace OptimizationProgressWindow
         #endregion
 
         #region logging
-        public void InitializeLogFile(string path, string name)
+        public void InitializeLogFile(string path, string name, string errorsWarnings)
         {
             logPath = path;
             fileName = name;
+            fileNameErrorsWarnings = errorsWarnings;
             if (!Directory.Exists(logPath)) Directory.CreateDirectory(logPath);
         }
 
@@ -212,7 +215,37 @@ namespace OptimizationProgressWindow
             sw.Stop();
             dt.Stop();
             canClose = true;
-            ProvideUpdate($" Total run time: {GetElapsedTime()}", false);
+            ProvideUpdate(100, Environment.NewLine + "Finished!", false);
+            ProvideUpdate($"Total run time: {GetElapsedTime()}" + Environment.NewLine, false);
+
+            ProvideUpdate("Errors and warnings:", false);
+            LoadAndPrintErrorsWarnings();
+        }
+
+        private void LoadAndPrintErrorsWarnings()
+        {
+            if(!File.Exists(fileNameErrorsWarnings))
+            {
+                ProvideUpdate("None", false);
+                return;
+            }
+            try
+            {
+                using (StreamReader reader = new StreamReader(fileNameErrorsWarnings))
+                {
+                    string line;
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        if (!string.IsNullOrEmpty(line)) ProvideUpdate(line, false);
+                    }
+                    reader.Close();
+                }
+                return;
+            }
+            catch (Exception e) 
+            { 
+                ProvideUpdate($"Error! Could not load errors and warnings log because: {e.Message}", true); 
+            }
         }
         #endregion
 

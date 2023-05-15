@@ -10,7 +10,7 @@
         <StackPanel>
             <Label Content="Progress of Optimization Loop" FontSize="20" FontWeight="Bold" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="5"></Label>
             <ScrollViewer x:Name ="scroller" VerticalAlignment="Bottom" HorizontalAlignment="Center" Width="795" Height="490" Margin="5" BorderBrush="Black" IsTabStop="False">
-                <TextBlock x:Name="update" FontSize="12" FontFamily="Courier New" Width="775" Background="White" Padding="3"></TextBlock>
+                <TextBlock x:Name="update" FontSize="12" FontFamily="Courier New" Width="775" Background="White" Padding="3" TextWrapping="Wrap"></TextBlock>
             </ScrollViewer>
             <Grid Margin="5">
                 <Grid.ColumnDefinitions>

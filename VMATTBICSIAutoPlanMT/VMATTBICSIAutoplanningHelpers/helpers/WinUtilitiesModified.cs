@@ -2,11 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using HWND = System.IntPtr;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
@@ -115,6 +113,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 CancellationToken ct = token;
                 //StringBuilder sb = new StringBuilder();
                 int pid = Process.GetCurrentProcess().Id;
+                string prevMessage = "";
                 Stopwatch timer = new Stopwatch();
                 timer.Start();
                 while (!ct.IsCancellationRequested && timer.ElapsedMilliseconds < (timeoutDuration))
@@ -130,7 +129,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                             foreach (var item in a)
                             {
                                 string body = item.Value.ToLower();
-                                if (body.Contains("warning:") || body.Contains("error:") || body.Contains("couch")
+                                if (!string.Equals(prevMessage, body))
+                                {
+                                    if (body.Contains("warning:") || body.Contains("error:") || body.Contains("couch")
                                         || body.Contains("invalidate")
                                         || body.Contains("electron")
                                         || body.Contains("body")
@@ -141,9 +142,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                                         || body.Contains("calculat")
                                         || body.Contains("minimum hu value in the image")
                                         || body.Contains("conversion curve is correctly calibrated"))
-                                {
-                                    CloseWindow(x.Key);
-                                    UpdateErrorWarningsLog(body, fileName);
+                                    {
+                                        CloseWindow(x.Key);
+                                        prevMessage = body;
+                                        UpdateErrorWarningsLog(body, fileName);
+                                    }
                                 }
                             }
                         }

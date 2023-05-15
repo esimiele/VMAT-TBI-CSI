@@ -19,7 +19,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         protected bool _checkSupportStructures = false;
         protected int overallPercentCompletion = 0;
         protected int overallCalcItems = 1;
-        protected string fileNameErrorsWarnings;
 
         protected void InitializeLogPathAndName()
         {
