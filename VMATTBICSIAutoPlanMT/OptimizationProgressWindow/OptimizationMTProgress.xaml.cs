@@ -7,11 +7,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows.Forms;
 using ESAPIThreadWorker;
-using System.Threading;
-using System.Runtime.InteropServices;
-using HWND = System.IntPtr;
-using System.Collections.Generic;
-using System.Text;
 
 namespace OptimizationProgressWindow
 {
@@ -148,7 +143,7 @@ namespace OptimizationProgressWindow
             }
             else
             {
-                ProvideUpdate(String.Format("Warning! {0} does not exist! Could not write to log file!", logPath), false);
+                ProvideUpdate($"Warning! {logPath} does not exist! Could not write to log file!", false);
             }
         }
 
@@ -172,7 +167,7 @@ namespace OptimizationProgressWindow
                 string output = update.Text;
                 string fileName = saveFileDialog1.FileName;
                 File.WriteAllText(fileName, output);
-                update.Text += String.Format(Environment.NewLine + " Output written to text file at: {0}" + Environment.NewLine, string.Concat(fileName));
+                update.Text += Environment.NewLine + $"Output written to text file at: {string.Concat(fileName)}" + Environment.NewLine;
             }
         }
         #endregion
@@ -263,8 +258,8 @@ namespace OptimizationProgressWindow
                     abortStatus.Background = Brushes.Yellow;
                     abortOpt = true;
                 }
-                System.Windows.Forms.MessageBox.Show(String.Format("I can't close until the optimization loop has stopped!"
-                    + Environment.NewLine + "Please wait until the abort status says 'Aborted' or 'Finished' and then click 'Confirm'."));
+                System.Windows.Forms.MessageBox.Show("I can't close until the optimization loop has stopped!"
+                    + Environment.NewLine + "Please wait until the abort status says 'Aborted' or 'Finished' and then click 'Confirm'.");
             }
         }
     }

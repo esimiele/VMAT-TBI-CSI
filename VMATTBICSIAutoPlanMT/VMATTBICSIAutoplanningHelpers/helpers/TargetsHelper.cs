@@ -238,7 +238,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             }
             else
             {
-                target = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == targetId.ToLower());
+                target = ss.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), targetId.ToLower()));
             }
             return target;
         }
