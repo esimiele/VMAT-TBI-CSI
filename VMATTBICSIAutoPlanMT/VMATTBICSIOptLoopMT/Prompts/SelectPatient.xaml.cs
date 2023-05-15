@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Shapes;
+using VMATTBICSIAutoPlanningHelpers.Logging;
 
 namespace VMATTBICSIOptLoopMT.Prompts
 {
@@ -77,11 +78,7 @@ namespace VMATTBICSIOptLoopMT.Prompts
             if (!string.IsNullOrEmpty(MRNTB.Text) || !string.IsNullOrEmpty(_patientMRN))
             {
                 //give priority to the text box data
-                if(string.IsNullOrEmpty(MRNTB.Text))
-                {
-                    //if mrn text box is empty get the full path to the log file
-                    _fullLogFileName = Directory.GetFiles(logPath + "\\preparation\\",".",SearchOption.AllDirectories).FirstOrDefault(x => x.Contains(_patientMRN));
-                }
+                if (string.IsNullOrEmpty(MRNTB.Text)) _fullLogFileName = LogHelper.GetFullLogFileFromExistingMRN(_patientMRN, logPath);
                 else _patientMRN = MRNTB.Text;
                 selectionMade = true;
             }
