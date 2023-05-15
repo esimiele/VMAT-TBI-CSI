@@ -289,7 +289,7 @@
                                             <Button x:Name="ScanSSandAddTargetsBtn" Content="Scan SS and Add Targets" Width="180" Grid.Column="2"  VerticalAlignment="Top" Click="ScanSSAndAddTargets_Click"/>
                                             <Button x:Name="ClearTargetList" Content="Clear List" Width="100" Grid.Column="3"  VerticalAlignment="Top" Click="ClearTargetList_Click"/>
                                         </Grid>
-                                        <ScrollViewer x:Name="targetsScroller" Height="335" Width="550" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                        <ScrollViewer x:Name="targetsScroller" Height="330" Width="550" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                             <StackPanel Name="targetsSP" Margin="5">
                                             </StackPanel>
                                         </ScrollViewer>

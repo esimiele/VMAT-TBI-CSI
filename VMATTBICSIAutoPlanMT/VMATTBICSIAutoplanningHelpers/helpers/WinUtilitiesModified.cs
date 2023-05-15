@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -17,12 +18,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// 
 
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
 
 
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         static extern uint FindWindow(string className, string processId);
-        public static IDictionary<HWND, string> GetOpenWindows()
+        private static IDictionary<HWND, string> GetOpenWindows()
         {
             HWND shellWindow = GetShellWindow();
             Dictionary<HWND, string> windows = new Dictionary<HWND, string>();
@@ -48,7 +49,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return windows;
         }
 
-        public static IDictionary<HWND, string> GetOpenChildWindows(HWND ptr)
+        private static IDictionary<HWND, string> GetOpenChildWindows(HWND ptr)
         {
             HWND shellWindow = GetShellWindow();
             Dictionary<HWND, string> windows = new Dictionary<HWND, string>();
@@ -99,30 +100,25 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 
         private const UInt32 WM_CLOSE = 0x0010;
 
-        public static void CloseWindow(IntPtr hwnd)
+        private static void CloseWindow(IntPtr hwnd)
         {
             SendMessage(hwnd, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
         }
 
-        public static void LaunchWindowsClosingThread(CancellationToken token)
+        public static void LaunchWindowsClosingThread(CancellationToken token, string fileName)
         {
             Thread thread = new Thread(() =>
             {
-                double timeoutDuration = 10; //min
+                double timeoutDuration = 20; //min
                 timeoutDuration *= 60; //min to seconds
                 timeoutDuration *= 1000; //seconds to milliseconds
                 CancellationToken ct = token;
-                bool cancel = false;
-                StringBuilder sb = new StringBuilder();
+                //StringBuilder sb = new StringBuilder();
                 int pid = Process.GetCurrentProcess().Id;
                 Stopwatch timer = new Stopwatch();
                 timer.Start();
-                while (!cancel && timer.ElapsedMilliseconds < (timeoutDuration))
+                while (!ct.IsCancellationRequested && timer.ElapsedMilliseconds < (timeoutDuration))
                 {
-                    if (ct.IsCancellationRequested)
-                    {
-                        return;
-                    }
                     foreach (var x in GetOpenWindows())
                     {
                         var a = GetOpenChildWindows(x.Key);
@@ -130,31 +126,47 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                         if (windowPid == pid)
                         {
                             //sb.AppendLine($"{pid} - {x.Value}: {string.Join(";",a.Select(y=> $"{y.Key}= {y.Value}"))}");
+                            //only report errors once!
                             foreach (var item in a)
                             {
                                 string body = item.Value.ToLower();
-                                if (body.Contains("warning:") && !body.Contains("error:") && (body.Contains("couch")
-                                            || body.Contains("electron")
-                                            || body.Contains("body"))
-                                            || body.Contains("machine model in treatment plan ")
-                                            || body.Contains("field has an opening that is smaller than the smallest measured")
-                                            || body.Contains("density")
-                                            || body.Contains("field")
-                                            || body.Contains("calculat")
-                                            || body.Contains("minimum hu value in the image")
-                                            || body.Contains("conversion curve is correctly calibrated"))
+                                if (body.Contains("warning:") || body.Contains("error:") || body.Contains("couch")
+                                        || body.Contains("invalidate")
+                                        || body.Contains("electron")
+                                        || body.Contains("body")
+                                        || body.Contains("machine model in treatment plan ")
+                                        || body.Contains("field has an opening that is smaller than the smallest measured")
+                                        || body.Contains("density")
+                                        || body.Contains("field")
+                                        || body.Contains("calculat")
+                                        || body.Contains("minimum hu value in the image")
+                                        || body.Contains("conversion curve is correctly calibrated"))
                                 {
                                     CloseWindow(x.Key);
-                                    cancel = true;
+                                    UpdateErrorWarningsLog(body, fileName);
                                 }
                             }
                         }
                     }
-                    Thread.Sleep(60);
+                    Thread.Sleep(100);
                 }
             });
             thread.IsBackground = true;
             thread.Start();
+        }
+
+        private static bool UpdateErrorWarningsLog(string output, string fileName)
+        {
+            if (Directory.Exists(Path.GetDirectoryName(fileName)))
+            {
+                output += Environment.NewLine + Environment.NewLine;
+                File.AppendAllText(fileName, output);
+                return false;
+            }
+            else
+            {
+                return true;
+            }
         }
     }
 

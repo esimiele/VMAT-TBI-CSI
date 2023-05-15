@@ -253,7 +253,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 allIsocenters.Add(Tuple.Create(itr, new List<Tuple<VVector, string, int>>(tmp)));
                 count++;
             }
-            ProvideUIUpdate($"Elapsed time: GetElapsedTime()");
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return allIsocenters;
         }
 
@@ -378,7 +378,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     count++;
                 }
             }
-            ProvideUIUpdate($"Elapsed time: GetElapsedTime()");
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
 

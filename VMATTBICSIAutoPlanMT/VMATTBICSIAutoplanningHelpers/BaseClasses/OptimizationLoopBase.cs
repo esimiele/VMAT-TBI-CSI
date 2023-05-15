@@ -19,11 +19,14 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         protected bool _checkSupportStructures = false;
         protected int overallPercentCompletion = 0;
         protected int overallCalcItems = 1;
+        protected string fileNameErrorsWarnings;
 
         protected void InitializeLogPathAndName()
         {
             logPath = _data.logFilePath + "\\optimization\\" + _data.id + "\\";
-            fileName = logPath + DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss") + ".txt";
+            string currentDateTime = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+            fileName = logPath + currentDateTime + ".txt";
+            fileNameErrorsWarnings = logPath + currentDateTime + "-EWs" + ".txt";
             /*
              * prelimiary check
              * coverage check ?
@@ -68,7 +71,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                     {
                         if(itr.Item2.Contains("max") || itr.Item2.Contains("min"))
                         {
-                            ProvideUIUpdate(String.Format(" {0} {1} = {2:0.0}{3}", 
+                            ProvideUIUpdate(String.Format("{0} {1} = {2:0.0}{3}", 
                                             structure.Id, 
                                             itr.Item2, 
                                             plan.GetDoseAtVolume(structure, itr.Item2 == "Dmax" ? 0.0 : 100.0, VolumePresentation.Relative, itr.Item4 == "Relative" ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute).Dose, 
@@ -106,7 +109,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 
         protected void PrintRunSetupInfo(List<ExternalPlanSetup> plans)
         {
-            string optimizationLoopSetupInfo = String.Format(" ---------------------------------------------------------------------------------------------------------" + Environment.NewLine +
+            string optimizationLoopSetupInfo = String.Format("---------------------------------------------------------------------------------------------------------" + Environment.NewLine +
                                         "Date: {0}" + Environment.NewLine +
                                         "Plan type: {1}" + Environment.NewLine +
                                         "Optimization loop settings:" + Environment.NewLine +
@@ -181,7 +184,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             foreach (Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>> itr in _data.requestedTSstructures)
             {
                 string msg = String.Format("{0, -16} | {1, -9:N1} | {2,-10:N1} | {3,-5:N1} | {4,-8} |", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5);
-                if (!itr.Item6.Any()) msg += String.Format(" {0,-10} |", "none");
+                if (!itr.Item6.Any()) msg += String.Format("{0,-10} |", "none");
                 else
                 {
                     int index = 0;
@@ -191,13 +194,13 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                         {
                             if (itr1.Item1.Contains("Dmax")) msg += String.Format(" {0,-10} |", String.Format("{0}{1}{2}%", itr1.Item1, itr1.Item3, itr1.Item4));
                             else if (itr1.Item1.Contains("V")) msg += String.Format(" {0,-10} |", String.Format("{0}{1}%{2}{3}%", itr1.Item1, itr1.Item2, itr1.Item3, itr1.Item4));
-                            else msg += String.Format(" {0,-10} |", String.Format("{0}", itr1.Item1));
+                            else msg += String.Format("{0,-10} |", String.Format("{0}", itr1.Item1));
                         }
                         else
                         {
                             if (itr1.Item1.Contains("Dmax")) msg += String.Format(" {0,-60} | {1,-10} |", " ", String.Format("{0}{1}{2}%", itr1.Item1, itr1.Item3, itr1.Item4));
                             else if (itr1.Item1.Contains("V")) msg += String.Format(" {0,-60} | {1,-10} |", " ", String.Format("{0}{1}%{2}{3}%", itr1.Item1, itr1.Item2, itr1.Item3, itr1.Item4));
-                            else msg += String.Format(" {0,-60} | {1,-10} |", " ", String.Format("{0}", itr1.Item1));
+                            else msg += String.Format("{0,-60} | {1,-10} |", " ", String.Format("{0}", itr1.Item1));
                         }
                         index++;
                         if (index < itr.Item6.Count) msg += Environment.NewLine;
@@ -669,6 +672,8 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             if (isDemo) Thread.Sleep(3000);
             else
             {
+                CancellationTokenSource cts = new CancellationTokenSource();
+                WinUtilitiesModified.LaunchWindowsClosingThread(cts.Token, fileNameErrorsWarnings);
                 try
                 {
                     OptimizerResult optRes = plan.OptimizeVMAT(options);
@@ -683,8 +688,8 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                     PrintFailedMessage("Optimization", except.Message);
                     return true;
                 }
-                //CloseWindows();
                 app.SaveModifications();
+                cts.Cancel();
             }
             UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
             //check if user wants to stop
@@ -702,22 +707,26 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             if (isDemo) Thread.Sleep(3000);
             else
             {
+                CancellationTokenSource cts = new CancellationTokenSource();
+                WinUtilitiesModified.LaunchWindowsClosingThread(cts.Token, fileNameErrorsWarnings);
                 try
                 {
                     CalculationResult calcRes = plan.CalculateDose();
                     if (!calcRes.Success)
                     {
+                        cts.Cancel();
                         PrintFailedMessage("Dose calculation");
                         return true;
                     }
                 }
                 catch (Exception except)
                 {
+                    cts.Cancel();
                     PrintFailedMessage("Dose calculation", except.Message);
                     return true;
                 }
-                //CloseWindows();
                 app.SaveModifications();
+                cts.Cancel();
             }
             UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
             //check if user wants to stop

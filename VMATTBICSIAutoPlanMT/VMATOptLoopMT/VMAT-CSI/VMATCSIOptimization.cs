@@ -222,10 +222,14 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             UpdateConstraints(optParams, initialPlan);
             ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems));
 
-            //set MR restart level option for the photon optimization
-            string optimizationModel = initialPlan.GetCalculationModel(CalculationType.PhotonVMATOptimization);
-            initialPlan.SetCalculationOption(optimizationModel, "VMAT/MRLevelAtRestart", "MR4");
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Set MR Restart level to MR4");
+            ////set MR restart level option for the photon optimization
+            //string optimizationModel = initialPlan.GetCalculationModel(CalculationType.PhotonVMATOptimization);
+            ////set MR restart level option for the photon optimization
+            //if (!initialPlan.SetCalculationOption(optimizationModel, "MRLevelAtRestart", "MR4"))
+            //{
+            //    ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Warning! VMAT/MRLevelAtRestart option not found for {optimizationModel}");
+            //}
+            //else ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"MR restart level set to MR4");
 
             RunOneMoreOptionizationToLowerHotspots(new List<ExternalPlanSetup> { initialPlan });
             return true;
@@ -255,14 +259,13 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
 
             foreach (ExternalPlanSetup itr in plans) InitializeOptimizationConstriants(itr);
 
-            ProvideUIUpdate(" Starting optimization loop!");
+            ProvideUIUpdate("Starting optimization loop!");
             int count = 0;
             while(count < _data.numOptimizations)
             {
                 bool oneMoreOptNextItr = (_data.oneMoreOpt && ((count + 1) == _data.numOptimizations));
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format(" Iteration {0}:", count + 1));
-                ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
-
+                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Iteration {0}:", count + 1));
+                ProvideUIUpdate(String.Format("Elapsed time: {0}", GetElapsedTime()));
                 foreach (ExternalPlanSetup itr in plans)
                 {
                     //string exeName = "ParallelTest";
@@ -290,7 +293,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                         return true;
                     }
                     ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Plan normalized!"));
-                    ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
+                    ProvideUIUpdate(String.Format("Elapsed time: {0}", GetElapsedTime()));
                 }
                 
                 if (BuildPlanSum(evalPlan, plans)) return true;

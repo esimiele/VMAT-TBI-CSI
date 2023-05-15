@@ -84,7 +84,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 return true;
             }
             else ProvideUIUpdate(100, $"No plans currently exist in course {courseId}!");
-            ProvideUIUpdate($"Elapsed time: GetElapsedTime()");
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
 
@@ -130,7 +130,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 return true;
             }
             ProvideUIUpdate(100, $"Course {courseId} retrieved!");
-            ProvideUIUpdate($"Elapsed time: GetElapsedTime()");
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
 
@@ -191,10 +191,9 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 thePlan.SetCalculationModel(CalculationType.PhotonVMATOptimization, optimizationModel);
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Set optimization model to {optimizationModel}");
 
-                //Dictionary<string, string> d = thePlan.GetCalculationOptions(thePlan.GetCalculationModel(CalculationType.PhotonVMATOptimization));
-                //string m = "";
-                //foreach (KeyValuePair<string, string> t in d) m += $"{0}, {1}", t.Key, t.Value) + System.Environment.NewLine;
-                //MessageBox.Show(m);
+                Dictionary<string, string> d = thePlan.GetCalculationOptions(thePlan.GetCalculationModel(CalculationType.PhotonVMATOptimization));
+                ProvideUIUpdate($"Calculation options for {optimizationModel}:");
+                foreach (KeyValuePair<string, string> t in d) ProvideUIUpdate($"{t.Key}, {t.Value}");
 
                 //set the GPU dose calculation option (only valid for acuros)
                 if (useGPUdose == "Yes" && !calculationModel.Contains("AAA"))
@@ -209,8 +208,11 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 }
 
                 //set MR restart level option for the photon optimization
-                thePlan.SetCalculationOption(optimizationModel, "VMAT/MRLevelAtRestart", MRrestart);
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Set MR Restart level to {MRrestart}");
+                if(!thePlan.SetCalculationOption(optimizationModel, "MRLevelAtRestart", MRrestart))
+                {
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Warning! VMAT/MRLevelAtRestart option not found for {optimizationModel}");
+                }
+                else ProvideUIUpdate((int)(100 * ++counter / calcItems), $"MR restart level set to {MRrestart}");
 
                 //set the GPU optimization option
                 if (useGPUoptimization == "Yes")
@@ -235,7 +237,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Added plan {itr.Item1} to stack!");
             }
             ProvideUIUpdate(100, "Finished creating and initializing plans!");
-            ProvideUIUpdate($"Elapsed time: GetElapsedTime()");
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
 
@@ -292,16 +294,16 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 if(numSlices <= 0)
                 {
                     ProvideUIUpdate($"Error! Calculated number of slices is <= 0 ({numSlices}) for junction: {i}!", true);
-                    ProvideUIUpdate($"Field length: {fieldLength} mm");
-                    ProvideUIUpdate($"Contour overlap margin: {contourOverlapMargin} mm");
-                    ProvideUIUpdate($"Isocenter separation: {Math.Abs(isoLocations.Item2.ElementAt(i).Item1.z - isoLocations.Item2.ElementAt(i - 1).Item1.z)}!");
+                    ProvideUIUpdate($"Field length: {fieldLength:0.00} mm");
+                    ProvideUIUpdate($"Contour overlap margin: {contourOverlapMargin:0.00} mm");
+                    ProvideUIUpdate($"Isocenter separation: {Math.Abs(isoLocations.Item2.ElementAt(i).Item1.z - isoLocations.Item2.ElementAt(i - 1).Item1.z):0.00}!");
                     return true;
                 }
                 ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), $"Number of slices to contour: {(int)(numSlices / zResolution)}");
 
                 //calculate the center position between adjacent isocenters. NOTE: this calculation works from superior to inferior!
                 double overlapCenter = isoLocations.Item2.ElementAt(i - 1).Item1.z + iso1Beam1.GetEditableParameters().ControlPoints.First().JawPositions.Y1  - contourOverlapMargin / 2 + numSlices / 2;
-                ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), $"Overlap center position: {overlapCenter} mm");
+                ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), $"Overlap center position: {overlapCenter:0.00} mm");
 
                 overlap.Add(new Tuple<double, int, int>(overlapCenter, // the center location
                                                         (int)(numSlices / zResolution), //total number of slices to contour
@@ -333,7 +335,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 tmpJnxList.ElementAt(count).SegmentVolume = tmpJnxList.ElementAt(count).And(target_tmp.Margin(0));
                 count++;
             }
-            ProvideUIUpdate($"Elapsed time: GetElapsedTime()");
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
 

@@ -94,8 +94,7 @@ namespace VMATTBICSIOptLoopMT
             string logConfigurationFile = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini";
             if (File.Exists(logConfigurationFile)) LoadConfigurationSettings(logConfigurationFile);
             
-            if (args.Length > 0) OpenPatient(patmrn);
-            else LoadPatient();
+            LoadPatient(patmrn);
             DisplayConfigurationParameters();
         }
 
@@ -117,17 +116,27 @@ namespace VMATTBICSIOptLoopMT
         #endregion
 
         #region load and open patient
-        private void LoadPatient()
+        private void LoadPatient(string patmrn)
         {
-            //open the patient with the user-entered MRN number
-            SelectPatient sp = new SelectPatient(logFilePath);
-            sp.ShowDialog();
-            if (sp.selectionMade)
+            string currentMRN;
+            if (pi != null) currentMRN = pi.Id;
+            else currentMRN = "-1";
+            string mrn = patmrn;
+            string fullLogName;
+            bool cancel = false;
+            if (string.IsNullOrEmpty(patmrn))
             {
-                string currentMRN;
-                if (pi != null) currentMRN = pi.Id;
-                else currentMRN = "-1";
-                (string mrn, string fullLogName) = sp.GetPatientMRN();
+                (bool, string, string) result = PromptUserForPatientSelection();
+                cancel = result.Item1;
+                mrn = result.Item2;
+                fullLogName = result.Item3;
+            }
+            else
+            {
+                fullLogName = GetFullLogFileFromExistingMRN(mrn);
+            }
+            if (!cancel)
+            {
                 if (!string.IsNullOrEmpty(mrn))
                 {
                     if(!string.Equals(mrn,currentMRN))
@@ -147,6 +156,39 @@ namespace VMATTBICSIOptLoopMT
                 selectPatientBtn.Background = System.Windows.Media.Brushes.DarkGray;
             }
             else if (pi == null) selectPatientBtn.Background = System.Windows.Media.Brushes.PaleVioletRed;
+        }
+
+        private string GetFullLogFileFromExistingMRN(string mrn)
+        {
+            string logName = "";
+            if(Directory.Exists(logFilePath + "\\preparation\\"))
+            {
+                logName = Directory.GetFiles(logFilePath + "\\preparation\\", ".", SearchOption.AllDirectories).FirstOrDefault(x => x.Contains(mrn));
+            }
+            return logName;
+        }
+
+        private (bool, string, string) PromptUserForPatientSelection()
+        {
+            //open the patient with the user-entered MRN number
+            bool cancel = false;
+            string mrn = "";
+            string fullLogName = "";
+            SelectPatient sp = new SelectPatient(logFilePath);
+            sp.ShowDialog();
+            if (!sp.selectionMade)
+            {
+                cancel = true;
+                return (cancel, mrn, fullLogName); ;
+            }
+            else
+            {
+                (string, string) result = sp.GetPatientMRN();
+                mrn = result.Item1;
+                fullLogName = result.Item2;
+            }
+
+            return (cancel, mrn, fullLogName);
         }
 
         private void OpenPatient(string pat_mrn)
@@ -182,7 +224,7 @@ namespace VMATTBICSIOptLoopMT
         #region button events
         private void SelectPatient_Click(object sender, RoutedEventArgs e)
         {
-            LoadPatient();
+            LoadPatient("");
         }
 
         private void GetOptFromPlan_Click(object sender, RoutedEventArgs e)

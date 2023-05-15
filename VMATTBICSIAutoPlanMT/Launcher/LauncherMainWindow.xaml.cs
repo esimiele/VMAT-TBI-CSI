@@ -14,7 +14,7 @@ namespace Launcher
     /// </summary>
     public partial class LauncherMainWindow : Window
     {
-        bool isCSIPlan = false;
+        //bool isCSIPlan = false;
         string arguments = "";
         public LauncherMainWindow(List<string> startupArgs)
         {
@@ -22,7 +22,7 @@ namespace Launcher
             if (startupArgs.Any())
             {
                 if (startupArgs.Count > 2) LaunchOptBtn.Visibility = Visibility.Visible;
-                if (startupArgs.Count > 3) isCSIPlan = true;
+                //if (startupArgs.Count > 3) isCSIPlan = true;
                 //patient mrn, structure set
                 arguments = String.Format("{0} {1}", startupArgs.ElementAt(0), startupArgs.ElementAt(1));
             }
@@ -40,10 +40,10 @@ namespace Launcher
 
         private void LaunchOptLoopBtn_Click(object sender, RoutedEventArgs e)
         {
-            string exeName;
-            if (isCSIPlan) exeName = "VMATCSIOptLoopMT";
-            else exeName = "VMATTBIOptLoopMT";
-            LaunchExe(exeName);
+            //string exeName;
+            //if (isCSIPlan) exeName = "VMATCSIOptLoopMT";
+            //else exeName = "VMATTBIOptLoopMT";
+            LaunchExe("VMATTBICSIOptLoopMT");
         }
 
         private void LaunchExe(string exeName)
