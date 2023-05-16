@@ -119,8 +119,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             if(string.IsNullOrEmpty(logPath))
             {
                 MessageBox.Show("Log file path not set during script configuration! Please select a folder to writes the log file!");
-                FolderBrowserDialog FBD = new FolderBrowserDialog();
-                FBD.SelectedPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                FolderBrowserDialog FBD = new FolderBrowserDialog
+                {
+                    SelectedPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
+                };
                 if (FBD.ShowDialog() == DialogResult.OK)
                 {
                     logPath = FBD.SelectedPath;

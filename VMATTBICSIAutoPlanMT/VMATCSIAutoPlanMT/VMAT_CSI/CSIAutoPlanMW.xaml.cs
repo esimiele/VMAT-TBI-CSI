@@ -2032,81 +2032,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             else configTB.Text += String.Format(" No default TS manipulations to list") + Environment.NewLine + Environment.NewLine;
 
-            foreach (CSIAutoPlanTemplate itr in PlanTemplates.Where(x => x.GetTemplateName() != "--select--"))
-            {
-                configTB.Text += "-----------------------------------------------------------------------------" + Environment.NewLine;
+            if(PlanTemplates.Any()) configTB.Text += ConfigurationUIHelper.PrintPlanTemplateConfigurationParameters(PlanTemplates.ToList()).ToString();
 
-                configTB.Text += String.Format(" Template ID: {0}", itr.GetTemplateName()) + Environment.NewLine;
-                configTB.Text += String.Format(" Initial Dose per fraction: {0} cGy", itr.GetInitialRxDosePerFx()) + Environment.NewLine;
-                configTB.Text += String.Format(" Initial number of fractions: {0}", itr.GetInitialRxNumFx()) + Environment.NewLine;
-                configTB.Text += String.Format(" Boost Dose per fraction: {0} cGy", itr.GetBoostRxDosePerFx()) + Environment.NewLine;
-                configTB.Text += String.Format(" Boost number of fractions: {0}", itr.GetBoostRxNumFx()) + Environment.NewLine;
-
-                if (itr.GetTargets().Any())
-                {
-                    configTB.Text += String.Format(" {0} targets:", itr.GetTemplateName()) + Environment.NewLine;
-                    configTB.Text += String.Format("  {0, -15} | {1, -8} | {2, -14} |", "structure Id", "Rx (cGy)", "Plan Id") + Environment.NewLine;
-                    foreach (Tuple<string, double, string> tgt in itr.GetTargets()) configTB.Text += String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |" + Environment.NewLine, tgt.Item1, tgt.Item2, tgt.Item3);
-                    configTB.Text += Environment.NewLine;
-                }
-                else configTB.Text += String.Format(" No targets set for template: {0}", itr.GetTemplateName()) + Environment.NewLine + Environment.NewLine;
-
-                if (itr.GetCreateTSStructures().Any())
-                {
-                    configTB.Text += String.Format(" {0} additional tuning structures:", itr.GetTemplateName()) + Environment.NewLine;
-                    configTB.Text += String.Format("  {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + Environment.NewLine;
-                    foreach (Tuple<string, string> ts in itr.GetCreateTSStructures()) configTB.Text += String.Format("  {0, -10} | {1, -15} |" + Environment.NewLine, ts.Item1, ts.Item2);
-                    configTB.Text += Environment.NewLine;
-                }
-                else configTB.Text += String.Format(" No additional tuning structures for template: {0}", itr.GetTemplateName()) + Environment.NewLine + Environment.NewLine;
-
-                if(itr.GetCreateRings().Any())
-                {
-                    configTB.Text += String.Format(" {0} ring structures:", itr.GetTemplateName()) + Environment.NewLine;
-                    configTB.Text += String.Format("  {0, -15} | {1, -11} | {2, -14} | {3,-10} |", "target Id", "margin (cm)", "thickness (cm)", "dose (cGy)") + Environment.NewLine;
-                    foreach (Tuple<string, double, double, double> ring in itr.GetCreateRings()) configTB.Text += String.Format("  {0, -15} | {1, -11} | {2, -14} | {3,-10} |" + Environment.NewLine, ring.Item1, ring.Item2, ring.Item3, ring.Item4);
-                    configTB.Text += Environment.NewLine;
-                }
-                else configTB.Text += String.Format(" No requested ring structures for template: {0}", itr.GetTemplateName()) + Environment.NewLine + Environment.NewLine;
-
-                if (itr.GetTSManipulations().Any())
-                {
-                    configTB.Text += String.Format(" {0} additional tuning structure manipulations:", itr.GetTemplateName()) + Environment.NewLine;
-                    configTB.Text += String.Format("  {0, -15} | {1, -26} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + Environment.NewLine;
-                    foreach (Tuple<string, TSManipulationType, double> spare in itr.GetTSManipulations()) configTB.Text += String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |" + Environment.NewLine, spare.Item1, spare.Item2.ToString(), spare.Item3);
-                    configTB.Text += Environment.NewLine;
-                }
-                else configTB.Text += String.Format(" No additional tuning structure manipulations for template: {0}", itr.GetTemplateName()) + Environment.NewLine + Environment.NewLine;
-
-                if(itr.GetCropAndOverlapStructures().Any())
-                {
-                    configTB.Text += String.Format(" {0} requested structures for crop/overlap with targets:", itr.GetTemplateName()) + Environment.NewLine;
-                    configTB.Text += String.Format("  {0, -15}", "structure Id") + Environment.NewLine;
-                    foreach (string cropOverlap in itr.GetCropAndOverlapStructures()) configTB.Text += String.Format("  {0}" + Environment.NewLine, cropOverlap);
-                    configTB.Text += Environment.NewLine;
-                }
-                else configTB.Text += String.Format(" No structures requested for crop/overlap with targets for template: {0}", itr.GetTemplateName()) + Environment.NewLine + Environment.NewLine;
-
-                if (itr.GetInitOptimizationConstraints().Any())
-                {
-                    configTB.Text += String.Format(" {0} template initial plan optimization parameters:", itr.GetTemplateName()) + Environment.NewLine;
-                    configTB.Text += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + Environment.NewLine;
-                    foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in itr.GetInitOptimizationConstraints()) configTB.Text += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
-                    configTB.Text += Environment.NewLine;
-                }
-                else configTB.Text += String.Format(" No iniital plan optimization constraints for template: {0}", itr.GetTemplateName()) + Environment.NewLine + Environment.NewLine;
-
-                if (itr.GetBoostOptimizationConstraints().Any())
-                {
-                    configTB.Text += String.Format(" {0} template boost plan optimization parameters:", itr.GetTemplateName()) + Environment.NewLine;
-                    configTB.Text += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + Environment.NewLine;
-                    foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in itr.GetBoostOptimizationConstraints()) configTB.Text += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5);
-                }
-                else configTB.Text += String.Format(" No boost plan optimization constraints for template: {0}", itr.GetTemplateName()) + Environment.NewLine + Environment.NewLine;
-
-                configTB.Text += Environment.NewLine;
-            }
-            configTB.Text += "-----------------------------------------------------------------------------" + Environment.NewLine;
             configScroller.ScrollToTop();
         }
 

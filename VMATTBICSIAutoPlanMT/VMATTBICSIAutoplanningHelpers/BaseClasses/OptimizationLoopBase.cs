@@ -168,7 +168,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                                                 itr.Item1.Id, optParams.ElementAt(index).Item2.ToString(), itr.Item4, itr.Item6, itr.Item5, 100 * itr.Item5 / totalCostPlanOpt));
                 index++;
             }
-
             PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, plan); return false;
         }
 
