@@ -196,9 +196,9 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                         }
                         else
                         {
-                            if (itr1.Item1.Contains("Dmax")) msg += String.Format(" {0,-60} | {1,-10} |", " ", String.Format("{0}{1}{2}%", itr1.Item1, itr1.Item3, itr1.Item4));
-                            else if (itr1.Item1.Contains("V")) msg += String.Format(" {0,-60} | {1,-10} |", " ", String.Format("{0}{1}%{2}{3}%", itr1.Item1, itr1.Item2, itr1.Item3, itr1.Item4));
-                            else msg += String.Format("{0,-60} | {1,-10} |", " ", String.Format("{0}", itr1.Item1));
+                            if (itr1.Item1.Contains("Dmax")) msg += String.Format(" {0,-659} | {1,-10} |", " ", String.Format("{0}{1}{2}%", itr1.Item1, itr1.Item3, itr1.Item4));
+                            else if (itr1.Item1.Contains("V")) msg += String.Format(" {0,-59} | {1,-10} |", " ", String.Format("{0}{1}%{2}{3}%", itr1.Item1, itr1.Item2, itr1.Item3, itr1.Item4));
+                            else msg += String.Format(" {0,-59} | {1,-10} |", " ", String.Format("{0}", itr1.Item1));
                         }
                         index++;
                         if (index < itr.Item6.Count) msg += Environment.NewLine;
