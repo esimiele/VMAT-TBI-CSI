@@ -7,7 +7,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows.Forms;
 using ESAPIThreadWorker;
-using VMATTBICSIAutoplanningHelpers.Prompts;
 
 namespace OptimizationProgressWindow
 {
@@ -17,7 +16,7 @@ namespace OptimizationProgressWindow
         //and if the GUI can close safely (you don't want to close it if the background thread hasn't stopped working)
         public bool GetAbortStatus() { return abortOpt; }
         public void SetFinishStatus(bool status) { isFinished = status; }
-        public string GetElapsedTime() { return currentTime; }
+        public string GetElapsedTime() { return $"{sw.Elapsed.Hours:00}:{sw.Elapsed.Minutes:00}:{sw.Elapsed.Seconds:00}"; }
 
         private bool abortOpt;
         private bool isFinished;
@@ -29,10 +28,11 @@ namespace OptimizationProgressWindow
         private string logPath = "";
         //filename
         private string fileName = "";
+        // errors and warnings log
+        private string fileNameErrorsWarnings = "";
         //get instances of the stopwatch and dispatch timer to report how long the calculation takes at each reporting interval
         private Stopwatch sw = new Stopwatch();
         private DispatcherTimer dt = new DispatcherTimer();
-        private string currentTime = "";
 
         public OptimizationMTProgress()
         {
@@ -45,8 +45,7 @@ namespace OptimizationProgressWindow
             callerClass = caller as OptimizationMTbase;
             slave = e;
             //initialize and start the stopwatch
-            runTime.Text = "00:00:00";
-            dt.Tick += new EventHandler(dt_tick);
+            dt.Tick += new EventHandler(Dt_tick);
             dt.Interval = new TimeSpan(0, 0, 1);
             DoStuff();
         }
@@ -70,14 +69,13 @@ namespace OptimizationProgressWindow
             });
         }
 
-        private void dt_tick(object sender, EventArgs e)
+        private void Dt_tick(object sender, EventArgs e)
         {
             //increment the time on the progress window for each "tick", which is set to intervals of 1 second
             if (sw.IsRunning)
             {
                 TimeSpan ts = sw.Elapsed;
-                currentTime = String.Format("{0:00}:{1:00}:{2:00}", ts.Hours, ts.Minutes, ts.Seconds);
-                runTime.Text = currentTime;
+                runTime.Text = $"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
             }
         }
 
@@ -128,10 +126,11 @@ namespace OptimizationProgressWindow
         #endregion
 
         #region logging
-        public void InitializeLogFile(string path, string name)
+        public void InitializeLogFile(string path, string name, string errorsWarnings)
         {
             logPath = path;
             fileName = name;
+            fileNameErrorsWarnings = errorsWarnings;
             if (!Directory.Exists(logPath)) Directory.CreateDirectory(logPath);
         }
 
@@ -144,7 +143,7 @@ namespace OptimizationProgressWindow
             }
             else
             {
-                ProvideUpdate(String.Format("Warning! {0} does not exist! Could not write to log file!", logPath), false);
+                ProvideUpdate($"Warning! {logPath} does not exist! Could not write to log file!", false);
             }
         }
 
@@ -168,7 +167,7 @@ namespace OptimizationProgressWindow
                 string output = update.Text;
                 string fileName = saveFileDialog1.FileName;
                 File.WriteAllText(fileName, output);
-                update.Text += String.Format(Environment.NewLine + " Output written to text file at: {0}" + Environment.NewLine, string.Concat(fileName));
+                update.Text += Environment.NewLine + $"Output written to text file at: {string.Concat(fileName)}" + Environment.NewLine;
             }
         }
         #endregion
@@ -211,7 +210,37 @@ namespace OptimizationProgressWindow
             sw.Stop();
             dt.Stop();
             canClose = true;
-            ProvideUpdate(String.Format(" Total run time: {0}", currentTime), false);
+            ProvideUpdate(100, Environment.NewLine + "Finished!", false);
+            ProvideUpdate($"Total run time: {GetElapsedTime()}" + Environment.NewLine, false);
+
+            ProvideUpdate("Errors and warnings:", false);
+            LoadAndPrintErrorsWarnings();
+        }
+
+        private void LoadAndPrintErrorsWarnings()
+        {
+            if(!File.Exists(fileNameErrorsWarnings))
+            {
+                ProvideUpdate("None", false);
+                return;
+            }
+            try
+            {
+                using (StreamReader reader = new StreamReader(fileNameErrorsWarnings))
+                {
+                    string line;
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        if (!string.IsNullOrEmpty(line)) ProvideUpdate(line, false);
+                    }
+                    reader.Close();
+                }
+                return;
+            }
+            catch (Exception e) 
+            { 
+                ProvideUpdate($"Error! Could not load errors and warnings log because: {e.Message}", true); 
+            }
         }
         #endregion
 
@@ -229,10 +258,8 @@ namespace OptimizationProgressWindow
                     abortStatus.Background = Brushes.Yellow;
                     abortOpt = true;
                 }
-                confirmUI CUI = new confirmUI();
-                CUI.message.Text = String.Format("I can't close until the optimization loop has stopped!"
+                System.Windows.Forms.MessageBox.Show("I can't close until the optimization loop has stopped!"
                     + Environment.NewLine + "Please wait until the abort status says 'Aborted' or 'Finished' and then click 'Confirm'.");
-                CUI.ShowDialog();
             }
         }
     }

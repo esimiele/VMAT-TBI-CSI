@@ -1,64 +1,74 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
+using VMATTBICSIAutoPlanningHelpers.Enums;
+using VMATTBICSIAutoPlanningHelpers.Helpers;
 
-namespace VMATTBICSIAutoplanningHelpers.UIHelpers
+namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
-    public class PlanObjectiveSetupUIHelper
+    public static class PlanObjectiveSetupUIHelper
     {
-        public StackPanel GetObjHeader(double theWidth)
+        public static StackPanel GetObjHeader(double theWidth)
         {
-            StackPanel sp = new StackPanel();
-            sp.Height = 30;
-            sp.Width = theWidth;
-            sp.Orientation = Orientation.Horizontal;
-            sp.Margin = new Thickness(30, 0, 5, 5);
+            StackPanel sp = new StackPanel
+            {
+                Height = 30,
+                Width = theWidth,
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(30, 0, 5, 5)
+            };
 
-            Label strName = new Label();
-            strName.Content = "Structure";
-            strName.HorizontalAlignment = HorizontalAlignment.Center;
-            strName.VerticalAlignment = VerticalAlignment.Top;
-            strName.Width = 110;
-            strName.FontSize = 14;
-            strName.Margin = new Thickness(27, 0, 0, 0);
+            Label strName = new Label
+            {
+                Content = "Structure",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Width = 110,
+                FontSize = 14,
+                Margin = new Thickness(27, 0, 0, 0)
+            };
 
-            Label spareType = new Label();
-            spareType.Content = "Constraint";
-            spareType.HorizontalAlignment = HorizontalAlignment.Center;
-            spareType.VerticalAlignment = VerticalAlignment.Top;
-            spareType.Width = 90;
-            spareType.FontSize = 14;
-            spareType.Margin = new Thickness(2, 0, 0, 0);
+            Label spareType = new Label
+            {
+                Content = "Constraint",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Width = 90,
+                FontSize = 14,
+                Margin = new Thickness(2, 0, 0, 0)
+            };
 
-            Label volLabel = new Label();
-            volLabel.Content = "V (%)";
-            volLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            volLabel.VerticalAlignment = VerticalAlignment.Top;
-            volLabel.Width = 60;
-            volLabel.FontSize = 14;
-            volLabel.Margin = new Thickness(18, 0, 0, 0);
+            Label volLabel = new Label
+            {
+                Content = "V (%)",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Width = 60,
+                FontSize = 14,
+                Margin = new Thickness(18, 0, 0, 0)
+            };
 
-            Label doseLabel = new Label();
-            doseLabel.Content = "Dose";
-            doseLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            doseLabel.VerticalAlignment = VerticalAlignment.Top;
-            doseLabel.Width = 60;
-            doseLabel.FontSize = 14;
-            doseLabel.Margin = new Thickness(5, 0, 0, 0);
+            Label doseLabel = new Label
+            {
+                Content = "Dose",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Width = 60,
+                FontSize = 14,
+                Margin = new Thickness(5, 0, 0, 0)
+            };
 
-            Label unitsLabel = new Label();
-            unitsLabel.Content = "Units";
-            unitsLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            unitsLabel.VerticalAlignment = VerticalAlignment.Top;
-            unitsLabel.Width = 65;
-            unitsLabel.FontSize = 14;
-            unitsLabel.Margin = new Thickness(13, 0, 0, 0);
+            Label unitsLabel = new Label
+            {
+                Content = "Units",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Width = 65,
+                FontSize = 14,
+                Margin = new Thickness(13, 0, 0, 0)
+            };
 
             sp.Children.Add(strName);
             sp.Children.Add(spareType);
@@ -68,10 +78,10 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return sp;
         }
 
-        public List<Tuple<string, string, double, double, DoseValuePresentation>> GetPlanObjectives(StackPanel theSP)
+        public static List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> GetPlanObjectives(StackPanel theSP)
         {
             //get constraints
-            List<Tuple<string, string, double, double, DoseValuePresentation>> tmp = new List<Tuple<string, string, double, double, DoseValuePresentation>> { };
+            List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> tmp = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> { };
             string structure = "";
             string constraintType = "";
             double dose = -1.0;
@@ -119,15 +129,15 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
                     if (structure == "--select--" || constraintType == "--select--")
                     {
                         MessageBox.Show("Error! \nStructure or Sparing Type not selected! \nSelect an option and try again");
-                        return new List<Tuple<string, string, double, double, DoseValuePresentation>>{};
+                        return new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>>{};
                     }
                     else if (dose == -1.0 || vol == -1.0)
                     {
                         MessageBox.Show("Error! \nDose, volume, or priority values are invalid! \nEnter new values and try again");
-                        return new List<Tuple<string, string, double, double, DoseValuePresentation>> { };
+                        return new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> { };
                     }
                     //if the row of data passes the above checks, add it the optimization parameter list
-                    else tmp.Add(Tuple.Create(structure, constraintType, Math.Round(dose, 3, MidpointRounding.AwayFromZero), Math.Round(vol, 3, MidpointRounding.AwayFromZero), presentation));
+                    else tmp.Add(Tuple.Create(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), Math.Round(dose, 3, MidpointRounding.AwayFromZero), Math.Round(vol, 3, MidpointRounding.AwayFromZero), presentation));
                     //reset the values of the variables used to parse the data
                     firstCombo = true;
                     txtbxNum = 1;

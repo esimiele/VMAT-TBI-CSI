@@ -1,13 +1,12 @@
 ﻿using System.Collections.Generic;
 
-namespace VMATTBICSIAutoplanningHelpers.Helpers
+namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
-    public class IsoNameHelper
+    public static class IsoNameHelper
     {
-        public List<string> GetIsoNames(int numVMATIsos, int numIsos, bool isCSI = false)
+        public static List<string> GetIsoNames(int numVMATIsos, int numIsos, bool isCSI = false)
         {
             List<string> isoNames = new List<string> { };
-
             if(!isCSI)
             {
                 isoNames.Add("Head");
@@ -20,7 +19,11 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
                         {
                             isoNames.Add("Chest");
                             if (numVMATIsos == 3) isoNames.Add("Pelvis");
-                            else if (numVMATIsos == 4) { isoNames.Add("Abdomen"); isoNames.Add("Pelvis"); }
+                            else if (numVMATIsos == 4) 
+                            { 
+                                isoNames.Add("Abdomen"); 
+                                isoNames.Add("Pelvis"); 
+                            }
                         }
                         isoNames.Add("AP / PA upper legs");
                         if (numIsos == numVMATIsos + 2) isoNames.Add("AP / PA lower legs");
@@ -32,7 +35,11 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
                         {
                             isoNames.Add("Chest");
                             if (numVMATIsos == 3) isoNames.Add("Legs");
-                            else if (numVMATIsos == 4) { isoNames.Add("Pelvis"); isoNames.Add("Legs"); }
+                            else if (numVMATIsos == 4) 
+                            { 
+                                isoNames.Add("Pelvis"); 
+                                isoNames.Add("Legs");
+                            }
                         }
                     }
                 }

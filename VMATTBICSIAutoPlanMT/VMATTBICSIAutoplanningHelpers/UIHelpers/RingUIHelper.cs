@@ -5,49 +5,59 @@ using System.Text;
 using System.Windows.Controls;
 using System.Windows;
 
-namespace VMATTBICSIAutoplanningHelpers.UIHelpers
+namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
-    public class RingUIHelper
+    public static class RingUIHelper
     {
-        public StackPanel GetRingHeader(double theWidth)
+        public static StackPanel GetRingHeader(double theWidth)
         {
-            StackPanel sp = new StackPanel();
-            sp.Height = 30;
-            sp.Width = theWidth;
-            sp.Orientation = Orientation.Horizontal;
-            sp.Margin = new Thickness(30, 0, 5, 5);
+            StackPanel sp = new StackPanel
+            {
+                Height = 30,
+                Width = theWidth,
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(30, 0, 5, 5)
+            };
 
-            Label strName = new Label();
-            strName.Content = "Target Id";
-            strName.HorizontalAlignment = HorizontalAlignment.Center;
-            strName.VerticalAlignment = VerticalAlignment.Top;
-            strName.Width = 100;
-            strName.FontSize = 14;
-            strName.Margin = new Thickness(40, 0, 0, 0);
+            Label strName = new Label
+            {
+                Content = "Target Id",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Width = 100,
+                FontSize = 14,
+                Margin = new Thickness(40, 0, 0, 0)
+            };
 
-            Label spareType = new Label();
-            spareType.Content = "Margin (cm)";
-            spareType.HorizontalAlignment = HorizontalAlignment.Center;
-            spareType.VerticalAlignment = VerticalAlignment.Top;
-            spareType.Width = 90;
-            spareType.FontSize = 14;
-            spareType.Margin = new Thickness(5, 0, 0, 0);
+            Label spareType = new Label
+            {
+                Content = "Margin (cm)",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Width = 90,
+                FontSize = 14,
+                Margin = new Thickness(5, 0, 0, 0)
+            };
 
-            Label volLabel = new Label();
-            volLabel.Content = "Thickness (cm)";
-            volLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            volLabel.VerticalAlignment = VerticalAlignment.Top;
-            volLabel.Width = 100;
-            volLabel.FontSize = 14;
-            volLabel.Margin = new Thickness(10, 0, 0, 0);
+            Label volLabel = new Label
+            {
+                Content = "Thickness (cm)",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Width = 100,
+                FontSize = 14,
+                Margin = new Thickness(10, 0, 0, 0)
+            };
 
-            Label doseLabel = new Label();
-            doseLabel.Content = "Dose (cGy)";
-            doseLabel.HorizontalAlignment = HorizontalAlignment.Center;
-            doseLabel.VerticalAlignment = VerticalAlignment.Top;
-            doseLabel.Width = 80;
-            doseLabel.FontSize = 14;
-            doseLabel.Margin = new Thickness(15, 0, 0, 0);
+            Label doseLabel = new Label
+            {
+                Content = "Dose (cGy)",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top,
+                Width = 80,
+                FontSize = 14,
+                Margin = new Thickness(15, 0, 0, 0)
+            };
 
             sp.Children.Add(strName);
             sp.Children.Add(spareType);
@@ -56,22 +66,26 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             return sp;
         }
 
-        public StackPanel AddRing(StackPanel theSP, List<string> targetIds, Tuple<string, double, double, double> listItem, string clearBtnPrefix, int clearSpareBtnCounter, RoutedEventHandler clearEvtHndl, bool addTargetEvenIfNotInSS = false)
+        public static StackPanel AddRing(StackPanel theSP, List<string> targetIds, Tuple<string, double, double, double> listItem, string clearBtnPrefix, int clearSpareBtnCounter, RoutedEventHandler clearEvtHndl, bool addTargetEvenIfNotInSS = false)
         {
-            StackPanel sp = new StackPanel();
-            sp.Height = 30;
-            sp.Width = theSP.Width;
-            sp.Orientation = Orientation.Horizontal;
-            sp.Margin = new Thickness(40, 0, 5, 5);
+            StackPanel sp = new StackPanel
+            {
+                Height = 30,
+                Width = theSP.Width,
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(40, 0, 5, 5)
+            };
 
-            ComboBox str_cb = new ComboBox();
-            str_cb.Name = "str_cb";
-            str_cb.Width = 120;
-            str_cb.Height = sp.Height - 5;
-            str_cb.HorizontalAlignment = HorizontalAlignment.Left;
-            str_cb.VerticalAlignment = VerticalAlignment.Top;
-            str_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
-            str_cb.Margin = new Thickness(5, 5, 0, 0);
+            ComboBox str_cb = new ComboBox
+            {
+                Name = "str_cb",
+                Width = 120,
+                Height = sp.Height - 5,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                HorizontalContentAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(5, 5, 0, 0)
+            };
 
             str_cb.Items.Add("--select--");
             //this code is used to fix the issue where the structure exists in the structure set, but doesn't populate as the default option in the combo box.
@@ -93,57 +107,65 @@ namespace VMATTBICSIAutoplanningHelpers.UIHelpers
             str_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
             sp.Children.Add(str_cb);
 
-            TextBox addMargin = new TextBox();
-            addMargin.Name = "addMargin_tb";
-            addMargin.Width = 100;
-            addMargin.Height = sp.Height - 5;
-            addMargin.HorizontalAlignment = HorizontalAlignment.Left;
-            addMargin.VerticalAlignment = VerticalAlignment.Top;
-            addMargin.TextAlignment = TextAlignment.Center;
-            addMargin.VerticalContentAlignment = VerticalAlignment.Center;
-            addMargin.Margin = new Thickness(5, 5, 0, 0);
-            addMargin.Text = Convert.ToString(listItem.Item2);
+            TextBox addMargin = new TextBox
+            {
+                Name = "addMargin_tb",
+                Width = 100,
+                Height = sp.Height - 5,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                TextAlignment = TextAlignment.Center,
+                VerticalContentAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(5, 5, 0, 0),
+                Text = Convert.ToString(listItem.Item2)
+            };
             sp.Children.Add(addMargin);
 
-            TextBox addThickness = new TextBox();
-            addThickness.Name = "addThickness_tb";
-            addThickness.Width = 100;
-            addThickness.Height = sp.Height - 5;
-            addThickness.HorizontalAlignment = HorizontalAlignment.Left;
-            addThickness.VerticalAlignment = VerticalAlignment.Top;
-            addThickness.TextAlignment = TextAlignment.Center;
-            addThickness.VerticalContentAlignment = VerticalAlignment.Center;
-            addThickness.Margin = new Thickness(5, 5, 0, 0);
-            addThickness.Text = Convert.ToString(listItem.Item3);
+            TextBox addThickness = new TextBox
+            {
+                Name = "addThickness_tb",
+                Width = 100,
+                Height = sp.Height - 5,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                TextAlignment = TextAlignment.Center,
+                VerticalContentAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(5, 5, 0, 0),
+                Text = Convert.ToString(listItem.Item3)
+            };
             sp.Children.Add(addThickness);
 
-            TextBox addDose = new TextBox();
-            addDose.Name = "addDose_tb";
-            addDose.Width = 100;
-            addDose.Height = sp.Height - 5;
-            addDose.HorizontalAlignment = HorizontalAlignment.Left;
-            addDose.VerticalAlignment = VerticalAlignment.Top;
-            addDose.TextAlignment = TextAlignment.Center;
-            addDose.VerticalContentAlignment = VerticalAlignment.Center;
-            addDose.Margin = new Thickness(5, 5, 0, 0);
-            addDose.Text = Convert.ToString(listItem.Item4);
+            TextBox addDose = new TextBox
+            {
+                Name = "addDose_tb",
+                Width = 100,
+                Height = sp.Height - 5,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                TextAlignment = TextAlignment.Center,
+                VerticalContentAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(5, 5, 0, 0),
+                Text = Convert.ToString(listItem.Item4)
+            };
             sp.Children.Add(addDose);
 
-            Button clearStructBtn = new Button();
-            clearStructBtn.Name = clearBtnPrefix + clearSpareBtnCounter;
-            clearStructBtn.Content = "Clear";
+            Button clearStructBtn = new Button
+            {
+                Name = clearBtnPrefix + clearSpareBtnCounter,
+                Content = "Clear",
+                Width = 50,
+                Height = sp.Height - 5,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(10, 5, 0, 0)
+            };
             clearStructBtn.Click += clearEvtHndl;
-            clearStructBtn.Width = 50;
-            clearStructBtn.Height = sp.Height - 5;
-            clearStructBtn.HorizontalAlignment = HorizontalAlignment.Left;
-            clearStructBtn.VerticalAlignment = VerticalAlignment.Top;
-            clearStructBtn.Margin = new Thickness(10, 5, 0, 0);
             sp.Children.Add(clearStructBtn);
 
             return sp;
         }
 
-        public (List<Tuple<string, double, double, double>>, StringBuilder) ParseCreateRingList(StackPanel theSP)
+        public static (List<Tuple<string, double, double, double>>, StringBuilder) ParseCreateRingList(StackPanel theSP)
         {
             StringBuilder sb = new StringBuilder();
             List<Tuple<string, double, double, double>> CreateRingList = new List<Tuple<string, double, double, double>> { };

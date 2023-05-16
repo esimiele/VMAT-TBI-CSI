@@ -5,12 +5,14 @@ using System.Collections.Generic;
 using System.Linq;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
+using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
+using System.Windows.Media.Media3D;
 
-namespace VMATTBICSIAutoplanningHelpers.Helpers
+namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
-    public class TargetsHelper
+    public static class TargetsHelper
     {
-        public (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) GetPrescriptions(List<Tuple<string, double, string>> targets, string initDosePerFxText, string initNumFxText, string initRxText, string boostDosePerFxText, string boostNumFxText)
+        public static (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) GetPrescriptions(List<Tuple<string, double, string>> targets, string initDosePerFxText, string initNumFxText, string initRxText, string boostDosePerFxText, string boostNumFxText)
         {
             StringBuilder sb = new StringBuilder();
             List<Tuple<string, string, int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
@@ -66,8 +68,58 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             return (prescriptions, sb);
         }
 
+        public static (bool, Structure, double, StringBuilder) GetLongestTargetInPlan(Tuple<string, List<string>> targetListForAllPlans, StructureSet selectedSS)
+        {
+            double maxTargetLength = 0.0;
+            Structure longestTargetInPlan = null;
+            bool fail = false;
+            StringBuilder sb = new StringBuilder();
+            if(targetListForAllPlans != default)
+            {
+                foreach (string itr in targetListForAllPlans.Item2)
+                {
+                    Structure targStruct = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id, itr));
+                    if (targStruct == null || targStruct.IsEmpty)
+                    {
+                        sb.AppendLine($"Error! No structure named: {itr} found or contoured!");
+                        fail = true;
+                        return (fail, longestTargetInPlan, maxTargetLength, sb);
+                    }
+                    Point3DCollection pts = targStruct.MeshGeometry.Positions;
+                    double diff = pts.Max(p => p.Z) - pts.Min(p => p.Z);
+                    if (diff > maxTargetLength)
+                    {
+                        longestTargetInPlan = targStruct;
+                        maxTargetLength = diff;
+                    }
+                }
+            }
+            
+            return (fail, longestTargetInPlan, maxTargetLength, sb);
+        }
+
+        //plan id, list of targets for that plan
+        public static List<Tuple<string,List<string>>> GetTargetListForEachPlan(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
+        {
+            List<Tuple<string, List<string>>> planIdTargets = new List<Tuple<string, List<string>>> { };
+            string tmpPlanId = prescriptions.First().Item1;
+            List<string> targs = new List<string> { };
+            foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
+            {
+                if (itr.Item1 != tmpPlanId)
+                {
+                    planIdTargets.Add(new Tuple<string, List<string>>(tmpPlanId, new List<string>(targs)));
+                    tmpPlanId = itr.Item1;
+                    targs = new List<string> { itr.Item2 };
+                }
+                else targs.Add(itr.Item2);
+            }
+            planIdTargets.Add(new Tuple<string, List<string>>(tmpPlanId, new List<string>(targs)));
+            return planIdTargets;
+        }
+
         //planId, targetId
-        public List<Tuple<string, string>> GetPlanTargetList(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
+        public static List<Tuple<string, string>> GetPlanTargetList(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
         {
             List<Tuple<string, string>> plansTargets = new List<Tuple<string, string>> { };
             if (!prescriptions.Any()) return plansTargets;
@@ -91,7 +143,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
         }
 
         //planId, targetId (overloaded method to accept target list rather than prescription list)
-        public List<Tuple<string, string>> GetPlanTargetList(List<Tuple<string, double, string>> targetList)
+        public static List<Tuple<string, string>> GetPlanTargetList(List<Tuple<string, double, string>> targetList)
         {
             //for this list, item1 is the target, item 2 is the cumulated dose (cGy), and item 3 is the plan
             List<Tuple<string, string>> plansTargets = new List<Tuple<string, string>> { };
@@ -116,7 +168,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
         }
 
         //plan Rx dose
-        public double GetHighestRxForPlan(List<Tuple<string, string, int, DoseValue, double>> prescriptions, string plandId)
+        public static double GetHighestRxForPlan(List<Tuple<string, string, int, DoseValue, double>> prescriptions, string plandId)
         {
             double dose = 0.0;
             List<Tuple<string, string, int, DoseValue, double>> tmpList = prescriptions.OrderBy(x => x.Item5).ToList();
@@ -129,11 +181,11 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
         }
 
         //target id, target prescription dose
-        public (string, double) GetAppropriateTargetIdForRing(List<Tuple<string, string, int, DoseValue, double>> prescriptions, double ringDose)
+        public static (string, double) GetAppropriateTargetIdForRing(List<Tuple<string, string, int, DoseValue, double>> prescriptions, double ringDose)
         {
             string targetId = "";
             double targetRx = 0.0;
-            List<Tuple<string, double>> sortedTargets = new TargetsHelper().GetSortedTargetIdsByRxDose(prescriptions);
+            List<Tuple<string, double>> sortedTargets = GetSortedTargetIdsByRxDose(prescriptions);
             if (sortedTargets.Any(x => x.Item2 > ringDose))
             {
                 Tuple<string, double> tmp = sortedTargets.First(y => y.Item2 > ringDose);
@@ -144,7 +196,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
         }
 
         //targetId, cumulative Rx dose
-        public List<Tuple<string, double>> GetSortedTargetIdsByRxDose(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
+        public static List<Tuple<string, double>> GetSortedTargetIdsByRxDose(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
         {
             List<Tuple<string, double>> sortedTargets = new List<Tuple<string, double>> { };
             if (!prescriptions.Any()) return sortedTargets;
@@ -159,7 +211,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
         }
 
         //list of target IDs
-        public List<string> GetAllTargetIds(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
+        public static List<string> GetAllTargetIds(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
         {
             List<string> targets = new List<string> { };
             foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
@@ -170,7 +222,7 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
         }
 
         //target structure
-        public Structure GetTargetStructureForPlanType(StructureSet ss, string targetId, bool useFlash, PlanType type)
+        public static Structure GetTargetStructureForPlanType(StructureSet ss, string targetId, bool useFlash, PlanType type)
         {
             Structure target = null;
             if (string.IsNullOrEmpty(targetId))
@@ -186,13 +238,13 @@ namespace VMATTBICSIAutoplanningHelpers.Helpers
             }
             else
             {
-                target = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == targetId.ToLower());
+                target = ss.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), targetId.ToLower()));
             }
             return target;
         }
 
         //plan id
-        public string GetPlanIdFromTargetId(string targetId, List<Tuple<string, string, int, DoseValue, double>> prescriptions)
+        public static string GetPlanIdFromTargetId(string targetId, List<Tuple<string, string, int, DoseValue, double>> prescriptions)
         {
             string planId = "";
             if(prescriptions.Any(x => string.Equals(x.Item2,targetId)))

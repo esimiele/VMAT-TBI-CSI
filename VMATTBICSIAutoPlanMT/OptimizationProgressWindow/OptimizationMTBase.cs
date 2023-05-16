@@ -10,6 +10,7 @@ namespace OptimizationProgressWindow
         protected OptimizationMTProgress _pw;
         protected string logPath;
         protected string fileName;
+        protected string fileNameErrorsWarnings;
 
         public virtual bool Run()
         {
@@ -40,7 +41,7 @@ namespace OptimizationProgressWindow
             _dispatch = d;
             _pw = p;
             //perform logging on progress window UI thread
-            _dispatch.BeginInvoke((Action)(() => { _pw.InitializeLogFile(logPath, fileName); }));
+            _dispatch.BeginInvoke((Action)(() => { _pw.InitializeLogFile(logPath, fileName, fileNameErrorsWarnings); }));
         }
 
         protected void SetAbortUIStatus(string message)
@@ -80,7 +81,6 @@ namespace OptimizationProgressWindow
 
         protected void OptimizationLoopFinished()
         {
-            ProvideUIUpdate(100, Environment.NewLine + " Finished!");
             _dispatch.BeginInvoke((Action)(() => { _pw.SetFinishStatus(true);  _pw.OptimizationRunCompleted(); }));
         }
 
