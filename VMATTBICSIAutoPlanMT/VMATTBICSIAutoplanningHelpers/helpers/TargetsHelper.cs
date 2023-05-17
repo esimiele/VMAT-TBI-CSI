@@ -118,6 +118,17 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return planIdTargets;
         }
 
+        public static List<string> GetTargetIdListForPlan(List<Tuple<string, string, int, DoseValue, double>> prescriptions, string planId)
+        {
+            List<string> targetIds = new List<string> { };
+            List<Tuple<string, List<string>>> planIdTargets = GetTargetListForEachPlan(prescriptions);
+            if(planIdTargets.Any(x => string.Equals(x.Item1.ToLower(),planId.ToLower())))
+            {
+                targetIds = planIdTargets.First(x => string.Equals(x.Item1.ToLower(), planId.ToLower())).Item2;
+            }
+            return targetIds;
+        }
+
         //planId, targetId
         public static List<Tuple<string, string>> GetPlanTargetList(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
         {
@@ -180,6 +191,19 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return dose;
         }
 
+        //target Id with highest Rx for plan
+        public static string GetHighestRxTargetIdForPlan(List<Tuple<string, string, int, DoseValue, double>> prescriptions, string plandId)
+        {
+            string targetId = "";
+            List<Tuple<string, string, int, DoseValue, double>> tmpList = prescriptions.OrderBy(x => x.Item5).ToList();
+            if (tmpList.Any(x => string.Equals(x.Item1.ToLower(), plandId.ToLower())))
+            {
+                Tuple<string, string, int, DoseValue, double> rx = prescriptions.Last(x => string.Equals(x.Item1.ToLower(), plandId.ToLower()));
+                targetId = rx.Item2;
+            }
+            return targetId;
+        }
+
         //target id, target prescription dose
         public static (string, double) GetAppropriateTargetIdForRing(List<Tuple<string, string, int, DoseValue, double>> prescriptions, double ringDose)
         {
@@ -213,12 +237,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         //list of target IDs
         public static List<string> GetAllTargetIds(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
         {
-            List<string> targets = new List<string> { };
-            foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
-            {
-                targets.Add(itr.Item2);
-            }
-            return targets;
+            return prescriptions.Select(x => x.Item2).ToList();
         }
 
         //target structure

@@ -8,12 +8,12 @@ using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using System.Runtime.ExceptionServices;
 using System.Text;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Tab;
 
 namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
     public class PlaceBeams_CSI : PlaceBeamsBase
     {
-
         //plan, list<iso name, number of beams>
         private List<Tuple<string, List<Tuple<string, int>>>> planIsoBeamInfo;
         private double isoSeparation = 0;
@@ -260,8 +260,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         protected override bool SetBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
         {
             ProvideUIUpdate(0, $"Preparing to set isocenters for plan: {iso.Item1.Id}");
-            int calcItems = 3;
             int counter = 0;
+            int calcItems = 3;
+            bool initCSIPlan = false;
             //DRR parameters (dummy parameters to generate DRRs for each field)
             DRRCalculationParameters DRR = new DRRCalculationParameters
             {
@@ -273,34 +274,43 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ProvideUIUpdate((int)(100 * ++counter / calcItems), "Created default DRR parameters");
 
             //grab all prescriptions assigned to this plan
-            List<Tuple<string, string, int, DoseValue, double>> tmp = prescriptions.Where(x => string.Equals(x.Item1, iso.Item1.Id)).ToList();
+            List<string> targetIds = TargetsHelper.GetTargetIdListForPlan(prescriptions, iso.Item1.Id);
             //if any of the targets for this plan are ptv_csi, then you must use the special beam placement logic for the initial plan
-            if (tmp.Any(x => x.Item2.ToLower().Contains("ptv_csi")))
+            if (targetIds.Any(x => x.ToLower().Contains("ptv_csi")))
             {
                 //verify that BOTH PTV spine and PTV brain exist in the current structure set! If not, create them (used to fit the field jaws to the target
                 if (!selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), "ptv_brain")))
                 {
                     //uniform 5mm outer margin to create brain ptv from brain ctv/brain structure
-                    if (CreateTargetStructure("PTV_Brain", "brain", new AxisAlignedMargins(StructureMarginGeometry.Outer, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0))) return true;
+                    (bool fail, StringBuilder info) = ContourHelper.CreateTargetStructure("PTV_Brain", "brain", selectedSS, new AxisAlignedMargins(StructureMarginGeometry.Outer, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0));
+                    ProvideUIUpdate(info.ToString());
+                    if (fail) return true;
+                    ProvideUIUpdate(100);
                 }
                 if (!selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), "ptv_spine")))
                 {
                     //ctv_spine = spinal_cord+0.5cm ANT, +1.5cm Inf, and +1.0 cm in all other directions
                     //ptv_spine = ctv_spine + 5 mm outer margin --> add 5 mm to the asymmetric margins used to create the ctv
-                    if (CreateTargetStructure("PTV_Spine", "spinalcord", new AxisAlignedMargins(StructureMarginGeometry.Outer, 15.0, 10.0, 20.0, 15.0, 15.0, 15.0), "spinal_cord")) return true;
+                    (bool fail, StringBuilder info) = ContourHelper.CreateTargetStructure("PTV_Spine", "spinalcord", selectedSS, new AxisAlignedMargins(StructureMarginGeometry.Outer, 15.0, 10.0, 20.0, 15.0, 15.0, 15.0), "spinal_cord");
+                    ProvideUIUpdate(info.ToString());
+                    if (fail) return true;
+                    ProvideUIUpdate(100);
                 }
                 //grab ptv_brain as we will need it for the first iso field placement
                 target = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "ptv_brain"));
             }
             //assumes only one target for the boos plan
-            else target = selectedSS.Structures.FirstOrDefault(x => x.Id.Contains(tmp.First().Item2));
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Retrieved target for plan: {target.Id}");
+            else
+            {
+                target = selectedSS.Structures.FirstOrDefault(x => x.Id.Contains(TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, iso.Item1.Id)));
+            }
 
             if (target == null || target.IsEmpty) 
             { 
                 ProvideUIUpdate(0, $"Error! Target not found or is not contoured in plan {iso.Item1.Id}! Exiting!", true); 
                 return true; 
             }
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Retrieved target for plan: {target.Id}");
             ProvideUIUpdate(100, "Preparation complete!");
 
             //place the beams for the VMAT plan
@@ -309,13 +319,14 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             VRect<double> jp;
             calcItems = 0;
             counter = 0;
+            //iso counter
             for (int i = 0; i < iso.Item2.Count; i++)
             {
                 calcItems += iso.Item2.ElementAt(i).Item3 * 6;
                 ProvideUIUpdate(0, $"Assigning isocenter: {i + 1}");
 
                 if (target.Id.ToLower().Contains("ptv_brain") && i > 0) target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_spine"));
-                //add beams for each isocenter
+                //beam counter
                 for (int j = 0; j < iso.Item2.ElementAt(i).Item3; j++)
                 {
                     Beam b;
@@ -382,32 +393,105 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return false;
         }
 
-        private bool CreateTargetStructure(string targetStructureId, string baseStructureId, AxisAlignedMargins margin, string alternateBasStructureId = "")
+        private (bool, VRect<double>) GetXYJawPositionsForStructure(bool isInitCSIPlan, bool isFirstIso, VVector iso, double margin, Structure target = null)
         {
-            int calcItems = 3;
-            int counter = 0;
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Failed to find {targetStructureId} Structure! Retrieving {baseStructureId} structure");
-            Structure baseStructure = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), baseStructureId.ToLower()));
-            if(baseStructure == null && !string.IsNullOrEmpty(alternateBasStructureId)) baseStructure = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), 
-                                                                                                                                                                alternateBasStructureId.ToLower()));
-            if(baseStructure == null)
+            double x1, y1, x2, y2;
+            x1 = x2 = y1 = y2 = 0.0;
+            if (isInitCSIPlan)
             {
-                ProvideUIUpdate($"Could not retrieve base structure {baseStructureId}. Exiting!", true);
-                return true;
-            }
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Creating {targetStructureId} structure!");
-            if (selectedSS.CanAddStructure("CONTROL", $"{targetStructureId}"))
-            {
-                Structure target = selectedSS.AddStructure("CONTROL", $"{targetStructureId}");
-                target.SegmentVolume = baseStructure.AsymmetricMargin(margin);
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Created {targetStructureId} structure!");
+                double startZ, stopZ;
+                if(isFirstIso)
+                {
+                    //first isocenter in brain
+                    Structure brain = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "brain"));
+                    if (brain == null || brain.IsEmpty) return (true, new VRect<double>());
+                    y1 = brain.MeshGeometry.Positions.Min(p => p.Z) - iso.z - 5.0 - margin * 10.0;
+                    y2 = brain.MeshGeometry.Positions.Max(p => p.Z) - iso.z + 5.0 + margin * 10.0;
+                    startZ = brain.MeshGeometry.Positions.Min(p => p.Z);
+                    stopZ = brain.MeshGeometry.Positions.Max(p => p.Z);
+                }
+                else
+                {
+                    //first isocenter in brain
+                    Structure spine = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "spinalcord") || string.Equals(x.Id.ToLower(), "spinal_cord"));
+                    if (spine == null || spine.IsEmpty) return (true, new VRect<double>());
+                    y2 = spine.MeshGeometry.Positions.Max(p => p.Z) - iso.z + 10.0 + margin*10.0;
+                    if (y2 > 200.0) y2 = 200.0;
+                    y1 = iso.z - spine.MeshGeometry.Positions.Min(p => p.Z) - 15.0 - margin * 10.0;
+                    if (y1 < 200.0) y1 = 200.0;
+                    startZ = iso.z - y1;
+                    stopZ = iso.z + y2;
+                }
+                Structure ptv_csi = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "ptv_csi"));
+                if (ptv_csi == null || ptv_csi.IsEmpty) return (true, new VRect<double>());
+                VVector[] lateralBoundingBox = GetLateralStructureBoundingBox(ptv_csi, startZ, stopZ);
+                x1 = x2 = GetMaxLatProjectionDistance(lateralBoundingBox, iso) + margin * 10.0;
             }
             else
             {
-                ProvideUIUpdate($"Failed to add {targetStructureId} to the structure set! Exiting!", true);
-                return true;
+                if(target == null) return (true, new VRect<double>());
+                x1 = x2 = GetMaxLatProjectionDistance(target, iso) + margin;
+                y2 = target.MeshGeometry.Positions.Max(p => p.Z) - iso.z + margin * 10.0;
+                if (y2 > 200.0) y2 = 200.0;
+                y1 = iso.z - target.MeshGeometry.Positions.Min(p => p.Z) - margin * 10.0;
+                if (y1 < 200.0) y1 = 200.0;
             }
-            return false;
+            return (false, new VRect<double> (x1, y1, x2, y2));
+        }
+        
+        private double GetMaxLatProjectionDistance(Structure target, VVector v)
+        {
+            double maxDimension = 0;
+            Point3DCollection pts = target.MeshGeometry.Positions;
+            if (pts.Max(p => p.X) - v.x > maxDimension) maxDimension = pts.Max(p => p.X) - v.x;
+            if (Math.Abs(pts.Min(p => p.X) - v.x) > maxDimension) maxDimension = Math.Abs(pts.Min(p => p.X) - v.x);
+            if (pts.Max(p => p.Y) - v.y > maxDimension) maxDimension = pts.Max(p => p.Y) - v.y;
+            if (Math.Abs(pts.Min(p => p.Y) - v.y) > maxDimension) maxDimension = Math.Abs(pts.Min(p => p.Y) - v.y);
+            return maxDimension;
+        }
+        private double GetMaxLatProjectionDistance(VVector[] boundingBox, VVector v)
+        {
+            double maxDimension = 0;
+            if (boundingBox.Max(p => p.x) - v.x > maxDimension) maxDimension = boundingBox.Max(p => p.x) - v.x;
+            if (Math.Abs(boundingBox.Min(p => p.x)) - v.x > maxDimension) maxDimension = Math.Abs(boundingBox.Min(p => p.x) - v.x);
+            if (boundingBox.Max(p => p.y) - v.y > maxDimension) maxDimension = boundingBox.Max(p => p.y) - v.y;
+            if (Math.Abs(boundingBox.Min(p => p.y)) - v.y > maxDimension) maxDimension = Math.Abs(boundingBox.Max(p => p.y) - v.y);
+            return maxDimension;
+        }
+
+        private VVector[] GetLateralStructureBoundingBox(Structure target, double zMin, double zMax) 
+        {
+            MeshGeometry3D mesh = target.MeshGeometry;
+            //get most inferior slice of ptv_csi (mesgeometry.bounds.z indicates the most inferior part of a structure)
+            int startSlice = (int)((zMin - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes);
+            //only go to the most superior part of the lungs for contouring the arms
+            int stopSlice = (int)((zMax - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes) + 1;
+            VVector[][] pts;
+            double xMax, xMin, yMax, yMin;
+            xMax = -500000000000.0;
+            xMin = 500000000000.0;
+            yMax = -500000000000.0;
+            yMin = 500000000000.0; 
+            for (int slice = startSlice; slice < stopSlice; slice++)
+            {
+                //get body contour points
+                pts = target.GetContoursOnImagePlane(slice);
+                
+                //find min and max x positions for the body on this slice (so we can adapt the box positions for each slice)
+                for (int i = 0; i < pts.GetLength(0); i++)
+                {
+                    if (pts[i].Max(p => p.x) > xMax) xMax = pts[i].Max(p => p.x);
+                    if (pts[i].Min(p => p.x) < xMin) xMin = pts[i].Min(p => p.x);
+                    if (pts[i].Max(p => p.y) > yMax) yMax = pts[i].Max(p => p.y);
+                    if (pts[i].Min(p => p.y) < yMin) yMin = pts[i].Min(p => p.y);
+                }
+            }
+            VVector[] boundinBox = new[] {
+                                    new VVector(xMax, 0, 0),
+                                    new VVector(0, yMin, 0),
+                                    new VVector(xMin, 0, 0),
+                                    new VVector(0, yMax, 0)};
+            return boundinBox;
         }
     }
 }
