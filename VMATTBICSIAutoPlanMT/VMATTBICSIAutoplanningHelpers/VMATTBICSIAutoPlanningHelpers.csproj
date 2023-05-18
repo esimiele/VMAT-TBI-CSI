@@ -120,7 +120,10 @@
     <Compile Include="Helpers\CalculationHelper.cs" />
     <Compile Include="Helpers\ConfigurationUIHelper.cs" />
     <Compile Include="Helpers\ContourHelper.cs" />
+    <Compile Include="Helpers\OptimizationLoopHelper.cs" />
     <Compile Include="Helpers\OptimizationTypeHelper.cs" />
+    <Compile Include="Helpers\PlanEvaluationHelper.cs" />
+    <Compile Include="Helpers\TSHeaterCoolerHelper.cs" />
     <Compile Include="Helpers\TSManipulationTypeHelper.cs" />
     <Compile Include="Helpers\WinUtilitiesModified.cs" />
     <Compile Include="Logging\LogHelper.cs" />
@@ -149,6 +152,7 @@
     <Compile Include="UIHelpers\ExportCTUIHelper.cs" />
     <Compile Include="UIHelpers\GeneralUIHelper.cs" />
     <Compile Include="Helpers\IsoNameHelper.cs" />
+    <Compile Include="UIHelpers\OptimizationLoopUIHelper.cs" />
     <Compile Include="UIHelpers\OptimizationSetupUIHelper.cs" />
     <Compile Include="UIHelpers\RingUIHelper.cs" />
     <Compile Include="UIHelpers\StructureTuningUIHelper.cs" />

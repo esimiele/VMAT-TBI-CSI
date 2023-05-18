@@ -370,8 +370,15 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if (app == null || pi == null) return;
             //CT image stack panel, patient structure set list, patient id, image export path, image export format
-            (bool, StringBuilder) exportResult = ExportCTUIHelper.ExportImage(CTimageSP, pi.StructureSets.ToList(), pi.Id, imgExportPath, imgExportFormat);
-            if(exportResult.Item1) log.LogError(exportResult.Item2);
+            VMS.TPS.Common.Model.API.Image selectedImage = ExportCTUIHelper.GetSelectedImageForExport(CTimageSP, pi.StructureSets.ToList());
+            if(selectedImage != null)
+            {
+                CTImageExport exporter = new CTImageExport(selectedImage, imgExportPath, pi.Id, imgExportFormat);
+                //don't care about bool result
+                exporter.Execute();
+                log.AppendLogOutput("Export CT data:", exporter.GetLogOutput());
+            }
+            else log.LogError("No image selected for export!");
         }
         #endregion
 
@@ -2275,7 +2282,5 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             SizeToContent = SizeToContent.WidthAndHeight;
         }
-
-        
     }
 }
