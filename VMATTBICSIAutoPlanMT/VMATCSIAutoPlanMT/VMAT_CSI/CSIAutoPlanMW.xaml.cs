@@ -390,7 +390,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (selectedSS == null) return;
             PrelimTargetGenerationSP.Children.Clear();
             List<string> missingPrelimTargets = new List<string> { };
-            if (selectedSS != null && prelimTargets.Any())
+            List<String> approvedTargets = new List<string> { };
+            if (prelimTargets.Any())
             {
                 foreach (string itr in prelimTargets.Select(x => x.Item2))
                 {
@@ -402,8 +403,20 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 }
             }
 
+            CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
+            if (selectedTemplate != null)
+            {
+                foreach(Tuple<string,double,string> itr in selectedTemplate.GetTargets())
+                {
+                    if(selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), itr.Item1.ToLower()) && x.ApprovalHistory.First().ApprovalStatus == StructureApprovalStatus.Approved))
+                    {
+                        approvedTargets.Add(selectedSS.Structures.First(x => string.Equals(x.Id.ToLower(), itr.Item1.ToLower()) && x.ApprovalHistory.First().ApprovalStatus == StructureApprovalStatus.Approved).Id);
+                    }
+                }
+            }
+
             targetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
-            if (missingPrelimTargets.Any())
+            if (!approvedTargets.Any() && missingPrelimTargets.Any())
             {
                 AddPrelimTargetVolumes(prelimTargets, PrelimTargetGenerationSP);
                 PrelimTargetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
@@ -475,6 +488,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         }
         #endregion
 
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         #region Set targets
         private (ScrollViewer, StackPanel) GetSVAndSPTargetsTab(object sender)
         {

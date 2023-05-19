@@ -8,7 +8,6 @@ using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using System.Runtime.ExceptionServices;
 using System.Text;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Tab;
 
 namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
@@ -212,16 +211,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                         v.y = spineYMin;
                         //assign the first isocenter to the center of the ptv_brain
                         if (i == 0) v.z = brainZCenter;
-                        else if (i == 1)
-                        {
-                            //for the second isocenter, check to see if it is placed TOO CLOSE to the brain isocenter. Do this by adding 20 cm (1/2 field length) to the proposed second isocenter.
-                            //if the resulting value is greater than the brain isocenter z position, force the second isocenter position to be equal to the brain isocenter z position - 20 cm.
-                            if (v.z + 200.0 > tmp.ElementAt(0).Item1.z) v.z = tmp.ElementAt(0).Item1.z - 200.0;
-                        }
                         else
                         {
-                            //for all other isocenters work your way down towards the inferior extent of ptv_spine
                             v.z = (spineZMin + (numIsos - i - 1) * isoSeparation + 180.0);
+                            if(i == 1)
+                            {
+                                if (v.z + 200.0 > tmp.ElementAt(0).Item1.z) v.z = tmp.ElementAt(0).Item1.z - 200.0;
+                            }
                         }
                         
                         ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Calculated isocenter position {i + 1}");
