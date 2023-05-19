@@ -94,7 +94,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     }
                 }
             }
-            
             return (fail, longestTargetInPlan, maxTargetLength, sb);
         }
 

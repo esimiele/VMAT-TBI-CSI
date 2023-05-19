@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Text;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
@@ -115,6 +116,34 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return (fail, sb);
         }
 
+        public static (bool, StringBuilder) ContourOverlapAndUnion(Structure target, Structure normal, Structure unionStructure, StructureSet selectedSS, double marginInCm)
+        {
+            StringBuilder sb = new StringBuilder();
+            bool fail = false;
+            //margin is in cm
+            if (target != null && normal != null)
+            {
+                if (marginInCm >= -5.0 && marginInCm <= 5.0)
+                {
+                    Structure dummy = selectedSS.AddStructure("CONTROL", "Dummy");
+                    dummy.SegmentVolume = target.And(normal.Margin(marginInCm * 10));
+                    unionStructure.SegmentVolume = unionStructure.Or(dummy.Margin(0.0));
+                    selectedSS.RemoveStructure(dummy);
+                }
+                else
+                {
+                    sb.AppendLine("Added margin MUST be within +/- 5.0 cm!");
+                    fail = true;
+                }
+            }
+            else
+            {
+                sb.AppendLine("Error either target or normal structures are missing! Can't contour overlap between target and normal structure!");
+                fail = true;
+            }
+            return (fail, sb);
+        }
+
         public static (bool, StringBuilder) CreateTargetStructure(string targetStructureId, string baseStructureId, StructureSet selectedSS, AxisAlignedMargins margin, string alternateBasStructureId = "")
         {
             StringBuilder sb = new StringBuilder();
@@ -143,7 +172,21 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 return (fail, sb);
             }
             return (fail, sb);
+        }
 
+        public static VVector[] GenerateContourPoints(VVector[] points, double distance)
+        {
+            VVector[] newPoints = new VVector[points.GetLength(0)];
+            double centerX = (points.Max(p => p.x) + points.Min(p => p.x)) / 2;
+            double centerY = (points.Max(p => p.y) + points.Min(p => p.y)) / 2;
+            for (int i = 0; i < points.GetLength(0); i++)
+            {
+                double r = Math.Sqrt(Math.Pow(points[i].x - centerX, 2) + Math.Pow(points[i].y - centerY, 2));
+                VVector u = new VVector((points[i].x - centerX) / r, (points[i].y - centerY) / r, 0);
+                newPoints[i] = new VVector(u.x * (r + distance) + centerX, u.y * (r + distance) + centerY, 0);
+                //ProvideUIUpdate($"{points[i][j].x - centerX:0.00}, {points[i][j].y - centerY:0.00}, {r:0.00}, {u.x:0.00}, {u.y:0.00}, {centerX:0.00}, {centerY:0.00}");
+            }
+            return newPoints;
         }
     }
 }

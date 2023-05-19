@@ -74,5 +74,32 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             }
             return (false, sb);
         }
+
+        public static Structure GetStructureFromId(string id, StructureSet selectedSS, bool createIfEmpty = false)
+        {
+            Structure theStructure = null;
+            if (selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), id.ToLower())))
+            {
+                theStructure = selectedSS.Structures.First(x => string.Equals(x.Id.ToLower(), id.ToLower()));
+            }
+            if (createIfEmpty && theStructure == null)
+            {
+                if (selectedSS.CanAddStructure("CONTROL", id))
+                {
+                    theStructure = selectedSS.AddStructure("CONTROL", id);
+                }
+            }
+            return theStructure;
+        }
+
+        public static bool IsOverlap(Structure target, Structure normal, StructureSet selectedSS, double marginInCm)
+        {
+            bool isOverlap = false;
+            Structure dummy = selectedSS.AddStructure("CONTROL", "Dummy");
+            dummy.SegmentVolume = target.And(normal.Margin(marginInCm * 10.0));
+            if (!dummy.IsEmpty) isOverlap = true;
+            selectedSS.RemoveStructure(dummy);
+            return isOverlap;
+        }
     }
 }
