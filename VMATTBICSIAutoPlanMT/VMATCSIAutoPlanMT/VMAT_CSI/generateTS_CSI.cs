@@ -447,9 +447,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             MeshGeometry3D mesh = initPlanTarget.MeshGeometry;
             //get most inferior slice of ptv_csi (mesgeometry.bounds.z indicates the most inferior part of a structure)
-            int startSlice = (int)((mesh.Bounds.Z - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes);
+            int startSlice = CalculationHelper.ComputeSlice(initPlanTarget.MeshGeometry.Positions.Min(p => p.Z), selectedSS);
             //only go to the most superior part of the lungs for contouring the arms
-            int stopSlice = (int)((lungs.MeshGeometry.Positions.Max(p => p.Z) - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes) + 1;
+            int stopSlice = CalculationHelper.ComputeSlice(lungs.MeshGeometry.Positions.Max(p => p.Z), selectedSS);
 
             //initialize variables
             double xMax = 0;
@@ -478,7 +478,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             int calcItems = stopSlice - startSlice + 3;
             int counter = 0;
 
-            for (int slice = startSlice; slice < stopSlice; slice++)
+            for (int slice = startSlice; slice <= stopSlice; slice++)
             {
                 //get body contour points
                 bodyPts = body.GetContoursOnImagePlane(slice);
@@ -860,15 +860,15 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             Structure csiInitTarget = StructureTuningHelper.GetStructureFromId(TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, prescriptions.First().Item1), selectedSS);
             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved structure: {csiInitTarget.Id}");
-            ClearContourPointsFromAllPlans(ptvSpine);
-            ClearContourPointsFromAllPlans(ptvBrain);
+            if(!ptvSpine.IsEmpty) ClearContourPointsFromAllPlans(ptvSpine);
+            if(!ptvBrain.IsEmpty) ClearContourPointsFromAllPlans(ptvBrain);
 
             //stop slice for ptv spine is the cut plan
-            //ContourStructure(ptvSpine, csiInitTarget, CalculationHelper.ComputeSlice(csiInitTarget.MeshGeometry.Positions.Min(p => p.Z), selectedSS), cutSlice);
-            //ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contoured structure: {ptvSpine.Id}");
+            ContourStructure(ptvSpine, csiInitTarget, CalculationHelper.ComputeSlice(csiInitTarget.MeshGeometry.Positions.Min(p => p.Z), selectedSS), cutSlice);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contoured structure: {ptvSpine.Id}");
             ////start slice for ptv brain is the cut plan
-            //ContourStructure(ptvBrain, csiInitTarget, cutSlice, CalculationHelper.ComputeSlice(csiInitTarget.MeshGeometry.Positions.Max(p => p.Z), selectedSS));
-            //ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contoured structure: {ptvSpine.Id}");
+            ContourStructure(ptvBrain, csiInitTarget, cutSlice, CalculationHelper.ComputeSlice(csiInitTarget.MeshGeometry.Positions.Max(p => p.Z), selectedSS));
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contoured structure: {ptvBrain.Id}");
             return false;
         }
 
@@ -879,15 +879,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             int stopSlice = CalculationHelper.ComputeSlice(structToRemove.MeshGeometry.Positions.Max(p => p.Z), selectedSS);
             ProvideUIUpdate($"Start slice: {startSlice}");
             ProvideUIUpdate($"Stop slice: {stopSlice}");
-            for(int slice = startSlice; slice < stopSlice; slice++)
+            for(int slice = startSlice; slice <= stopSlice; slice++)
             {
-                VVector[][] pts = structToRemove.GetContoursOnImagePlane(slice);
-                if (pts.Any())
-                {
-                    ProvideUIUpdate($"Contours found on slice {slice}. Removing");
-                    structToRemove.ClearAllContoursOnImagePlane(slice);
-                }
-                else ProvideUIUpdate($"NO contours found on slice {slice}");
+                if (structToRemove.GetContoursOnImagePlane(slice).Any()) structToRemove.ClearAllContoursOnImagePlane(slice);
             }
             return false;
         }
@@ -896,34 +890,18 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             ProvideUIUpdate($"Contouring structure: {structToContour.Id}");
             ProvideUIUpdate($"Base structure: {baseStructure.Id}");
+            ProvideUIUpdate($"Start slice: {startSlice}");
+            ProvideUIUpdate($"Stop slice: {stopSlice}");
             int percentComplete = 0;
             int calcItems = stopSlice - startSlice;
-            for(int slice = startSlice; slice < stopSlice; slice++)
+            for(int slice = startSlice; slice <= stopSlice; slice++)
             {
                 ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));
-                VVector[][] pts = structToContour.GetContoursOnImagePlane(slice);
-                if (pts.Any())
-                {
-                    ProvideUIUpdate($"Contours found on slice {slice}. Removing");
-                    structToContour.ClearAllContoursOnImagePlane(slice);
-                }
-                else ProvideUIUpdate($"NO contours found on slice {slice}");
-                //VVector[][] pts = baseStructure.GetContoursOnImagePlane(slice);
-                //if (pts.Any()) structToContour.AddContourOnImagePlane(pts[0], slice);
-                //for(int i = 0; i < pts.GetLength(0); i++)
-                //{
-                //    for(int j = 0; j < pts.ElementAt(i).GetLength(0); j++)
-                //    {
-                //        ProvideUIUpdate($"slice:{slice} ({pts.ElementAt(i).ElementAt(j).x}, {pts.ElementAt(i).ElementAt(j).y}, {pts.ElementAt(i).ElementAt(j).z})");
-                //    }
-                //}
-                //should be one continuous structure with no holes
-                //if(pts[0].Any()) structToContour.AddContourOnImagePlane(pts[0], slice);
+                VVector[][] pts = baseStructure.GetContoursOnImagePlane(slice);
+                if (pts.Any()) structToContour.AddContourOnImagePlane(pts.ElementAt(0),slice);
             }
             return false;
         }
-
-        
         #endregion
 
         #region Isocenter Calculation
@@ -1007,11 +985,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private (bool, double) GetSpineTargetExtent(ref int counter, ref int calcItems, double addedMarginInCm)
         {
             bool fail = false;
-            Structure spineTarget = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "spinalcord") || string.Equals(x.Id.ToLower(), "spinal_cord"));
             double spineTargetExtent = 0.0;
+            Structure spineTarget = StructureTuningHelper.GetStructureFromId("PTV_Spine", selectedSS);
             if (spineTarget == null || spineTarget.IsEmpty)
             {
-                ProvideUIUpdate("Error! No structure named spinalcord or spinal_cord was found or it was empty!", true);
+                ProvideUIUpdate("Error! No structure named PTV_Spine was found or it was empty!", true);
             }
             else
             {

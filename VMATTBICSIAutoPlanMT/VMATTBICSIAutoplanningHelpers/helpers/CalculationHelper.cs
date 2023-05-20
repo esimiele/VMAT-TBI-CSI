@@ -23,10 +23,5 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         {
             return (int)Math.Round(((x - ss.Image.Origin.z) / ss.Image.ZRes));
         }
-
-        public static int ComputeSupSlice(double x, StructureSet ss)
-        {
-            return (int)((x - ss.Image.Origin.z) / ss.Image.ZRes);
-        }
     }
 }

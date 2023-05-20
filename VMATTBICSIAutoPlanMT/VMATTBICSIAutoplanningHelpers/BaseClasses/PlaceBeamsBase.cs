@@ -307,8 +307,8 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 
                 overlap.Add(new Tuple<double, int, int>(overlapCenter, // the center location
                                                         (int)(numSlices / zResolution), //total number of slices to contour
-                                                        (int)(Math.Abs(dicomOrigin.z - overlapCenter + numSlices / 2) / zResolution))); // starting slice to contour
-                ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), $"Starting slice to contour: {(int)(Math.Abs(dicomOrigin.z - overlapCenter + numSlices / 2) / zResolution)}");
+                                                        (int)((overlapCenter + numSlices / 2 - dicomOrigin.z) / zResolution))); // starting slice to contour
+                ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), $"Starting slice to contour: {(int)((overlapCenter + numSlices / 2 - dicomOrigin.z) / zResolution)}");
                 //add a new junction structure (named TS_jnx<i>) to the stack. Contours will be added to these structure later
                 tmpJnxList.Add(selectedSS.AddStructure("CONTROL", $"TS_jnx{isoCount + i}"));
                 ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), $"Added TS junction to stack: TS_jnx{isoCount + 1}");
