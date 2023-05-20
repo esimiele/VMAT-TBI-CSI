@@ -168,7 +168,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         }
         #endregion
 
-
         #region Specialized Crop, Boolean, Ring Operations
         private bool ContourInnerOuterStructure(Structure addedStructure, ref int counter)
         {
@@ -783,10 +782,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved normal structure: {normal.Id}");
 
                             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contouring overlap between structure ({itr}) and target ({target.Id})");
-                            (bool fail, StringBuilder errorMessage) cropAndContourOverlapResult = ContourOverlapAndUnion(normal, target, overlapRresult.overlapStructure, 0.0);
+                            (bool fail, StringBuilder errorMessage) cropAndContourOverlapResult = ContourHelper.ContourOverlapAndUnion(normal, target, overlapRresult.overlapStructure, selectedSS, 0.0);
                             if (cropAndContourOverlapResult.fail)
                             {
-                                ProvideUIUpdate(errorMessage.ToString(), true);
+                                ProvideUIUpdate(cropAndContourOverlapResult.errorMessage.ToString(), true);
                                 return true;
                             }
 
@@ -851,35 +850,75 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             else cutPos = cutStructure.MeshGeometry.Positions.Min(p => p.Z);
             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved structure used to determine cut plan: {cutStructure.Id}");
+            ProvideUIUpdate($"Dicom origin ({selectedSS.Image.Origin.x}, {selectedSS.Image.Origin.y}, {selectedSS.Image.Origin.z})mm");
+            ProvideUIUpdate($"Image z resolution: {selectedSS.Image.ZRes} mm");
+            ProvideUIUpdate($"Number of z slices: {selectedSS.Image.ZSize}");
             ProvideUIUpdate($"Z cut position: {cutPos} mm");
 
-            cutSlice = CalculationHelper.ComputeInfSlice(cutPos, selectedSS);
+            cutSlice = CalculationHelper.ComputeSlice(cutPos, selectedSS);
             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Z cut slice: {cutSlice}");
 
             Structure csiInitTarget = StructureTuningHelper.GetStructureFromId(TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, prescriptions.First().Item1), selectedSS);
             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved structure: {csiInitTarget.Id}");
+            ClearContourPointsFromAllPlans(ptvSpine);
+            ClearContourPointsFromAllPlans(ptvBrain);
 
             //stop slice for ptv spine is the cut plan
-            ContourStructure(ptvSpine, csiInitTarget, CalculationHelper.ComputeInfSlice(csiInitTarget.MeshGeometry.Positions.Min(p => p.Z), selectedSS), cutSlice);
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contoured structure: {ptvSpine.Id}");
-            //start slice for ptv brain is the cut plan
-            ContourStructure(ptvBrain, csiInitTarget, cutSlice, CalculationHelper.ComputeInfSlice(csiInitTarget.MeshGeometry.Positions.Max(p => p.Z), selectedSS));
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contoured structure: {ptvSpine.Id}");
+            //ContourStructure(ptvSpine, csiInitTarget, CalculationHelper.ComputeSlice(csiInitTarget.MeshGeometry.Positions.Min(p => p.Z), selectedSS), cutSlice);
+            //ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contoured structure: {ptvSpine.Id}");
+            ////start slice for ptv brain is the cut plan
+            //ContourStructure(ptvBrain, csiInitTarget, cutSlice, CalculationHelper.ComputeSlice(csiInitTarget.MeshGeometry.Positions.Max(p => p.Z), selectedSS));
+            //ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contoured structure: {ptvSpine.Id}");
+            return false;
+        }
+
+        private bool ClearContourPointsFromAllPlans(Structure structToRemove)
+        {
+            ProvideUIUpdate($"Remove structure: {structToRemove.Id}");
+            int startSlice = CalculationHelper.ComputeSlice(structToRemove.MeshGeometry.Positions.Min(p => p.Z), selectedSS);
+            int stopSlice = CalculationHelper.ComputeSlice(structToRemove.MeshGeometry.Positions.Max(p => p.Z), selectedSS);
+            ProvideUIUpdate($"Start slice: {startSlice}");
+            ProvideUIUpdate($"Stop slice: {stopSlice}");
+            for(int slice = startSlice; slice < stopSlice; slice++)
+            {
+                VVector[][] pts = structToRemove.GetContoursOnImagePlane(slice);
+                if (pts.Any())
+                {
+                    ProvideUIUpdate($"Contours found on slice {slice}. Removing");
+                    structToRemove.ClearAllContoursOnImagePlane(slice);
+                }
+                else ProvideUIUpdate($"NO contours found on slice {slice}");
+            }
             return false;
         }
 
         private bool ContourStructure(Structure structToContour, Structure baseStructure, int startSlice, int stopSlice)
         {
             ProvideUIUpdate($"Contouring structure: {structToContour.Id}");
+            ProvideUIUpdate($"Base structure: {baseStructure.Id}");
             int percentComplete = 0;
             int calcItems = stopSlice - startSlice;
             for(int slice = startSlice; slice < stopSlice; slice++)
             {
                 ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));
-                structToContour.ClearAllContoursOnImagePlane(slice);
-                VVector[][] pts = baseStructure.GetContoursOnImagePlane(slice);
+                VVector[][] pts = structToContour.GetContoursOnImagePlane(slice);
+                if (pts.Any())
+                {
+                    ProvideUIUpdate($"Contours found on slice {slice}. Removing");
+                    structToContour.ClearAllContoursOnImagePlane(slice);
+                }
+                else ProvideUIUpdate($"NO contours found on slice {slice}");
+                //VVector[][] pts = baseStructure.GetContoursOnImagePlane(slice);
+                //if (pts.Any()) structToContour.AddContourOnImagePlane(pts[0], slice);
+                //for(int i = 0; i < pts.GetLength(0); i++)
+                //{
+                //    for(int j = 0; j < pts.ElementAt(i).GetLength(0); j++)
+                //    {
+                //        ProvideUIUpdate($"slice:{slice} ({pts.ElementAt(i).ElementAt(j).x}, {pts.ElementAt(i).ElementAt(j).y}, {pts.ElementAt(i).ElementAt(j).z})");
+                //    }
+                //}
                 //should be one continuous structure with no holes
-                structToContour.AddContourOnImagePlane(pts[0], slice);
+                //if(pts[0].Any()) structToContour.AddContourOnImagePlane(pts[0], slice);
             }
             return false;
         }

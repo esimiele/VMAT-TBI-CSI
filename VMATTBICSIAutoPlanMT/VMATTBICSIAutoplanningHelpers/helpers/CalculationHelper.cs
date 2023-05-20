@@ -19,14 +19,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return (x + y) / 2;
         }
 
-        public static int ComputeInfSlice(double x, StructureSet ss)
+        public static int ComputeSlice(double x, StructureSet ss)
         {
-            return (int)((x - ss.Image.Origin.z) / ss.Image.ZRes);
+            return (int)Math.Round(((x - ss.Image.Origin.z) / ss.Image.ZRes));
         }
 
         public static int ComputeSupSlice(double x, StructureSet ss)
         {
-            return (int)((x - ss.Image.Origin.z) / ss.Image.ZRes) + 1;
+            return (int)((x - ss.Image.Origin.z) / ss.Image.ZRes);
         }
     }
 }
