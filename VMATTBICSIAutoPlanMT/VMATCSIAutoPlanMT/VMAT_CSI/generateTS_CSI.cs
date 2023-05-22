@@ -879,8 +879,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             int stopSlice = CalculationHelper.ComputeSlice(structToRemove.MeshGeometry.Positions.Max(p => p.Z), selectedSS);
             ProvideUIUpdate($"Start slice: {startSlice}");
             ProvideUIUpdate($"Stop slice: {stopSlice}");
-            for(int slice = startSlice; slice <= stopSlice; slice++)
+            int percentComplete = 0;
+            int calcItems = stopSlice - startSlice;
+            for (int slice = startSlice; slice <= stopSlice; slice++)
             {
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));
                 if (structToRemove.GetContoursOnImagePlane(slice).Any()) structToRemove.ClearAllContoursOnImagePlane(slice);
             }
             return false;
