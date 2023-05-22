@@ -78,7 +78,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             {
                 foreach (string itr in targetListForAllPlans.Item2)
                 {
-                    Structure targStruct = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id, itr));
+                    Structure targStruct = StructureTuningHelper.GetStructureFromId(itr, selectedSS);
                     if (targStruct == null || targStruct.IsEmpty)
                     {
                         sb.AppendLine($"Error! No structure named: {itr} found or contoured!");

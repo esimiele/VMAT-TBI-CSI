@@ -76,7 +76,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             int counter = 0;
             foreach (Tuple<string, string> itr in createPrelimTargetList)
             {
-                Structure tmp = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), itr.Item2.ToLower()));
+                Structure tmp = StructureTuningHelper.GetStructureFromId(itr.Item2, selectedSS);
                 if (tmp == null || tmp.IsEmpty)
                 {
                     ProvideUIUpdate($"Target: {itr.Item2} is missing or empty");
@@ -131,7 +131,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Contouring target: {itr.Id}");
                 if (itr.Id.ToLower().Contains("brain"))
                 {
-                    tmp = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "brain"));
+                    tmp = StructureTuningHelper.GetStructureFromId("brain", selectedSS);
                     if (tmp != null && !tmp.IsEmpty)
                     {
                         if (itr.Id.ToLower().Contains("ctv"))
@@ -154,7 +154,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 }
                 else if (itr.Id.ToLower().Contains("spine"))
                 {
-                    tmp = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "spinalcord") || string.Equals(x.Id.ToLower(), "spinal_cord"));
+                    tmp = StructureTuningHelper.GetStructureFromId("spinalcord", selectedSS);
+                    if(tmp == null) tmp = StructureTuningHelper.GetStructureFromId("spinal_cord", selectedSS);
                     if (tmp != null && !tmp.IsEmpty)
                     {
                         if (itr.Id.ToLower().Contains("ctv"))
@@ -174,7 +175,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                         {
                             //PTV structure
                             //5 mm uniform margin to generate PTV
-                            tmp = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "ctv_spine"));
+                            tmp = StructureTuningHelper.GetStructureFromId("CTV_Spine", selectedSS);
                             if (tmp != null && !tmp.IsEmpty) itr.SegmentVolume = tmp.Margin(5.0);
                             else { ProvideUIUpdate("Error! Could not retrieve CTV_Spine structure! Exiting!", true); return true; }
                         }
@@ -192,9 +193,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), "Generating: PTV_CSI");
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), "Retrieving: PTV_CSI, PTV_Brain, and PTV_Spine");
                 //used to create the ptv_csi structures
-                Structure combinedTarget = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "ptv_csi"));
-                Structure brainTarget = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_brain"));
-                Structure spineTarget = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_spine"));
+                Structure combinedTarget = StructureTuningHelper.GetStructureFromId("PTV_CSI", selectedSS); 
+                Structure brainTarget = StructureTuningHelper.GetStructureFromId("PTV_Brain", selectedSS);
+                Structure spineTarget = StructureTuningHelper.GetStructureFromId("PTV_Spine", selectedSS);
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), "Unioning PTV_Brain and PTV_Spine to make PTV_CSI");
                 combinedTarget.SegmentVolume = brainTarget.Margin(0.0);
                 combinedTarget.SegmentVolume = combinedTarget.Or(spineTarget.Margin(0.0));

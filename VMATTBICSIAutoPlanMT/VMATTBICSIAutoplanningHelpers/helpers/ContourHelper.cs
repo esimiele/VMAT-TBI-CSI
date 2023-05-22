@@ -98,7 +98,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         {
             StringBuilder sb = new StringBuilder();
             bool fail = false;
-            Structure baseStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == baseStructureId.ToLower());
+            Structure baseStructure = StructureTuningHelper.GetStructureFromId(baseStructureId, selectedSS);
             if (baseStructure != null)
             {
                 if (marginInCm >= -5.0 && marginInCm <= 5.0) addedStructure.SegmentVolume = baseStructure.Margin(marginInCm * 10);
@@ -149,9 +149,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             StringBuilder sb = new StringBuilder();
             bool fail = false;
             sb.AppendLine($"Failed to find {targetStructureId} Structure! Retrieving {baseStructureId} structure");
-            Structure baseStructure = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), baseStructureId.ToLower()));
-            if (baseStructure == null && !string.IsNullOrEmpty(alternateBasStructureId)) baseStructure = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(),
-                                                                                                                                                                alternateBasStructureId.ToLower()));
+            Structure baseStructure = StructureTuningHelper.GetStructureFromId(baseStructureId, selectedSS);
+            if (baseStructure == null && !string.IsNullOrEmpty(alternateBasStructureId))
+            {
+                baseStructure = StructureTuningHelper.GetStructureFromId(alternateBasStructureId, selectedSS); 
+            }
             if (baseStructure == null)
             {
                 sb.AppendLine($"Could not retrieve base structure {baseStructureId}. Exiting!");

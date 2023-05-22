@@ -937,16 +937,15 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 calcItems = 3;
                 //If the target ID is PTV_CSI, calculate the number of isocenters based on PTV_spine and add one iso for the brain
                 //planId, target list
-                if (string.Equals(longestTargetInPlan.Id.ToLower(), "ptv_csi"))
+                if (string.Equals(longestTargetInPlan.Id, TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, prescriptions.First().Item1)))
                 {
                     calcItems += 1;
-                    //special rules for initial plan, which should have a target named PTV_CSI
+                    //special rules for initial plan,
                     //first, determine the number of isocenters required to treat PTV_Spine
-                    //
-                    //2/10/2023 according to Nataliya, PTV_Spine might not be present in the structure set 100% of the time. Therefore, just grab the spinal cord structure and add the margins
-                    //used to create PTV_Spine (0.5 cm Ant and 1.5 cm Inf) manually.
+                    //Grab extent of PTV_Spine and add a 2 cm margin to this distance to give 2 cm buffer on the sup portion of the target to ensure adequate coverage/overlap between upper spine field and brain fields
                     (bool isFail, double spineTargetExtent) = GetSpineTargetExtent(ref counter, ref calcItems, 2.0);
                     if (isFail) return true;
+
                     //Grab the thyroid structure, if it does not exist, add a 50 mm buffer to the field extent (rough estimate of most inferior position of thyroid)
                     //Structure thyroidStruct = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("thyroid"));
                     //if (thyroidStruct == null || thyroidStruct.IsEmpty) numVMATIsos = (int)Math.Ceiling((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 + 50.0));
@@ -956,13 +955,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     //    Point3DCollection thyroidPts = thyroidStruct.MeshGeometry.Positions;
                     //    numVMATIsos = (int)Math.Ceiling((thyroidPts.Min(p => p.Z) - pts.Min(p => p.Z)) / 400.0);
                     //}
-                    //
-                    //subtract 50 mm from the numerator as ptv_spine extends 10 mm into ptv_brain and brain fields have a 40 mm inferior margin on the ptv_brain (10 + 40 = 50 mm). 
-                    //Overlap is accounted for in the denominator.
-                    numVMATIsos = (int)Math.Ceiling((spineTargetExtent - 50.0) / (400.0 - 20.0));
+                    
+                    //subtract 40 mm from the numerator as the brain fields have a 40 mm inferior margin on the ptv_brain 
+                    //Overlap (2 cm) is accounted for in the denominator.
+                    numVMATIsos = (int)Math.Ceiling((spineTargetExtent - 40.0) / (400.0 - 20.0));
                     ProvideUIUpdate((int)(100 * ++counter / calcItems));
                     ProvideUIUpdate($"Spine target extent: {spineTargetExtent:0.0}");
-                    ProvideUIUpdate($"Num VMAT isos as double: {(spineTargetExtent - 50.0) / (400.0 - 20.0):0.0}");
+                    ProvideUIUpdate($"Num VMAT isos as double: {(spineTargetExtent - 40.0) / (400.0 - 20.0):0.0}");
                     ProvideUIUpdate($"Calculated num VMAT isos: {numVMATIsos:0.0}");
 
                     //one iso reserved for PTV_Brain
@@ -999,8 +998,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), "Retrieved spinal cord structure");
                 Point3DCollection pts = spineTarget.MeshGeometry.Positions;
                 //ESAPI default distances are in mm
-                double addedMargin = addedMarginInCm * 10;
-                spineTargetExtent = (pts.Max(p => p.Z) - pts.Min(p => p.Z)) + addedMargin;
+                spineTargetExtent = (pts.Max(p => p.Z) - pts.Min(p => p.Z)) + addedMarginInCm * 10;
             }
             return (fail, spineTargetExtent);
         }

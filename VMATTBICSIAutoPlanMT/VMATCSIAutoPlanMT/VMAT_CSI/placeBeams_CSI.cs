@@ -259,6 +259,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             int counter = 0;
             int calcItems = 3;
             bool initCSIPlan = false;
+            //if the plan id is equal to the plan Id in the first entry in the prescriptions, then this is the initial plan --> use special rules to fit fields
+            if (string.Equals(iso.Item1.Id, prescriptions.First().Item1)) initCSIPlan = true;
             //DRR parameters (dummy parameters to generate DRRs for each field)
             DRRCalculationParameters DRR = new DRRCalculationParameters
             {
@@ -299,16 +301,24 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ////assumes only one target for the boos plan
             //else
             //{
-                target = StructureTuningHelper.GetStructureFromId(TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, iso.Item1.Id), selectedSS);
+            //    target = StructureTuningHelper.GetStructureFromId(TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, iso.Item1.Id), selectedSS);
             //}
+            List<Tuple<string, List<string>>> planIdTargets = new List<Tuple<string, List<string>>>(TargetsHelper.GetTargetListForEachPlan(prescriptions));
+            ProvideUIUpdate("Determining target with greatest extent");
+            (bool fail, Structure longestTargetInPlan, double maxTargetLength, StringBuilder errorMessage) = TargetsHelper.GetLongestTargetInPlan(planIdTargets.FirstOrDefault(x => string.Equals(x.Item1, iso.Item1.Id)), selectedSS);
+            if (fail)
+            {
+                ProvideUIUpdate($"Error! No structure named: {errorMessage} found or contoured!", true);
+            }
+            target = longestTargetInPlan;
 
             if (target == null || target.IsEmpty) 
             { 
                 ProvideUIUpdate(0, $"Error! Target not found or is not contoured in plan {iso.Item1.Id}! Exiting!", true); 
                 return true; 
             }
-            if (target.Id.ToLower().Contains("ptv_csi")) initCSIPlan = true;
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Retrieved target for plan: {target.Id}");
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Longest target in plan {iso.Item1.Id}: {longestTargetInPlan.Id}");
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Retrieved target for plan: {iso.Item1.Id}");
             ProvideUIUpdate(100, "Preparation complete!");
 
             //place the beams for the VMAT plan
@@ -323,7 +333,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 calcItems += iso.Item2.ElementAt(i).Item3 * 6;
                 ProvideUIUpdate(0, $"Assigning isocenter: {i + 1}");
 
-                if (target.Id.ToLower().Contains("ptv_brain") && i > 0) target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("ptv_spine"));
                 //beam counter
                 for (int j = 0; j < iso.Item2.ElementAt(i).Item3; j++)
                 {
@@ -366,26 +375,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                         if (j >= 2) beamName += $"CW {iso.Item2.ElementAt(i).Item2}{90}";
                         else beamName += $"CW {iso.Item2.ElementAt(i).Item2}";
                     }
-                    //auto fit collimator to target structure
-                    //circular margin (in mm), target structure, use asymmetric x Jaws, use asymmetric y jaws, optimize collimator rotation
-                    //if (target.Id.ToLower().Contains("ptv_brain"))
-                    //{
-                    //    double buffer = Math.Abs(target.MeshGeometry.Positions.Min(p => p.Y)) - Math.Abs(b.IsocenterPosition.y);
-                    //    buffer -= Math.Abs(target.MeshGeometry.Positions.Min(p => p.X)) - Math.Abs(b.IsocenterPosition.x);
-                    //    if (buffer < 0) buffer = 0;
-                    //    ProvideUIUpdate($"Delta between lateral and AP projection of {target.Id} structure: {buffer:0.0} mm");
-                    //    //original (3/28/23) 30.0,40.0,30.0,30.0
-                    //    b.FitCollimatorToStructure(new FitToStructureMargins(30.0 + buffer, 40.0, 30.0 + buffer, 30.0), target, true, true, false);
-                    //    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Fit collimator to: {target.Id}");
-                    //    ProvideUIUpdate($"Asymmetric margin: {3.0 + buffer / 10: 0.0} cm Lat, {3.0} cm Sup, {4.0} cm Inf");
-                    //}
-                    //else
-                    //{
-                    //    //original (3/28/23) 30.0
-                    //    b.FitCollimatorToStructure(new FitToStructureMargins(45.0, 30.0, 45.0, 30.0), target, true, true, false);
-                    //    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Fit collimator to: {target.Id}");
-                    //    ProvideUIUpdate($"Asymmetric margin: {4.5} cm Lat, {3.0} cm Sup-Inf");
-                    //}
 
                     b.Id = beamName;
                     ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Assigned beam id: {beamName}");
@@ -511,10 +500,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 }
             }
             VVector[] boundinBox = new[] {
-                                    new VVector(xMax, yMax, 0),
-                                    new VVector(xMax, yMin, 0),
-                                    new VVector(xMin, yMax, 0),
-                                    new VVector(xMin, yMin, 0)};
+                                           new VVector(xMax, yMax, 0),
+                                           new VVector(xMax, yMin, 0),
+                                           new VVector(xMin, yMax, 0),
+                                           new VVector(xMin, yMin, 0)};
             ProvideUIUpdate($"xMax: {xMax:0.0} mm, xMin: {xMin:0.0} mm, yMax: {yMax:0.0} mm, yMin: {yMin:0.0} mm");
             return boundinBox;
         }
