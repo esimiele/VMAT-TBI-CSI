@@ -20,14 +20,14 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private double[] CW = { 181.0, 179.0 };
         private double[] CCW = { 179.0, 181.0 };
         private ExternalBeamMachineParameters ebmpArc;
-        private List<VRect<double>> jawPos;
+        private bool autoFitJaws;
 
-        public PlaceBeams_CSI(StructureSet ss, List<Tuple<string, List<Tuple<string, int>>>> planInfo, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool overlap, double overlapMargin)
+        public PlaceBeams_CSI(StructureSet ss, List<Tuple<string, List<Tuple<string, int>>>> planInfo, double[] coll, bool autoFit, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool overlap, double overlapMargin)
         {
             selectedSS = ss;
             planIsoBeamInfo = new List<Tuple<string, List<Tuple<string, int>>>>(planInfo);
             collRot = coll;
-            jawPos = new List<VRect<double>>(jp);
+            autoFitJaws = autoFit;
             ebmpArc = new ExternalBeamMachineParameters(linac, energy, 600, "ARC", null);
             //copy the calculation model
             calculationModel = calcModel;
@@ -330,7 +330,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //iso counter
             for (int i = 0; i < iso.Item2.Count; i++)
             {
-                calcItems += iso.Item2.ElementAt(i).Item3 * 6;
+                calcItems += iso.Item2.ElementAt(i).Item3 * 5;
                 ProvideUIUpdate(0, $"Assigning isocenter: {i + 1}");
 
                 //beam counter
@@ -345,7 +345,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
                     //jp = jawPos.ElementAt(j);
                     (bool result, VRect<double> jaws) = GetXYJawPositionsForStructure(initCSIPlan, i == 0, iso.Item2.ElementAt(i).Item1, new FitToStructureMargins(30.0, 40.0, 30.0, 30.0), target);
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Retrieved jaw positions (iso: {i + 1}, beam: {j + 1})");
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Jaw positions fit to target: {target.Id} (iso: {i + 1}, beam: {j + 1})");
                     if(!result)
                     {
                         ProvideUIUpdate($"Calculated jaw positions:");
@@ -362,7 +362,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     if (count % 2 == 0)
                     {
                         b = iso.Item1.AddArcBeam(ebmpArc, jaws, coll, CCW[0], CCW[1], GantryDirection.CounterClockwise, 0, iso.Item2.ElementAt(i).Item1);
-                        ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Added arc beam to iso: {i}");
+                        ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Added arc beam to iso: {i + 1}");
 
                         if (j >= 2) beamName += $"CCW {iso.Item2.ElementAt(i).Item2}{90}";
                         else beamName += $"CCW {iso.Item2.ElementAt(i).Item2}";
@@ -391,6 +391,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
         private (bool, VRect<double>) GetXYJawPositionsForStructure(bool isInitCSIPlan, bool isFirstIso, VVector iso, FitToStructureMargins margins, Structure target = null)
         {
+            ProvideUIUpdate("Fitting jaws to target");
             double x1, y1, x2, y2;
             x1 = x2 = y1 = y2 = 0.0;
             if (isInitCSIPlan)
@@ -420,6 +421,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     y1 = spine.MeshGeometry.Positions.Min(p => p.Z) - iso.z - margins.Y1;
                     if (y1 < -200.0) y1 = -200.0;
                     startZ = iso.z - Math.Abs(y1);
+                    //need this min comparison to ensure the max spine position isn't always used for stopZ
                     stopZ = Math.Min(iso.z + y2, spine.MeshGeometry.Positions.Max(p => p.Z));
                     ProvideUIUpdate($"Start position: {startZ} mm");
                     ProvideUIUpdate($"Stop position: {stopZ} mm");
@@ -461,7 +463,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (Math.Abs(boundingBox.Min(p => p.x) - v.x) > maxDimension) maxDimension = Math.Abs(boundingBox.Min(p => p.x) - v.x);
             if (Math.Abs(boundingBox.Max(p => p.y) - v.y) > maxDimension) maxDimension = Math.Abs(boundingBox.Max(p => p.y) - v.y);
             if (Math.Abs(boundingBox.Min(p => p.y) - v.y) > maxDimension) maxDimension = Math.Abs(boundingBox.Min(p => p.y) - v.y);
-            ProvideUIUpdate($"({boundingBox.Max(p => p.x):0.0}, {boundingBox.Min(p => p.x):0.0}, {boundingBox.Max(p => p.y):0.0}, {boundingBox.Min(p => p.y):0.0} mm");
             ProvideUIUpdate($"Iso position: ({v.x:0.0}, {v.y:0.0}, {v.z:0.0}) mm");
             ProvideUIUpdate($"Max lateral dimension: {maxDimension:0.0} mm");
             return maxDimension;

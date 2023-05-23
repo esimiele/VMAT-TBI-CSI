@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using System.Windows;
 using System.Windows.Threading;
 using ESAPIThreadWorker;
 
@@ -62,5 +63,11 @@ namespace SimpleProgressWindow
             _logOutput.AppendLine(message);
             _dispatch.BeginInvoke((Action)(() => { _pw.ProvideUpdate(message, fail); })); 
         }
+
+        //protected void ProvideUIUpdate(object sender, ProgressReportModel e)
+        //{
+        //    if (!string.IsNullOrEmpty(e.message)) _logOutput.AppendLine(e.message);
+        //    _dispatch.BeginInvoke((Action)(() => { _pw.ProvideUpdate(e.percentComplete, e.message, e.fail); }));
+        //}
     }
 }

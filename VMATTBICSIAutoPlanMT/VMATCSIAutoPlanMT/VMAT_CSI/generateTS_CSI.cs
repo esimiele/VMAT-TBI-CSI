@@ -874,7 +874,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
         private bool ClearContourPointsFromAllPlans(Structure structToRemove)
         {
-            ProvideUIUpdate($"Remove structure: {structToRemove.Id}");
+            ProvideUIUpdate($"Removing structure: {structToRemove.Id}");
             int startSlice = CalculationHelper.ComputeSlice(structToRemove.MeshGeometry.Positions.Min(p => p.Z), selectedSS);
             int stopSlice = CalculationHelper.ComputeSlice(structToRemove.MeshGeometry.Positions.Max(p => p.Z), selectedSS);
             ProvideUIUpdate($"Start slice: {startSlice}");

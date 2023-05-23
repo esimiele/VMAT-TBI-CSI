@@ -42,11 +42,11 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         {
             if(string.IsNullOrEmpty(reason))
             {
-                ProvideUIUpdate(String.Format("Error! {0} failed!" + Environment.NewLine + " Try running the {0} manually Eclipse for more information!" + Environment.NewLine + Environment.NewLine + " Exiting!", optorcalc), true);
+                ProvideUIUpdate($"Error! {optorcalc} failed!" + Environment.NewLine + " Try running the {0} manually Eclipse for more information!" + Environment.NewLine + Environment.NewLine + " Exiting!", true);
             }
             else
             {
-                ProvideUIUpdate(String.Format("Error! {0} failed because: {1}" + Environment.NewLine + Environment.NewLine + " Exiting!", optorcalc, reason), true);
+                ProvideUIUpdate($"Error! {optorcalc} failed because: {reason}" + Environment.NewLine + Environment.NewLine + " Exiting!", true);
             }
         }
 
@@ -66,7 +66,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             int calcItems = 2 + targetIDs.Count;
 
             //check if the user assigned the imaging device Id. If not, the optimization will crash with no error
-            if (ss.Image.Series.ImagingDeviceId == "")
+            if (string.IsNullOrEmpty(ss.Image.Series.ImagingDeviceId))
             {
                 ProvideUIUpdate("Error! Did you forget to set the imaging device to 'Def_CTScanner'?", true);
                 return true;
@@ -617,8 +617,16 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         {
             UpdateUILabel("Normalization:");
             //in demo mode, dose might not be calculated for the plan
-            if (!plan.IsDoseValid) return true;
-            if (target == null || target.IsEmpty) return true;
+            if (!plan.IsDoseValid)
+            {
+                ProvideUIUpdate($"Error! Dose for plan {plan.Id} is NOT valid! Cannot normalize! Exiting!", true);
+                return true;
+            }
+            if (target == null || target.IsEmpty)
+            {
+                ProvideUIUpdate($"Error! Target/normalization structure for plan {plan.Id} is NOT null or empty! Cannot normalize! Exiting!", true);
+                return true;
+            }
             //how to normalize a plan in the ESAPI workspace:
             //reference: https://github.com/VarianAPIs/Varian-Code-Samples/blob/master/webinars%20%26%20workshops/Research%20Symposium%202015/Eclipse%20Scripting%20API/Projects/AutomatedPlanningDemo/PlanGeneration.cs
             plan.PlanNormalizationValue = 100.0;

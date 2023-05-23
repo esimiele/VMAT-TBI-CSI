@@ -44,7 +44,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             }
             catch (Exception e) 
             { 
-                ProvideUIUpdate(String.Format("{0}", e.Message), true); 
+                ProvideUIUpdate($"{e.Message}", true); 
                 return true; 
             }
             return false;
