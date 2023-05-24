@@ -91,7 +91,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ProvideUIUpdate((int)(100 * ++counter / calcItems), "User origin is inside body");
 
             //only need spinal cord to determine number of spine isocenters. Otherwise, just need target structures for this class
-            if (!selectedSS.Structures.Any(x => (string.Equals(x.Id.ToLower(), "spinalcord") || string.Equals(x.Id.ToLower(), "spinal_cord")) && !x.IsEmpty))
+            if (!StructureTuningHelper.DoesStructureExistInSS(new List<string> { "spinalcord", "spinal_cord"}, selectedSS, true))
             {
                 ProvideUIUpdate("Missing brain and/or spine structures! Please add and try again!", true);
                 return true;
@@ -138,12 +138,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 if (itr.Item2 == TSManipulationType.CropTargetFromStructure || itr.Item2 == TSManipulationType.ContourOverlapWithTarget || itr.Item2 == TSManipulationType.CropFromBody)
                 {
-                    if (selectedSS.Structures.First(x => string.Equals(x.Id, itr.Item1)).IsEmpty)
+                    Structure tmp = StructureTuningHelper.GetStructureFromId(itr.Item1, selectedSS);
+                    if (tmp.IsEmpty)
                     {
                         ProvideUIUpdate($"Requested manipulation of {0}, but {itr.Item1} is empty!", true);
                         return true;
                     }
-                    else if (selectedSS.Structures.First(x => string.Equals(x.Id, itr.Item1)).IsHighResolution)
+                    else if (tmp.IsHighResolution)
                     {
                         highResManipulationList.Add(itr);
                     }
@@ -267,8 +268,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //get the high res structure mesh geometry
             MeshGeometry3D mesh = normal.MeshGeometry;
             //get the start and stop image planes for this structure (+/- 5 slices)
-            int startSlice = (int)((mesh.Bounds.Z - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes) - 5;
-            int stopSlice = (int)(((mesh.Bounds.Z + mesh.Bounds.SizeZ) - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes) + 5;
+            int startSlice = CalculationHelper.ComputeSlice(mesh.Bounds.Z, selectedSS) - 5;
+            int stopSlice = CalculationHelper.ComputeSlice(mesh.Bounds.Z + mesh.Bounds.SizeZ, selectedSS) + 5;
             calcItems += stopSlice - startSlice - 1;
             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Number of slices to contour: {stopSlice - startSlice}");
             if(addedStructure.CanEditSegmentVolume(out string error))
@@ -389,7 +390,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Adding TS to added structures: {itr.Item2}");
                 //if those structures have NOT been added to the added structure list, go ahead and add them to stack
-                if (!addedStructures.Where(x => string.Equals(x.ToLower(), itr.Item2)).Any()) AddTSStructures(itr);
+                if (!addedStructures.Any(x => string.Equals(x.ToLower(), itr.Item2))) AddTSStructures(itr);
             }
 
             ProvideUIUpdate(100, "Finished adding tuning structures!");

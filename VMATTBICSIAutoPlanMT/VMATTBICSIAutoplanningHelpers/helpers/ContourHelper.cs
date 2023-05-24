@@ -13,7 +13,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             StringBuilder sb = new StringBuilder();
             bool fail = false;
             //margin is in cm
-            Structure body = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "body"));
+            Structure body = StructureTuningHelper.GetStructureFromId("Body", selectedSS);
             if (body != null)
             {
                 if (marginInCm >= -5.0 && marginInCm <= 5.0) theStructure.SegmentVolume = theStructure.And(body.Margin(marginInCm * 10));
