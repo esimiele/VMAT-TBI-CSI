@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Text;
+using System.Windows.Media.Media3D;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 
@@ -189,6 +190,33 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 //ProvideUIUpdate($"{points[i][j].x - centerX:0.00}, {points[i][j].y - centerY:0.00}, {r:0.00}, {u.x:0.00}, {u.y:0.00}, {centerX:0.00}, {centerY:0.00}");
             }
             return newPoints;
+        }
+
+        public static (double, StringBuilder) GetMaxLatProjectionDistance(Structure target, VVector v)
+        {
+            StringBuilder sb = new StringBuilder();
+            double maxDimension = 0;
+            Point3DCollection pts = target.MeshGeometry.Positions;
+            if (Math.Abs(pts.Max(p => p.X) - v.x) > maxDimension) maxDimension = Math.Abs(pts.Max(p => p.X) - v.x);
+            if (Math.Abs(pts.Min(p => p.X) - v.x) > maxDimension) maxDimension = Math.Abs(pts.Min(p => p.X) - v.x);
+            if (Math.Abs(pts.Max(p => p.Y) - v.y) > maxDimension) maxDimension = Math.Abs(pts.Max(p => p.Y) - v.y);
+            if (Math.Abs(pts.Min(p => p.Y) - v.y) > maxDimension) maxDimension = Math.Abs(pts.Min(p => p.Y) - v.y);
+            sb.AppendLine($"Iso position: ({v.x:0.0}, {v.y:0.0}, {v.z:0.0}) mm");
+            sb.AppendLine($"Max lateral dimension: {maxDimension:0.0} mm");
+            return (maxDimension, sb);
+        }
+
+        public static (double, StringBuilder) GetMaxLatProjectionDistance(VVector[] boundingBox, VVector v)
+        {
+            StringBuilder sb = new StringBuilder();
+            double maxDimension = 0;
+            if (Math.Abs(boundingBox.Max(p => p.x) - v.x) > maxDimension) maxDimension = Math.Abs(boundingBox.Max(p => p.x) - v.x);
+            if (Math.Abs(boundingBox.Min(p => p.x) - v.x) > maxDimension) maxDimension = Math.Abs(boundingBox.Min(p => p.x) - v.x);
+            if (Math.Abs(boundingBox.Max(p => p.y) - v.y) > maxDimension) maxDimension = Math.Abs(boundingBox.Max(p => p.y) - v.y);
+            if (Math.Abs(boundingBox.Min(p => p.y) - v.y) > maxDimension) maxDimension = Math.Abs(boundingBox.Min(p => p.y) - v.y);
+            sb.AppendLine($"Iso position: ({v.x:0.0}, {v.y:0.0}, {v.z:0.0}) mm");
+            sb.AppendLine($"Max lateral dimension: {maxDimension:0.0} mm");
+            return (maxDimension, sb);
         }
     }
 }

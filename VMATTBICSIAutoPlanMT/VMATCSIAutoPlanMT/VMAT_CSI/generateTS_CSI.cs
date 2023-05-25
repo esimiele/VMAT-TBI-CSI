@@ -851,10 +851,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             else cutPos = cutStructure.MeshGeometry.Positions.Min(p => p.Z);
             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved structure used to determine cut plan: {cutStructure.Id}");
-            ProvideUIUpdate($"Dicom origin ({selectedSS.Image.Origin.x}, {selectedSS.Image.Origin.y}, {selectedSS.Image.Origin.z})mm");
+            ProvideUIUpdate($"Dicom origin ({selectedSS.Image.Origin.x:0.0}, {selectedSS.Image.Origin.y:0.0}, {selectedSS.Image.Origin.z:0.0}) mm");
             ProvideUIUpdate($"Image z resolution: {selectedSS.Image.ZRes} mm");
             ProvideUIUpdate($"Number of z slices: {selectedSS.Image.ZSize}");
-            ProvideUIUpdate($"Z cut position: {cutPos} mm");
+            ProvideUIUpdate($"Z cut position: {cutPos:0.0} mm");
 
             cutSlice = CalculationHelper.ComputeSlice(cutPos, selectedSS);
             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Z cut slice: {cutSlice}");
@@ -902,7 +902,14 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));
                 VVector[][] pts = baseStructure.GetContoursOnImagePlane(slice);
-                if (pts.Any()) structToContour.AddContourOnImagePlane(pts.ElementAt(0),slice);
+                if (pts.Any())
+                {
+                    for (int i = 0; i < pts.GetLength(0); i++)
+                    {
+                        if(structToContour.IsPointInsideSegment(pts[i][0]) || structToContour.IsPointInsideSegment(pts[i][pts[i].GetLength(0) - 1]))structToContour.SubtractContourOnImagePlane(pts[i], slice);
+                        else structToContour.AddContourOnImagePlane(pts[i], slice);
+                    }
+                }
             }
             return false;
         }
@@ -956,14 +963,25 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     //    Point3DCollection thyroidPts = thyroidStruct.MeshGeometry.Positions;
                     //    numVMATIsos = (int)Math.Ceiling((thyroidPts.Min(p => p.Z) - pts.Min(p => p.Z)) / 400.0);
                     //}
-                    
+
                     //subtract 40 mm from the numerator as the brain fields have a 40 mm inferior margin on the ptv_brain 
                     //Overlap (2 cm) is accounted for in the denominator.
-                    numVMATIsos = (int)Math.Ceiling((spineTargetExtent - 40.0) / (400.0 - 20.0));
+                    double brainInfMargin = 40.0;
+                    double minFieldOverlap = 20.0;
+                    double maxFieldExtent = 400.0;
+                    double numVMATIsosAsDouble = (spineTargetExtent - brainInfMargin) / (maxFieldExtent - minFieldOverlap);
+                    ProvideUIUpdate($"Spine target extent: {spineTargetExtent:0.00}");
+                    ProvideUIUpdate($"Num VMAT isos as double: {(spineTargetExtent - 40.0) / (400.0 - 20.0):0.00}");
+                    if (numVMATIsosAsDouble > 1 && numVMATIsosAsDouble % 1 < 0.1)
+                    {
+                        ProvideUIUpdate($"Calculated number of vmat isos MOD 1 is < 0.1 (i.e. an extra {0.1 * 38.0:0.0} cm of field is required to cover the spine");
+                        numVMATIsosAsDouble = Math.Floor(numVMATIsosAsDouble);
+                        ProvideUIUpdate($"Truncating number of isos to {numVMATIsosAsDouble}");
+                    }
+                    else numVMATIsosAsDouble = Math.Ceiling(numVMATIsosAsDouble);
+                    numVMATIsos = (int)numVMATIsosAsDouble;
                     ProvideUIUpdate((int)(100 * ++counter / calcItems));
-                    ProvideUIUpdate($"Spine target extent: {spineTargetExtent:0.0}");
-                    ProvideUIUpdate($"Num VMAT isos as double: {(spineTargetExtent - 40.0) / (400.0 - 20.0):0.0}");
-                    ProvideUIUpdate($"Calculated num VMAT isos: {numVMATIsos:0.0}");
+                    ProvideUIUpdate($"Final calculated number of VMAT isocenters: {numVMATIsos}");
 
                     //one iso reserved for PTV_Brain
                     numVMATIsos += 1;

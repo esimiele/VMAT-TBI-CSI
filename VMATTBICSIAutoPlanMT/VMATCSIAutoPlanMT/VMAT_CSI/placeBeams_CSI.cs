@@ -60,24 +60,24 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             bool fail = false;
             double brainZCenter = 0.0;
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), "Retrieving PTV_Brain Structure");
-            Structure ptvBrain = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "ptv_brain"));
-            if (ptvBrain == null)
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), "Retrieving Brain Structure");
+            Structure ptvBrain = StructureTuningHelper.GetStructureFromId("Brain", selectedSS);
+            if (ptvBrain == null || ptvBrain.IsEmpty)
             {
                 calcItems += 1;
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), "Failed to find PTV_Brain Structure! Retrieving brain structure");
-                ptvBrain = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "brain"));
-                if (ptvBrain == null)
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), "Failed to find Brain Structure! Retrieving PTV_Brain structure");
+                ptvBrain = StructureTuningHelper.GetStructureFromId("PTV_Brain", selectedSS, true);
+                if (ptvBrain == null || ptvBrain.IsEmpty)
                 {
-                    ProvideUIUpdate("Failed to retrieve brain structure! Cannot calculate isocenter positions! Exiting", true);
+                    ProvideUIUpdate("Failed to retrieve PTV_Brain structure! Cannot calculate isocenter positions! Exiting", true);
                     fail = true;
                     return (fail, brainZCenter);
                 }
             }
 
-            ProvideUIUpdate($"Calculating center of PTV_Brain");
+            ProvideUIUpdate($"Calculating center of Brain");
             brainZCenter = ptvBrain.CenterPoint.z;
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Center of PTV_Brain: {brainZCenter:0.0} mm");
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Center of Brain: {brainZCenter:0.0} mm");
             return (fail, brainZCenter);
         }
 
@@ -106,12 +106,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             double spineZMin = 0.0;
             calcItems += 5;
             ProvideUIUpdate((int)(100 * ++counter / calcItems), "Retrieving PTV_Spine Structure");
-            Structure ptvSpine = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "ptv_spine"));
+            Structure ptvSpine = StructureTuningHelper.GetStructureFromId("PTV_Spine", selectedSS);
             if (ptvSpine == null)
             {
                 calcItems += 1;
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), "Failed to find PTV_Spine Structure! Retrieving spinal cord structure");
-                ptvSpine = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "spinalcord") || string.Equals(x.Id.ToLower(), "spinal_cord"));
+                ptvSpine = StructureTuningHelper.GetStructureFromId("spinalcord", selectedSS);
+                if (ptvSpine == null) ptvSpine = StructureTuningHelper.GetStructureFromId("spinal_cord", selectedSS);
                 if (ptvSpine == null)
                 {
                     ProvideUIUpdate("Failed to retrieve spinal cord structure! Cannot calculate isocenter positions! Exiting", true);
@@ -343,7 +344,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     //single beam in this isocenter has the same collimator rotation as the single beam in the previous isocenter
                     if (i > 0 && iso.Item2.ElementAt(i).Item3 == 1 && iso.Item2.ElementAt(i - 1).Item3 == 1) j++;
 
-                    //jp = jawPos.ElementAt(j);
                     (bool result, VRect<double> jaws) = GetXYJawPositionsForStructure(initCSIPlan, i == 0, iso.Item2.ElementAt(i).Item1, new FitToStructureMargins(30.0, 40.0, 30.0, 30.0), target);
                     ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Jaw positions fit to target: {target.Id} (iso: {i + 1}, beam: {j + 1})");
                     if(!result)
@@ -428,13 +428,17 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 }
                 Structure ptv_csi = StructureTuningHelper.GetStructureFromId("PTV_CSI", selectedSS);
                 if (ptv_csi == null || ptv_csi.IsEmpty) return (true, new VRect<double>());
-                x2 = GetMaxLatProjectionDistance(GetLateralStructureBoundingBox(ptv_csi, startZ, stopZ), iso) + margins.X2;
+                (double latProjection, StringBuilder message) = ContourHelper.GetMaxLatProjectionDistance(GetLateralStructureBoundingBox(ptv_csi, startZ, stopZ), iso);
+                ProvideUIUpdate(message.ToString());
+                x2 = latProjection + margins.X2;
                 x1 = -x2;
             }
             else
             {
                 if(target == null || target.IsEmpty) return (true, new VRect<double>());
-                x2 = GetMaxLatProjectionDistance(target, iso) + margins.X2;
+                (double latProjection, StringBuilder message) = ContourHelper.GetMaxLatProjectionDistance(target, iso);
+                ProvideUIUpdate(message.ToString());
+                x2 = latProjection + margins.X2;
                 x1 = -x2;
                 y2 = target.MeshGeometry.Positions.Max(p => p.Z) - iso.z + margins.Y2;
                 if (y2 > 200.0) y2 = 200.0;
@@ -442,30 +446,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 if (y1 < -200.0) y1 = -200.0;
             }
             return (false, new VRect<double> (x1, y1, x2, y2));
-        }
-        
-        private double GetMaxLatProjectionDistance(Structure target, VVector v)
-        {
-            double maxDimension = 0;
-            Point3DCollection pts = target.MeshGeometry.Positions;
-            if (Math.Abs(pts.Max(p => p.X) - v.x) > maxDimension) maxDimension = Math.Abs(pts.Max(p => p.X) - v.x);
-            if (Math.Abs(pts.Min(p => p.X) - v.x) > maxDimension) maxDimension = Math.Abs(pts.Min(p => p.X) - v.x);
-            if (Math.Abs(pts.Max(p => p.Y) - v.y) > maxDimension) maxDimension = Math.Abs(pts.Max(p => p.Y) - v.y);
-            if (Math.Abs(pts.Min(p => p.Y) - v.y) > maxDimension) maxDimension = Math.Abs(pts.Min(p => p.Y) - v.y);
-            ProvideUIUpdate($"Iso position: ({v.x:0.0}, {v.y:0.0}, {v.z:0.0}) mm");
-            ProvideUIUpdate($"Max lateral dimension: {maxDimension:0.0} mm");
-            return maxDimension;
-        }
-        private double GetMaxLatProjectionDistance(VVector[] boundingBox, VVector v)
-        {
-            double maxDimension = 0;
-            if (Math.Abs(boundingBox.Max(p => p.x) - v.x) > maxDimension) maxDimension = Math.Abs(boundingBox.Max(p => p.x) - v.x);
-            if (Math.Abs(boundingBox.Min(p => p.x) - v.x) > maxDimension) maxDimension = Math.Abs(boundingBox.Min(p => p.x) - v.x);
-            if (Math.Abs(boundingBox.Max(p => p.y) - v.y) > maxDimension) maxDimension = Math.Abs(boundingBox.Max(p => p.y) - v.y);
-            if (Math.Abs(boundingBox.Min(p => p.y) - v.y) > maxDimension) maxDimension = Math.Abs(boundingBox.Min(p => p.y) - v.y);
-            ProvideUIUpdate($"Iso position: ({v.x:0.0}, {v.y:0.0}, {v.z:0.0}) mm");
-            ProvideUIUpdate($"Max lateral dimension: {maxDimension:0.0} mm");
-            return maxDimension;
         }
 
         private VVector[] GetLateralStructureBoundingBox(Structure target, double zMin, double zMax) 
@@ -505,6 +485,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                            new VVector(xMax, yMin, 0),
                                            new VVector(xMin, yMax, 0),
                                            new VVector(xMin, yMin, 0)};
+
             ProvideUIUpdate($"xMax: {xMax:0.0} mm, xMin: {xMin:0.0} mm, yMax: {yMax:0.0} mm, yMin: {yMin:0.0} mm");
             return boundinBox;
         }

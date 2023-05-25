@@ -53,8 +53,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             int calcItems = 1;
             int counter = 0;
             //verify brain and spine structures are present
-            if (!selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), "brain") && !x.IsEmpty) ||
-                !selectedSS.Structures.Any(x => (string.Equals(x.Id.ToLower(), "spinalcord") || string.Equals(x.Id.ToLower(), "spinal_cord")) && !x.IsEmpty))
+            if (!StructureTuningHelper.DoesStructureExistInSS("Brain", selectedSS, true) || !StructureTuningHelper.DoesStructureExistInSS(new List<string> { "spinal_cord", "spinalcord"}, selectedSS, true ))
             {
                 ProvideUIUpdate("Missing brain and/or spine structures! Please add and try again!", true);
                 return true;

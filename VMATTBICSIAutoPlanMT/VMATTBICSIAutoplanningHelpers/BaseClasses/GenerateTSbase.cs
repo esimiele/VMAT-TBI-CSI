@@ -112,8 +112,17 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             int counter = 0;
             foreach (Structure itr in structuresToRemove)
             {
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Removing: {itr.Id}");
-                selectedSS.RemoveStructure(itr);
+                if(selectedSS.CanRemoveStructure(itr))
+                {
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Removing: {itr.Id}");
+                    selectedSS.RemoveStructure(itr);
+                }
+                else
+                {
+                    ProvideUIUpdate($"Error! Could not remove structure: {itr.Id}!", true);
+                    if (string.IsNullOrEmpty(itr.DicomType)) ProvideUIUpdate($"{itr.Id} DICOM type: None");
+                    return true;
+                }
             }
             return false;
         }
@@ -135,7 +144,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             //remove ALL tuning structures from any previous runs (structure id starts with 'TS_'). Be sure to exclude any requested TS structures from the config file as we just added them!
             List<Structure> tsStructs = selectedSS.Structures.Where(x => x.Id.Length > 2 && string.Equals(x.Id.ToLower().Substring(0, 3), "ts_")).ToList();
             removeList.AddRange(tsStructs.Except(removeList));
-            RemoveStructures(removeList);
+            if (RemoveStructures(removeList)) return true;
 
             if (VerifyAddTSStructures(structuresToRemove)) return true;
             ProvideUIUpdate(100, "Prior tuning structures successfully removed!");
