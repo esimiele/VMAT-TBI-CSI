@@ -1122,10 +1122,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             //populate the beams and optimization tabs
             PopulateBeamsTab();
-            if (generate.GetTargetManipulations().Any() || generate.GetAddedRings().Any())
+            if (generate.GetTargetCropOverlapManipulations().Any() || generate.GetAddedRings().Any())
             {
                 List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> tmpList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>{ };
-                if(generate.GetTargetManipulations().Any()) tmpList = OptimizationSetupHelper.UpdateOptimizationConstraints(generate.GetTargetManipulations(), prescriptions, templateList.SelectedItem, tmpList);
+                if(generate.GetTargetCropOverlapManipulations().Any()) tmpList = OptimizationSetupHelper.UpdateOptimizationConstraints(generate.GetTargetCropOverlapManipulations(), prescriptions, templateList.SelectedItem, tmpList);
                 if(generate.GetAddedRings().Any()) tmpList = OptimizationSetupHelper.UpdateOptimizationConstraints(generate.GetAddedRings(), prescriptions, templateList.SelectedItem, tmpList);
                 //handles if crop/overlap operations were performed for all targets and the optimization constraints need to be updated
                 PopulateOptimizationTab(optParametersSP, tmpList);

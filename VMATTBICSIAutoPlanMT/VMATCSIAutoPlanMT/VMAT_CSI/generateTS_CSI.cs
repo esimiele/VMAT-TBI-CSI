@@ -14,7 +14,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
     public class GenerateTS_CSI : GenerateTSbase
     {
-        public List<Tuple<string, string, List<Tuple<string, string>>>> GetTargetManipulations() { return targetManipulations; }
+        public List<Tuple<string, string, List<Tuple<string, string>>>> GetTargetCropOverlapManipulations() { return targetManipulations; }
         public List<Tuple<string, string>> GetNormalizationVolumes() { return normVolumes; }
         public List<Tuple<string, string, double>> GetAddedRings() { return addedRings; }
 
@@ -762,7 +762,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 for (int i = 0; i < sortedPrescriptions.Count(); i++)
                 {
                     string targetId = $"TS_{sortedPrescriptions.ElementAt(i).Item2}";
-                    Structure target = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), targetId.ToLower()));
+                    Structure target = StructureTuningHelper.GetStructureFromId(targetId, selectedSS);
                     List<Tuple<string, string>> tmp = new List<Tuple<string, string>> { };
                     ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved target: {targetId}");
                     if (target != null)
