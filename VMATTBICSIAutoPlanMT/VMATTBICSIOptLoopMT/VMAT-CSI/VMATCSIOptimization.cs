@@ -184,7 +184,10 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 {
                     ExternalPlanSetup initialPlan = plans.First();
                     (bool needsAdditionalOpt, double dmax) = OptimizationLoopHelper.CheckPlanHotspot(initialPlan, 1.10);
-                    if (needsAdditionalOpt) AttemptToLowerInitPlanDmax(initialPlan, dmax);
+                    if (needsAdditionalOpt)
+                    {
+                        if (AttemptToLowerInitPlanDmax(initialPlan, dmax)) return true;
+                    }
                     else ProvideUIUpdate($"Initial plan ({plans.First().Id}) Dmax is {dmax * 100:0.0}%");
 
                     UpdateUILabel("Create plan sum:");
@@ -230,8 +233,8 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             //}
             //else ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"MR restart level set to MR4");
 
-            RunOneMoreOptionizationToLowerHotspots(new List<ExternalPlanSetup> { initialPlan });
-            return true;
+            if(RunOneMoreOptionizationToLowerHotspots(new List<ExternalPlanSetup> { initialPlan })) return true;
+            return false;
         }
 
         protected override bool RunSequentialPlansOptimizationLoop(List<ExternalPlanSetup> plans)

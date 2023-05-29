@@ -151,7 +151,11 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 {
                     ConfirmPrompt CP = new ConfirmPrompt(String.Format("I found a matchline, but no spinning manny couch or it's empty!") + Environment.NewLine + Environment.NewLine + "Continue?!");
                     CP.ShowDialog();
-                    if (!CP.GetSelection()) return true;
+                    if (!CP.GetSelection())
+                    {
+                        KillOptimizationLoop();
+                        return true;
+                    }
                 }
             }
 
@@ -222,7 +226,11 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                         //only recalculate dose for all plans that are not currently up for optimization
                         ReCalculateDose(planRecalcList, percentComplete, calcItems);
                     }
-                    else return true;
+                    else
+                    {
+                        KillOptimizationLoop();
+                        return true;
+                    }
                 }
                 else CropCouchStructures(ss, percentComplete, calcItems);
             }
@@ -907,7 +915,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             List<Tuple<string, string>> plansTargets = TargetsHelper.GetPlanTargetList(_data.prescriptions);
             if (!plansTargets.Any())
             {
-                ProvideUIUpdate("Error! Could not retrieve list of plans and associated targets! Exiting");
+                ProvideUIUpdate("Error! Could not retrieve list of plans and associated targets! Exiting", true);
                 wasKilled = true;
                 return (wasKilled, addedTSstructures);
             }
@@ -918,7 +926,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             Structure target = TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, targetId, _data.useFlash, _data.planType);
             if (target == null)
             {
-                ProvideUIUpdate($"Error! Target structure not found for plan: {plan.Id}! Exiting!");
+                ProvideUIUpdate($"Error! Target structure not found for plan: {plan.Id}! Exiting!", true);
                 wasKilled = true;
                 return (wasKilled, addedTSstructures);
             }

@@ -15,6 +15,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
     public class GenerateTS_CSI : GenerateTSbase
     {
         public List<Tuple<string, string, List<Tuple<string, string>>>> GetTargetCropOverlapManipulations() { return targetManipulations; }
+        public List<Tuple<string, List<Tuple<string, string>>>> GetTsTargets() { return tsTargets; }
         public List<Tuple<string, string>> GetNormalizationVolumes() { return normVolumes; }
         public List<Tuple<string, string, double>> GetAddedRings() { return addedRings; }
 
@@ -28,6 +29,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private List<Tuple<string, double, double, double>> rings;
         //target id, ring id, dose (cGy)
         private List<Tuple<string, string, double>> addedRings = new List<Tuple<string, string, double>> { };
+        //plan id, list<target id, ts target id>
+        private List<Tuple<string, List<Tuple<string, string>>>> tsTargets = new List<Tuple<string, List<Tuple<string, string>>>> { };
         //planId, lower dose target id, list<manipulation target id, operation>
         private List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations = new List<Tuple<string, string, List<Tuple<string, string>>>> { };
         private List<Tuple<string, string>> normVolumes = new List<Tuple<string, string>> { };
@@ -212,8 +215,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             return false;
         }
-
-        
         #endregion
 
         #region TS Structure Creation and Manipulation
@@ -327,7 +328,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Retrieved structure: {normal.Id}");
                     ProvideUIUpdate($"Generating ring {addedStructure.Id} for target {targetStructure.Id}");
                     //margin in cm. 
-                    double thickness = 0;
+                    double thickness;
                     if (isGlobes)
                     {
                         //need to add these margins to the existing margin distance to account for the situation where ptv_brain is not retrieved, but the brain structure is.
@@ -571,10 +572,20 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             UpdateUILabel("Perform TS Manipulations: ");
             int counter = 0;
             int calcItems = TSManipulationList.Count * prescriptions.Count;
+            string tmpPlanId = prescriptions.First().Item1;
+            List<Tuple<string, string>> tmpTSTargetList = new List<Tuple<string, string>> { };
             foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
             {
+                if(!string.Equals(itr.Item1, tmpPlanId))
+                {
+                    //new plan
+                    tsTargets.Add(new Tuple<string, List<Tuple<string, string>>>(tmpPlanId, new List<Tuple<string, string>>(tmpTSTargetList)));
+                    tmpTSTargetList = new List<Tuple<string, string>> { };
+                    tmpPlanId = itr.Item1;
+                }
                 //create a new TS target for optimization and copy the original target structure onto the new TS structure
                 Structure addedTSTarget = GetTSTarget(itr.Item2);
+                tmpTSTargetList.Add(new Tuple<string, string>(itr.Item2, addedTSTarget.Id));
                 ProvideUIUpdate($"Cropping TS target from body with {3.0} mm inner margin");
                 (bool fail, StringBuilder errorMessage) = ContourHelper.CropStructureFromBody(addedTSTarget, selectedSS, -0.3);
                 if (fail)
@@ -635,6 +646,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 else ProvideUIUpdate("No TS manipulations requested!");
                 normVolumes.Add(Tuple.Create(itr.Item1, addedTSTarget.Id));
             }
+            tsTargets.Add(new Tuple<string, List<Tuple<string, string>>>(tmpPlanId, new List<Tuple<string, string>>(tmpTSTargetList)));
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
