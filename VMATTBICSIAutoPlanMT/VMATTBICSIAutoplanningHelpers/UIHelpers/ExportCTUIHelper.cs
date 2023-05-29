@@ -114,17 +114,13 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return theImageId;
         }
 
-        public static(bool, StringBuilder) ExportImage(StackPanel theSP, List<StructureSet> structureSets, string Id, string imgExportPath, string format)
+        public static VMS.TPS.Common.Model.API.Image GetSelectedImageForExport(StackPanel theSP, List<StructureSet> structureSets)
         {
             StringBuilder sb = new StringBuilder();
             string selectedCTID = ParseSelectedCTImage(theSP);
-            if (!string.IsNullOrWhiteSpace(selectedCTID))
-            {
-                VMS.TPS.Common.Model.API.Image theImage = structureSets.FirstOrDefault(x => x.Image.Id == selectedCTID).Image;
-                CTImageExport exporter = new CTImageExport(theImage, imgExportPath, Id, format);
-                return exporter.ExportImage();
-            }
-            else return (true, sb.AppendLine("No imaged selected for export!"));
+            VMS.TPS.Common.Model.API.Image theImage = null;
+            if (!string.IsNullOrWhiteSpace(selectedCTID)) theImage = structureSets.FirstOrDefault(x => x.Image.Id == selectedCTID).Image;
+            return (theImage);
         }
     }
 }

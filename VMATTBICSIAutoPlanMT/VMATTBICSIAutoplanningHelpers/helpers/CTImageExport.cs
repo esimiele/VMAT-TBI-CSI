@@ -14,10 +14,11 @@ using EvilDICOM.Core.Helpers;
 using EvilDICOM.Core.Element;
 using EvilDICOM.Network;
 using EvilDICOM.Network.Enums;
+using SimpleProgressWindow;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
-    public class CTImageExport
+    public class CTImageExport : SimpleMTbase
     {
         //overridden during construction of class
         private string _DCMTK_BIN_PATH; // path to DCMTK binaries
@@ -47,18 +48,26 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             _patID = patientID;
         }
 
-        public (bool, StringBuilder) ExportImage()
+        public override bool Run()
         {
-            (bool, StringBuilder) result = (false, new StringBuilder());
+            return ExportImage();
+        }
+
+        public bool ExportImage()
+        {
+            bool result = false;
             if (_exportFormat == "png") result = ExportAsPNG();
             else if (_exportFormat == "dcm") result = ExportAsDCM();
-            if(!result.Item1) MessageBox.Show(String.Format("{0} has been exported successfully!", _image.Id));
+            if(!result) ProvideUIUpdate($"{_image.Id} has been exported successfully!");
             return result;
         }
 
-        private (bool, StringBuilder) ExportAsPNG()
+        private bool ExportAsPNG()
         {
-            StringBuilder sb = new StringBuilder();
+            UpdateUILabel("Exporting as PNG:");
+            int percentComplete = 0;
+            int calcItems = 1 + _image.ZSize;
+            ProvideUIUpdate("Initializing...");
             int[,] pixels = new int[_image.XSize, _image.YSize];
             //write 16 bit-depth image (still having problems as of 7/20/2022. Geometry and image looks vaguely correct, but the gray levels look off)
             //try
@@ -79,9 +88,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 string ct_ID = _image.Id;
                 string folderLoc = Path.Combine(_writeLocation, _patID);
                 if (!Directory.Exists(folderLoc)) Directory.CreateDirectory(folderLoc);
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), "Initializtion complete. Exporting");
                 for (int k = 0; k < _image.ZSize; k++)
                 {
-                    Bitmap bmp = new Bitmap(_image.XSize, _image.YSize, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
+                    ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));
+                    Bitmap bmp = new Bitmap(_image.XSize, _image.YSize, PixelFormat.Format32bppRgb);
                     _image.GetVoxels(k, pixels);
                     int i, j;
                     for (j = 0; j < _image.YSize; j++)
@@ -92,7 +103,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                             int val = (int)((double)pixels[i, j] / Math.Pow(2, 12) * 255);
                             if (val > 255) r = b = g = 255;
                             else r = b = g = val;
-                            bmp.SetPixel(i, j, System.Drawing.Color.FromArgb(255, r, g, b));
+                            bmp.SetPixel(i, j, Color.FromArgb(255, r, g, b));
                         }
                     }
                     bmp.Save(String.Format(@"{0}\{1}_{2}.png", folderLoc, ct_ID, k));
@@ -100,9 +111,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             }
             catch (Exception e) 
             { 
-                return (true, sb.AppendLine(e.Message)); 
+                ProvideUIUpdate(e.Message, true); 
+                return true; 
             }
-            return (false, sb);
+            UpdateUILabel("Finished!");
+            return false;
         }
 
         private void FromTwoDimIntArrayGray(Int32[,] data, int sliceNum, string writeLocation)
@@ -214,10 +227,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         //    return PixelFormats.Gray32Float;
         //}
 
-        private (bool, StringBuilder) ExportAsDCM()
+        private bool ExportAsDCM()
         {
             StringBuilder sb = new StringBuilder();
-            string temp = System.Environment.GetEnvironmentVariable("TEMP");
+            string temp = Environment.GetEnvironmentVariable("TEMP");
             string filename = MakeFilenameValid(String.Format(_CMD_FILE_FMT, _patID, _image.Id));
             filename = temp + @"\" + filename;
             GenerateDicomMoveScript(filename);
@@ -353,7 +366,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             //    }
             //    Thread.Sleep(10000);
             //}
-            return (false, sb);
+            return false;
         }
 
         private void StdErrHandler(object sendingProcess, DataReceivedEventArgs outLine)

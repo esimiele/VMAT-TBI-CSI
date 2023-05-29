@@ -74,5 +74,54 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             }
             return (false, sb);
         }
+
+        public static Structure GetStructureFromId(string id, StructureSet selectedSS, bool createIfEmpty = false)
+        {
+            Structure theStructure = null;
+            if (DoesStructureExistInSS(id, selectedSS))
+            {
+                theStructure = selectedSS.Structures.First(x => string.Equals(x.Id.ToLower(), id.ToLower()));
+            }
+            else if (createIfEmpty)
+            {
+                if (selectedSS.CanAddStructure("CONTROL", id))
+                {
+                    theStructure = selectedSS.AddStructure("CONTROL", id);
+                }
+            }
+            return theStructure;
+        }
+
+        public static bool DoesStructureExistInSS(string id, StructureSet selectedSS, bool checkIsEmpty = false)
+        {
+            if(!checkIsEmpty) return selectedSS.Structures.Any(x => string.Equals(id.ToLower(), x.Id.ToLower()));
+            else return selectedSS.Structures.Any(x => string.Equals(id.ToLower(), x.Id.ToLower()) && !x.IsEmpty);
+        }
+
+        public static bool DoesStructureExistInSS(List<string> ids, StructureSet selectedSS, bool checkIsEmpty = false)
+        {
+            foreach(string itr in ids)
+            {
+                if(checkIsEmpty)
+                {
+                    if (selectedSS.Structures.Any(x => string.Equals(itr.ToLower(), x.Id.ToLower()) && !x.IsEmpty)) return true;
+                }
+                else
+                {
+                    if (selectedSS.Structures.Any(x => string.Equals(itr.ToLower(), x.Id.ToLower()))) return true;
+                }
+            }
+            return false;
+        }
+
+        public static bool IsOverlap(Structure target, Structure normal, StructureSet selectedSS, double marginInCm)
+        {
+            bool isOverlap = false;
+            Structure dummy = selectedSS.AddStructure("CONTROL", "Dummy");
+            dummy.SegmentVolume = target.And(normal.Margin(marginInCm * 10.0));
+            if (!dummy.IsEmpty) isOverlap = true;
+            selectedSS.RemoveStructure(dummy);
+            return isOverlap;
+        }
     }
 }

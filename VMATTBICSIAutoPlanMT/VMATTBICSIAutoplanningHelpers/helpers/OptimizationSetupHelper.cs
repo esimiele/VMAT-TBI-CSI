@@ -10,6 +10,51 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public static class OptimizationSetupHelper
     {
+        public static List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> UpdateOptimizationConstraints(List<Tuple<string, List<Tuple<string, string>>>> tsTargets,
+                                                                                                                                     List<Tuple<string, string, int, DoseValue, double>> prescriptions,
+                                                                                                                                     object selectedTemplate,
+                                                                                                                                     List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> currentList = null)
+        {
+            List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> updatedList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
+            if (!currentList.Any()) currentList = RetrieveOptConstraintsFromTemplate(selectedTemplate as CSIAutoPlanTemplate, prescriptions).Item1;
+            if (currentList.Any())
+            {
+                string tmpPlanId = tsTargets.First().Item1;
+                List<Tuple<string, string>> tmpTSTargetListForPlan = tsTargets.First().Item2;
+                List<Tuple<string, OptimizationObjectiveType, double, double, int>> tmpList = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+                foreach (Tuple<string,List<Tuple<string, string>>> itr in tsTargets)
+                {
+                    if (!string.Equals(itr.Item1, tmpPlanId))
+                    {
+                        //new plan, update the list
+                        tmpList.AddRange(currentList.FirstOrDefault(x => string.Equals(x.Item1, tmpPlanId)).Item2.Where(y => !tmpTSTargetListForPlan.Any(k => string.Equals(k.Item1, y.Item1))));
+                        updatedList.Add(Tuple.Create(tmpPlanId, new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(tmpList)));
+                        tmpList = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+                        tmpPlanId = itr.Item1;
+                        tmpTSTargetListForPlan = new List<Tuple<string, string>>(itr.Item2);
+                    }
+                    if (currentList.Any(x => string.Equals(x.Item1, tmpPlanId)))
+                    {
+                        foreach(Tuple<string,string> itr1 in itr.Item2)
+                        {
+                            //grab all optimization constraints from the plan of interest that have the same structure id as item 2 of itr
+                            List<Tuple<string, OptimizationObjectiveType, double, double, int>> planOptList = currentList.FirstOrDefault(x => string.Equals(x.Item1, tmpPlanId)).Item2.Where(y => string.Equals(y.Item1, itr1.Item1)).ToList();
+                            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> itr2 in planOptList)
+                            {
+                                //simple copy of constraints
+                                tmpList.Add(Tuple.Create(itr1.Item2, itr2.Item2, itr2.Item3, itr2.Item4, itr2.Item5));
+                            }
+                        }
+                        
+                    }
+                }
+                tmpList.AddRange(currentList.FirstOrDefault(x => string.Equals(x.Item1, tmpPlanId)).Item2.Where(y => !tmpTSTargetListForPlan.Any(k => string.Equals(k.Item1, y.Item1))));
+                updatedList.Add(Tuple.Create(tmpPlanId, new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(tmpList)));
+
+            }
+            return updatedList;
+        }
+
         //for crop/overlap operations with targets
         public static List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> UpdateOptimizationConstraints(List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations,
                                                                                                                                       List<Tuple<string, string, int, DoseValue, double>> prescriptions,
@@ -28,15 +73,15 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     if (!string.Equals(itr.Item1, tmpPlanId))
                     {
                         //new plan, update the list
-                        tmpList.AddRange(currentList.FirstOrDefault(x => x.Item1 == tmpPlanId).Item2.Where(y => y.Item1 != tmpTargetId));
+                        tmpList.AddRange(currentList.FirstOrDefault(x => string.Equals(x.Item1, tmpPlanId)).Item2.Where(y => !string.Equals(y.Item1, tmpTargetId)));
                         updatedList.Add(Tuple.Create(tmpPlanId, new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(tmpList)));
                         tmpList = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
                         tmpPlanId = itr.Item1;
                     }
-                    if (currentList.Any(x => x.Item1 == itr.Item1))
+                    if (currentList.Any(x => string.Equals(x.Item1, itr.Item1)))
                     {
                         //grab all optimization constraints from the plan of interest that have the same structure id as item 2 of itr
-                        List<Tuple<string, OptimizationObjectiveType, double, double, int>> planOptList = currentList.FirstOrDefault(x => x.Item1 == itr.Item1).Item2.Where(y => y.Item1 == itr.Item2).ToList();
+                        List<Tuple<string, OptimizationObjectiveType, double, double, int>> planOptList = currentList.FirstOrDefault(x => string.Equals(x.Item1, itr.Item1)).Item2.Where(y => string.Equals(y.Item1, itr.Item2)).ToList();
                         foreach (Tuple<string, string> itr1 in itr.Item3)
                         {
                             foreach (Tuple<string, OptimizationObjectiveType, double, double, int> itr2 in planOptList)
@@ -56,7 +101,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     }
                     tmpTargetId = itr.Item2;
                 }
-                tmpList.AddRange(currentList.FirstOrDefault(x => x.Item1 == tmpPlanId).Item2.Where(y => y.Item1 != tmpTargetId));
+                tmpList.AddRange(currentList.FirstOrDefault(x => string.Equals(x.Item1, tmpPlanId)).Item2.Where(y => !string.Equals(y.Item1, tmpTargetId)));
                 updatedList.Add(Tuple.Create(tmpPlanId, new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(tmpList)));
             }
             return updatedList;
@@ -67,7 +112,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                                                                                                                                       object selectedTemplate,
                                                                                                                                       List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> currentList = null)
                         {
-            List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> updatedList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
             if (!currentList.Any()) currentList = RetrieveOptConstraintsFromTemplate(selectedTemplate as CSIAutoPlanTemplate, prescriptions).Item1;
             if (currentList.Any())
             {

@@ -6,7 +6,7 @@ using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
 using VMS.TPS.Common.Model.Types;
 
-namespace VMATTBICSIAutoPlanningHelpers.Helpers
+namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
     public static class ConfigurationUIHelper
     {

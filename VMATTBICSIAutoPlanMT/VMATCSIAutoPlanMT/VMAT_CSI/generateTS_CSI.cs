@@ -14,7 +14,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
     public class GenerateTS_CSI : GenerateTSbase
     {
-        public List<Tuple<string, string, List<Tuple<string, string>>>> GetTargetManipulations() { return targetManipulations; }
+        public List<Tuple<string, string, List<Tuple<string, string>>>> GetTargetCropOverlapManipulations() { return targetManipulations; }
+        public List<Tuple<string, List<Tuple<string, string>>>> GetTsTargets() { return tsTargets; }
         public List<Tuple<string, string>> GetNormalizationVolumes() { return normVolumes; }
         public List<Tuple<string, string, double>> GetAddedRings() { return addedRings; }
 
@@ -28,6 +29,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private List<Tuple<string, double, double, double>> rings;
         //target id, ring id, dose (cGy)
         private List<Tuple<string, string, double>> addedRings = new List<Tuple<string, string, double>> { };
+        //plan id, list<target id, ts target id>
+        private List<Tuple<string, List<Tuple<string, string>>>> tsTargets = new List<Tuple<string, List<Tuple<string, string>>>> { };
         //planId, lower dose target id, list<manipulation target id, operation>
         private List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations = new List<Tuple<string, string, List<Tuple<string, string>>>> { };
         private List<Tuple<string, string>> normVolumes = new List<Tuple<string, string>> { };
@@ -64,6 +67,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     if (CropAndContourOverlapWithTargets()) return true;
                 }
                 if (GenerateRings()) return true;
+                if (RegeneratePTVBrainSpine()) return true;
                 if (CalculateNumIsos()) return true;
                 UpdateUILabel("Finished!");
                 ProvideUIUpdate(100, "Finished Structure Tuning!");
@@ -90,7 +94,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ProvideUIUpdate((int)(100 * ++counter / calcItems), "User origin is inside body");
 
             //only need spinal cord to determine number of spine isocenters. Otherwise, just need target structures for this class
-            if (!selectedSS.Structures.Any(x => (string.Equals(x.Id.ToLower(), "spinalcord") || string.Equals(x.Id.ToLower(), "spinal_cord")) && !x.IsEmpty))
+            if (!StructureTuningHelper.DoesStructureExistInSS(new List<string> { "spinalcord", "spinal_cord"}, selectedSS, true))
             {
                 ProvideUIUpdate("Missing brain and/or spine structures! Please add and try again!", true);
                 return true;
@@ -137,12 +141,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 if (itr.Item2 == TSManipulationType.CropTargetFromStructure || itr.Item2 == TSManipulationType.ContourOverlapWithTarget || itr.Item2 == TSManipulationType.CropFromBody)
                 {
-                    if (selectedSS.Structures.First(x => string.Equals(x.Id, itr.Item1)).IsEmpty)
+                    Structure tmp = StructureTuningHelper.GetStructureFromId(itr.Item1, selectedSS);
+                    if (tmp.IsEmpty)
                     {
                         ProvideUIUpdate($"Requested manipulation of {0}, but {itr.Item1} is empty!", true);
                         return true;
                     }
-                    else if (selectedSS.Structures.First(x => string.Equals(x.Id, itr.Item1)).IsHighResolution)
+                    else if (tmp.IsHighResolution)
                     {
                         highResManipulationList.Add(itr);
                     }
@@ -167,7 +172,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         }
         #endregion
 
-
         #region Specialized Crop, Boolean, Ring Operations
         private bool ContourInnerOuterStructure(Structure addedStructure, ref int counter)
         {
@@ -191,8 +195,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Grabbing original structure {originalStructureId}");
                 //logic to handle case where the original structure had to be converted to low resolution
-                if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains(originalStructureId.ToLower()) && x.Id.ToLower().Contains("_low")) == null) originalStructure = selectedSS.Structures.First(x => x.Id.ToLower().Contains(originalStructureId.ToLower()));
-                else originalStructure = selectedSS.Structures.First(x => x.Id.ToLower().Contains(originalStructureId.ToLower()) && x.Id.ToLower().Contains("_low"));
+                originalStructure = StructureTuningHelper.GetStructureFromId(originalStructureId.ToLower(), selectedSS);
+                if(originalStructure == null) originalStructure = selectedSS.Structures.First(x => x.Id.ToLower().Contains(originalStructureId.ToLower()) && x.Id.ToLower().Contains("_low"));
 
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Creating {(margin > 0 ? "outer" : "sub")} structure!");
                 //convert from cm to mm
@@ -211,33 +215,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             return false;
         }
-
-        public bool ContourOverlapAndUnion(Structure target, Structure normal, Structure unionStructure, double marginInCm)
-        {
-            bool fail = false;
-            //margin is in cm
-            if (target != null && normal != null)
-            {
-                if (marginInCm >= -5.0 && marginInCm <= 5.0)
-                {
-                    Structure dummy = selectedSS.AddStructure("CONTROL", "Dummy");
-                    dummy.SegmentVolume = target.And(normal.Margin(marginInCm * 10));
-                    unionStructure.SegmentVolume = unionStructure.Or(dummy.Margin(0.0));
-                    selectedSS.RemoveStructure(dummy);
-                }
-                else
-                {
-                    ProvideUIUpdate("Added margin MUST be within +/- 5.0 cm!", true);
-                    fail = true;
-                }
-            }
-            else
-            {
-                ProvideUIUpdate("Error either target or normal structures are missing! Can't contour overlap between target and normal structure!", true);
-                fail = true;
-            }
-            return fail;
-        }
         #endregion
 
         #region TS Structure Creation and Manipulation
@@ -251,7 +228,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 int calcItems = 3 * rings.Count();
                 foreach(Tuple<string,double,double,double> itr in rings)
                 {
-                    Structure target = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id,itr.Item1));
+                    Structure target = StructureTuningHelper.GetStructureFromId(itr.Item1, selectedSS);
                     if (target != null)
                     {
                         ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), $"Retrieved target: {target.Id}");
@@ -292,8 +269,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //get the high res structure mesh geometry
             MeshGeometry3D mesh = normal.MeshGeometry;
             //get the start and stop image planes for this structure (+/- 5 slices)
-            int startSlice = (int)((mesh.Bounds.Z - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes) - 5;
-            int stopSlice = (int)(((mesh.Bounds.Z + mesh.Bounds.SizeZ) - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes) + 5;
+            int startSlice = CalculationHelper.ComputeSlice(mesh.Bounds.Z, selectedSS) - 5;
+            int stopSlice = CalculationHelper.ComputeSlice(mesh.Bounds.Z + mesh.Bounds.SizeZ, selectedSS) + 5;
             calcItems += stopSlice - startSlice - 1;
             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Number of slices to contour: {stopSlice - startSlice}");
             if(addedStructure.CanEditSegmentVolume(out string error))
@@ -303,8 +280,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));
                     VVector[][] points = target.GetContoursOnImagePlane(slice);
                     //we only want the outer contour points of the target
-                    addedStructure.AddContourOnImagePlane(GenerateContourPoints(points[0], (margin + thickness) * 10), slice);
-                    addedStructure.SubtractContourOnImagePlane(GenerateContourPoints(points[0], margin * 10), slice);
+                    addedStructure.AddContourOnImagePlane(ContourHelper.GenerateContourPoints(points[0], (margin + thickness) * 10), slice);
+                    addedStructure.SubtractContourOnImagePlane(ContourHelper.GenerateContourPoints(points[0], margin * 10), slice);
                 }
             }
             else
@@ -313,22 +290,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 fail = true;
             }
             return (fail, sb);
-        }
-
-        private VVector[] GenerateContourPoints(VVector[] points, double distance)
-        {
-            VVector[] newPoints = new VVector[points.GetLength(0)];
-            //ProvideUIUpdate("New Slice");
-            double centerX = (points.Max(p => p.x) + points.Min(p => p.x)) / 2;
-            double centerY = (points.Max(p => p.y) + points.Min(p => p.y)) / 2;
-            for (int i = 0; i < points.GetLength(0); i++)
-            {
-                double r = Math.Sqrt(Math.Pow(points[i].x - centerX, 2) + Math.Pow(points[i].y - centerY, 2));
-                VVector u = new VVector((points[i].x - centerX) / r, (points[i].y - centerY) / r, 0);
-                newPoints[i] = new VVector(u.x * (r + distance) + centerX, u.y * (r + distance) + centerY, 0);
-                //ProvideUIUpdate($"{points[i][j].x - centerX:0.00}, {points[i][j].y - centerY:0.00}, {r:0.00}, {u.x:0.00}, {u.y:0.00}, {centerX:0.00}, {centerY:0.00}");
-            }
-            return newPoints;
         }
 
         private bool GenerateTSGlobesLenses(Structure addedStructure)
@@ -340,12 +301,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             //try to grab ptv_brain first
             //Structure targetStructure = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "ptv_brain") && !x.IsEmpty);
-            Structure targetStructure = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "ptv_csi") && !x.IsEmpty);
+            string initTargetId = TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, prescriptions.First().Item1);
+            Structure targetStructure = StructureTuningHelper.GetStructureFromId(initTargetId, selectedSS);
             double margin = 0;
 
-            if (targetStructure == null)
+            if (targetStructure == null || targetStructure.IsEmpty)
             {
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), "Failed to retrieve PTV_CSI to generate partial ring! Exiting!");
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Failed to retrieve {initTargetId} to generate partial ring! Exiting!");
                 return true;
                 ////could not retrieve ptv_brain
                 //calcItems += 1;
@@ -356,17 +318,17 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             if (targetStructure != null)
             {
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Retrieved PTV_CSI target: {targetStructure.Id}");
-                Structure normal = null;
-                if (isGlobes) normal = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("globes") && !x.IsEmpty);
-                else normal = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("lenses") && !x.IsEmpty);
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Retrieved initial plan target: {targetStructure.Id}");
+                Structure normal;
+                if (isGlobes) normal = StructureTuningHelper.GetStructureFromId("globes", selectedSS);
+                else normal = StructureTuningHelper.GetStructureFromId("lenses", selectedSS);
 
-                if (normal != null)
+                if (normal != null && !normal.IsEmpty)
                 {
                     ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Retrieved structure: {normal.Id}");
                     ProvideUIUpdate($"Generating ring {addedStructure.Id} for target {targetStructure.Id}");
                     //margin in cm. 
-                    double thickness = 0;
+                    double thickness;
                     if (isGlobes)
                     {
                         //need to add these margins to the existing margin distance to account for the situation where ptv_brain is not retrieved, but the brain structure is.
@@ -429,7 +391,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Adding TS to added structures: {itr.Item2}");
                 //if those structures have NOT been added to the added structure list, go ahead and add them to stack
-                if (!addedStructures.Where(x => string.Equals(x.ToLower(), itr.Item2)).Any()) AddTSStructures(itr);
+                if (!addedStructures.Any(x => string.Equals(x.ToLower(), itr.Item2))) AddTSStructures(itr);
             }
 
             ProvideUIUpdate(100, "Finished adding tuning structures!");
@@ -439,7 +401,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 counter = 0;
                 ProvideUIUpdate(0, $"Contouring TS: {itr}");
-                Structure addedStructure = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), itr.ToLower()));
+                Structure addedStructure = StructureTuningHelper.GetStructureFromId(itr, selectedSS);
                 if (itr.ToLower().Contains("ts_globes") || itr.ToLower().Contains("ts_lenses"))
                 {
                     if (GenerateTSGlobesLenses(addedStructure)) return true;
@@ -472,18 +434,24 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ProvideUIUpdate("Preparing to contour TS_arms...");
             //generate arms avoid structures
             //need lungs, body, and ptv spine structures
-            Structure lungs = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "lungs") && !x.IsEmpty);
-            Structure body = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "body") && !x.IsEmpty);
-            if(lungs == null || body == null)
+            Structure lungs = StructureTuningHelper.GetStructureFromId("lungs", selectedSS);
+            Structure body = StructureTuningHelper.GetStructureFromId("body", selectedSS);
+            if(lungs == null || body == null || lungs.IsEmpty || body.IsEmpty)
             {
                 ProvideUIUpdate("Error! Body and/or lungs structures were not found or are empty! Exiting!", true);
                 return true;
             }
-            MeshGeometry3D mesh = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "ptv_csi")).MeshGeometry;
+            Structure initPlanTarget = StructureTuningHelper.GetStructureFromId(TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, prescriptions.First().Item1), selectedSS);
+            if(initPlanTarget == null || initPlanTarget.IsEmpty) 
+            {
+                ProvideUIUpdate($"Error {initPlanTarget} is null or empty! Exiting!", true);
+                return true;
+            }
+            MeshGeometry3D mesh = initPlanTarget.MeshGeometry;
             //get most inferior slice of ptv_csi (mesgeometry.bounds.z indicates the most inferior part of a structure)
-            int startSlice = (int)((mesh.Bounds.Z - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes);
+            int startSlice = CalculationHelper.ComputeSlice(initPlanTarget.MeshGeometry.Positions.Min(p => p.Z), selectedSS);
             //only go to the most superior part of the lungs for contouring the arms
-            int stopSlice = (int)((lungs.MeshGeometry.Positions.Max(p => p.Z) - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes) + 1;
+            int stopSlice = CalculationHelper.ComputeSlice(lungs.MeshGeometry.Positions.Max(p => p.Z), selectedSS);
 
             //initialize variables
             double xMax = 0;
@@ -492,10 +460,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             double yMin = 0;
             VVector[][] bodyPts;
             //generate two dummy structures (L and R)
-            if (selectedSS.Structures.Where(x => string.Equals(x.Id.ToLower(), "dummyboxl")).Any()) selectedSS.RemoveStructure(selectedSS.Structures.First(x => string.Equals(x.Id.ToLower(), "dummyboxl")));
-            Structure dummyBoxL = selectedSS.AddStructure("CONTROL", "DummyBoxL");
-            if (selectedSS.Structures.Where(x => string.Equals(x.Id.ToLower(), "dummyboxr")).Any()) selectedSS.RemoveStructure(selectedSS.Structures.First(x => string.Equals(x.Id.ToLower(), "dummyboxr")));
-            Structure dummyBoxR = selectedSS.AddStructure("CONTROL", "DummyBoxR");
+            Structure dummyBoxL = StructureTuningHelper.GetStructureFromId("DummyBoxL", selectedSS, true);
+            Structure dummyBoxR = StructureTuningHelper.GetStructureFromId("DummyBoxR", selectedSS, true);
             //use the center point of the lungs as the y axis anchor
             double yCenter = lungs.CenterPoint.y;
             //extend box in y direction +/- 20 cm
@@ -514,7 +480,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             int calcItems = stopSlice - startSlice + 3;
             int counter = 0;
 
-            for (int slice = startSlice; slice < stopSlice; slice++)
+            for (int slice = startSlice; slice <= stopSlice; slice++)
             {
                 //get body contour points
                 bodyPts = body.GetContoursOnImagePlane(slice);
@@ -548,6 +514,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                 new VVector(xMin, yMax, 0),
                                 new VVector(0, yMax, 0)};
 
+                //added in case structures are existing and need to be removed (shouldn't be an issue if they are already null)
+                dummyBoxL.ClearAllContoursOnImagePlane(slice);
+                dummyBoxR.ClearAllContoursOnImagePlane(slice);
                 //add contours on this slice
                 dummyBoxL.AddContourOnImagePlane(ptsL, slice);
                 dummyBoxR.AddContourOnImagePlane(ptsR, slice);
@@ -581,28 +550,19 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return false;
         }
 
-        private bool IsOverlap(Structure target, Structure normal, double marginInCm)
-        {
-            bool isOverlap = false;
-            Structure dummy = selectedSS.AddStructure("CONTROL", "Dummy");
-            dummy.SegmentVolume = target.And(normal.Margin(marginInCm * 10.0));
-            if (!dummy.IsEmpty) isOverlap = true;
-            selectedSS.RemoveStructure(dummy);
-            return isOverlap;
-        }
-
         private Structure GetTSTarget(string targetId)
         {
             string newName = $"TS_{targetId}";
             if (newName.Length > 16) newName = newName.Substring(0, 16);
             ProvideUIUpdate($"Retrieving TS target: {newName}");
-            Structure addedTSTarget = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id, newName));
+            Structure addedTSTarget = StructureTuningHelper.GetStructureFromId(newName, selectedSS); 
             if (addedTSTarget == null)
             {
+                //left here because of special logic to generate the structure if it doesn't exist
                 ProvideUIUpdate($"TS target {newName} does not exist. Creating it now!");
                 addedTSTarget = AddTSStructures(new Tuple<string, string>("CONTROL", newName));
                 ProvideUIUpdate($"Copying target {targetId} contours onto {newName}");
-                addedTSTarget.SegmentVolume = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id, targetId)).Margin(0.0);
+                addedTSTarget.SegmentVolume = StructureTuningHelper.GetStructureFromId(targetId, selectedSS).Margin(0.0);
             }
             return addedTSTarget;
         }
@@ -612,10 +572,20 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             UpdateUILabel("Perform TS Manipulations: ");
             int counter = 0;
             int calcItems = TSManipulationList.Count * prescriptions.Count;
+            string tmpPlanId = prescriptions.First().Item1;
+            List<Tuple<string, string>> tmpTSTargetList = new List<Tuple<string, string>> { };
             foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
             {
+                if(!string.Equals(itr.Item1, tmpPlanId))
+                {
+                    //new plan
+                    tsTargets.Add(new Tuple<string, List<Tuple<string, string>>>(tmpPlanId, new List<Tuple<string, string>>(tmpTSTargetList)));
+                    tmpTSTargetList = new List<Tuple<string, string>> { };
+                    tmpPlanId = itr.Item1;
+                }
                 //create a new TS target for optimization and copy the original target structure onto the new TS structure
                 Structure addedTSTarget = GetTSTarget(itr.Item2);
+                tmpTSTargetList.Add(new Tuple<string, string>(itr.Item2, addedTSTarget.Id));
                 ProvideUIUpdate($"Cropping TS target from body with {3.0} mm inner margin");
                 (bool fail, StringBuilder errorMessage) = ContourHelper.CropStructureFromBody(addedTSTarget, selectedSS, -0.3);
                 if (fail)
@@ -628,7 +598,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     //normal structure id, manipulation type, added margin (if applicable)
                     foreach (Tuple<string, TSManipulationType, double> itr1 in TSManipulationList)
                     {
-                        Structure theStructure = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id, itr1.Item1));
+                        Structure theStructure = StructureTuningHelper.GetStructureFromId(itr1.Item1, selectedSS);
                         if(itr1.Item2 == TSManipulationType.CropFromBody)
                         {
                             ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Cropping {itr1.Item1} from Body with margin {itr1.Item3} cm");
@@ -657,8 +627,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                             string overlapName = $"ts_{itr1.Item1}&&{itr.Item2}";
                             if (overlapName.Length > 16) overlapName = overlapName.Substring(0, 16);
                             Structure addedTSNormal = AddTSStructures(new Tuple<string, string>("CONTROL", overlapName));
-                            Structure originalNormal = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id, itr1.Item1));
-                            addedTSNormal.SegmentVolume = originalNormal.Margin(0.0);
+                            addedTSNormal.SegmentVolume = theStructure.Margin(0.0);
                             (bool failOverlap, StringBuilder errorOverlapMessage) = ContourHelper.ContourOverlap(addedTSTarget, addedTSNormal, itr1.Item3);
                             if (failOverlap)
                             {
@@ -677,6 +646,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 else ProvideUIUpdate("No TS manipulations requested!");
                 normVolumes.Add(Tuple.Create(itr.Item1, addedTSTarget.Id));
             }
+            tsTargets.Add(new Tuple<string, List<Tuple<string, string>>>(tmpPlanId, new List<Tuple<string, string>>(tmpTSTargetList)));
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
@@ -691,7 +661,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             foreach (string itr in cropAndOverlapStructures)
             {
-                Structure normal = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), itr.ToLower()));
+                Structure normal = StructureTuningHelper.GetStructureFromId(itr, selectedSS);
                 if (normal != null)
                 {
                     ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), $"Retrieved normal structure: {normal.Id}");
@@ -699,11 +669,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     //planid, targetid
                     foreach (Tuple<string, string> itr1 in tgts)
                     {
-                        Structure target = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), itr1.Item2.ToLower()));
+                        Structure target = StructureTuningHelper.GetStructureFromId(itr1.Item2, selectedSS);
                         if (target != null)
                         {
                             ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), $"Retrieved target structure: {target.Id}");
-                            if (!IsOverlap(target, normal, 0.0))
+                            if (!StructureTuningHelper.IsOverlap(target, normal, selectedSS, 0.0))
                             {
                                 ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), $"Warning! {normal.Id} does not overlap with all plan target ({target.Id}) structures!");
                                 ProvideUIUpdate("Removing from TS manipulation list!");
@@ -804,7 +774,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 for (int i = 0; i < sortedPrescriptions.Count(); i++)
                 {
                     string targetId = $"TS_{sortedPrescriptions.ElementAt(i).Item2}";
-                    Structure target = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), targetId.ToLower()));
+                    Structure target = StructureTuningHelper.GetStructureFromId(targetId, selectedSS);
                     List<Tuple<string, string>> tmp = new List<Tuple<string, string>> { };
                     ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved target: {targetId}");
                     if (target != null)
@@ -825,7 +795,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved normal structure: {normal.Id}");
 
                             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contouring overlap between structure ({itr}) and target ({target.Id})");
-                            if (ContourOverlapAndUnion(normal, target, overlapRresult.overlapStructure, 0.0)) return true;
+                            (bool fail, StringBuilder errorMessage) cropAndContourOverlapResult = ContourHelper.ContourOverlapAndUnion(normal, target, overlapRresult.overlapStructure, selectedSS, 0.0);
+                            if (cropAndContourOverlapResult.fail)
+                            {
+                                ProvideUIUpdate(cropAndContourOverlapResult.errorMessage.ToString(), true);
+                                return true;
+                            }
 
                             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Cropping structure ({itr}) from target ({target.Id})");
                             (bool failCrop, StringBuilder errorCropMessage) = ContourHelper.CropTargetFromStructure(cropResult.cropStructure, normal, 0.0);
@@ -843,6 +818,111 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             else ProvideUIUpdate(100, "No structures remaining to crop and contour overlap with structures! Skipping!");
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
+            return false;
+        }
+        #endregion
+
+        #region recontour the brain spine targets
+        private bool RegeneratePTVBrainSpine()
+        {
+            UpdateUILabel("Regenerating PTV Spine/PTV Brain:");
+            ProvideUIUpdate("Regenerating PTV Spine/PTV Brain:");
+            int percentComplete = 0;
+            int calcItems = 9;
+            Structure ptvBrain = StructureTuningHelper.GetStructureFromId("PTV_Brain", selectedSS, true);
+            Structure ptvSpine = StructureTuningHelper.GetStructureFromId("PTV_Spine", selectedSS, true);
+            if(ptvBrain == null || ptvSpine == null)
+            {
+                ProvideUIUpdate($"Error! PTV_Brain or PTV_Spine are null! Fix and try again!", true);
+                return true;
+            }
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved structure: {ptvBrain.Id}");
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved structure: {ptvSpine.Id}");
+
+            if (ptvBrain.ApprovalHistory.First().ApprovalStatus == StructureApprovalStatus.Approved || ptvSpine.ApprovalHistory.First().ApprovalStatus == StructureApprovalStatus.Approved)
+            {
+                ProvideUIUpdate($"Error! PTV_Brain or PTV_Spine are approved and I can't modify them! Fix and try again!", true);
+                return true;
+            }
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Verified approval status of {ptvBrain.Id} and {ptvSpine.Id}");
+
+            int cutSlice = -1;
+            Structure cutStructure = StructureTuningHelper.GetStructureFromId("brain", selectedSS);
+            double cutPos = 0.0;
+            if(cutStructure == null || cutStructure.IsEmpty)
+            {
+                cutStructure = StructureTuningHelper.GetStructureFromId("spinal_cord", selectedSS);
+                if (cutStructure == null) cutStructure = StructureTuningHelper.GetStructureFromId("spinalcord", selectedSS);
+                if (cutStructure == null || cutStructure.IsEmpty)
+                {
+                    //give up
+                    ProvideUIUpdate($"Error! Brain/Spinal cord structures are null or empty! Fix and try again!", true);
+                    return true;
+                }
+                else cutPos = cutStructure.MeshGeometry.Positions.Max(p => p.Z);
+            }
+            else cutPos = cutStructure.MeshGeometry.Positions.Min(p => p.Z);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved structure used to determine cut plan: {cutStructure.Id}");
+            ProvideUIUpdate($"Dicom origin ({selectedSS.Image.Origin.x:0.0}, {selectedSS.Image.Origin.y:0.0}, {selectedSS.Image.Origin.z:0.0}) mm");
+            ProvideUIUpdate($"Image z resolution: {selectedSS.Image.ZRes} mm");
+            ProvideUIUpdate($"Number of z slices: {selectedSS.Image.ZSize}");
+            ProvideUIUpdate($"Z cut position: {cutPos:0.0} mm");
+
+            cutSlice = CalculationHelper.ComputeSlice(cutPos, selectedSS);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Z cut slice: {cutSlice}");
+
+            Structure csiInitTarget = StructureTuningHelper.GetStructureFromId(TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, prescriptions.First().Item1), selectedSS);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved structure: {csiInitTarget.Id}");
+            if(!ptvSpine.IsEmpty) ClearContourPointsFromAllPlans(ptvSpine);
+            if(!ptvBrain.IsEmpty) ClearContourPointsFromAllPlans(ptvBrain);
+
+            //stop slice for ptv spine is the cut plan
+            ContourStructure(ptvSpine, csiInitTarget, CalculationHelper.ComputeSlice(csiInitTarget.MeshGeometry.Positions.Min(p => p.Z), selectedSS), cutSlice);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contoured structure: {ptvSpine.Id}");
+            ////start slice for ptv brain is the cut plan
+            ContourStructure(ptvBrain, csiInitTarget, cutSlice, CalculationHelper.ComputeSlice(csiInitTarget.MeshGeometry.Positions.Max(p => p.Z), selectedSS));
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contoured structure: {ptvBrain.Id}");
+            return false;
+        }
+
+        private bool ClearContourPointsFromAllPlans(Structure structToRemove)
+        {
+            ProvideUIUpdate($"Removing structure: {structToRemove.Id}");
+            int startSlice = CalculationHelper.ComputeSlice(structToRemove.MeshGeometry.Positions.Min(p => p.Z), selectedSS);
+            int stopSlice = CalculationHelper.ComputeSlice(structToRemove.MeshGeometry.Positions.Max(p => p.Z), selectedSS);
+            ProvideUIUpdate($"Start slice: {startSlice}");
+            ProvideUIUpdate($"Stop slice: {stopSlice}");
+            int percentComplete = 0;
+            int calcItems = stopSlice - startSlice;
+            for (int slice = startSlice; slice <= stopSlice; slice++)
+            {
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));
+                if (structToRemove.GetContoursOnImagePlane(slice).Any()) structToRemove.ClearAllContoursOnImagePlane(slice);
+            }
+            return false;
+        }
+
+        private bool ContourStructure(Structure structToContour, Structure baseStructure, int startSlice, int stopSlice)
+        {
+            ProvideUIUpdate($"Contouring structure: {structToContour.Id}");
+            ProvideUIUpdate($"Base structure: {baseStructure.Id}");
+            ProvideUIUpdate($"Start slice: {startSlice}");
+            ProvideUIUpdate($"Stop slice: {stopSlice}");
+            int percentComplete = 0;
+            int calcItems = stopSlice - startSlice;
+            for(int slice = startSlice; slice <= stopSlice; slice++)
+            {
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));
+                VVector[][] pts = baseStructure.GetContoursOnImagePlane(slice);
+                if (pts.Any())
+                {
+                    for (int i = 0; i < pts.GetLength(0); i++)
+                    {
+                        if(structToContour.IsPointInsideSegment(pts[i][0]) || structToContour.IsPointInsideSegment(pts[i][pts[i].GetLength(0) - 1]))structToContour.SubtractContourOnImagePlane(pts[i], slice);
+                        else structToContour.AddContourOnImagePlane(pts[i], slice);
+                    }
+                }
+            }
             return false;
         }
         #endregion
@@ -877,16 +957,15 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 calcItems = 3;
                 //If the target ID is PTV_CSI, calculate the number of isocenters based on PTV_spine and add one iso for the brain
                 //planId, target list
-                if (string.Equals(longestTargetInPlan.Id.ToLower(), "ptv_csi"))
+                if (string.Equals(longestTargetInPlan.Id, TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, prescriptions.First().Item1)))
                 {
                     calcItems += 1;
-                    //special rules for initial plan, which should have a target named PTV_CSI
+                    //special rules for initial plan,
                     //first, determine the number of isocenters required to treat PTV_Spine
-                    //
-                    //2/10/2023 according to Nataliya, PTV_Spine might not be present in the structure set 100% of the time. Therefore, just grab the spinal cord structure and add the margins
-                    //used to create PTV_Spine (0.5 cm Ant and 1.5 cm Inf) manually.
+                    //Grab extent of PTV_Spine and add a 2 cm margin to this distance to give 2 cm buffer on the sup portion of the target to ensure adequate coverage/overlap between upper spine field and brain fields
                     (bool isFail, double spineTargetExtent) = GetSpineTargetExtent(ref counter, ref calcItems, 2.0);
                     if (isFail) return true;
+
                     //Grab the thyroid structure, if it does not exist, add a 50 mm buffer to the field extent (rough estimate of most inferior position of thyroid)
                     //Structure thyroidStruct = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("thyroid"));
                     //if (thyroidStruct == null || thyroidStruct.IsEmpty) numVMATIsos = (int)Math.Ceiling((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 + 50.0));
@@ -896,14 +975,25 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     //    Point3DCollection thyroidPts = thyroidStruct.MeshGeometry.Positions;
                     //    numVMATIsos = (int)Math.Ceiling((thyroidPts.Min(p => p.Z) - pts.Min(p => p.Z)) / 400.0);
                     //}
-                    //
-                    //subtract 50 mm from the numerator as ptv_spine extends 10 mm into ptv_brain and brain fields have a 40 mm inferior margin on the ptv_brain (10 + 40 = 50 mm). 
-                    //Overlap is accounted for in the denominator.
-                    numVMATIsos = (int)Math.Ceiling((spineTargetExtent - 50.0) / (400.0 - 20.0));
+
+                    //subtract 40 mm from the numerator as the brain fields have a 40 mm inferior margin on the ptv_brain 
+                    //Overlap (2 cm) is accounted for in the denominator.
+                    double brainInfMargin = 40.0;
+                    double minFieldOverlap = 20.0;
+                    double maxFieldExtent = 400.0;
+                    double numVMATIsosAsDouble = (spineTargetExtent - brainInfMargin) / (maxFieldExtent - minFieldOverlap);
+                    ProvideUIUpdate($"Spine target extent: {spineTargetExtent:0.00}");
+                    ProvideUIUpdate($"Num VMAT isos as double: {(spineTargetExtent - 40.0) / (400.0 - 20.0):0.00}");
+                    if (numVMATIsosAsDouble > 1 && numVMATIsosAsDouble % 1 < 0.1)
+                    {
+                        ProvideUIUpdate($"Calculated number of vmat isos MOD 1 is < 0.1 (i.e. an extra {0.1 * 38.0:0.0} cm of field is required to cover the spine");
+                        numVMATIsosAsDouble = Math.Floor(numVMATIsosAsDouble);
+                        ProvideUIUpdate($"Truncating number of isos to {numVMATIsosAsDouble}");
+                    }
+                    else numVMATIsosAsDouble = Math.Ceiling(numVMATIsosAsDouble);
+                    numVMATIsos = (int)numVMATIsosAsDouble;
                     ProvideUIUpdate((int)(100 * ++counter / calcItems));
-                    ProvideUIUpdate($"Spine target extent: {spineTargetExtent:0.0}");
-                    ProvideUIUpdate($"Num VMAT isos as double: {(spineTargetExtent - 50.0) / (400.0 - 20.0):0.0}");
-                    ProvideUIUpdate($"Calculated num VMAT isos: {numVMATIsos:0.0}");
+                    ProvideUIUpdate($"Final calculated number of VMAT isocenters: {numVMATIsos}");
 
                     //one iso reserved for PTV_Brain
                     numVMATIsos += 1;
@@ -928,19 +1018,18 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private (bool, double) GetSpineTargetExtent(ref int counter, ref int calcItems, double addedMarginInCm)
         {
             bool fail = false;
-            Structure spineTarget = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "spinalcord") || string.Equals(x.Id.ToLower(), "spinal_cord"));
             double spineTargetExtent = 0.0;
+            Structure spineTarget = StructureTuningHelper.GetStructureFromId("PTV_Spine", selectedSS);
             if (spineTarget == null || spineTarget.IsEmpty)
             {
-                ProvideUIUpdate("Error! No structure named spinalcord or spinal_cord was found or it was empty!", true);
+                ProvideUIUpdate("Error! No structure named PTV_Spine was found or it was empty!", true);
             }
             else
             {
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), "Retrieved spinal cord structure");
                 Point3DCollection pts = spineTarget.MeshGeometry.Positions;
                 //ESAPI default distances are in mm
-                double addedMargin = addedMarginInCm * 10;
-                spineTargetExtent = (pts.Max(p => p.Z) - pts.Min(p => p.Z)) + addedMargin;
+                spineTargetExtent = (pts.Max(p => p.Z) - pts.Min(p => p.Z)) + addedMarginInCm * 10;
             }
             return (fail, spineTargetExtent);
         }

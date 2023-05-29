@@ -5,6 +5,7 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Media.Media3D;
 using SimpleProgressWindow;
+using VMATTBICSIAutoPlanningHelpers.Helpers;
 using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
 
 namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
@@ -58,7 +59,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             int counter = 0; 
             foreach (Tuple<string, string> itr in structuresToRemove)
             {
-                Structure tmp = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), itr.Item2.ToLower()));
+                Structure tmp = StructureTuningHelper.GetStructureFromId(itr.Item2, selectedSS);
                 //structure is present in selected structure set
                 if (tmp != null)
                 {
@@ -111,8 +112,17 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             int counter = 0;
             foreach (Structure itr in structuresToRemove)
             {
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Removing: {itr.Id}");
-                selectedSS.RemoveStructure(itr);
+                if(selectedSS.CanRemoveStructure(itr))
+                {
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Removing: {itr.Id}");
+                    selectedSS.RemoveStructure(itr);
+                }
+                else
+                {
+                    ProvideUIUpdate($"Error! Could not remove structure: {itr.Id}!", true);
+                    if (string.IsNullOrEmpty(itr.DicomType)) ProvideUIUpdate($"{itr.Id} DICOM type: None");
+                    return true;
+                }
             }
             return false;
         }
@@ -134,7 +144,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             //remove ALL tuning structures from any previous runs (structure id starts with 'TS_'). Be sure to exclude any requested TS structures from the config file as we just added them!
             List<Structure> tsStructs = selectedSS.Structures.Where(x => x.Id.Length > 2 && string.Equals(x.Id.ToLower().Substring(0, 3), "ts_")).ToList();
             removeList.AddRange(tsStructs.Except(removeList));
-            RemoveStructures(removeList);
+            if (RemoveStructures(removeList)) return true;
 
             if (VerifyAddTSStructures(structuresToRemove)) return true;
             ProvideUIUpdate(100, "Prior tuning structures successfully removed!");
@@ -206,7 +216,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             {
                 ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieving high resolution structure: {itr.Item1}");
                 //this structure should be present and contoured in structure set (checked previously)
-                Structure highResStruct = selectedSS.Structures.First(x => string.Equals(x.Id, itr.Item1));
+                Structure highResStruct = StructureTuningHelper.GetStructureFromId(itr.Item1, selectedSS);
                 ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Converting: {itr.Item1} to low resolution");
                 
                 //get the high res structure mesh geometry
@@ -247,7 +257,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 
         protected bool IsUOriginInside(StructureSet ss)
         {
-            if (!ss.Image.HasUserOrigin || !ss.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "body")).IsPointInsideSegment(ss.Image.UserOrigin))
+            if (!ss.Image.HasUserOrigin || !StructureTuningHelper.GetStructureFromId("Body", ss).IsPointInsideSegment(ss.Image.UserOrigin))
             {
                 ProvideUIUpdate("Did you forget to set the user origin? \nUser origin is NOT inside body contour! \nPlease fix and try again!", true);
                 return true;

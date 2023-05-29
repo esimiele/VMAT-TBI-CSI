@@ -44,12 +44,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         int[] beamsPerIso = { 2, 1, 1 };
         //collimator rotations for how to orient the beams (placeBeams class)
         double[] collRot = {10.0, 350.0, 3.0, 357.0};
-        //jaw positions of the placed VMAT beams
-        List<VRect<double>> jawPos = new List<VRect<double>> {
-            new VRect<double>(-100.0, -100.0, 100.0, 100.0),
-            new VRect<double>(-100.0, -100.0, 100.0, 100.0),
-            new VRect<double>(-25.0, -200.0, 25.0, 200.0),
-            new VRect<double>(-25.0, -200.0, 25.0, 200.0) };
+        //flag whether to use algorithm to auto fit jaws to targets
+        bool autoFitJaws = true;
         //photon beam calculation model
         string calculationModel = "AAA_15605";
         //photon optimization algorithm
@@ -370,8 +366,15 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if (app == null || pi == null) return;
             //CT image stack panel, patient structure set list, patient id, image export path, image export format
-            (bool, StringBuilder) exportResult = ExportCTUIHelper.ExportImage(CTimageSP, pi.StructureSets.ToList(), pi.Id, imgExportPath, imgExportFormat);
-            if(exportResult.Item1) log.LogError(exportResult.Item2);
+            VMS.TPS.Common.Model.API.Image selectedImage = ExportCTUIHelper.GetSelectedImageForExport(CTimageSP, pi.StructureSets.ToList());
+            if(selectedImage != null)
+            {
+                CTImageExport exporter = new CTImageExport(selectedImage, imgExportPath, pi.Id, imgExportFormat);
+                //don't care about bool result
+                exporter.Execute();
+                log.AppendLogOutput("Export CT data:", exporter.GetLogOutput());
+            }
+            else log.LogError("No image selected for export!");
         }
         #endregion
 
@@ -383,7 +386,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (selectedSS == null) return;
             PrelimTargetGenerationSP.Children.Clear();
             List<string> missingPrelimTargets = new List<string> { };
-            if (selectedSS != null && prelimTargets.Any())
+            List<String> approvedTargets = new List<string> { };
+            if (prelimTargets.Any())
             {
                 foreach (string itr in prelimTargets.Select(x => x.Item2))
                 {
@@ -395,8 +399,20 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 }
             }
 
+            CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
+            if (selectedTemplate != null)
+            {
+                foreach(Tuple<string,double,string> itr in selectedTemplate.GetTargets())
+                {
+                    if(selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), itr.Item1.ToLower()) && x.ApprovalHistory.First().ApprovalStatus == StructureApprovalStatus.Approved))
+                    {
+                        approvedTargets.Add(selectedSS.Structures.First(x => string.Equals(x.Id.ToLower(), itr.Item1.ToLower()) && x.ApprovalHistory.First().ApprovalStatus == StructureApprovalStatus.Approved).Id);
+                    }
+                }
+            }
+
             targetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
-            if (missingPrelimTargets.Any())
+            if (!approvedTargets.Any() && missingPrelimTargets.Any())
             {
                 AddPrelimTargetVolumes(prelimTargets, PrelimTargetGenerationSP);
                 PrelimTargetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
@@ -468,6 +484,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         }
         #endregion
 
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         #region Set targets
         private (ScrollViewer, StackPanel) GetSVAndSPTargetsTab(object sender)
         {
@@ -1105,10 +1122,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             //populate the beams and optimization tabs
             PopulateBeamsTab();
-            if (generate.GetTargetManipulations().Any() || generate.GetAddedRings().Any())
+            if (generate.GetTsTargets().Any() || generate.GetTargetCropOverlapManipulations().Any() || generate.GetAddedRings().Any())
             {
                 List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> tmpList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>{ };
-                if(generate.GetTargetManipulations().Any()) tmpList = OptimizationSetupHelper.UpdateOptimizationConstraints(generate.GetTargetManipulations(), prescriptions, templateList.SelectedItem, tmpList);
+                if(generate.GetTsTargets().Any()) tmpList = OptimizationSetupHelper.UpdateOptimizationConstraints(generate.GetTsTargets(), prescriptions, templateList.SelectedItem, tmpList);
+                if(generate.GetTargetCropOverlapManipulations().Any()) tmpList = OptimizationSetupHelper.UpdateOptimizationConstraints(generate.GetTargetCropOverlapManipulations(), prescriptions, templateList.SelectedItem, tmpList);
                 if(generate.GetAddedRings().Any()) tmpList = OptimizationSetupHelper.UpdateOptimizationConstraints(generate.GetAddedRings(), prescriptions, templateList.SelectedItem, tmpList);
                 //handles if crop/overlap operations were performed for all targets and the optimization constraints need to be updated
                 PopulateOptimizationTab(optParametersSP, tmpList);
@@ -1210,7 +1228,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             PlaceBeams_CSI place = new PlaceBeams_CSI(selectedSS, 
                                                       planIsoBeamInfo, 
                                                       collRot, 
-                                                      jawPos,
+                                                      autoFitJaws,
                                                       chosenLinac, 
                                                       chosenEnergy, 
                                                       calculationModel, 
@@ -1969,68 +1987,66 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private void DisplayConfigurationParameters()
         {
             configTB.Text = "";
-            configTB.Text = String.Format(" {0}", DateTime.Now.ToString()) + Environment.NewLine;
-            if (configFile != "") configTB.Text += String.Format(" Configuration file: {0}", configFile) + Environment.NewLine + Environment.NewLine;
-            else configTB.Text += String.Format(" Configuration file: none") + Environment.NewLine + Environment.NewLine;
-            configTB.Text += String.Format(" Documentation path: {0}", documentationPath) + Environment.NewLine + Environment.NewLine;
-            configTB.Text += String.Format(" Image export path: {0}", imgExportPath) + Environment.NewLine + Environment.NewLine;
-            configTB.Text += String.Format(" Default parameters:") + Environment.NewLine;
-            configTB.Text += String.Format(" Image export format: {0}", imgExportFormat) + Environment.NewLine;
-            configTB.Text += String.Format(" Contour field ovelap: {0}", contourOverlap) + Environment.NewLine;
-            configTB.Text += String.Format(" Contour field overlap margin: {0} cm", contourFieldOverlapMargin) + Environment.NewLine;
-            configTB.Text += String.Format(" Available linacs:") + Environment.NewLine;
-            foreach (string l in linacs) configTB.Text += string.Format("     {0}", l) + Environment.NewLine;
-            configTB.Text += String.Format(" Available photon energies:") + Environment.NewLine;
-            foreach (string e in beamEnergies) configTB.Text += string.Format("     {0}", e) + Environment.NewLine;
-            configTB.Text += String.Format(" Beams per isocenter: ");
+            configTB.Text = $"{DateTime.Now}" + Environment.NewLine;
+            if (configFile != "") configTB.Text += $"Configuration file: {configFile}" + Environment.NewLine + Environment.NewLine;
+            else configTB.Text += "Configuration file: none" + Environment.NewLine + Environment.NewLine;
+            configTB.Text += $"Documentation path: {documentationPath}" + Environment.NewLine + Environment.NewLine;
+            configTB.Text += $"Image export path: {imgExportPath}" + Environment.NewLine + Environment.NewLine;
+            configTB.Text += "Default parameters:" + Environment.NewLine;
+            configTB.Text += $"Image export format: {imgExportFormat}" + Environment.NewLine;
+            configTB.Text += $"Contour field ovelap: {contourOverlap}" + Environment.NewLine;
+            configTB.Text += $"Contour field overlap margin: {contourFieldOverlapMargin} cm" + Environment.NewLine;
+            configTB.Text += "Available linacs:" + Environment.NewLine;
+            foreach (string l in linacs) configTB.Text += $"    {l}" + Environment.NewLine;
+            configTB.Text += "Available photon energies:" + Environment.NewLine;
+            foreach (string e in beamEnergies) configTB.Text += $"    {e}" + Environment.NewLine;
+            configTB.Text += $"Beams per isocenter: ";
             for (int i = 0; i < beamsPerIso.Length; i++)
             {
-                configTB.Text += String.Format(" {0}", beamsPerIso.ElementAt(i));
-                if (i != beamsPerIso.Length - 1) configTB.Text += String.Format(", ");
+                configTB.Text += $"{beamsPerIso.ElementAt(i)}";
+                if (i != beamsPerIso.Length - 1) configTB.Text += ", ";
             }
             configTB.Text += Environment.NewLine;
-            configTB.Text += String.Format(" Collimator rotation (deg) order: ");
+            configTB.Text += "Collimator rotation (deg) order: ";
             for (int i = 0; i < collRot.Length; i++)
             {
-                configTB.Text += String.Format(" {0:0.0}", collRot.ElementAt(i));
-                if (i != collRot.Length - 1) configTB.Text += String.Format(", ");
+                configTB.Text += $"{collRot.ElementAt(i):0.0}";
+                if (i != collRot.Length - 1) configTB.Text += ", ";
             }
             configTB.Text += Environment.NewLine;
-            configTB.Text += String.Format(" Field jaw position (cm) order: ") + Environment.NewLine;
-            configTB.Text += String.Format("     (x1,y1,x2,y2)") + Environment.NewLine;
-            foreach (VRect<double> j in jawPos) configTB.Text += String.Format("     ({0:0.0},{1:0.0},{2:0.0},{3:0.0})", j.X1 / 10, j.Y1 / 10, j.X2 / 10, j.Y2 / 10) + Environment.NewLine;
-            configTB.Text += String.Format(" Photon dose calculation model: {0}", calculationModel) + Environment.NewLine;
-            configTB.Text += String.Format(" Use GPU for dose calculation: {0}", useGPUdose) + Environment.NewLine;
-            configTB.Text += String.Format(" Photon optimization model: {0}", optimizationModel) + Environment.NewLine;
-            configTB.Text += String.Format(" Use GPU for optimization: {0}", useGPUoptimization) + Environment.NewLine;
-            configTB.Text += String.Format(" MR level restart at: {0}", MRrestartLevel) + Environment.NewLine + Environment.NewLine;
+            configTB.Text += $"AutoFit Jaws to targets: {autoFitJaws} " + Environment.NewLine;
+            configTB.Text += $"Photon dose calculation model: {calculationModel}" + Environment.NewLine;
+            configTB.Text += $"Use GPU for dose calculation: {useGPUdose}" + Environment.NewLine;
+            configTB.Text += $"Photon optimization model: {optimizationModel}" + Environment.NewLine;
+            configTB.Text += $"Use GPU for optimization: {useGPUoptimization}" + Environment.NewLine;
+            configTB.Text += $"MR level restart at: {MRrestartLevel}" + Environment.NewLine + Environment.NewLine;
 
             if (prelimTargets.Any())
             {
-                configTB.Text += String.Format(" Requested preliminary taret structures:") + Environment.NewLine;
-                configTB.Text += String.Format("  {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + Environment.NewLine;
-                foreach (Tuple<string, string> ts in prelimTargets) configTB.Text += String.Format("  {0, -10} | {1, -15} |" + Environment.NewLine, ts.Item1, ts.Item2);
+                configTB.Text += "Requested preliminary target structures:" + Environment.NewLine;
+                configTB.Text += String.Format(" {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + Environment.NewLine;
+                foreach (Tuple<string, string> ts in prelimTargets) configTB.Text += String.Format(" {0, -10} | {1, -15} |" + Environment.NewLine, ts.Item1, ts.Item2);
                 configTB.Text += Environment.NewLine;
             }
-            else configTB.Text += String.Format(" No general TS manipulations requested!") + Environment.NewLine + Environment.NewLine;
+            else configTB.Text += "No general TS manipulations requested!" + Environment.NewLine + Environment.NewLine;
 
             if (defaultTSStructures.Any())
             {
-                configTB.Text += String.Format(" Requested general tuning structures:") + Environment.NewLine;
-                configTB.Text += String.Format("  {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + Environment.NewLine;
-                foreach (Tuple<string, string> ts in defaultTSStructures) configTB.Text += String.Format("  {0, -10} | {1, -15} |" + Environment.NewLine, ts.Item1, ts.Item2);
+                configTB.Text += "Requested general tuning structures:" + Environment.NewLine;
+                configTB.Text += String.Format(" {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + Environment.NewLine;
+                foreach (Tuple<string, string> ts in defaultTSStructures) configTB.Text += String.Format(" {0, -10} | {1, -15} |" + Environment.NewLine, ts.Item1, ts.Item2);
                 configTB.Text += Environment.NewLine;
             }
-            else configTB.Text += String.Format(" No general TS manipulations requested!") + Environment.NewLine + Environment.NewLine;
+            else configTB.Text += "No general TS manipulations requested!" + Environment.NewLine + Environment.NewLine;
 
             if (defaultTSStructureManipulations.Any())
             {
-                configTB.Text += String.Format(" Default TS manipulations:") + Environment.NewLine;
-                configTB.Text += String.Format("  {0, -15} | {1, -26} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + Environment.NewLine;
-                foreach (Tuple<string, TSManipulationType, double> itr in defaultTSStructureManipulations) configTB.Text += String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |" + Environment.NewLine, itr.Item1, itr.Item2.ToString(), itr.Item3);
+                configTB.Text += "Default TS manipulations:" + Environment.NewLine;
+                configTB.Text += String.Format(" {0, -15} | {1, -26} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + Environment.NewLine;
+                foreach (Tuple<string, TSManipulationType, double> itr in defaultTSStructureManipulations) configTB.Text += String.Format(" {0, -15} | {1, -26} | {2,-11:N1} |" + Environment.NewLine, itr.Item1, itr.Item2.ToString(), itr.Item3);
                 configTB.Text += Environment.NewLine;
             }
-            else configTB.Text += String.Format(" No default TS manipulations to list") + Environment.NewLine + Environment.NewLine;
+            else configTB.Text += "No default TS manipulations to list" + Environment.NewLine + Environment.NewLine;
 
             if(PlanTemplates.Any()) configTB.Text += ConfigurationUIHelper.PrintPlanTemplateConfigurationParameters(PlanTemplates.ToList()).ToString();
 
@@ -2067,7 +2083,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     string line;
                     List<string> linac_temp = new List<string> { };
                     List<string> energy_temp = new List<string> { };
-                    List<VRect<double>> jawPos_temp = new List<VRect<double>> { };
                     List<Tuple<string, TSManipulationType, double>> defaultTSManipulations_temp = new List<Tuple<string, TSManipulationType, double>> { };
                     List<Tuple<string, string>> prelimTargets_temp = new List<Tuple<string, string>> { };
                     List<Tuple<string, string>> defaultTSstructures_temp = new List<Tuple<string, string>> { };
@@ -2163,20 +2178,21 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                 line = ConfigurationHelper.CropLine(line, "{");
                                 energy_temp.Add(line.Substring(0, line.IndexOf("}")));
                             }
-                            else if (line.Contains("add jaw position"))
+                            //else if (line.Contains("add jaw position"))
+                            //{
+                            //    //parse the default requested number of beams per isocenter
+                            //    line = ConfigurationHelper.CropLine(line, "{");
+                            //    (bool fail, VRect<double> parsedPositions) = ConfigurationHelper.ParseJawPositions(line);
+                            //    if (fail)
+                            //    {
+                            //        log.LogError("Error! Jaw positions not defined correctly!");
+                            //        log.LogError(line);
+                            //    }
+                            //    else jawPos_temp.Add(parsedPositions);
+                            //}
+                            else if (line.Contains("auto fit jaws to targets"))
                             {
-                                //parse the default requested number of beams per isocenter
-                                line = ConfigurationHelper.CropLine(line, "{");
-                                List<double> tmp = new List<double> { };
-                                //second character should not be the end brace (indicates the last element in the array)
-                                while (line.Contains(","))
-                                {
-                                    tmp.Add(double.Parse(line.Substring(0, line.IndexOf(","))));
-                                    line = ConfigurationHelper.CropLine(line, ",");
-                                }
-                                tmp.Add(double.Parse(line.Substring(0, line.IndexOf("}"))));
-                                if (tmp.Count != 4) log.LogError("Error! Jaw positions not defined correctly!");
-                                else jawPos_temp.Add(new VRect<double>(tmp.ElementAt(0), tmp.ElementAt(1), tmp.ElementAt(2), tmp.ElementAt(3)));
+                                autoFitJaws = true;
                             }
                         }
                     }
@@ -2184,7 +2200,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     //anything that is an array needs to be updated AFTER the while loop.
                     if (linac_temp.Any()) linacs = new List<string>(linac_temp);
                     if (energy_temp.Any()) beamEnergies = new List<string>(energy_temp);
-                    if (jawPos_temp.Any() && jawPos_temp.Count == 4) jawPos = new List<VRect<double>>(jawPos_temp);
                     if (defaultTSManipulations_temp.Any()) defaultTSStructureManipulations = new List<Tuple<string, TSManipulationType, double>>(defaultTSManipulations_temp);
                     if (defaultTSstructures_temp.Any()) defaultTSStructures = new List<Tuple<string, string>>(defaultTSstructures_temp);
                     if (prelimTargets_temp.Any()) prelimTargets = new List<Tuple<string, string>>(prelimTargets_temp);
@@ -2275,7 +2290,5 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             SizeToContent = SizeToContent.WidthAndHeight;
         }
-
-        
     }
 }

@@ -203,6 +203,7 @@ namespace VMATTBICSIOptLoopMT
                 ClearEverything();
                 app.ClosePatient();
                 pi = app.OpenPatientById(pat_mrn);
+                PatMRNLabel.Content = pat_mrn;
                 //grab instances of the course and VMAT tbi plans that were created using the binary plug in script. This is explicitly here to let the user know if there is a problem with the course OR plan
                 //Course c = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat tbi");
                 (plans, selectedSS) = GetStructureSetAndPlans();

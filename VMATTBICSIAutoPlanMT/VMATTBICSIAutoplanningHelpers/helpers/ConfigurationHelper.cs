@@ -96,6 +96,23 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         //very useful helper method to remove everything in the input string 'line' up to a given character 'cropChar'
         public static string CropLine(string line, string cropChar) { return line.Substring(line.IndexOf(cropChar) + 1, line.Length - line.IndexOf(cropChar) - 1); }
 
+        public static (bool, VRect<double>) ParseJawPositions(string line)
+        {
+            bool fail = false; 
+            List<double> tmp = new List<double> { };
+            VRect<double> jawPos = new VRect<double> { };
+            //second character should not be the end brace (indicates the last element in the array)
+            while (line.Contains(","))
+            {
+                tmp.Add(double.Parse(line.Substring(0, line.IndexOf(","))));
+                line = ConfigurationHelper.CropLine(line, ",");
+            }
+            tmp.Add(double.Parse(line.Substring(0, line.IndexOf("}"))));
+            if (tmp.Count != 4) fail = true;
+            else jawPos = new VRect<double>(tmp.ElementAt(0), tmp.ElementAt(1), tmp.ElementAt(2), tmp.ElementAt(3));
+            return (fail, jawPos);
+        }
+
         public static Tuple<string, string> ParseCreateTS(string line)
         {
             //known array format --> can take shortcuts in parsing the data
