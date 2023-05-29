@@ -152,7 +152,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                         {
                             if (itr1.Item1.Contains("Dmax")) sb.Append(String.Format(" {0,-10} |", $"{itr1.Item1}{itr1.Item3}{itr1.Item4}%"));
                             else if (itr1.Item1.Contains("V")) sb.Append(String.Format(" {0,-10} |", $"{itr1.Item1}{itr1.Item2}%{itr1.Item3}{itr1.Item4}%"));
-                            else sb.Append(String.Format("{0,-10} |", $"{itr1.Item1}"));
+                            else sb.Append(String.Format(" {0,-10} |", $"{itr1.Item1}"));
                         }
                         else
                         {
@@ -161,7 +161,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                             else sb.Append(String.Format(" {0,-59} | {1,-10} |", " ", $"{itr1.Item1}"));
                         }
                         index++;
-                        if (index < itr.Item6.Count) sb.Append(Environment.NewLine);
+                        if (index <= itr.Item6.Count) sb.Append(Environment.NewLine);
                     }
                 }
             }
