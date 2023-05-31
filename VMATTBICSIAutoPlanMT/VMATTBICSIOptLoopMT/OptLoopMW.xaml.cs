@@ -832,7 +832,7 @@ namespace VMATTBICSIOptLoopMT
             {
                 foreach (string itr in Directory.GetFiles(path, "*.ini", option).OrderBy(x => x))
                 {
-                    PlanTemplates.Add(ConfigurationHelper.ReadTemplatePlan(itr, count++));
+                    PlanTemplates.Add(ConfigurationHelper.ReadCSITemplatePlan(itr, count++));
                 }
             }
             catch(Exception e)

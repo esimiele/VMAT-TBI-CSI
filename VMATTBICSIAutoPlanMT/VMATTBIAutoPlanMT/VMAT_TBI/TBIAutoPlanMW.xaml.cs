@@ -197,9 +197,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         bool autoSave = false;
         //ProcessStartInfo optLoopProcess;
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
-        public ObservableCollection<CSIAutoPlanTemplate> PlanTemplates { get; set; }
+        public ObservableCollection<TBIAutoPlanTemplate> PlanTemplates { get; set; }
         //temporary variable to add new templates to the list
-        CSIAutoPlanTemplate prospectiveTemplate = null;
+        TBIAutoPlanTemplate prospectiveTemplate = null;
 
         public TBIAutoPlanMW(List<string> args)
         {
@@ -1424,7 +1424,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
             if (templateBuildOptionCB.SelectedItem.ToString().ToLower() == "existing template")
             {
-                CSIAutoPlanTemplate theTemplate = null;
+                TBIAutoPlanTemplate theTemplate = null;
                 SelectItemPrompt SIP = new SelectItemPrompt("Please select an existing template!", PlanTemplates.Select(x => x.TemplateName).ToList());
                 SIP.ShowDialog();
                 if (SIP.GetSelection()) theTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.GetTemplateName(), SIP.GetSelectedItem()));
@@ -1513,7 +1513,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 log.LogError("Error! Please select a Structure Set before add sparing volumes!");
                 return;
             }
-            prospectiveTemplate = new CSIAutoPlanTemplate();
+            prospectiveTemplate = new TBIAutoPlanTemplate();
             prospectiveTemplate.SetTemplateName(templateNameTB.Text);
 
             if (double.TryParse(templateInitPlanDosePerFxTB.Text, out double initDosePerFx))
@@ -1540,7 +1540,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             prospectiveTemplate.SetTSManipulations(StructureTuningUIHelper.ParseTSManipulationList(templateStructuresSP).Item1);
             List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> templateOptParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(templateOptParams_sp).Item1;
             prospectiveTemplate.SetInitOptimizationConstraints(templateOptParametersListList.First().Item2);
-            prospectiveTemplate.SetBoostOptimizationConstraints(templateOptParametersListList.Last().Item2);
 
             templatePreviewTB.Text = TemplateBuilder.GenerateTemplatePreviewText(prospectiveTemplate);
             templatePreviewScroller.ScrollToTop();
@@ -1903,6 +1902,26 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
             //let the user know if the data parsing failed
             catch (Exception e) { MessageBox.Show(String.Format("Error could not load configuration file because: {0}\n\nAssuming default parameters", e.Message)); return true; }
+        }
+
+        private bool LoadPlanTemplates()
+        {
+            int count = 1;
+            try
+            {
+                foreach (string itr in Directory.GetFiles(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\TBI\\", "*.ini").OrderBy(x => x))
+                {
+                    PlanTemplates.Add(ConfigurationHelper.ReadTBITemplatePlan(itr, count++));
+                }
+
+            }
+            catch (Exception e)
+            {
+                log.LogError(String.Format("Error could not load plan template file because: {0}", e.Message));
+                log.LogError(e.StackTrace, true);
+                return true;
+            }
+            return false;
         }
 
         //very useful helper method to remove everything in the input string 'line' up to a given character 'cropChar'

@@ -115,9 +115,11 @@
     <Compile Include="BaseClasses\OptimizationLoopBase.cs" />
     <Compile Include="BaseClasses\PlaceBeamsBase.cs" />
     <Compile Include="BaseClasses\PlanPrepBase.cs" />
+    <Compile Include="BaseClasses\PlanTemplateBase.cs" />
     <Compile Include="Enums\OptimizationObjectiveTypeEnum.cs" />
     <Compile Include="Enums\TSManipulationTypeEnum.cs" />
     <Compile Include="Helpers\CalculationHelper.cs" />
+    <Compile Include="PlanTemplateClasses\TBIAutoPlanTemplate.cs" />
     <Compile Include="UIHelpers\ConfigurationUIHelper.cs" />
     <Compile Include="Helpers\ContourHelper.cs" />
     <Compile Include="Helpers\OptimizationLoopHelper.cs" />

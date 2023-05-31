@@ -2223,7 +2223,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 foreach (string itr in Directory.GetFiles(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\CSI\\", "*.ini").OrderBy(x => x))
                 {
-                    PlanTemplates.Add(ConfigurationHelper.ReadTemplatePlan(itr, count++));
+                    PlanTemplates.Add(ConfigurationHelper.ReadCSITemplatePlan(itr, count++));
                 }
 
             }

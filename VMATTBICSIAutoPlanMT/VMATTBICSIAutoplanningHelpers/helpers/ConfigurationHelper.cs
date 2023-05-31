@@ -11,7 +11,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public static class ConfigurationHelper
     {
-        public static CSIAutoPlanTemplate ReadTemplatePlan(string file, int count)
+        public static CSIAutoPlanTemplate ReadCSITemplatePlan(string file, int count)
         {
             CSIAutoPlanTemplate tempTemplate = new CSIAutoPlanTemplate(count);
             using (StreamReader reader = new StreamReader(file))
@@ -85,6 +85,74 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                             if(planObj_temp.Any()) tempTemplate.SetPlanObjectives(planObj_temp);
                             if(requestedTSstructures_temp.Any()) tempTemplate.SetRequestedOptTSStructures(requestedTSstructures_temp);
                             if(planDoseInfo_temp.Any()) tempTemplate.SetRequestedPlanDoseInfo(planDoseInfo_temp);
+                        }
+                    }
+                }
+                reader.Close();
+            }
+            return tempTemplate;
+        }
+
+        public static TBIAutoPlanTemplate ReadTBITemplatePlan(string file, int count)
+        {
+            TBIAutoPlanTemplate tempTemplate = new TBIAutoPlanTemplate(count);
+            using (StreamReader reader = new StreamReader(file))
+            {
+                string line;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    if (!string.IsNullOrEmpty(line) && line.Substring(0, 1) != "%")
+                    {
+                        if (line.Equals(":begin template case configuration:"))
+                        {
+                            //preparation
+                            List<Tuple<string, TSManipulationType, double>> TSManipulation_temp = new List<Tuple<string, TSManipulationType, double>> { };
+                            List<Tuple<string, string>> TSstructures_temp = new List<Tuple<string, string>> { };
+                            List<Tuple<string, double, double, double>> createRings_temp = new List<Tuple<string, double, double, double>> { };
+                            List<Tuple<string, OptimizationObjectiveType, double, double, int>> initOptConst_temp = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+                            List<Tuple<string, double, string>> targets_temp = new List<Tuple<string, double, string>> { };
+                            //optimization loop
+                            List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> planObj_temp = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> { };
+                            List<Tuple<string, string, double, string>> planDoseInfo_temp = new List<Tuple<string, string, double, string>> { };
+                            List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures_temp = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> { };
+                            //parse the data specific to the myeloablative case setup
+                            while (!(line = reader.ReadLine()).Equals(":end template case configuration:"))
+                            {
+                                if (line.Substring(0, 1) != "%")
+                                {
+                                    if (line.Contains("="))
+                                    {
+                                        string parameter = line.Substring(0, line.IndexOf("="));
+                                        string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
+                                        if (parameter == "template name") tempTemplate.SetTemplateName(value);
+                                        else if (parameter == "initial dose per fraction")
+                                        {
+                                            if (double.TryParse(value, out double initDPF)) tempTemplate.SetInitRxDosePerFx(initDPF);
+                                        }
+                                        else if (parameter == "initial num fx")
+                                        {
+                                            if (int.TryParse(value, out int initFx)) tempTemplate.SetInitialRxNumFx(initFx);
+                                        }
+                                    }
+                                    else if (line.Contains("add TS manipulation")) TSManipulation_temp.Add(ParseTSManipulation(line));
+                                    else if (line.Contains("create ring")) createRings_temp.Add(ParseCreateRing(line));
+                                    else if (line.Contains("add init opt constraint")) initOptConst_temp.Add(ParseOptimizationConstraint(line));
+                                    else if (line.Contains("create TS")) TSstructures_temp.Add(ParseCreateTS(line));
+                                    else if (line.Contains("add target")) targets_temp.Add(ParseTargets(line));
+                                    else if (line.Contains("add optimization TS structure")) requestedTSstructures_temp.Add(ParseTSstructure(line));
+                                    else if (line.Contains("add plan objective")) planObj_temp.Add(ParsePlanObjective(line));
+                                    else if (line.Contains("add plan dose info")) planDoseInfo_temp.Add(ParseRequestedPlanDoseInfo(line));
+                                }
+                            }
+
+                            if (TSManipulation_temp.Any()) tempTemplate.SetTSManipulations(TSManipulation_temp);
+                            if (createRings_temp.Any()) tempTemplate.SetCreateRings(createRings_temp);
+                            if (TSstructures_temp.Any()) tempTemplate.SetCreateTSStructures(TSstructures_temp);
+                            if (initOptConst_temp.Any()) tempTemplate.SetInitOptimizationConstraints(initOptConst_temp);
+                            if (targets_temp.Any()) tempTemplate.SetTargets(targets_temp);
+                            if (planObj_temp.Any()) tempTemplate.SetPlanObjectives(planObj_temp);
+                            if (requestedTSstructures_temp.Any()) tempTemplate.SetRequestedOptTSStructures(requestedTSstructures_temp);
+                            if (planDoseInfo_temp.Any()) tempTemplate.SetRequestedPlanDoseInfo(planDoseInfo_temp);
                         }
                     }
                 }

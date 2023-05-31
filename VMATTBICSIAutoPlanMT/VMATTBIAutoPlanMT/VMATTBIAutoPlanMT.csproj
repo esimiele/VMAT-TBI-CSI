@@ -99,7 +99,9 @@
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <None Include="Configuration\VMAT_TBI_config.ini" />
-    <None Include="PlanTemplates\TBI_regimen1.ini" />
+    <None Include="PlanTemplates\TBI_SclerodermaTrial.ini" />
+    <None Include="PlanTemplates\TBI_NonMyeloablative.ini" />
+    <None Include="PlanTemplates\TBI_Myeloablative.ini" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
