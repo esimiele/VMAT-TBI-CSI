@@ -668,7 +668,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             List<Tuple<string, string>> tmp = new List<Tuple<string, string>> { };
             if (templateList.SelectedItem != null)
             {
-                foreach (Tuple<string, string> itr in ((CSIAutoPlanTemplate)templateList.SelectedItem).GetCreateTSStructures()) tmp.Add(itr);
+                foreach (Tuple<string, string> itr in ((TBIAutoPlanTemplate)templateList.SelectedItem).GetCreateTSStructures()) tmp.Add(itr);
             }
             GeneralUIHelper.ClearList(TSGenerationSP);
             //populate the comboboxes
@@ -1346,7 +1346,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         private void Templates_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
+            TBIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as TBIAutoPlanTemplate;
             if (selectedTemplate == null) return;
             dosePerFxTB.Text = "";
             numFxTB.Text = "";
@@ -1461,12 +1461,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
             else if (templateBuildOptionCB.SelectedItem.ToString().ToLower() == "current parameters")
             {
-                //if (!parsedTargetList.targetList.Any())
-                //{
-                //    log.LogError("Error! Enter parameters into the UI before trying to use them to make a new plan template!");
-                //    return;
-                //}
-
                 //set name
                 templateNameTB.Text = "--new template--";
 
@@ -1541,7 +1535,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> templateOptParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(templateOptParams_sp).Item1;
             prospectiveTemplate.SetInitOptimizationConstraints(templateOptParametersListList.First().Item2);
 
-            templatePreviewTB.Text = TemplateBuilder.GenerateTemplatePreviewText(prospectiveTemplate);
+            templatePreviewTB.Text = TemplateBuilder.GenerateTemplatePreviewText(prospectiveTemplate).ToString();
             templatePreviewScroller.ScrollToTop();
         }
 
@@ -1570,7 +1564,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 }
             }
 
-            File.WriteAllText(fileName, TemplateBuilder.GenerateSerializedTemplate(prospectiveTemplate));
+            File.WriteAllText(fileName, TemplateBuilder.GenerateSerializedTemplate(prospectiveTemplate).ToString());
             PlanTemplates.Add(prospectiveTemplate);
             DisplayConfigurationParameters();
             templateList.ScrollIntoView(prospectiveTemplate);

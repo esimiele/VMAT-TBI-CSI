@@ -166,10 +166,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 File.AppendAllText(fileName, output);
                 return false;
             }
-            else
-            {
-                return true;
-            }
+            else return true;
         }
     }
 

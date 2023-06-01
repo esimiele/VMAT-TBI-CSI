@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;

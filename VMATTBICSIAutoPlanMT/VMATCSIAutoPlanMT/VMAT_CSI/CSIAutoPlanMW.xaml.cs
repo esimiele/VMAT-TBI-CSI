@@ -1941,7 +1941,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             prospectiveTemplate.SetInitOptimizationConstraints(templateOptParametersListList.First().Item2);
             prospectiveTemplate.SetBoostOptimizationConstraints(templateOptParametersListList.Last().Item2);
 
-            templatePreviewTB.Text = TemplateBuilder.GenerateTemplatePreviewText(prospectiveTemplate);
+            templatePreviewTB.Text = TemplateBuilder.GenerateTemplatePreviewText(prospectiveTemplate).ToString();
             templatePreviewScroller.ScrollToTop();
         }
 
@@ -1970,7 +1970,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 }
             }
 
-            File.WriteAllText(fileName, TemplateBuilder.GenerateSerializedTemplate(prospectiveTemplate));
+            File.WriteAllText(fileName, TemplateBuilder.GenerateSerializedTemplate(prospectiveTemplate).ToString());
             PlanTemplates.Add(prospectiveTemplate);
             DisplayConfigurationParameters();
             templateList.ScrollIntoView(prospectiveTemplate);
@@ -2048,7 +2048,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             else configTB.Text += "No default TS manipulations to list" + Environment.NewLine + Environment.NewLine;
 
-            if(PlanTemplates.Any()) configTB.Text += ConfigurationUIHelper.PrintPlanTemplateConfigurationParameters(PlanTemplates.ToList()).ToString();
+            if(PlanTemplates.Any()) configTB.Text += ConfigurationUIHelper.PrintCSIPlanTemplateConfigurationParameters(PlanTemplates.ToList()).ToString();
 
             configScroller.ScrollToTop();
         }

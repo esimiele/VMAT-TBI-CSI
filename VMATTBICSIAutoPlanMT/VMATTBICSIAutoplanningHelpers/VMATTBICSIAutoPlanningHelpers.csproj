@@ -115,7 +115,7 @@
     <Compile Include="BaseClasses\OptimizationLoopBase.cs" />
     <Compile Include="BaseClasses\PlaceBeamsBase.cs" />
     <Compile Include="BaseClasses\PlanPrepBase.cs" />
-    <Compile Include="BaseClasses\PlanTemplateBase.cs" />
+    <Compile Include="BaseClasses\AutoPlanTemplateBase.cs" />
     <Compile Include="Enums\OptimizationObjectiveTypeEnum.cs" />
     <Compile Include="Enums\TSManipulationTypeEnum.cs" />
     <Compile Include="Helpers\CalculationHelper.cs" />

@@ -108,7 +108,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                             //preparation
                             List<Tuple<string, TSManipulationType, double>> TSManipulation_temp = new List<Tuple<string, TSManipulationType, double>> { };
                             List<Tuple<string, string>> TSstructures_temp = new List<Tuple<string, string>> { };
-                            List<Tuple<string, double, double, double>> createRings_temp = new List<Tuple<string, double, double, double>> { };
                             List<Tuple<string, OptimizationObjectiveType, double, double, int>> initOptConst_temp = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
                             List<Tuple<string, double, string>> targets_temp = new List<Tuple<string, double, string>> { };
                             //optimization loop
@@ -135,7 +134,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                                         }
                                     }
                                     else if (line.Contains("add TS manipulation")) TSManipulation_temp.Add(ParseTSManipulation(line));
-                                    else if (line.Contains("create ring")) createRings_temp.Add(ParseCreateRing(line));
                                     else if (line.Contains("add init opt constraint")) initOptConst_temp.Add(ParseOptimizationConstraint(line));
                                     else if (line.Contains("create TS")) TSstructures_temp.Add(ParseCreateTS(line));
                                     else if (line.Contains("add target")) targets_temp.Add(ParseTargets(line));
@@ -146,7 +144,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                             }
 
                             if (TSManipulation_temp.Any()) tempTemplate.SetTSManipulations(TSManipulation_temp);
-                            if (createRings_temp.Any()) tempTemplate.SetCreateRings(createRings_temp);
                             if (TSstructures_temp.Any()) tempTemplate.SetCreateTSStructures(TSstructures_temp);
                             if (initOptConst_temp.Any()) tempTemplate.SetInitOptimizationConstraints(initOptConst_temp);
                             if (targets_temp.Any()) tempTemplate.SetTargets(targets_temp);

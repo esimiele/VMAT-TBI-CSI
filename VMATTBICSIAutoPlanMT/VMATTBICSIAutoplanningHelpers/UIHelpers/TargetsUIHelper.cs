@@ -7,12 +7,13 @@ using System.Text;
 using VMS.TPS.Common.Model.API;
 using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
 using VMS.TPS.Common.Model.Types;
+using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
     public static class TargetsUIHelper
     {
-        public static List<Tuple<string, double, string>> AddTargetDefaults(CSIAutoPlanTemplate template, StructureSet selectedSS)
+        public static List<Tuple<string, double, string>> AddTargetDefaults(AutoPlanTemplateBase template, StructureSet selectedSS)
         {
             List<Tuple<string, double, string>> tmpList = new List<Tuple<string, double, string>> { Tuple.Create("--select--", 0.0, "--select--") };
             List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>> { };

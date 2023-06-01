@@ -74,8 +74,8 @@ namespace VMATTBICSIOptLoopMT
         bool useFlash = false;
         bool logFileLoaded = false;
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
-        public ObservableCollection<CSIAutoPlanTemplate> PlanTemplates { get; set; }
-        public CSIAutoPlanTemplate selectedTemplate;
+        public ObservableCollection<AutoPlanTemplateBase> PlanTemplates { get; set; }
+        public AutoPlanTemplateBase selectedTemplate;
         string selectedTemplateName = "";
         //to be read from the plan prep log files
         PlanType planType;
@@ -99,7 +99,7 @@ namespace VMATTBICSIOptLoopMT
             string logConfigurationFile = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini";
             if (File.Exists(logConfigurationFile)) LoadConfigurationSettings(logConfigurationFile);
 
-            PlanTemplates = new ObservableCollection<CSIAutoPlanTemplate>() { new CSIAutoPlanTemplate("--select--") };
+            PlanTemplates = new ObservableCollection<AutoPlanTemplateBase>() { };
             DataContext = this;
             if(app != null)
             {
@@ -328,7 +328,7 @@ namespace VMATTBICSIOptLoopMT
         private void Templates_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (pi == null) return;
-            selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
+            selectedTemplate = templateList.SelectedItem as AutoPlanTemplateBase;
             if (selectedTemplate == null) return;
             UpdateSelectedTemplate();
         }

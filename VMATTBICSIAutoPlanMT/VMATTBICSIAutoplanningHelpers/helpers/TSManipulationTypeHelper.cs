@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
+﻿using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
