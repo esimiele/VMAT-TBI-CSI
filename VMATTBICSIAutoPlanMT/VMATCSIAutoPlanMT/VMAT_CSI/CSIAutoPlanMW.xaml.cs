@@ -239,7 +239,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             AddTargetDefaults_Click(null, null);
             AddDefaultTuningStructures_Click(null, null);
-            AddDefaultStructureManipulations_Click(null, null);
+            AddDefaultStructureManipulations();
         }
 
         private void Templates_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -992,10 +992,15 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
         private void AddDefaultStructureManipulations_Click(object sender, RoutedEventArgs e)
         {
-            if (selectedSS == null) 
-            { 
-                log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!"); 
-                return; 
+            AddDefaultStructureManipulations(true);
+        }
+
+        private void AddDefaultStructureManipulations(bool fromButtonClickEvent = false)
+        {
+            if (selectedSS == null)
+            {
+                log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
+                return;
             }
             if (checkStructuresToUnion) structureIdsPostUnion = CheckLRStructures();
             //copy the sparing structures in the defaultSpareStruct list to a temporary vector
@@ -1005,10 +1010,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 templateSpareList = new List<Tuple<string, TSManipulationType, double>>(StructureTuningHelper.AddTemplateSpecificStructureManipulations((templateList.SelectedItem as CSIAutoPlanTemplate).GetTSManipulations(), templateSpareList, pi.Sex));
             }
-            if (!templateSpareList.Any()) 
-            { 
-                log.LogError("Warning! No default tuning structure manipulations contained in the selected template!"); 
-                return; 
+            if (!templateSpareList.Any())
+            {
+                if(fromButtonClickEvent) log.LogError("Warning! No default tuning structure manipulations contained in the selected template!");
+                return;
             }
 
             string missOutput = "";
