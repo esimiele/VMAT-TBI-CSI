@@ -15,7 +15,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
     {
         public List<Tuple<string, List<string>>> GetIsoNames() { return isoNames; }
         public List<string> GetAddedStructures() { return addedStructures; }
-        public List<Tuple<string, TSManipulationType>> GetOptParameters() { return optParameters; }
         public List<Tuple<string, TSManipulationType, double>> GetSparingList() { return TSManipulationList; }
         public bool GetUpdateSparingListStatus() { return updateTSManipulationList; }
         public string GetErrorStackTrace() { return stackTraceError; }
@@ -24,7 +23,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         //structure, manipulation type, added margin (if applicable)
         protected List<Tuple<string, TSManipulationType, double>> TSManipulationList;
         protected List<string> addedStructures = new List<string> { };
-        protected List<Tuple<string, TSManipulationType>> optParameters = new List<Tuple<string, TSManipulationType>> { };
         protected bool useFlash = false;
         //plan Id, list of isocenter names for this plan
         protected List<Tuple<string,List<string>>> isoNames = new List<Tuple<string, List<string>>> { };
@@ -44,11 +42,11 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
-        protected virtual bool CreateFlash()
+        protected virtual bool PerformTSStructureManipulation()
         {
-            //no virtual method implementation as this method is really only useful for VMAT TBI as VMAT CSI already has a healthy margin going from CTV->PTV
             return false;
         }
+
 
         protected virtual bool CalculateNumIsos()
         {
@@ -80,6 +78,71 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             }
             else ProvideUIUpdate(100, "No structures to union!");
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
+            return false;
+        }
+
+        protected Structure GetTSTarget(string targetId)
+        {
+            string newName = $"TS_{targetId}";
+            if (newName.Length > 16) newName = newName.Substring(0, 16);
+            ProvideUIUpdate($"Retrieving TS target: {newName}");
+            Structure addedTSTarget = StructureTuningHelper.GetStructureFromId(newName, selectedSS);
+            if (addedTSTarget == null)
+            {
+                //left here because of special logic to generate the structure if it doesn't exist
+                ProvideUIUpdate($"TS target {newName} does not exist. Creating it now!");
+                addedTSTarget = AddTSStructures(new Tuple<string, string>("CONTROL", newName));
+                ProvideUIUpdate($"Copying target {targetId} contours onto {newName}");
+                addedTSTarget.SegmentVolume = StructureTuningHelper.GetStructureFromId(targetId, selectedSS).Margin(0.0);
+            }
+            return addedTSTarget;
+        }
+
+        protected bool ManipulateTuningStructures(Tuple<string, TSManipulationType, double> manipulationItem, Structure target, ref int counter, ref int calcItems)
+        {
+            Structure theStructure = StructureTuningHelper.GetStructureFromId(manipulationItem.Item1, selectedSS);
+            if (manipulationItem.Item2 == TSManipulationType.CropFromBody)
+            {
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Cropping {manipulationItem.Item1} from Body with margin {manipulationItem.Item3} cm");
+                //crop from body
+                (bool failOp, StringBuilder errorOpMessage) = ContourHelper.CropStructureFromBody(theStructure, selectedSS, manipulationItem.Item3);
+                if (failOp)
+                {
+                    ProvideUIUpdate(errorOpMessage.ToString());
+                    return true;
+                }
+            }
+            else if (manipulationItem.Item2 == TSManipulationType.CropTargetFromStructure)
+            {
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Cropping target {target.Id} from {manipulationItem.Item1} with margin {manipulationItem.Item3} cm");
+                //crop target from structure
+                (bool failCrop, StringBuilder errorCropMessage) = ContourHelper.CropTargetFromStructure(target, theStructure, manipulationItem.Item3);
+                if (failCrop)
+                {
+                    ProvideUIUpdate(errorCropMessage.ToString());
+                    return true;
+                }
+            }
+            else if (manipulationItem.Item2 == TSManipulationType.ContourOverlapWithTarget)
+            {
+                ProvideUIUpdate($"Contouring overlap between {manipulationItem.Item1} and {target.Id}");
+                string overlapName = $"ts_{manipulationItem.Item1}&&{target.Id}";
+                if (overlapName.Length > 16) overlapName = overlapName.Substring(0, 16);
+                Structure addedTSNormal = AddTSStructures(new Tuple<string, string>("CONTROL", overlapName));
+                addedTSNormal.SegmentVolume = theStructure.Margin(0.0);
+                (bool failOverlap, StringBuilder errorOverlapMessage) = ContourHelper.ContourOverlap(target, addedTSNormal, manipulationItem.Item3);
+                if (failOverlap)
+                {
+                    ProvideUIUpdate(errorOverlapMessage.ToString());
+                    return true;
+                }
+                if (addedTSNormal.IsEmpty)
+                {
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"{overlapName} was contoured, but it's empty! Removing!");
+                    selectedSS.RemoveStructure(addedTSNormal);
+                }
+                else ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Finished contouring {overlapName}");
+            }
             return false;
         }
 
@@ -363,7 +426,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             {
                 addedStructure = selectedSS.AddStructure(dicomType, structName);
                 addedStructures.Add(structName);
-                optParameters.Add(Tuple.Create(structName, TSManipulationType.None));
             }
             else ProvideUIUpdate($"Can't add {structName} to the structure set!");
             return addedStructure;

@@ -117,6 +117,22 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return (fail, sb);
         }
 
+        public static (bool, StringBuilder) CopyStructureOntoStructure(Structure baseStructure, Structure structureToContour)
+        {
+            StringBuilder sb = new StringBuilder();
+            bool fail = false;
+            try
+            {
+                structureToContour.SegmentVolume = baseStructure.Margin(0.0);
+            }
+            catch(Exception e)
+            {
+                sb.AppendLine($"Error! Could not copy {baseStructure.Id} onto {structureToContour.Id} because:");
+                sb.AppendLine(e.Message);
+            }
+            return (fail, sb);
+        }
+
         public static (bool, StringBuilder) ContourOverlapAndUnion(Structure target, Structure normal, Structure unionStructure, StructureSet selectedSS, double marginInCm)
         {
             StringBuilder sb = new StringBuilder();

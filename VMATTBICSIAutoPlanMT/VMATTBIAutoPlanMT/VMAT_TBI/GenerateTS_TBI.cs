@@ -9,6 +9,7 @@ using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
+using System.Text;
 
 namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
@@ -94,10 +95,62 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             return false;
         }
 
-        private bool ContourHumanBodyStructure(Structure humanBody)
+        private bool CopyBodyStructureOnToStructure(Structure addedStructure)
         {
             Structure body = StructureTuningHelper.GetStructureFromId("Body", selectedSS);
-            humanBody.SegmentVolume = body.Margin(0.0);
+            addedStructure.SegmentVolume = body.Margin(0.0);
+            return false;
+        }
+
+        private bool ContourLungsEvalVolume(Structure addedStructure)
+        {
+            Structure lung_block_left = StructureTuningHelper.GetStructureFromId("lung_block_l", selectedSS);
+            Structure lung_block_right = StructureTuningHelper.GetStructureFromId("lung_block_r", selectedSS);
+            if(lung_block_left == null || lung_block_left.IsEmpty)
+            {
+                ProvideUIUpdate($"Error! Lung_Block_L volume is null or empty! Could not contour Lungs_Eval structure! Exiting!", true);
+                return true;
+            }
+            if (lung_block_right == null || lung_block_right.IsEmpty)
+            {
+                ProvideUIUpdate($"Error! Lung_Block_R volume is null or empty! Could not contour Lungs_Eval structure! Exiting!", true);
+                return true;
+            }
+            addedStructure.SegmentVolume = lung_block_left.Or(lung_block_right.Margin(0.0));
+            return false;
+        }
+
+        private bool ContourBlockVolume(Structure addedStructure)
+        {
+            Structure baseStructure;
+            AxisAlignedMargins margins;
+            if (addedStructure.Id.ToLower().Contains("lung_block_l"))
+            {
+                //AxisAlignedMargins(inner or outer margin, margin from negative x, margin for negative y, margin for negative z, margin for positive x, margin for positive y, margin for positive z)
+                baseStructure = StructureTuningHelper.GetStructureFromId("lung_l", selectedSS);
+                margins = new AxisAlignedMargins(StructureMarginGeometry.Inner, 10.0, 10.0, 15.0, 10.0, 10.0, 10.0);
+            }
+            else if (addedStructure.Id.ToLower().Contains("lung_block_r"))
+            {
+                baseStructure = StructureTuningHelper.GetStructureFromId("lung_r", selectedSS);
+                margins = new AxisAlignedMargins(StructureMarginGeometry.Inner, 10.0, 10.0, 15.0, 10.0, 10.0, 10.0);
+            }
+            else if (addedStructure.Id.ToLower().Contains("kidney_block_l"))
+            {
+                baseStructure = StructureTuningHelper.GetStructureFromId("kidney_l", selectedSS);
+                margins = new AxisAlignedMargins(StructureMarginGeometry.Outer, 5.0, 20.0, 20.0, 20.0, 20.0, 20.0);
+            }
+            else
+            {
+                baseStructure = StructureTuningHelper.GetStructureFromId("kidney_r", selectedSS);
+                margins = new AxisAlignedMargins(StructureMarginGeometry.Outer, 5.0, 20.0, 20.0, 20.0, 20.0, 20.0);
+            }
+            if(baseStructure == null || baseStructure.IsEmpty)
+            {
+                ProvideUIUpdate($"Error! Could not retrieve base structure to contour {addedStructure.Id}! Exiting!", true);
+                return true;
+            }
+            addedStructure.SegmentVolume = baseStructure.AsymmetricMargin(margins);
             return false;
         }
 
@@ -110,15 +163,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             int counter = 0;
             //Need to add the Human body, PTV_BODY, and TS_PTV_VMAT contours manually
             //if these structures were present, they should have been removed (regardless if they were contoured or not). 
-            foreach (Tuple<string, string> itr in TS_structures.Where(x => x.Item2.ToLower().Contains("human") || x.Item2.ToLower().Contains("ptv")))
-            {
-                //4-15-2022 
-                //if the human_body structure exists and is not null, it is likely this script has been run previously. As a precaution, copy the human_body structure onto the body (in case flash was requested
-                //in the previous run of the script)
-                //if (itr.Item2.ToLower() == "human_body" && tmp != null) selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").SegmentVolume = tmp.Margin(0.0);
-
-                AddTSStructures(itr);
-            }
+            foreach (Tuple<string, string> itr in TS_structures) AddTSStructures(itr);
 
             ProvideUIUpdate(100, "Finished adding tuning structures!");
             ProvideUIUpdate(0, "Contouring tuning structures!");
@@ -130,33 +175,26 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 Structure addedStructure = StructureTuningHelper.GetStructureFromId(itr, selectedSS);
                 if (itr.ToLower().Contains("human"))
                 {
-                    if (ContourHumanBodyStructure(addedStructure)) return true;
+                    if (CopyBodyStructureOnToStructure(addedStructure)) return true;
                 }
                 else if (itr.ToLower().Contains("ptv_body"))
                 {
-                    //get the body contour and create the ptv structure using the user-specified inner margin
-                    Structure tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "body");
-                    tmp.SegmentVolume = tmp1.Margin(-targetMargin * 10);
-
-                    //subtract all the structures the user wants to spare from PTV_Body
-                    foreach (Tuple<string, TSManipulationType, double> spare in TSManipulationList)
+                    if (CopyBodyStructureOnToStructure(addedStructure)) return true;
+                    //contour the arms as the overlap between the current armsAvoid structure and the body with a 5mm outer margin
+                    (bool fail, StringBuilder errorMessage) = ContourHelper.CropStructureFromBody(addedStructure, selectedSS, -targetMargin);
+                    if (fail)
                     {
-                        if (spare.Item2 == TSManipulationType.CropTargetFromStructure)
-                        {
-                            if (spare.Item1.ToLower() == "kidneys" && scleroTrial)
-                            {
-                                tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "kidney_block_r");
-                                tmp.SegmentVolume = tmp.Sub(tmp1.Margin(0.0));
-                                tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "kidney_block_l");
-                                tmp.SegmentVolume = tmp.Sub(tmp1.Margin(0.0));
-                            }
-                            else
-                            {
-                                tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == spare.Item1.ToLower());
-                                tmp.SegmentVolume = tmp.Sub(tmp1.Margin((spare.Item3) * 10));
-                            }
-                        }
+                        ProvideUIUpdate(errorMessage.ToString());
+                        return true;
                     }
+                }
+                else if (itr.ToLower().Contains("_block"))
+                {
+                    if (ContourBlockVolume(addedStructure)) return true;
+                }
+                else if (itr.ToLower().Contains("_eval"))
+                {
+                    if (ContourLungsEvalVolume(addedStructure)) return true;
                 }
                 else
                 {
@@ -164,195 +202,110 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 }
             }
 
-            //now contour the various structures
-            foreach (string s in addedStructures)
-            {
-                Structure tmp = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == s.ToLower());
-                //MessageBox.Show(s);
-                if (!(s.ToLower().Contains("ptv")))
-                {
-                    
-                }
-                else if (s.ToLower() == "ptv_body")
-                {
-                    
-                }
-                else if (s.ToLower() == "ts_ptv_vmat")
-                {
-                    //copy the ptv_body contour onto the TS_ptv_vmat contour
-                    Structure tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "ptv_body");
-                    tmp.SegmentVolume = tmp1.Margin(0.0);
-
-                    //matchplane exists and needs to be cut from TS_PTV_Body. Also remove all TS_PTV_Body segements inferior to match plane
-                    if (selectedSS.Structures.Where(x => x.Id.ToLower() == "matchline").Any())
-                    {
-                        //find the image plane where the matchline is location. Record this value and break the loop. Also find the first slice where the ptv_body contour starts and record this value
-                        Structure matchline = selectedSS.Structures.First(x => x.Id.ToLower() == "matchline");
-                        bool lowLimNotFound = true;
-                        int lowLim = -1;
-                        if (!matchline.IsEmpty)
-                        {
-                            int matchplaneLocation = 0;
-                            for (int i = 0; i != selectedSS.Image.ZSize - 1; i++)
-                            {
-                                if (matchline.GetContoursOnImagePlane(i).Any())
-                                {
-                                    matchplaneLocation = i;
-                                    break;
-                                }
-                                if (lowLimNotFound && tmp1.GetContoursOnImagePlane(i).Any())
-                                {
-                                    lowLim = i;
-                                    lowLimNotFound = false;
-                                }
-                            }
-
-                            if (selectedSS.Structures.Where(x => x.Id.ToLower() == "dummybox").Any()) selectedSS.RemoveStructure(selectedSS.Structures.First(x => x.Id.ToLower() == "dummybox"));
-                            Structure dummyBox = selectedSS.AddStructure("CONTROL", "DummyBox");
-
-                            //get min/max positions of ptv_body contour to contour the dummy box for creating TS_PTV_Legs
-                            Point3DCollection ptv_bodyPts = tmp1.MeshGeometry.Positions;
-                            double xMax = ptv_bodyPts.Max(p => p.X) + 50.0;
-                            double xMin = ptv_bodyPts.Min(p => p.X) - 50.0;
-                            double yMax = ptv_bodyPts.Max(p => p.Y) + 50.0;
-                            double yMin = ptv_bodyPts.Min(p => p.Y) - 50.0;
-
-                            //box with contour points located at (x,y), (x,0), (x,-y), (0,-y), (-x,-y), (-x,0), (-x, y), (0,y)
-                            VVector[] pts = new[] {
-                                    new VVector(xMax, yMax, 0),
-                                    new VVector(xMax, 0, 0),
-                                    new VVector(xMax, yMin, 0),
-                                    new VVector(0, yMin, 0),
-                                    new VVector(xMin, yMin, 0),
-                                    new VVector(xMin, 0, 0),
-                                    new VVector(xMin, yMax, 0),
-                                    new VVector(0, yMax, 0)};
-
-                            //give 5cm margin on TS_PTV_LEGS (one slice of the CT should be 5mm) in case user wants to include flash up to 5 cm
-                            for (int i = matchplaneLocation - 1; i > lowLim - 10; i--) dummyBox.AddContourOnImagePlane(pts, i);
-
-                            //do the structure manipulation
-                            if (selectedSS.Structures.Where(x => x.Id.ToLower() == "ts_ptv_legs").Any()) selectedSS.RemoveStructure(selectedSS.Structures.First(x => x.Id.ToLower() == "ts_ptv_legs"));
-                            Structure TS_legs = selectedSS.AddStructure("CONTROL", "TS_PTV_Legs");
-                            TS_legs.SegmentVolume = dummyBox.And(tmp.Margin(0));
-                            //subtract both dummybox and matchline from TS_PTV_VMAT
-                            tmp.SegmentVolume = tmp.Sub(dummyBox.Margin(0.0));
-                            tmp.SegmentVolume = tmp.Sub(matchline.Margin(0.0));
-                            //remove the dummybox structure if flash is NOT being used as its no longer needed
-                            if (!useFlash) selectedSS.RemoveStructure(dummyBox);
-                        }
-                    }
-                }
-            }
-
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
 
-        private bool PerformTSStructureManipulation()
+        protected override bool PerformTSStructureManipulation()
         {
+            UpdateUILabel("Perform TS Manipulations: ");
+            int counter = 0;
+            int calcItems = TSManipulationList.Count;
             //determine if any TS structures need to be added to the selected structure set (i.e., were not present or were removed in the first foreach loop)
             //this is provided here to only add additional TS if they are relevant to the current case (i.e., it doesn't make sense to add the brain TS's if we 
             //are not interested in sparing brain)
-            foreach (Tuple<string, TSManipulationType, double> itr in TSManipulationList)
+            if (TSManipulationList.Any())
             {
-                optParameters.Add(Tuple.Create(itr.Item1, itr.Item2));
-                if (itr.Item2 == TSManipulationType.CropTargetFromStructure)
+                Structure ptv_body = StructureTuningHelper.GetStructureFromId("ptv_body", selectedSS);
+                if(ptv_body == null || ptv_body.IsEmpty)
                 {
-                    if (itr.Item1.ToLower().Contains("lungs"))
-                    {
-                        foreach (Tuple<string, string> itr1 in TS_structures.Where(x => x.Item2.ToLower().Contains("lungs"))) AddTSStructures(itr1);
-                        //do NOT add the scleroStructures to the addedStructures vector as these will be handled manually!
-                        if (scleroTrial)
-                        {
-                            if (selectedSS.CanAddStructure("CONTROL", "Lung_Block_L")) selectedSS.AddStructure("CONTROL", "Lung_Block_L");
-                            if (selectedSS.CanAddStructure("CONTROL", "Lung_Block_R")) selectedSS.AddStructure("CONTROL", "Lung_Block_R");
-                            if (selectedSS.CanAddStructure("CONTROL", "Lungs_Eval")) selectedSS.AddStructure("CONTROL", "Lungs_Eval");
-                        }
-                    }
-                    else if (itr.Item1.ToLower().Contains("liver")) foreach (Tuple<string, string> itr1 in TS_structures.Where(x => x.Item2.ToLower().Contains("liver"))) AddTSStructures(itr1);
-                    else if (itr.Item1.ToLower().Contains("brain")) foreach (Tuple<string, string> itr1 in TS_structures.Where(x => x.Item2.ToLower().Contains("brain"))) AddTSStructures(itr1);
-                    else if (itr.Item1.ToLower().Contains("kidneys"))
-                    {
-                        foreach (Tuple<string, string> itr1 in TS_structures.Where(x => x.Item2.ToLower().Contains("kidneys"))) AddTSStructures(itr1);
-                        //do NOT add the scleroStructures to the addedStructures vector as these will be handled manually!
-                        if (scleroTrial)
-                        {
-                            if (selectedSS.CanAddStructure("CONTROL", "Kidney_Block_R")) selectedSS.AddStructure("CONTROL", "Kidney_Block_R");
-                            if (selectedSS.CanAddStructure("CONTROL", "Kidney_Block_L")) selectedSS.AddStructure("CONTROL", "Kidney_Block_L");
-                        }
-                    }
+                    ProvideUIUpdate($"Error! PTV_Body structure is null or empty! Cannot perform tuning structure manipulations! Exiting!", true);
+                    return true;
                 }
-            }
-
-            if (scleroTrial)
-            {
-                foreach (Tuple<string, string> itr in scleroStructures)
+                foreach (Tuple<string, TSManipulationType, double> itr in TSManipulationList)
                 {
-                    Structure tmp = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.Item2.ToLower());
-                    Structure tmp1 = null;
-                    if (itr.Item2.ToLower().Contains("lung_block_l"))
-                    {
-
-                        //AxisAlignedMargins(inner or outer margin, margin from negative x, margin for negative y, margin for negative z, margin for positive x, margin for positive y, margin for positive z)
-                        tmp1 = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "lung_l");
-                        if (tmp1 != null) tmp.SegmentVolume = tmp1.AsymmetricMargin(new AxisAlignedMargins(
-                                                                                                   StructureMarginGeometry.Inner,
-                                                                                                   10.0,
-                                                                                                   10.0,
-                                                                                                   15.0,
-                                                                                                   10.0,
-                                                                                                   10.0,
-                                                                                                   10.0));
-                    }
-                    else if (itr.Item2.ToLower().Contains("lung_block_r"))
-                    {
-                        tmp1 = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "lung_r");
-                        if (tmp1 != null) tmp.SegmentVolume = tmp1.AsymmetricMargin(new AxisAlignedMargins(
-                                                                                                   StructureMarginGeometry.Inner,
-                                                                                                   10.0,
-                                                                                                   10.0,
-                                                                                                   15.0,
-                                                                                                   10.0,
-                                                                                                   10.0,
-                                                                                                   10.0));
-                    }
-                    else if (itr.Item2.ToLower().Contains("lungs_eval"))
-                    {
-                        tmp1 = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "lung_block_l");
-                        Structure tmp2 = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "lung_block_r");
-                        if (tmp1 != null && tmp2 != null) tmp.SegmentVolume = tmp2.Or(tmp1.Margin(0.0));
-                    }
-                    else if (itr.Item2.ToLower().Contains("kidney_block_l"))
-                    {
-                        tmp1 = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "kidney_l");
-                        if (tmp1 != null) tmp.SegmentVolume = tmp1.AsymmetricMargin(new AxisAlignedMargins(
-                                                                                                   StructureMarginGeometry.Outer,
-                                                                                                   5.0,
-                                                                                                   20.0,
-                                                                                                   20.0,
-                                                                                                   20.0,
-                                                                                                   20.0,
-                                                                                                   20.0));
-                    }
-                    else
-                    {
-                        tmp1 = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "kidney_r");
-                        if (tmp1 != null) tmp.SegmentVolume = tmp1.AsymmetricMargin(new AxisAlignedMargins(
-                                                                                                   StructureMarginGeometry.Outer,
-                                                                                                   20.0,
-                                                                                                   20.0,
-                                                                                                   20.0,
-                                                                                                   5.0,
-                                                                                                   20.0,
-                                                                                                   20.0));
-                    }
+                    if (ManipulateTuningStructures(itr, ptv_body, ref counter, ref calcItems)) return true;
+                }
+                Structure addedTSTarget = GetTSTarget(addedStructures.First(x => x.ToLower().Contains("ptv_body")));
+                (bool fail, StringBuilder message) = ContourHelper.CopyStructureOntoStructure(ptv_body, addedTSTarget);
+                if(fail)
+                {
+                    ProvideUIUpdate(message.ToString(), true);
+                    return true;
                 }
             }
             return false;
         }
 
-        protected override bool CreateFlash()
+        private bool CutTSTargetFromMatchline(Structure addedTSTarget)
+        {
+            //ts_ptv_vmat
+            //matchplane exists and needs to be cut from TS_PTV_Body. Also remove all TS_PTV_Body segements inferior to match plane
+            if (selectedSS.Structures.Where(x => x.Id.ToLower() == "matchline").Any())
+            {
+                //find the image plane where the matchline is location. Record this value and break the loop. Also find the first slice where the ptv_body contour starts and record this value
+                Structure matchline = StructureTuningHelper.GetStructureFromId("matchline", selectedSS);
+                if(matchline.IsEmpty)
+                {
+                    ProvideUIUpdate($"Error! Matchline structure is empty! Cannot cut {addedTSTarget.Id} at the matchplane! Exiting!", true);
+                    return true;
+                }
+                //bool lowLimNotFound = true;
+                //int lowLim = -1;
+                int matchplaneLocation = CalculationHelper.ComputeSlice(matchline.CenterPoint.z, selectedSS);
+                int addedTSTargetMinZ = CalculationHelper.ComputeSlice(addedTSTarget.MeshGeometry.Positions.Min(p => p.Z), selectedSS);
+                //for (int i = 0; i != selectedSS.Image.ZSize - 1; i++)
+                //{
+                //    if (matchline.GetContoursOnImagePlane(i).Any())
+                //    {
+                //        matchplaneLocation = i;
+                //        break;
+                //    }
+                //    if (lowLimNotFound && addedTSTarget.GetContoursOnImagePlane(i).Any())
+                //    {
+                //        lowLim = i;
+                //        lowLimNotFound = false;
+                //    }
+                //}
+
+                if (selectedSS.Structures.Where(x => x.Id.ToLower() == "dummybox").Any()) selectedSS.RemoveStructure(selectedSS.Structures.First(x => x.Id.ToLower() == "dummybox"));
+                Structure dummyBox = selectedSS.AddStructure("CONTROL", "DummyBox");
+
+                //get min/max positions of ptv_body contour to contour the dummy box for creating TS_PTV_Legs
+                Point3DCollection ptv_bodyPts = addedTSTarget.MeshGeometry.Positions;
+                double xMax = ptv_bodyPts.Max(p => p.X) + 50.0;
+                double xMin = ptv_bodyPts.Min(p => p.X) - 50.0;
+                double yMax = ptv_bodyPts.Max(p => p.Y) + 50.0;
+                double yMin = ptv_bodyPts.Min(p => p.Y) - 50.0;
+
+                //box with contour points located at (x,y), (x,0), (x,-y), (0,-y), (-x,-y), (-x,0), (-x, y), (0,y)
+                VVector[] pts = new[] {
+                                new VVector(xMax, yMax, 0),
+                                new VVector(xMax, 0, 0),
+                                new VVector(xMax, yMin, 0),
+                                new VVector(0, yMin, 0),
+                                new VVector(xMin, yMin, 0),
+                                new VVector(xMin, 0, 0),
+                                new VVector(xMin, yMax, 0),
+                                new VVector(0, yMax, 0)};
+
+                //give 5cm margin on TS_PTV_LEGS (one slice of the CT should be 5mm) in case user wants to include flash up to 5 cm
+                for (int i = matchplaneLocation; i > addedTSTargetMinZ - 10; i--) dummyBox.AddContourOnImagePlane(pts, i);
+
+                //do the structure manipulation
+                if (selectedSS.Structures.Where(x => x.Id.ToLower() == "ts_ptv_legs").Any()) selectedSS.RemoveStructure(selectedSS.Structures.First(x => x.Id.ToLower() == "ts_ptv_legs"));
+                Structure TS_legs = selectedSS.AddStructure("CONTROL", "TS_PTV_Legs");
+                TS_legs.SegmentVolume = dummyBox.And(addedTSTarget.Margin(0));
+                //subtract both dummybox and matchline from TS_PTV_VMAT
+                addedTSTarget.SegmentVolume = addedTSTarget.Sub(dummyBox.Margin(0.0));
+                addedTSTarget.SegmentVolume = addedTSTarget.Sub(matchline.Margin(0.0));
+                //remove the dummybox structure if flash is NOT being used as its no longer needed
+                if (!useFlash) selectedSS.RemoveStructure(dummyBox);
+            }
+            return false;
+        }
+
+        private bool CreateFlash()
         {
             //create flash for the plan per the users request
             //NOTE: IT IS IMPORTANT THAT ALL OF THE STRUCTURES CREATED IN THIS METHOD (I.E., ALL STRUCTURES USED TO GENERATE FLASH HAVE THE KEYWORD 'FLASH' SOMEWHERE IN THE STRUCTURE ID)!

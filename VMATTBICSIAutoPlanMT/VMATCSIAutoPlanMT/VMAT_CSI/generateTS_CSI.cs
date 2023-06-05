@@ -440,23 +440,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return false;
         }
 
-        private Structure GetTSTarget(string targetId)
-        {
-            string newName = $"TS_{targetId}";
-            if (newName.Length > 16) newName = newName.Substring(0, 16);
-            ProvideUIUpdate($"Retrieving TS target: {newName}");
-            Structure addedTSTarget = StructureTuningHelper.GetStructureFromId(newName, selectedSS); 
-            if (addedTSTarget == null)
-            {
-                //left here because of special logic to generate the structure if it doesn't exist
-                ProvideUIUpdate($"TS target {newName} does not exist. Creating it now!");
-                addedTSTarget = AddTSStructures(new Tuple<string, string>("CONTROL", newName));
-                ProvideUIUpdate($"Copying target {targetId} contours onto {newName}");
-                addedTSTarget.SegmentVolume = StructureTuningHelper.GetStructureFromId(targetId, selectedSS).Margin(0.0);
-            }
-            return addedTSTarget;
-        }
-
         private bool PerformTSStructureManipulation()
         {
             UpdateUILabel("Perform TS Manipulations: ");
@@ -488,49 +471,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     //normal structure id, manipulation type, added margin (if applicable)
                     foreach (Tuple<string, TSManipulationType, double> itr1 in TSManipulationList)
                     {
-                        Structure theStructure = StructureTuningHelper.GetStructureFromId(itr1.Item1, selectedSS);
-                        if(itr1.Item2 == TSManipulationType.CropFromBody)
-                        {
-                            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Cropping {itr1.Item1} from Body with margin {itr1.Item3} cm");
-                            //crop from body
-                            (bool failOp, StringBuilder errorOpMessage) = ContourHelper.CropStructureFromBody(theStructure, selectedSS, itr1.Item3);
-                            if (failOp)
-                            {
-                                ProvideUIUpdate(errorOpMessage.ToString());
-                                return true;
-                            }
-                        }
-                        else if(itr1.Item2 == TSManipulationType.CropTargetFromStructure)
-                        {
-                            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Cropping target {addedTSTarget.Id} from {itr1.Item1} with margin {itr1.Item3} cm");
-                            //crop target from structure
-                            (bool failCrop, StringBuilder errorCropMessage) = ContourHelper.CropTargetFromStructure(addedTSTarget, theStructure, itr1.Item3);
-                            if (failCrop)
-                            {
-                                ProvideUIUpdate(errorCropMessage.ToString());
-                                return true;
-                            }
-                        }
-                        else if(itr1.Item2 == TSManipulationType.ContourOverlapWithTarget)
-                        {
-                            ProvideUIUpdate($"Contouring overlap between {itr1.Item1} and {addedTSTarget.Id}");
-                            string overlapName = $"ts_{itr1.Item1}&&{itr.Item2}";
-                            if (overlapName.Length > 16) overlapName = overlapName.Substring(0, 16);
-                            Structure addedTSNormal = AddTSStructures(new Tuple<string, string>("CONTROL", overlapName));
-                            addedTSNormal.SegmentVolume = theStructure.Margin(0.0);
-                            (bool failOverlap, StringBuilder errorOverlapMessage) = ContourHelper.ContourOverlap(addedTSTarget, addedTSNormal, itr1.Item3);
-                            if (failOverlap)
-                            {
-                                ProvideUIUpdate(errorOverlapMessage.ToString());
-                                return true;
-                            }
-                            if (addedTSNormal.IsEmpty)
-                            {
-                                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"{overlapName} was contoured, but it's empty! Removing!");
-                                selectedSS.RemoveStructure(addedTSNormal);
-                            }
-                            else ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Finished contouring {overlapName}");
-                        }
+                        if (ManipulateTuningStructures(itr1, addedTSTarget, ref counter, ref calcItems)) return true;
                     }
                 }
                 else ProvideUIUpdate("No TS manipulations requested!");
