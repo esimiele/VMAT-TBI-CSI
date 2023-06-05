@@ -1004,13 +1004,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             if (checkStructuresToUnion) structureIdsPostUnion = CheckLRStructures();
             //copy the sparing structures in the defaultSpareStruct list to a temporary vector
-            List<Tuple<string, TSManipulationType, double>> templateSpareList = new List<Tuple<string, TSManipulationType, double>>(defaultTSStructureManipulations);
+            List<Tuple<string, TSManipulationType, double>> templateManipulationList = new List<Tuple<string, TSManipulationType, double>>(defaultTSStructureManipulations);
             //add the case-specific sparing structures to the temporary list
             if (templateList.SelectedItem != null)
             {
-                templateSpareList = new List<Tuple<string, TSManipulationType, double>>(StructureTuningHelper.AddTemplateSpecificStructureManipulations((templateList.SelectedItem as CSIAutoPlanTemplate).GetTSManipulations(), templateSpareList, pi.Sex));
+                templateManipulationList = new List<Tuple<string, TSManipulationType, double>>(StructureTuningHelper.AddTemplateSpecificStructureManipulations((templateList.SelectedItem as CSIAutoPlanTemplate).GetTSManipulations(), templateManipulationList, pi.Sex));
             }
-            if (!templateSpareList.Any())
+            if (!templateManipulationList.Any())
             {
                 if(fromButtonClickEvent) log.LogError("Warning! No default tuning structure manipulations contained in the selected template!");
                 return;
@@ -1021,7 +1021,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             int missCount = 0;
             int emptyCount = 0;
             List<Tuple<string, TSManipulationType, double>> defaultList = new List<Tuple<string, TSManipulationType, double>> { };
-            foreach (Tuple<string, TSManipulationType, double> itr in templateSpareList)
+            foreach (Tuple<string, TSManipulationType, double> itr in templateManipulationList)
             {
                 //check to ensure the structures in the templateSpareList vector are actually present in the selected structure set and are actually contoured. If they are, add them to the defaultList vector, which will be passed 
                 //to the add_sp_volumes method
@@ -2183,18 +2183,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                 line = ConfigurationHelper.CropLine(line, "{");
                                 energy_temp.Add(line.Substring(0, line.IndexOf("}")));
                             }
-                            //else if (line.Contains("add jaw position"))
-                            //{
-                            //    //parse the default requested number of beams per isocenter
-                            //    line = ConfigurationHelper.CropLine(line, "{");
-                            //    (bool fail, VRect<double> parsedPositions) = ConfigurationHelper.ParseJawPositions(line);
-                            //    if (fail)
-                            //    {
-                            //        log.LogError("Error! Jaw positions not defined correctly!");
-                            //        log.LogError(line);
-                            //    }
-                            //    else jawPos_temp.Add(parsedPositions);
-                            //}
                             else if (line.Contains("auto fit jaws to targets"))
                             {
                                 autoFitJaws = true;
@@ -2215,7 +2203,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //let the user know if the data parsing failed
             catch (Exception e) 
             { 
-                log.LogError(String.Format("Error could not load configuration file because: {0}\n\nAssuming default parameters", e.Message));
+                log.LogError($"Error could not load configuration file because: {e.Message}\n\nAssuming default parameters");
                 log.LogError(e.StackTrace, true);
                 return true; 
             }
@@ -2234,7 +2222,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             catch(Exception e)
             {
-                log.LogError(String.Format("Error could not load plan template file because: {0}", e.Message));
+                log.LogError($"Error could not load plan template file because: {e.Message}");
                 log.LogError(e.StackTrace, true);
                 return true;
             }

@@ -24,12 +24,12 @@ namespace VMATTBIAutoPlanMT
                 for (int i = 0; i < 2; i++) theArguments.Add(e.Args[i]);
             }
             Window mw = new VMAT_TBI.TBIAutoPlanMW(theArguments);
-            mw.Show();
-                //string binDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-                //string optLoopExe = Directory.GetFiles(binDir, "*.exe").FirstOrDefault(x => x.Contains("VMATTBICSIOptLoopMT"));
-                //ProcessStartInfo optLoopProcess = new ProcessStartInfo(optLoopExe);
-                //Process.Start(optLoopProcess);
-                //this.Shutdown();
+            if (!mw.GetCloseOpenPatientWindowStatus()) mw.Show();
+            //string binDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            //string optLoopExe = Directory.GetFiles(binDir, "*.exe").FirstOrDefault(x => x.Contains("VMATTBICSIOptLoopMT"));
+            //ProcessStartInfo optLoopProcess = new ProcessStartInfo(optLoopExe);
+            //Process.Start(optLoopProcess);
+            //this.Shutdown();
         }
     }
 }

@@ -21,23 +21,19 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
         private List<Tuple<string, string>> TS_structures;
-        private List<Tuple<string, string>> scleroStructures;
         private int numIsos;
         private int numVMATIsos;
         private double targetMargin;
-        private bool scleroTrial;
         private Structure flashStructure = null;
         private double flashMargin;
 
-        public GenerateTS_TBI(List<Tuple<string, string>> ts, List<Tuple<string, string>> sclero_ts, List<Tuple<string, TSManipulationType, double>> list, StructureSet ss, double tm, bool st, bool flash, Structure fSt, double fM)
+        public GenerateTS_TBI(List<Tuple<string, string>> ts, List<Tuple<string, TSManipulationType, double>> list, StructureSet ss, double tm, bool st, bool flash, Structure fSt, double fM)
         {
             //overloaded constructor for the case where the user wants to include flash in the simulation
             TS_structures = new List<Tuple<string, string>>(ts);
-            scleroStructures = new List<Tuple<string, string>>(sclero_ts);
             TSManipulationList = new List<Tuple<string, TSManipulationType, double>>(list);
             selectedSS = ss;
             targetMargin = tm;
-            scleroTrial = st;
             useFlash = flash;
             flashStructure = fSt;
             flashMargin = fM;
@@ -158,7 +154,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         protected override bool CreateTSStructures()
         {
             if (RemoveOldTSStructures(TS_structures, true)) return true;
-            if (scleroTrial) if (RemoveOldTSStructures(scleroStructures, true)) return true;
 
             //Need to add the Human body, PTV_BODY, and TS_PTV_VMAT contours manually
             //if these structures were present, they should have been removed (regardless if they were contoured or not). 
