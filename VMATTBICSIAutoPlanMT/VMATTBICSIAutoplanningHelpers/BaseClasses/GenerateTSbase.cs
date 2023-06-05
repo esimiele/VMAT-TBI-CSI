@@ -7,6 +7,7 @@ using System.Windows.Media.Media3D;
 using SimpleProgressWindow;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
+using System.Text;
 
 namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 {
@@ -48,9 +49,40 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             //no virtual method implementation as this method is really only useful for VMAT TBI as VMAT CSI already has a healthy margin going from CTV->PTV
             return false;
         }
+
+        protected virtual bool CalculateNumIsos()
+        {
+            return false;
+        }
         #endregion
 
         #region helper functions related to TS generation and manipulation
+        protected bool UnionLRStructures()
+        {
+            UpdateUILabel("Unioning Structures: ");
+            ProvideUIUpdate(0, "Checking for L and R structures to union!");
+            List<Tuple<Structure, Structure, string>> structuresToUnion = StructureTuningHelper.CheckStructuresToUnion(selectedSS);
+            if (structuresToUnion.Any())
+            {
+                int calcItems = structuresToUnion.Count;
+                int numUnioned = 0;
+                foreach (Tuple<Structure, Structure, string> itr in structuresToUnion)
+                {
+                    (bool fail, StringBuilder output) = StructureTuningHelper.UnionLRStructures(itr, selectedSS);
+                    if (!fail) ProvideUIUpdate((int)(100 * ++numUnioned / calcItems), $"Unioned {itr.Item3}");
+                    else
+                    {
+                        ProvideUIUpdate(output.ToString(), true);
+                        return true;
+                    }
+                }
+                ProvideUIUpdate(100, "Structures unioned successfully!");
+            }
+            else ProvideUIUpdate(100, "No structures to union!");
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
+            return false;
+        }
+
         private (bool, List<Structure>) VerifyRemoveTSStructures(List<Tuple<string, string>> structuresToRemove)
         {
             List<Structure> removeList = new List<Structure> { };
@@ -206,6 +238,88 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             }
             else fail = true;
             return fail;
+        }
+
+        protected bool ContourInnerOuterStructure(Structure addedStructure, ref int counter)
+        {
+            int calcItems = 4;
+            //all other sub structures
+            Structure originalStructure = null;
+            double margin = 0.0;
+            int pos1 = addedStructure.Id.IndexOf("-");
+            if (pos1 == -1) pos1 = addedStructure.Id.IndexOf("+");
+            int pos2 = addedStructure.Id.IndexOf("cm");
+            if (pos1 != -1 && pos2 != -1)
+            {
+                string originalStructureId = addedStructure.Id.Substring(0, pos1);
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), "Grabbing margin value!");
+                if (!double.TryParse(addedStructure.Id.Substring(pos1, pos2 - pos1), out margin))
+                {
+                    ProvideUIUpdate($"Margin parse failed for sub structure: {addedStructure.Id}!", true);
+                    return true;
+                }
+                ProvideUIUpdate(margin.ToString());
+
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Grabbing original structure {originalStructureId}");
+                //logic to handle case where the original structure had to be converted to low resolution
+                originalStructure = StructureTuningHelper.GetStructureFromId(originalStructureId.ToLower(), selectedSS);
+                if (originalStructure == null) originalStructure = selectedSS.Structures.First(x => x.Id.ToLower().Contains(originalStructureId.ToLower()) && x.Id.ToLower().Contains("_low"));
+
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Creating {(margin > 0 ? "outer" : "sub")} structure!");
+                //convert from cm to mm
+                addedStructure.SegmentVolume = originalStructure.Margin(margin * 10);
+                if (addedStructure.IsEmpty)
+                {
+                    ProvideUIUpdate($"{addedStructure.Id} was contoured, but is empty! Removing!");
+                    selectedSS.RemoveStructure(addedStructure);
+                }
+                ProvideUIUpdate(100, $"Finished contouring {addedStructure.Id}");
+            }
+            else
+            {
+                ProvideUIUpdate($"Error! I can't find the keywords '-' or '+', and 'cm' in the structure id for: {addedStructure.Id}", true);
+                return true;
+            }
+            return false;
+        }
+
+        protected bool CheckHighResolution(bool autoConvertToLowRes = true)
+        {
+            UpdateUILabel("High-Res Structures: ");
+            ProvideUIUpdate("Checking for high resolution structures in structure set: ");
+            List<Tuple<string, TSManipulationType, double>> highResManipulationList = new List<Tuple<string, TSManipulationType, double>> { };
+            foreach (Tuple<string, TSManipulationType, double> itr in TSManipulationList)
+            {
+                if (itr.Item2 == TSManipulationType.CropTargetFromStructure || itr.Item2 == TSManipulationType.ContourOverlapWithTarget || itr.Item2 == TSManipulationType.CropFromBody)
+                {
+                    Structure tmp = StructureTuningHelper.GetStructureFromId(itr.Item1, selectedSS);
+                    if (tmp.IsEmpty)
+                    {
+                        ProvideUIUpdate($"Requested manipulation of {0}, but {itr.Item1} is empty!", true);
+                        return true;
+                    }
+                    else if (tmp.IsHighResolution)
+                    {
+                        highResManipulationList.Add(itr);
+                    }
+                }
+            }
+            //if there are high resolution structures, they will need to be converted to default resolution.
+            if (highResManipulationList.Any())
+            {
+                ProvideUIUpdate("High-resolution structures:");
+                foreach (Tuple<string, TSManipulationType, double> itr in highResManipulationList)
+                {
+                    ProvideUIUpdate($"{itr.Item1}");
+                }
+                ProvideUIUpdate("Now converting to low-resolution!");
+                //convert high res structures queued for TS manipulation to low resolution and update the queue with the resulting low res structure
+                if (ConvertHighToLowRes(highResManipulationList)) return true;
+                ProvideUIUpdate(100, "Finishing converting high resolution structures to default resolution");
+            }
+            else ProvideUIUpdate("No high resolution structures in the structure set!");
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
+            return false;
         }
 
         protected bool ConvertHighToLowRes(List<Tuple<string, TSManipulationType, double>> highResManipulationList)

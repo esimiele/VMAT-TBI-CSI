@@ -44,8 +44,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             try 
             { 
                 isoNames.Clear();
-                //if (preliminaryChecks(selectedSS, )) return true;
+                if (PreliminaryChecks()) return true;
+                if (UnionLRStructures()) return true;
+                if (TSManipulationList.Any()) if (CheckHighResolution()) return true; 
                 if (CreateTSStructures()) return true;
+                if (PerformTSStructureManipulation()) return true;
                 if (useFlash) if (CreateFlash()) return true;
                 MessageBox.Show("Structures generated successfully!\nPlease proceed to the beam placement tab!");
             }
@@ -61,100 +64,50 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             //check if user origin was set
             if (IsUOriginInside(selectedSS)) return true;
+            if (CheckBodyExtentAndMatchline()) return true;
+            return false;
+        }
 
+        private bool CheckBodyExtentAndMatchline()
+        {
             //get the points collection for the Body (used for calculating number of isocenters)
-            Point3DCollection pts = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").MeshGeometry.Positions;
+            Structure body = StructureTuningHelper.GetStructureFromId("Body", selectedSS);
+            if(body == null || body.IsEmpty)
+            {
+                ProvideUIUpdate("Error! Body structure is null or is empty! Please fix and try again!",true);
+                return true;
+            }
+            Point3DCollection pts = body.MeshGeometry.Positions;
 
             //check if patient length is > 116cm, if so, check for matchline contour
-            if ((pts.Max(p => p.Z) - pts.Min(p => p.Z)) > 1160.0 && !(selectedSS.Structures.Where(x => x.Id.ToLower() == "matchline").Any()))
+            if ((pts.Max(p => p.Z) - pts.Min(p => p.Z)) > 1160.0 && !StructureTuningHelper.DoesStructureExistInSS("matchline", selectedSS))
             {
                 //check to see if the user wants to proceed even though there is no matchplane contour or the matchplane contour exists, but is not filled
                 ConfirmPrompt CP = new ConfirmPrompt("No matchplane contour found even though patient length > 116.0 cm!" + Environment.NewLine + Environment.NewLine + "Continue?!");
                 CP.ShowDialog();
-                if (!CP.GetSelection()) return true;
-
-                //checks for LA16 couch and spinning manny couch/bolt will be performed at optimization stage
-            }
-
-            //calculate number of required isocenters
-            if (!(selectedSS.Structures.Where(x => x.Id.ToLower() == "matchline").Any()))
-            {
-                //no matchline implying that this patient will be treated with VMAT only. For these cases the maximum number of allowed isocenters is 3.
-                //the reason for the explicit statements calculating the number of isos and then truncating them to 3 was to account for patients requiring < 3 isos and if, later on, we want to remove the restriction of 3 isos
-                numIsos = numVMATIsos = (int)Math.Ceiling(((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 - 20.0)));
-                if (numIsos > 3) numIsos = numVMATIsos = 3;
-            }
-            else
-            {
-                //matchline structure is present, but empty
-                if (selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").IsEmpty)
+                if (!CP.GetSelection())
                 {
-                    ConfirmPrompt CP = new ConfirmPrompt("I found a matchline structure in the structure set, but it's empty!" + Environment.NewLine + Environment.NewLine + "Do you want to continue without using the matchline structure?!");
-                    CP.ShowDialog();
-                    if (!CP.GetSelection()) return true;
-
-                    //continue and ignore the empty matchline structure (same calculation as VMAT only)
-                    numIsos = numVMATIsos = (int)Math.Ceiling(((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 - 20.0)));
-                    if (numIsos > 3) numIsos = numVMATIsos = 3;
-                }
-                //matchline structure is present and not empty
-                else
-                {
-                    //get number of isos for PTV superior to matchplane (always truncate this value to a maximum of 4 isocenters)
-                    numVMATIsos = (int)Math.Ceiling(((pts.Max(p => p.Z) - selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z) / (400.0 - 20.0)));
-                    if (numVMATIsos > 4) numVMATIsos = 4;
-
-                    //get number of iso for PTV inferior to matchplane
-                    //if (selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - pts.Min(p => p.Z) - 3.0 <= (400.0 - 20.0)) numIsos = numVMATIsos + 1;
-
-                    //5-20-2020 Nataliya said to only add a second legs iso if the extent of the TS_PTV_LEGS is > 40.0 cm
-                    if (selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - pts.Min(p => p.Z) - 3.0 <= (400.0 - 0.0)) numIsos = numVMATIsos + 1;
-                    else numIsos = numVMATIsos + 2;
-                    //MessageBox.Show(String.Format("{0}", selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - pts.Min(p => p.Z) - 3.0));
+                    ProvideUIUpdate("",true);
+                    return true;
                 }
             }
+            return false;
+        }
 
-            //set isocenter names based on numIsos and numVMATIsos (determined these names from prior cases)
-            isoNames.Add(Tuple.Create("_VMAT TBI",new List<string>(IsoNameHelper.GetIsoNames(numVMATIsos, numIsos, true))));
-
-            //check if selected structures are empty or of high-resolution (i.e., no operations can be performed on high-resolution structures)
-            string output = "The following structures are high-resolution:" + System.Environment.NewLine;
-            List<Structure> highResStructList = new List<Structure> { };
-            List<Tuple<string, TSManipulationType, double>> highResSpareList = new List<Tuple<string, TSManipulationType, double>> { };
-            foreach (Tuple<string, TSManipulationType, double> itr in TSManipulationList)
-            {
-                if (itr.Item2 == TSManipulationType.CropTargetFromStructure)
-                {
-                    if (selectedSS.Structures.First(x => x.Id == itr.Item1).IsEmpty)
-                    {
-                        MessageBox.Show(String.Format("Error! \nThe selected structure that will be subtracted from PTV_Body and TS_PTV_VMAT is empty! \nContour the structure and try again."));
-                        return true;
-                    }
-                    else if (selectedSS.Structures.First(x => x.Id == itr.Item1).IsHighResolution)
-                    {
-                        highResSpareList.Add(itr);
-                        output += String.Format("{0}", itr.Item1) + System.Environment.NewLine;
-                    }
-                }
-            }
-            //if there are high resolution structures, they will need to be converted to default resolution.
-            if (highResSpareList.Count() > 0)
-            {
-                //ask user if they are ok with converting the relevant high resolution structures to default resolution
-                output += "They must be converted to default resolution before proceeding!";
-                ConfirmPrompt CP = new ConfirmPrompt(output + Environment.NewLine + Environment.NewLine + "Continue?!");
-                CP.ShowDialog();
-                if (!CP.GetSelection()) return true;
-
-                if(ConvertHighToLowRes(highResSpareList)) return true;
-            }
+        private bool ContourHumanBodyStructure(Structure humanBody)
+        {
+            Structure body = StructureTuningHelper.GetStructureFromId("Body", selectedSS);
+            humanBody.SegmentVolume = body.Margin(0.0);
             return false;
         }
 
         protected override bool CreateTSStructures()
         {
+            UpdateUILabel("Create TS Structures:");
+            ProvideUIUpdate("Adding remaining tuning structures to stack!"); 
             if (RemoveOldTSStructures(TS_structures, true)) return true;
-
+            int calcItems = TS_structures.Count;
+            int counter = 0;
             //Need to add the Human body, PTV_BODY, and TS_PTV_VMAT contours manually
             //if these structures were present, they should have been removed (regardless if they were contoured or not). 
             foreach (Tuple<string, string> itr in TS_structures.Where(x => x.Item2.ToLower().Contains("human") || x.Item2.ToLower().Contains("ptv")))
@@ -164,18 +117,140 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //in the previous run of the script)
                 //if (itr.Item2.ToLower() == "human_body" && tmp != null) selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").SegmentVolume = tmp.Margin(0.0);
 
-                if (selectedSS.CanAddStructure(itr.Item1, itr.Item2))
+                AddTSStructures(itr);
+            }
+
+            ProvideUIUpdate(100, "Finished adding tuning structures!");
+            ProvideUIUpdate(0, "Contouring tuning structures!");
+            //now contour the various structures
+            foreach (string itr in addedStructures)
+            {
+                counter = 0;
+                ProvideUIUpdate(0, $"Contouring TS: {itr}");
+                Structure addedStructure = StructureTuningHelper.GetStructureFromId(itr, selectedSS);
+                if (itr.ToLower().Contains("human"))
                 {
-                    selectedSS.AddStructure(itr.Item1, itr.Item2);
-                    addedStructures.Add(itr.Item2);
+                    if (ContourHumanBodyStructure(addedStructure)) return true;
+                }
+                else if (itr.ToLower().Contains("ptv_body"))
+                {
+                    //get the body contour and create the ptv structure using the user-specified inner margin
+                    Structure tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "body");
+                    tmp.SegmentVolume = tmp1.Margin(-targetMargin * 10);
+
+                    //subtract all the structures the user wants to spare from PTV_Body
+                    foreach (Tuple<string, TSManipulationType, double> spare in TSManipulationList)
+                    {
+                        if (spare.Item2 == TSManipulationType.CropTargetFromStructure)
+                        {
+                            if (spare.Item1.ToLower() == "kidneys" && scleroTrial)
+                            {
+                                tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "kidney_block_r");
+                                tmp.SegmentVolume = tmp.Sub(tmp1.Margin(0.0));
+                                tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "kidney_block_l");
+                                tmp.SegmentVolume = tmp.Sub(tmp1.Margin(0.0));
+                            }
+                            else
+                            {
+                                tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == spare.Item1.ToLower());
+                                tmp.SegmentVolume = tmp.Sub(tmp1.Margin((spare.Item3) * 10));
+                            }
+                        }
+                    }
                 }
                 else
                 {
-                    MessageBox.Show(String.Format("Can't add {0} to the structure set!", itr.Item2));
-                    return true;
+                    if (ContourInnerOuterStructure(addedStructure, ref counter)) return true;
                 }
             }
 
+            //now contour the various structures
+            foreach (string s in addedStructures)
+            {
+                Structure tmp = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == s.ToLower());
+                //MessageBox.Show(s);
+                if (!(s.ToLower().Contains("ptv")))
+                {
+                    
+                }
+                else if (s.ToLower() == "ptv_body")
+                {
+                    
+                }
+                else if (s.ToLower() == "ts_ptv_vmat")
+                {
+                    //copy the ptv_body contour onto the TS_ptv_vmat contour
+                    Structure tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "ptv_body");
+                    tmp.SegmentVolume = tmp1.Margin(0.0);
+
+                    //matchplane exists and needs to be cut from TS_PTV_Body. Also remove all TS_PTV_Body segements inferior to match plane
+                    if (selectedSS.Structures.Where(x => x.Id.ToLower() == "matchline").Any())
+                    {
+                        //find the image plane where the matchline is location. Record this value and break the loop. Also find the first slice where the ptv_body contour starts and record this value
+                        Structure matchline = selectedSS.Structures.First(x => x.Id.ToLower() == "matchline");
+                        bool lowLimNotFound = true;
+                        int lowLim = -1;
+                        if (!matchline.IsEmpty)
+                        {
+                            int matchplaneLocation = 0;
+                            for (int i = 0; i != selectedSS.Image.ZSize - 1; i++)
+                            {
+                                if (matchline.GetContoursOnImagePlane(i).Any())
+                                {
+                                    matchplaneLocation = i;
+                                    break;
+                                }
+                                if (lowLimNotFound && tmp1.GetContoursOnImagePlane(i).Any())
+                                {
+                                    lowLim = i;
+                                    lowLimNotFound = false;
+                                }
+                            }
+
+                            if (selectedSS.Structures.Where(x => x.Id.ToLower() == "dummybox").Any()) selectedSS.RemoveStructure(selectedSS.Structures.First(x => x.Id.ToLower() == "dummybox"));
+                            Structure dummyBox = selectedSS.AddStructure("CONTROL", "DummyBox");
+
+                            //get min/max positions of ptv_body contour to contour the dummy box for creating TS_PTV_Legs
+                            Point3DCollection ptv_bodyPts = tmp1.MeshGeometry.Positions;
+                            double xMax = ptv_bodyPts.Max(p => p.X) + 50.0;
+                            double xMin = ptv_bodyPts.Min(p => p.X) - 50.0;
+                            double yMax = ptv_bodyPts.Max(p => p.Y) + 50.0;
+                            double yMin = ptv_bodyPts.Min(p => p.Y) - 50.0;
+
+                            //box with contour points located at (x,y), (x,0), (x,-y), (0,-y), (-x,-y), (-x,0), (-x, y), (0,y)
+                            VVector[] pts = new[] {
+                                    new VVector(xMax, yMax, 0),
+                                    new VVector(xMax, 0, 0),
+                                    new VVector(xMax, yMin, 0),
+                                    new VVector(0, yMin, 0),
+                                    new VVector(xMin, yMin, 0),
+                                    new VVector(xMin, 0, 0),
+                                    new VVector(xMin, yMax, 0),
+                                    new VVector(0, yMax, 0)};
+
+                            //give 5cm margin on TS_PTV_LEGS (one slice of the CT should be 5mm) in case user wants to include flash up to 5 cm
+                            for (int i = matchplaneLocation - 1; i > lowLim - 10; i--) dummyBox.AddContourOnImagePlane(pts, i);
+
+                            //do the structure manipulation
+                            if (selectedSS.Structures.Where(x => x.Id.ToLower() == "ts_ptv_legs").Any()) selectedSS.RemoveStructure(selectedSS.Structures.First(x => x.Id.ToLower() == "ts_ptv_legs"));
+                            Structure TS_legs = selectedSS.AddStructure("CONTROL", "TS_PTV_Legs");
+                            TS_legs.SegmentVolume = dummyBox.And(tmp.Margin(0));
+                            //subtract both dummybox and matchline from TS_PTV_VMAT
+                            tmp.SegmentVolume = tmp.Sub(dummyBox.Margin(0.0));
+                            tmp.SegmentVolume = tmp.Sub(matchline.Margin(0.0));
+                            //remove the dummybox structure if flash is NOT being used as its no longer needed
+                            if (!useFlash) selectedSS.RemoveStructure(dummyBox);
+                        }
+                    }
+                }
+            }
+
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
+            return false;
+        }
+
+        private bool PerformTSStructureManipulation()
+        {
             //determine if any TS structures need to be added to the selected structure set (i.e., were not present or were removed in the first foreach loop)
             //this is provided here to only add additional TS if they are relevant to the current case (i.e., it doesn't make sense to add the brain TS's if we 
             //are not interested in sparing brain)
@@ -271,123 +346,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                                                                                                    5.0,
                                                                                                    20.0,
                                                                                                    20.0));
-                    }
-                }
-            }
-
-            //now contour the various structures
-            foreach (string s in addedStructures)
-            {
-                Structure tmp = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == s.ToLower());
-                //MessageBox.Show(s);
-                if (!(s.ToLower().Contains("ptv")))
-                {
-                    Structure tmp1 = null;
-                    double margin = 0.0;
-                    if (s.ToLower().Contains("human")) tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "body");
-                    else if (s.ToLower().Contains("lungs")) if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "lungs_lowres") == null) tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "lungs"); else tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "lungs_lowres");
-                    else if (s.ToLower().Contains("liver")) if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "liver_lowres") == null) tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "liver"); else tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "liver_lowres");
-                    else if (s.ToLower().Contains("kidneys")) if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "kidneys_lowres") == null) tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "kidneys"); else tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "kidneys_lowres");
-                    else if (s.ToLower().Contains("brain")) if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "brain_lowres") == null) tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "brain"); else tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "brain_lowres");
-
-                    //all structures in TS_structures and scleroStructures are inner margins, which is why the below code works.
-                    int pos1 = s.IndexOf("-");
-                    int pos2 = s.IndexOf("cm");
-                    if (pos1 != -1 && pos2 != -1) double.TryParse(s.Substring(pos1, pos2 - pos1), out margin);
-
-                    //convert from cm to mm
-                    tmp.SegmentVolume = tmp1.Margin(margin * 10);
-                }
-                else if (s.ToLower() == "ptv_body")
-                {
-                    //get the body contour and create the ptv structure using the user-specified inner margin
-                    Structure tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "body");
-                    tmp.SegmentVolume = tmp1.Margin(-targetMargin * 10);
-
-                    //subtract all the structures the user wants to spare from PTV_Body
-                    foreach (Tuple<string, TSManipulationType, double> spare in TSManipulationList)
-                    {
-                        if (spare.Item2 == TSManipulationType.CropTargetFromStructure)
-                        {
-                            if (spare.Item1.ToLower() == "kidneys" && scleroTrial)
-                            {
-                                tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "kidney_block_r");
-                                tmp.SegmentVolume = tmp.Sub(tmp1.Margin(0.0));
-                                tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "kidney_block_l");
-                                tmp.SegmentVolume = tmp.Sub(tmp1.Margin(0.0));
-                            }
-                            else
-                            {
-                                tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == spare.Item1.ToLower());
-                                tmp.SegmentVolume = tmp.Sub(tmp1.Margin((spare.Item3) * 10));
-                            }
-                        }
-                    }
-                }
-                else if (s.ToLower() == "ts_ptv_vmat")
-                {
-                    //copy the ptv_body contour onto the TS_ptv_vmat contour
-                    Structure tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "ptv_body");
-                    tmp.SegmentVolume = tmp1.Margin(0.0);
-
-                    //matchplane exists and needs to be cut from TS_PTV_Body. Also remove all TS_PTV_Body segements inferior to match plane
-                    if (selectedSS.Structures.Where(x => x.Id.ToLower() == "matchline").Any())
-                    {
-                        //find the image plane where the matchline is location. Record this value and break the loop. Also find the first slice where the ptv_body contour starts and record this value
-                        Structure matchline = selectedSS.Structures.First(x => x.Id.ToLower() == "matchline");
-                        bool lowLimNotFound = true;
-                        int lowLim = -1;
-                        if (!matchline.IsEmpty)
-                        {
-                            int matchplaneLocation = 0;
-                            for (int i = 0; i != selectedSS.Image.ZSize - 1; i++)
-                            {
-                                if (matchline.GetContoursOnImagePlane(i).Any())
-                                {
-                                    matchplaneLocation = i;
-                                    break;
-                                }
-                                if (lowLimNotFound && tmp1.GetContoursOnImagePlane(i).Any())
-                                {
-                                    lowLim = i;
-                                    lowLimNotFound = false;
-                                }
-                            }
-
-                            if (selectedSS.Structures.Where(x => x.Id.ToLower() == "dummybox").Any()) selectedSS.RemoveStructure(selectedSS.Structures.First(x => x.Id.ToLower() == "dummybox"));
-                            Structure dummyBox = selectedSS.AddStructure("CONTROL", "DummyBox");
-
-                            //get min/max positions of ptv_body contour to contour the dummy box for creating TS_PTV_Legs
-                            Point3DCollection ptv_bodyPts = tmp1.MeshGeometry.Positions;
-                            double xMax = ptv_bodyPts.Max(p => p.X) + 50.0;
-                            double xMin = ptv_bodyPts.Min(p => p.X) - 50.0;
-                            double yMax = ptv_bodyPts.Max(p => p.Y) + 50.0;
-                            double yMin = ptv_bodyPts.Min(p => p.Y) - 50.0;
-
-                            //box with contour points located at (x,y), (x,0), (x,-y), (0,-y), (-x,-y), (-x,0), (-x, y), (0,y)
-                            VVector[] pts = new[] {
-                                    new VVector(xMax, yMax, 0),
-                                    new VVector(xMax, 0, 0),
-                                    new VVector(xMax, yMin, 0),
-                                    new VVector(0, yMin, 0),
-                                    new VVector(xMin, yMin, 0),
-                                    new VVector(xMin, 0, 0),
-                                    new VVector(xMin, yMax, 0),
-                                    new VVector(0, yMax, 0)};
-
-                            //give 5cm margin on TS_PTV_LEGS (one slice of the CT should be 5mm) in case user wants to include flash up to 5 cm
-                            for (int i = matchplaneLocation - 1; i > lowLim - 10; i--) dummyBox.AddContourOnImagePlane(pts, i);
-
-                            //do the structure manipulation
-                            if (selectedSS.Structures.Where(x => x.Id.ToLower() == "ts_ptv_legs").Any()) selectedSS.RemoveStructure(selectedSS.Structures.First(x => x.Id.ToLower() == "ts_ptv_legs"));
-                            Structure TS_legs = selectedSS.AddStructure("CONTROL", "TS_PTV_Legs");
-                            TS_legs.SegmentVolume = dummyBox.And(tmp.Margin(0));
-                            //subtract both dummybox and matchline from TS_PTV_VMAT
-                            tmp.SegmentVolume = tmp.Sub(dummyBox.Margin(0.0));
-                            tmp.SegmentVolume = tmp.Sub(matchline.Margin(0.0));
-                            //remove the dummybox structure if flash is NOT being used as its no longer needed
-                            if (!useFlash) selectedSS.RemoveStructure(dummyBox);
-                        }
                     }
                 }
             }
@@ -488,6 +446,52 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //now you can remove the dummy box structure as it's no longer needed
                 selectedSS.RemoveStructure(dummyBox);
             }
+            return false;
+        }
+
+        protected override bool CalculateNumIsos()
+        {
+            Point3DCollection pts = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").MeshGeometry.Positions;
+            //calculate number of required isocenters
+            if (!(selectedSS.Structures.Where(x => x.Id.ToLower() == "matchline").Any()))
+            {
+                //no matchline implying that this patient will be treated with VMAT only. For these cases the maximum number of allowed isocenters is 3.
+                //the reason for the explicit statements calculating the number of isos and then truncating them to 3 was to account for patients requiring < 3 isos and if, later on, we want to remove the restriction of 3 isos
+                numIsos = numVMATIsos = (int)Math.Ceiling(((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 - 20.0)));
+                if (numIsos > 3) numIsos = numVMATIsos = 3;
+            }
+            else
+            {
+                //matchline structure is present, but empty
+                if (selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").IsEmpty)
+                {
+                    ConfirmPrompt CP = new ConfirmPrompt("I found a matchline structure in the structure set, but it's empty!" + Environment.NewLine + Environment.NewLine + "Do you want to continue without using the matchline structure?!");
+                    CP.ShowDialog();
+                    if (!CP.GetSelection()) return true;
+
+                    //continue and ignore the empty matchline structure (same calculation as VMAT only)
+                    numIsos = numVMATIsos = (int)Math.Ceiling(((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 - 20.0)));
+                    if (numIsos > 3) numIsos = numVMATIsos = 3;
+                }
+                //matchline structure is present and not empty
+                else
+                {
+                    //get number of isos for PTV superior to matchplane (always truncate this value to a maximum of 4 isocenters)
+                    numVMATIsos = (int)Math.Ceiling(((pts.Max(p => p.Z) - selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z) / (400.0 - 20.0)));
+                    if (numVMATIsos > 4) numVMATIsos = 4;
+
+                    //get number of iso for PTV inferior to matchplane
+                    //if (selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - pts.Min(p => p.Z) - 3.0 <= (400.0 - 20.0)) numIsos = numVMATIsos + 1;
+
+                    //5-20-2020 Nataliya said to only add a second legs iso if the extent of the TS_PTV_LEGS is > 40.0 cm
+                    if (selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - pts.Min(p => p.Z) - 3.0 <= (400.0 - 0.0)) numIsos = numVMATIsos + 1;
+                    else numIsos = numVMATIsos + 2;
+                    //MessageBox.Show(String.Format("{0}", selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - pts.Min(p => p.Z) - 3.0));
+                }
+            }
+
+            //set isocenter names based on numIsos and numVMATIsos (determined these names from prior cases)
+            isoNames.Add(Tuple.Create("_VMAT TBI", new List<string>(IsoNameHelper.GetIsoNames(numVMATIsos, numIsos, true))));
             return false;
         }
     }
