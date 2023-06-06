@@ -54,7 +54,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (PerformTSStructureManipulation()) return true;
                 if (GenerateTSTarget()) return true;
                 if (useFlash) if (CreateFlash()) return true;
-                MessageBox.Show("Structures generated successfully!\nPlease proceed to the beam placement tab!");
+                UpdateUILabel("Finished!");
+                ProvideUIUpdate(100, "Finished Structure Tuning!");
+                ProvideUIUpdate($"Run time: {GetElapsedTime()} (mm:ss)");
             }
             catch(Exception e) 
             { 
@@ -64,28 +66,64 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             return false;
         }
 
+        #region preliminary checks
         protected override bool PreliminaryChecks()
         {
+            UpdateUILabel("Performing Preliminary Checks: ");
+            int calcItems = 4;
+            int counter = 0;
+            //check body structure exists and is contoured
+            if(!StructureTuningHelper.DoesStructureExistInSS("body", selectedSS, true))
+            {
+                ProvideUIUpdate("Error! Body structure is either empty or null! Fix and try again!", true);
+                return true;
+            }
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), "Body structure exists and is not empty");
+
             //check if user origin was set
             if (IsUOriginInside(selectedSS)) return true;
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), "User origin is inside body");
+            
             if (CheckBodyExtentAndMatchline()) return true;
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), "Body structure exists and matchline appropriate");
+
+            if (CheckIfScriptRunPreviously()) return true;
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
+
+        private bool CheckIfScriptRunPreviously()
+        {
+            if(StructureTuningHelper.DoesStructureExistInSS("human_body", selectedSS, true))
+            {
+                if(selectedSS.Structures.Any(x => x.Id.ToLower().Contains("flash")))
+                {
+                    Structure body = StructureTuningHelper.GetStructureFromId("body", selectedSS);
+                    Structure humanBody = StructureTuningHelper.GetStructureFromId("human_body", selectedSS);
+                    (bool failCopyTarget, StringBuilder copyErrorMessage) = ContourHelper.CopyStructureOntoStructure(humanBody, body);
+                    if (failCopyTarget)
+                    {
+                        ProvideUIUpdate(copyErrorMessage.ToString(), true);
+                        return true;
+                    }
+                    ProvideUIUpdate($"Script has been run previously and flash structures exist!");
+                    ProvideUIUpdate($"Copying {humanBody.Id} structure onto {body.Id}!");
+                }
+            }
+            return false;
+        }
+
 
         private bool CheckBodyExtentAndMatchline()
         {
             //get the points collection for the Body (used for calculating number of isocenters)
             Structure body = StructureTuningHelper.GetStructureFromId("Body", selectedSS);
-            if(body == null || body.IsEmpty)
-            {
-                ProvideUIUpdate("Error! Body structure is null or is empty! Please fix and try again!",true);
-                return true;
-            }
             Point3DCollection pts = body.MeshGeometry.Positions;
 
             //check if patient length is > 116cm, if so, check for matchline contour
-            if ((pts.Max(p => p.Z) - pts.Min(p => p.Z)) > 1160.0 && !StructureTuningHelper.DoesStructureExistInSS("matchline", selectedSS))
+            if ((pts.Max(p => p.Z) - pts.Min(p => p.Z)) > 1160.0 && !StructureTuningHelper.DoesStructureExistInSS("matchline", selectedSS, true))
             {
+                ProvideUIUpdate($"Body extent ({pts.Max(p => p.Z) - pts.Min(p => p.Z)} mm) is greater than 116.0 cm and no matchline structure was found!");
                 //check to see if the user wants to proceed even though there is no matchplane contour or the matchplane contour exists, but is not filled
                 ConfirmPrompt CP = new ConfirmPrompt("No matchplane contour found even though patient length > 116.0 cm!" + Environment.NewLine + Environment.NewLine + "Continue?!");
                 CP.ShowDialog();
@@ -97,18 +135,23 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
             return false;
         }
+        #endregion
 
+        #region helper methods for create ts structures
         private bool CopyBodyStructureOnToStructure(Structure addedStructure)
         {
             Structure body = StructureTuningHelper.GetStructureFromId("Body", selectedSS);
             addedStructure.SegmentVolume = body.Margin(0.0);
+            ProvideUIUpdate($"Copied body structure onto {addedStructure.Id}");
             return false;
         }
 
         private bool ContourLungsEvalVolume(Structure addedStructure)
         {
             Structure lung_block_left = StructureTuningHelper.GetStructureFromId("lung_block_l", selectedSS);
+            ProvideUIUpdate("Retrived left lung block structure");
             Structure lung_block_right = StructureTuningHelper.GetStructureFromId("lung_block_r", selectedSS);
+            ProvideUIUpdate("Retrived right lung block structure");
             if(lung_block_left == null || lung_block_left.IsEmpty)
             {
                 ProvideUIUpdate($"Error! Lung_Block_L volume is null or empty! Could not contour Lungs_Eval structure! Exiting!", true);
@@ -120,6 +163,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 return true;
             }
             addedStructure.SegmentVolume = lung_block_left.Or(lung_block_right.Margin(0.0));
+            ProvideUIUpdate($"Contoured lung eval structure: {addedStructure.Id}");
             return false;
         }
 
@@ -127,6 +171,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             Structure baseStructure;
             AxisAlignedMargins margins;
+            ProvideUIUpdate($"Contouring block structure:");
             if (addedStructure.Id.ToLower().Contains("lung_block_l"))
             {
                 //AxisAlignedMargins(inner or outer margin, margin from negative x, margin for negative y, margin for negative z, margin for positive x, margin for positive y, margin for positive z)
@@ -153,10 +198,23 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 ProvideUIUpdate($"Error! Could not retrieve base structure to contour {addedStructure.Id}! Exiting!", true);
                 return true;
             }
+            ProvideUIUpdate($"Base structure: {baseStructure.Id}");
+            ProvideUIUpdate("Margins:");
+            ProvideUIUpdate($"Inner or outer: {margins.Geometry}");
+            ProvideUIUpdate($"X1: {margins.X1}");
+            ProvideUIUpdate($"X2: {margins.X2}");
+            ProvideUIUpdate($"Y1: {margins.Y1}");
+            ProvideUIUpdate($"Y2: {margins.Y2}");
+            ProvideUIUpdate($"Z1: {margins.Z1}");
+            ProvideUIUpdate($"Z2: {margins.Z2}");
+
             addedStructure.SegmentVolume = baseStructure.AsymmetricMargin(margins);
+            ProvideUIUpdate($"Contoured block volume for structure: {addedStructure.Id}");
             return false;
         }
+        #endregion
 
+        #region create tuning structures
         protected override bool CreateTSStructures()
         {
             UpdateUILabel("Create TS Structures:");
@@ -174,12 +232,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
             ProvideUIUpdate(100, "Finished adding tuning structures!");
             ProvideUIUpdate(0, "Contouring tuning structures!");
+            counter = 0;
             //now contour the various structures
             foreach (string itr in addedStructures)
             {
-                counter = 0;
-                ProvideUIUpdate(0, $"Contouring TS: {itr}");
+                ProvideUIUpdate($"Contouring TS: {itr}");
                 Structure addedStructure = StructureTuningHelper.GetStructureFromId(itr, selectedSS);
+                ProvideUIUpdate($"Retrieved structure: {addedStructure.Id}");
                 if (itr.ToLower().Contains("human"))
                 {
                     if (CopyBodyStructureOnToStructure(addedStructure)) return true;
@@ -194,6 +253,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                         ProvideUIUpdate(errorMessage.ToString());
                         return true;
                     }
+                    ProvideUIUpdate($"Cropped {addedStructure.Id} from body with -{targetMargin} cm margin");
                 }
                 else if (itr.ToLower().Contains("_block"))
                 {
@@ -203,15 +263,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 {
                     if (ContourLungsEvalVolume(addedStructure)) return true;
                 }
-                //else
-                //{
-                //    if (ContourInnerOuterStructure(addedStructure, ref counter)) return true;
-                //}
+                ProvideUIUpdate((int)(100 * ++counter / calcItems));
             }
 
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
+        #endregion
 
         protected override bool PerformTSStructureManipulation()
         {
@@ -233,23 +291,24 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 {
                     if (ManipulateTuningStructures(itr, ptv_body, ref counter, ref calcItems)) return true;
                 }
-                
             }
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
 
         private bool GenerateTSTarget()
         {
+            UpdateUILabel("Create TS_PTV_Body:");
+            int percentComplete = 0;
+            int calcItems = 2;
             Structure ptv_body = StructureTuningHelper.GetStructureFromId("ptv_body", selectedSS);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved structure: {ptv_body.Id}");
             Structure addedTSTarget = GetTSTarget(ptv_body.Id);
-            (bool fail, StringBuilder message) = ContourHelper.CopyStructureOntoStructure(ptv_body, addedTSTarget);
-            if (fail)
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contoured TS target: {addedTSTarget.Id}");
+            
+            if (StructureTuningHelper.DoesStructureExistInSS("matchline", selectedSS, true))
             {
-                ProvideUIUpdate(message.ToString(), true);
-                return true;
-            }
-            if (StructureTuningHelper.DoesStructureExistInSS("matchline", selectedSS))
-            {
+                ProvideUIUpdate($"Cutting {addedTSTarget} at the matchline!");
                 //matchplane exists and needs to be cut from TS_PTV_Body. Also remove all TS_PTV_Body segements inferior to match plane
                 if (CutTSTargetFromMatchline(addedTSTarget)) return true;
             }
@@ -258,6 +317,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         private bool CutTSTargetFromMatchline(Structure addedTSTarget)
         {
+            UpdateUILabel("Cut TS Target at matchline:");
+            int percentComplete = 0;
+            int calcItems = 12;
             //ts_ptv_vmat
             //find the image plane where the matchline is location. Record this value and break the loop. Also find the first slice where the ptv_body contour starts and record this value
             Structure matchline = StructureTuningHelper.GetStructureFromId("matchline", selectedSS);
@@ -266,35 +328,61 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 ProvideUIUpdate($"Error! Matchline structure is empty! Cannot cut {addedTSTarget.Id} at the matchplane! Exiting!", true);
                 return true;
             }
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved matchline structure: {matchline.Id}");
+
             int matchplaneLocation = CalculationHelper.ComputeSlice(matchline.CenterPoint.z, selectedSS);
+            ProvideUIUpdate($"Matchline center z position: {matchline.CenterPoint.z} mm");
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Matchline slice number: {matchplaneLocation}");
+
             int addedTSTargetMinZ = CalculationHelper.ComputeSlice(addedTSTarget.MeshGeometry.Positions.Min(p => p.Z), selectedSS);
+            ProvideUIUpdate($"{addedTSTarget.Id} min z position: {addedTSTarget.MeshGeometry.Positions.Min(p => p.Z)} mm");
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Matchline slice number: {addedTSTargetMinZ}");
+
             //number of buffer slices equal to 5 cn in z direction
             //needed because the dummybox will be reused for flash generation (if applicable)
             double bufferInMM = 50.0;
             int bufferSlices = (int)Math.Ceiling(bufferInMM / selectedSS.Image.ZRes);
-                
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Calculated number of buffer slices for dummy box: {bufferSlices}");
+            calcItems += matchplaneLocation - (addedTSTargetMinZ - bufferSlices);
+
             (bool failDummy, Structure dummyBox) = CheckAndGenerateStructure("DummyBox");
             if (failDummy) return true;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Created structure: {dummyBox.Id}");
 
             (VVector[] pts, StringBuilder latBoxMessage) = ContourHelper.GetLateralBoundingBoxForStructure(addedTSTarget);
             ProvideUIUpdate(latBoxMessage.ToString());
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Calculated lateral bounding box for: {addedTSTarget.Id}");
+            foreach(VVector v in pts) ProvideUIUpdate($"({v.x}, {v.y}, {v.z}) mm");
 
+            ProvideUIUpdate($"Contouring {dummyBox.Id} now:");
             //give 5cm margin on TS_PTV_LEGS (one slice of the CT should be 5mm) in case user wants to include flash up to 5 cm
             for (int i = matchplaneLocation; i > addedTSTargetMinZ - bufferSlices; i--)
             {
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));
                 dummyBox.AddContourOnImagePlane(pts, i);
             }
+            ProvideUIUpdate($"Finished contouring {dummyBox.Id}");
 
             //do the structure manipulation
             (bool failTSLegs, Structure TS_legs) = CheckAndGenerateStructure("TS_PTV_Legs");
             if (failTSLegs) return true;
-                
-            (bool failOverlap, StringBuilder overlapMessage) = ContourHelper.ContourOverlap(addedTSTarget, dummyBox, 0.0);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Created structure: {TS_legs.Id}");
+
+            (bool failCopyTarget, StringBuilder copyErrorMessage) = ContourHelper.CopyStructureOntoStructure(addedTSTarget, TS_legs);
+            if (failCopyTarget)
+            {
+                ProvideUIUpdate(copyErrorMessage.ToString(), true);
+                return true;
+            }
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Copied structure {addedTSTarget.Id} onto {TS_legs.Id}");
+
+            (bool failOverlap, StringBuilder overlapMessage) = ContourHelper.ContourOverlap(dummyBox, TS_legs, 0.0);
             if (failOverlap)
             {
                 ProvideUIUpdate(overlapMessage.ToString(), true);
                 return true;
             }
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contoured overlap between: {TS_legs.Id} and {dummyBox.Id} onto {TS_legs.Id}");
 
             //subtract both dummybox and matchline from TS_PTV_VMAT
             (bool failCropBox, StringBuilder cropBoxMessage) = ContourHelper.CropTargetFromStructure(addedTSTarget, dummyBox, 0.0);
@@ -303,6 +391,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 ProvideUIUpdate(cropBoxMessage.ToString(), true);
                 return true;
             }
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Cropped target {addedTSTarget.Id} from {dummyBox.Id}");
 
             (bool failCropMatch, StringBuilder cropMatchMessage) = ContourHelper.CropTargetFromStructure(addedTSTarget, matchline, 0.0);
             if (failCropMatch)
@@ -310,9 +399,15 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 ProvideUIUpdate(cropMatchMessage.ToString(), true);
                 return true;
             }
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Cropped target {addedTSTarget.Id} from {matchline.Id}");
 
             //remove the dummybox structure if flash is NOT being used as its no longer needed
-            if (!useFlash) selectedSS.RemoveStructure(dummyBox);
+            if (!useFlash)
+            {
+                ProvideUIUpdate($"Flash NOT requested! Removing {dummyBox.Id} structure!");
+                selectedSS.RemoveStructure(dummyBox);
+            }
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
 
             return false;
         }

@@ -275,7 +275,7 @@
                                         <Button Grid.Column="1" x:Name="addTSDefaultsBtn" Content="Add Defaults" Width="120" HorizontalAlignment="Center" VerticalAlignment="Center" Click="AddDefaultTuningStructures_Click"/>
                                         <Button Grid.Column="2" x:Name="clearTSListBtn" Content="Clear List" Width="100" HorizontalAlignment="Center" VerticalAlignment="Top" Click="ClearTuningStructureList_Click"/>
                                     </Grid>
-                                    <ScrollViewer x:Name="TSGenerationScroller" Height="360" Width="550" Margin="5,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                    <ScrollViewer x:Name="TSGenerationScroller" Height="360" Width="540" Margin="5,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                         <StackPanel x:Name="TSGenerationSP" Margin="5">
                                         </StackPanel>
                                     </ScrollViewer>
@@ -296,7 +296,7 @@
                                             <Button Grid.Column="1" Content="Add Defaults" Width="100" HorizontalAlignment="Center" VerticalAlignment="Center" Click="AddDefaultStructureManipulations_Click"/>
                                             <Button Grid.Column="2" x:Name="ClearStructureManipulationsBtn" Content="Clear List" Width="100" HorizontalAlignment="Center" VerticalAlignment="Center" Click="ClearStructureManipulations_Click"/>
                                         </Grid>
-                                        <ScrollViewer x:Name="spareStructScroller" Height="325" Width="550" Margin="5,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                        <ScrollViewer x:Name="spareStructScroller" Height="325" Width="540" Margin="5,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                             <StackPanel Name="structureManipulationSP" Margin="5">
                                             </StackPanel>
                                         </ScrollViewer>

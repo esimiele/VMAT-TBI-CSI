@@ -289,7 +289,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //now contour the various structures
             foreach (string itr in addedStructures.Where(x => !x.ToLower().Contains("ctv") && !x.ToLower().Contains("ptv")))
             {
-                counter = 0;
                 ProvideUIUpdate(0, $"Contouring TS: {itr}");
                 Structure addedStructure = StructureTuningHelper.GetStructureFromId(itr, selectedSS);
                 if (itr.ToLower().Contains("ts_globes") || itr.ToLower().Contains("ts_lenses"))
@@ -312,7 +311,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 }
                 else
                 {
-                    if (ContourInnerOuterStructure(addedStructure, ref counter)) return true;
+                    if (ContourInnerOuterStructure(addedStructure)) return true;
                 }
             }
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
@@ -440,7 +439,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return false;
         }
 
-        private bool PerformTSStructureManipulation()
+        protected override bool PerformTSStructureManipulation()
         {
             UpdateUILabel("Perform TS Manipulations: ");
             int counter = 0;

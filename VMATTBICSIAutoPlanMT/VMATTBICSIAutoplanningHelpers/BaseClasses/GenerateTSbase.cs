@@ -18,6 +18,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         public List<Tuple<string, TSManipulationType, double>> GetSparingList() { return TSManipulationList; }
         public bool GetUpdateSparingListStatus() { return updateTSManipulationList; }
         public string GetErrorStackTrace() { return stackTraceError; }
+        private readonly object locker = new object();
 
         protected StructureSet selectedSS;
         //structure, manipulation type, added margin (if applicable)
@@ -145,7 +146,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             }
             else if (manipulationItem.Item2 == TSManipulationType.ContourSubStructure || manipulationItem.Item2 == TSManipulationType.ContourOuterStructure)
             {
-                if (ContourInnerOuterStructure(theStructure, manipulationItem.Item3, ref counter)) return true;
+                if (ContourInnerOuterStructure(theStructure, manipulationItem.Item3)) return true;
             }
             return false;
         }
@@ -206,15 +207,19 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return fail;
         }
 
-        protected bool ContourInnerOuterStructure(Structure originalStructure, double margin, ref int counter)
+        protected bool ContourInnerOuterStructure(Structure originalStructure, double margin)
         {
+            int counter = 0;
             int calcItems = 2;
             //all other sub structures
             ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Creating {(margin > 0 ? "outer" : "sub")} structure!");
             (bool fail, Structure addedStructure) = CheckAndGenerateStructure($"{originalStructure}{margin:0.0}cm");
             if (fail) return true;
             //convert from cm to mm
-            addedStructure.SegmentVolume = originalStructure.Margin(margin * 10);
+            //lock(locker)
+            //{
+                addedStructure.SegmentVolume = originalStructure.Margin(margin * 10);
+           //}
             if (addedStructure.IsEmpty)
             {
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), $"{addedStructure.Id} was contoured, but is empty! Removing!");
@@ -224,8 +229,9 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
-        protected bool ContourInnerOuterStructure(Structure addedStructure, ref int counter)
+        protected bool ContourInnerOuterStructure(Structure addedStructure)
         {
+            int counter = 0;
             int calcItems = 4;
             //all other sub structures
             Structure originalStructure = null;

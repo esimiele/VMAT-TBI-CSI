@@ -1014,34 +1014,20 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 return;
             }
 
-            string missOutput = "";
-            string emptyOutput = "";
-            int missCount = 0;
-            int emptyCount = 0;
+            (List<string> missingEmptyStructures, StringBuilder warnings) = StructureTuningUIHelper.VerifyTSManipulationIntputIntegrity(templateManipulationList.Select(x => x.Item1).Distinct().ToList(), structureIdsPostUnion, selectedSS);
+            if (missingEmptyStructures.Any()) log.LogError(warnings);
+
             List<Tuple<string, TSManipulationType, double>> defaultList = new List<Tuple<string, TSManipulationType, double>> { };
             foreach (Tuple<string, TSManipulationType, double> itr in templateManipulationList)
             {
-                //check to ensure the structures in the templateSpareList vector are actually present in the selected structure set and are actually contoured. If they are, add them to the defaultList vector, which will be passed 
-                //to the add_sp_volumes method
-                if (!structureIdsPostUnion.Where(x => x.ToLower() == itr.Item1.ToLower()).Any())
+                if (!missingEmptyStructures.Any(x => string.Equals(x, itr.Item1)))
                 {
-                    if (missCount == 0) missOutput = String.Format("Warning! The following default structures are missing from the selected structure list:\n");
-                    missOutput += String.Format("{0}\n", itr.Item1);
-                    missCount++;
+                    defaultList.Add(Tuple.Create(structureIdsPostUnion.First(x => x.ToLower() == itr.Item1.ToLower()), itr.Item2, itr.Item3));
                 }
-                else if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.Item1.ToLower()) != null && selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.Item1.ToLower()).IsEmpty)
-                {
-                    if (emptyCount == 0) emptyOutput = String.Format("Warning! The following default structures are present but empty:\n");
-                    emptyOutput += String.Format("{0}\n", itr.Item1);
-                    emptyCount++;
-                }
-                else defaultList.Add(Tuple.Create(structureIdsPostUnion.First(x => x.ToLower() == itr.Item1.ToLower()), itr.Item2, itr.Item3));
             }
 
             ClearStructureManipulationsList(ClearStructureManipulationsBtn);
             AddStructureManipulationVolumes(defaultList, structureManipulationSP);
-            if (missCount > 0) log.LogError(missOutput);
-            if (emptyCount > 0) log.LogError(emptyOutput);
         }
 
         //wipe the displayed list of sparing structures

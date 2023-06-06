@@ -143,10 +143,15 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             StackPanel sp = new StackPanel
             {
                 Height = 30,
-                Width = theSP.Width,
+                Width = 450,
                 Orientation = Orientation.Horizontal,
-                Margin = new Thickness(40, 0, 5, 5)
+                Margin = new Thickness(5)
             };
+
+            Grid g = new Grid();
+            g.ColumnDefinitions.Add(new ColumnDefinition());
+            g.ColumnDefinitions.Add(new ColumnDefinition());
+            g.ColumnDefinitions.Add(new ColumnDefinition());
 
             Label strName = new Label
             {
@@ -155,7 +160,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 VerticalAlignment = VerticalAlignment.Top,
                 Width = 150,
                 FontSize = 14,
-                Margin = new Thickness(27, 0, 0, 0)
+                Margin = new Thickness(0, 0, 0, 0)
             };
 
             Label spareType = new Label
@@ -165,7 +170,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 VerticalAlignment = VerticalAlignment.Top,
                 Width = 150,
                 FontSize = 14,
-                Margin = new Thickness(10, 0, 0, 0)
+                Margin = new Thickness(0, 0, 0, 0)
             };
 
             Label marginLabel = new Label
@@ -173,14 +178,19 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 Content = "Margin (cm)",
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Top,
-                Width = 150,
+                Width = 140,
                 FontSize = 14,
                 Margin = new Thickness(0, 0, 0, 0)
             };
+            g.Children.Add(strName);
+            g.Children.Add(spareType);
+            g.Children.Add(marginLabel);
 
-            sp.Children.Add(strName);
-            sp.Children.Add(spareType);
-            sp.Children.Add(marginLabel);
+            Grid.SetColumn(strName, 0);
+            Grid.SetColumn(spareType, 1);
+            Grid.SetColumn(marginLabel, 2);
+
+            sp.Children.Add(g);
 
             return sp;
         }
@@ -192,7 +202,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 Height = 30,
                 Width = theSP.Width,
                 Orientation = Orientation.Horizontal,
-                Margin = new Thickness(40, 0, 5, 5)
+                Margin = new Thickness(30, 0, 5, 5)
             };
 
             ComboBox str_cb = new ComboBox
@@ -240,7 +250,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             TextBox addMargin = new TextBox
             {
                 Name = "addMargin_tb",
-                Width = 120,
+                Width = 110,
                 Height = sp.Height - 5,
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top,
@@ -266,6 +276,36 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             sp.Children.Add(clearStructBtn);
 
             return sp;
+        }
+
+        public static (List<string>, StringBuilder) VerifyTSManipulationIntputIntegrity(List<string> manipulationListIds, List<string> idsPostUnion, StructureSet ss)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("Warning! The following structures are null or empty and can't be used for TS manipulation:");
+            List<string> missingEmptyList = new List<string> { };
+            foreach (string itr in manipulationListIds)
+            {
+                //check to ensure the structures in the templateSpareList vector are actually present in the selected structure set and are actually contoured. If they are, add them to the defaultList vector, which will be passed 
+                //to the add_sp_volumes method
+                if (StructureTuningHelper.DoesStructureExistInSS(itr, ss))
+                {
+                    //already exists in current structure set, check if it is empty
+                    if (!StructureTuningHelper.DoesStructureExistInSS(itr, ss, true))
+                    {
+                        //it's in the structure set, but it's not contoured
+                        missingEmptyList.Add(itr);
+                        sb.AppendLine(itr);
+                    }
+                }
+                else if (!idsPostUnion.Any(x => string.Equals(x.ToLower(), itr.ToLower())))
+                {
+                    //check if this structure will be unioned in the generateTS class
+                    missingEmptyList.Add(itr);
+                    sb.AppendLine(itr);
+                }
+            }
+
+            return (missingEmptyList, sb);
         }
 
         public static (List<Tuple<string, TSManipulationType, double>>, StringBuilder) ParseTSManipulationList(StackPanel theSP)
