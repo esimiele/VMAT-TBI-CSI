@@ -230,15 +230,10 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 Margin = new Thickness(5, 5, 0, 0),
                 HorizontalContentAlignment = HorizontalAlignment.Center
             };
-            string[] types = new string[] { "--select--", 
-                                            "Crop target from structure", 
-                                            "Contour overlap with target", 
-                                            "Crop from Body", 
-                                            "Mean Dose < Rx Dose", 
-                                            "Dmax ~ Rx Dose" };
-            foreach (string s in types) type_cb.Items.Add(s);
-            if (types.Any(x => string.Equals(x, listItem.Item2.ToString()))) type_cb.Text = listItem.Item2.ToString();
-            else type_cb.Text = "--select--";
+            
+            foreach (TSManipulationType s in Enum.GetValues(typeof(TSManipulationType))) type_cb.Items.Add(s);
+            if ((int)listItem.Item2 <= type_cb.Items.Count) type_cb.SelectedIndex = (int)listItem.Item2;
+            else type_cb.SelectedIndex = 0;
             type_cb.SelectionChanged += typeChngHndl;
             sp.Children.Add(type_cb);
 
@@ -252,9 +247,9 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 TextAlignment = TextAlignment.Center,
                 VerticalContentAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(5, 5, 0, 0),
-                Text = Convert.ToString(listItem.Item3)
+                Text = String.Format("{0:0.0}", listItem.Item3)
             };
-            if (listItem.Item2 != TSManipulationType.CropTargetFromStructure && listItem.Item2 != TSManipulationType.CropFromBody) addMargin.Visibility = Visibility.Hidden;
+            if (listItem.Item2 == TSManipulationType.None) addMargin.Visibility = Visibility.Hidden;
             sp.Children.Add(addMargin);
 
             Button clearStructBtn = new Button

@@ -143,107 +143,10 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 }
                 else ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Finished contouring {overlapName}");
             }
-            return false;
-        }
-
-        private (bool, List<Structure>) VerifyRemoveTSStructures(List<Tuple<string, string>> structuresToRemove)
-        {
-            List<Structure> removeList = new List<Structure> { };
-            bool fail = false;
-            int calcItems = structuresToRemove.Count;
-            int counter = 0; 
-            foreach (Tuple<string, string> itr in structuresToRemove)
+            else if (manipulationItem.Item2 == TSManipulationType.ContourSubStructure || manipulationItem.Item2 == TSManipulationType.ContourOuterStructure)
             {
-                Structure tmp = StructureTuningHelper.GetStructureFromId(itr.Item2, selectedSS);
-                //structure is present in selected structure set
-                if (tmp != null)
-                {
-                    //check to see if the dicom type is "none"
-                    if (!string.IsNullOrEmpty(tmp.DicomType))
-                    {
-                        if (selectedSS.CanRemoveStructure(tmp))
-                        {
-                            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Adding: {itr.Item2} to the structure removal list");
-                            removeList.Add(tmp);
-                        }
-                        else
-                        {
-                            ProvideUIUpdate(0, $"Error! {itr.Item2} can't be removed from the structure set!", true);
-                            fail = true;
-
-                        }
-                    }
-                    else
-                    {
-                        ProvideUIUpdate(0, $"{itr.Item2} is of DICOM type 'None'! ESAPI can't operate on DICOM type 'None'", true);
-                        fail = true;
-                    }
-                }
+                if (ContourInnerOuterStructure(theStructure, manipulationItem.Item3, ref counter)) return true;
             }
-            return (fail, removeList);
-        }
-
-        private bool VerifyAddTSStructures(List<Tuple<string, string>> structuresToAdd)
-        {
-            bool fail = false;
-            ProvideUIUpdate("Verifying requested TS structures can be added to the structure set!");
-            int counter = 0;
-            int calcItems = structuresToAdd.Count;
-            foreach(Tuple<string, string> itr in structuresToAdd)
-            {
-                if (!selectedSS.CanAddStructure(itr.Item1, itr.Item2))
-                {
-                    ProvideUIUpdate($"Error! {itr.Item2} can't be added the structure set!", true);
-                    fail = true;
-                }
-                ProvideUIUpdate((int)(100 * ++counter / calcItems));
-            }
-            return fail;
-        }
-
-        private bool RemoveStructures(List<Structure> structuresToRemove)
-        {
-            int calcItems = structuresToRemove.Count;
-            int counter = 0;
-            foreach (Structure itr in structuresToRemove)
-            {
-                if(selectedSS.CanRemoveStructure(itr))
-                {
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Removing: {itr.Id}");
-                    selectedSS.RemoveStructure(itr);
-                }
-                else
-                {
-                    ProvideUIUpdate($"Error! Could not remove structure: {itr.Id}!", true);
-                    if (string.IsNullOrEmpty(itr.DicomType)) ProvideUIUpdate($"{itr.Id} DICOM type: None");
-                    return true;
-                }
-            }
-            return false;
-        }
-        
-        protected bool RemoveOldTSStructures(List<Tuple<string, string>> structures, bool removeTSTargetsToo = false)
-        {
-            UpdateUILabel("Remove Prior Tuning Structures: ");
-            ProvideUIUpdate(0, "Removing prior tuning structures");
-            //remove existing TS structures if they exist and re-add them to the structure list
-            
-            List<Tuple<string, string>> structuresToRemove;
-            if (!removeTSTargetsToo) structuresToRemove = structures.Where(x => !x.Item2.ToLower().Contains("ctv") && !x.Item2.ToLower().Contains("ptv")).ToList();
-            else structuresToRemove = structures;
-
-            (bool fail, List<Structure> removeList) = VerifyRemoveTSStructures(structuresToRemove);
-            if (fail) return true;
-            ProvideUIUpdate(0, "Adding any remaining tuning structures to the stack");
-            //4-15-2022 
-            //remove ALL tuning structures from any previous runs (structure id starts with 'TS_'). Be sure to exclude any requested TS structures from the config file as we just added them!
-            List<Structure> tsStructs = selectedSS.Structures.Where(x => x.Id.Length > 2 && string.Equals(x.Id.ToLower().Substring(0, 3), "ts_")).ToList();
-            removeList.AddRange(tsStructs.Except(removeList));
-            if (RemoveStructures(removeList)) return true;
-
-            if (VerifyAddTSStructures(structuresToRemove)) return true;
-            ProvideUIUpdate(100, "Prior tuning structures successfully removed!");
-            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
 
@@ -303,6 +206,24 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return fail;
         }
 
+        protected bool ContourInnerOuterStructure(Structure originalStructure, double margin, ref int counter)
+        {
+            int calcItems = 2;
+            //all other sub structures
+            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Creating {(margin > 0 ? "outer" : "sub")} structure!");
+            (bool fail, Structure addedStructure) = CheckAndGenerateStructure($"{originalStructure}{margin:0.0}cm");
+            if (fail) return true;
+            //convert from cm to mm
+            addedStructure.SegmentVolume = originalStructure.Margin(margin * 10);
+            if (addedStructure.IsEmpty)
+            {
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"{addedStructure.Id} was contoured, but is empty! Removing!");
+                selectedSS.RemoveStructure(addedStructure);
+            }
+            else ProvideUIUpdate(100, $"Finished contouring {addedStructure.Id}");
+            return false;
+        }
+
         protected bool ContourInnerOuterStructure(Structure addedStructure, ref int counter)
         {
             int calcItems = 4;
@@ -326,7 +247,14 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Grabbing original structure {originalStructureId}");
                 //logic to handle case where the original structure had to be converted to low resolution
                 originalStructure = StructureTuningHelper.GetStructureFromId(originalStructureId.ToLower(), selectedSS);
-                if (originalStructure == null) originalStructure = selectedSS.Structures.First(x => x.Id.ToLower().Contains(originalStructureId.ToLower()) && x.Id.ToLower().Contains("_low"));
+                if (originalStructure == null) originalStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains(originalStructureId.ToLower()) && x.Id.ToLower().Contains("_low"));
+                if (originalStructure == null)
+                {
+                    ProvideUIUpdate($"Warning! Could not retrieve base structure {originalStructureId} to generate {addedStructure.Id}!");
+                    ProvideUIUpdate($"Removing {addedStructure.Id}");
+                    selectedSS.RemoveStructure(addedStructure);
+                    return false;
+                }
 
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Creating {(margin > 0 ? "outer" : "sub")} structure!");
                 //convert from cm to mm
@@ -336,7 +264,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                     ProvideUIUpdate($"{addedStructure.Id} was contoured, but is empty! Removing!");
                     selectedSS.RemoveStructure(addedStructure);
                 }
-                ProvideUIUpdate(100, $"Finished contouring {addedStructure.Id}");
+                else ProvideUIUpdate(100, $"Finished contouring {addedStructure.Id}");
             }
             else
             {
@@ -415,6 +343,128 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             //inform the main UI class that the UI needs to be updated
             updateTSManipulationList = true;
             return false;
+        }
+
+        private (bool, List<Structure>) VerifyRemoveTSStructures(List<Tuple<string, string>> structuresToRemove)
+        {
+            List<Structure> removeList = new List<Structure> { };
+            bool fail = false;
+            int calcItems = structuresToRemove.Count;
+            int counter = 0;
+            foreach (Tuple<string, string> itr in structuresToRemove)
+            {
+                Structure tmp = StructureTuningHelper.GetStructureFromId(itr.Item2, selectedSS);
+                //structure is present in selected structure set
+                if (tmp != null)
+                {
+                    //check to see if the dicom type is "none"
+                    if (!string.IsNullOrEmpty(tmp.DicomType))
+                    {
+                        if (selectedSS.CanRemoveStructure(tmp))
+                        {
+                            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Adding: {itr.Item2} to the structure removal list");
+                            removeList.Add(tmp);
+                        }
+                        else
+                        {
+                            ProvideUIUpdate(0, $"Error! {itr.Item2} can't be removed from the structure set!", true);
+                            fail = true;
+
+                        }
+                    }
+                    else
+                    {
+                        ProvideUIUpdate(0, $"{itr.Item2} is of DICOM type 'None'! ESAPI can't operate on DICOM type 'None'", true);
+                        fail = true;
+                    }
+                }
+            }
+            return (fail, removeList);
+        }
+
+        protected bool VerifyAddTSStructures(List<Tuple<string, string>> structuresToAdd)
+        {
+            bool fail = false;
+            ProvideUIUpdate("Verifying requested TS structures can be added to the structure set!");
+            int counter = 0;
+            int calcItems = structuresToAdd.Count;
+            foreach (Tuple<string, string> itr in structuresToAdd)
+            {
+                if (!selectedSS.CanAddStructure(itr.Item1, itr.Item2))
+                {
+                    ProvideUIUpdate($"Error! {itr.Item2} can't be added the structure set!", true);
+                    fail = true;
+                }
+                ProvideUIUpdate((int)(100 * ++counter / calcItems));
+            }
+            return fail;
+        }
+
+        private bool RemoveStructures(List<Structure> structuresToRemove)
+        {
+            int calcItems = structuresToRemove.Count;
+            int counter = 0;
+            foreach (Structure itr in structuresToRemove)
+            {
+                if (selectedSS.CanRemoveStructure(itr))
+                {
+                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Removing: {itr.Id}");
+                    selectedSS.RemoveStructure(itr);
+                }
+                else
+                {
+                    ProvideUIUpdate($"Error! Could not remove structure: {itr.Id}!", true);
+                    if (string.IsNullOrEmpty(itr.DicomType)) ProvideUIUpdate($"{itr.Id} DICOM type: None");
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        protected bool RemoveOldTSStructures(List<Tuple<string, string>> structures, bool removeTSTargetsToo = false)
+        {
+            UpdateUILabel("Remove Prior Tuning Structures: ");
+            ProvideUIUpdate(0, "Removing prior tuning structures");
+            //remove existing TS structures if they exist and re-add them to the structure list
+
+            List<Tuple<string, string>> structuresToRemove;
+            if (!removeTSTargetsToo) structuresToRemove = structures.Where(x => !x.Item2.ToLower().Contains("ctv") && !x.Item2.ToLower().Contains("ptv")).ToList();
+            else structuresToRemove = structures;
+
+            (bool fail, List<Structure> removeList) = VerifyRemoveTSStructures(structuresToRemove);
+            if (fail) return true;
+            ProvideUIUpdate(0, "Adding any remaining tuning structures to the stack");
+            //4-15-2022 
+            //remove ALL tuning structures from any previous runs (structure id starts with 'TS_'). Be sure to exclude any requested TS structures from the config file as we just added them!
+            List<Structure> tsStructs = selectedSS.Structures.Where(x => x.Id.Length > 2 && string.Equals(x.Id.ToLower().Substring(0, 3), "ts_")).ToList();
+            removeList.AddRange(tsStructs.Except(removeList));
+            if (RemoveStructures(removeList)) return true;
+
+            if (VerifyAddTSStructures(structuresToRemove)) return true;
+            ProvideUIUpdate(100, "Prior tuning structures successfully removed!");
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
+            return false;
+        }
+
+        protected (bool, Structure) CheckAndGenerateStructure(string id)
+        {
+            bool fail = false;
+            Structure theStructure = null;
+            if (StructureTuningHelper.DoesStructureExistInSS(id, selectedSS))
+            {
+                if (selectedSS.CanRemoveStructure(StructureTuningHelper.GetStructureFromId(id, selectedSS))) selectedSS.RemoveStructure(StructureTuningHelper.GetStructureFromId(id, selectedSS));
+                else
+                {
+                    ProvideUIUpdate("Error! Could not add dummy box to structure set to cut target at matchplane! Exiting!", true);
+                    fail = true;
+                }
+            }
+            if (!VerifyAddTSStructures(new List<Tuple<string, string>> { new Tuple<string, string>("CONTROL", id) }))
+            {
+                theStructure = AddTSStructures(new Tuple<string, string>("CONTROL", id));
+            }
+            else fail = true;
+            return (fail, theStructure);
         }
 
         protected Structure AddTSStructures(Tuple<string, string> itr1)

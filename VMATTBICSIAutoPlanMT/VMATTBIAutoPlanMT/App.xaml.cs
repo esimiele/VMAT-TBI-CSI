@@ -23,7 +23,7 @@ namespace VMATTBIAutoPlanMT
                 //only add first two arguments (patient id and structure set). Don't care about 3rd argument
                 for (int i = 0; i < 2; i++) theArguments.Add(e.Args[i]);
             }
-            Window mw = new VMAT_TBI.TBIAutoPlanMW(theArguments);
+            VMAT_TBI.TBIAutoPlanMW mw = new VMAT_TBI.TBIAutoPlanMW(theArguments);
             if (!mw.GetCloseOpenPatientWindowStatus()) mw.Show();
             //string binDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             //string optLoopExe = Directory.GetFiles(binDir, "*.exe").FirstOrDefault(x => x.Contains("VMATTBICSIOptLoopMT"));

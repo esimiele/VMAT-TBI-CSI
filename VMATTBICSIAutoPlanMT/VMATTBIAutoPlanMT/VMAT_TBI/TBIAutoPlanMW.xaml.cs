@@ -29,8 +29,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         /// ADJUST THESE PARAMETERS TO YOUR TASTE. THESE PARAMETERS WILL BE OVERWRITTEN BY THE CONFIG.INI FILE IF IT IS SUPPLIED.
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-        
-
         //flash option
         bool useFlashByDefault = true;
         //default flash type is global
@@ -421,7 +419,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private void AddDefaultTuningStructures_Click(object sender, RoutedEventArgs e)
         {
             //List<Tuple<string, string>> tmp = new List<Tuple<string, string>>(defaultTSStructures);
-            List<Tuple<string, string>> tmp = new List<Tuple<string, string>> { };
+            List<Tuple<string, string>> tmp = new List<Tuple<string, string>>(defaultTSStructures);
             if (templateList.SelectedItem != null)
             {
                 foreach (Tuple<string, string> itr in ((TBIAutoPlanTemplate)templateList.SelectedItem).GetCreateTSStructures()) tmp.Add(itr);
@@ -450,11 +448,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             {
                 counter++;
                 theSP.Children.Add(StructureTuningUIHelper.AddTSVolume(theSP,
-                                                       selectedSS,
-                                                       defaultList[i],
-                                                       clearBtnName,
-                                                       counter,
-                                                       new RoutedEventHandler(this.ClearTuningStructureItem_Click)));
+                                                                       selectedSS,
+                                                                       defaultList[i],
+                                                                       clearBtnName,
+                                                                       counter,
+                                                                       new RoutedEventHandler(this.ClearTuningStructureItem_Click)));
             }
         }
 
@@ -540,7 +538,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //add the case-specific sparing structures to the temporary list
             if (templateList.SelectedItem != null)
             {
-                templateManipulationList = new List<Tuple<string, TSManipulationType, double>>(StructureTuningHelper.AddTemplateSpecificStructureManipulations((templateList.SelectedItem as CSIAutoPlanTemplate).GetTSManipulations(), templateManipulationList, pi.Sex));
+                templateManipulationList = new List<Tuple<string, TSManipulationType, double>>(StructureTuningHelper.AddTemplateSpecificStructureManipulations((templateList.SelectedItem as TBIAutoPlanTemplate).GetTSManipulations(), templateManipulationList, pi.Sex));
             }
             if (!templateManipulationList.Any())
             {
@@ -557,13 +555,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             {
                 //check to ensure the structures in the templateSpareList vector are actually present in the selected structure set and are actually contoured. If they are, add them to the defaultList vector, which will be passed 
                 //to the add_sp_volumes method
-                if (!structureIdsPostUnion.Where(x => x.ToLower() == itr.Item1.ToLower()).Any())
+                if (!structureIdsPostUnion.Any(x => x.ToLower() == itr.Item1.ToLower()))
                 {
                     if (missCount == 0) missOutput = String.Format("Warning! The following default structures are missing from the selected structure list:\n");
                     missOutput += String.Format("{0}\n", itr.Item1);
                     missCount++;
                 }
-                else if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.Item1.ToLower()) != null && selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.Item1.ToLower()).IsEmpty)
+                else if (!StructureTuningHelper.DoesStructureExistInSS(itr.Item1, selectedSS, true))
                 {
                     if (emptyCount == 0) emptyOutput = String.Format("Warning! The following default structures are present but empty:\n");
                     emptyOutput += String.Format("{0}\n", itr.Item1);
@@ -641,28 +639,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
         }
 
-        private void Type_cb_change(object sender, EventArgs e)
-        {
-            //not the most elegent code, but it works. Basically, it finds the combobox where the selection was changed and increments one additional child to get the add margin text box. Then it can change
-            //the visibility of this textbox based on the sparing type selected for this structure
-            ComboBox c = (ComboBox)sender;
-            bool row = false;
-            foreach (object obj in structureManipulationSP.Children)
-            {
-                foreach (object obj1 in ((StackPanel)obj).Children)
-                {
-                    //the btn has a unique tag to it, so we can just loop through all children in the structureManipulationSP children list and find which button is equivalent to our button
-                    if (row)
-                    {
-                        if (c.SelectedItem.ToString() != "Mean Dose < Rx Dose") (obj1 as TextBox).Visibility = Visibility.Hidden;
-                        else (obj1 as TextBox).Visibility = Visibility.Visible;
-                        return;
-                    }
-                    if (obj1.Equals(c)) row = true;
-                }
-            }
-        }
-
         private void StructureManipulationType_SelectionChanged(StackPanel theSP, object sender, EventArgs e)
         {
             //not the most elegent code, but it works. Basically, it finds the combobox where the selection was changed and increments one additional child to get the add margin text box. Then it can change
@@ -676,7 +652,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     //the btn has a unique tag to it, so we can just loop through all children in the structureManipulationSP children list and find which button is equivalent to our button
                     if (row)
                     {
-                        if (c.SelectedItem.ToString() != "Mean Dose < Rx Dose" &&
+                        if ((TSManipulationType)c.SelectedItem == TSManipulationType.None &&
                             c.SelectedItem.ToString() != "Crop target from structure" &&
                             c.SelectedItem.ToString() != "Crop from Body")
                         {

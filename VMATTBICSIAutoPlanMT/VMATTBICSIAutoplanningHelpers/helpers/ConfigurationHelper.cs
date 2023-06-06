@@ -124,11 +124,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                                         string parameter = line.Substring(0, line.IndexOf("="));
                                         string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
                                         if (parameter == "template name") tempTemplate.SetTemplateName(value);
-                                        else if (parameter == "initial dose per fraction")
+                                        else if (parameter == "dose per fraction")
                                         {
                                             if (double.TryParse(value, out double initDPF)) tempTemplate.SetInitRxDosePerFx(initDPF);
                                         }
-                                        else if (parameter == "initial num fx")
+                                        else if (parameter == "num fx")
                                         {
                                             if (int.TryParse(value, out int initFx)) tempTemplate.SetInitialRxNumFx(initFx);
                                         }

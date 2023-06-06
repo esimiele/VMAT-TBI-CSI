@@ -116,8 +116,7 @@
     <Compile Include="BaseClasses\PlaceBeamsBase.cs" />
     <Compile Include="BaseClasses\PlanPrepBase.cs" />
     <Compile Include="BaseClasses\AutoPlanTemplateBase.cs" />
-    <Compile Include="Enums\OptimizationObjectiveTypeEnum.cs" />
-    <Compile Include="Enums\TSManipulationTypeEnum.cs" />
+    <Compile Include="Enums\AllEnums.cs" />
     <Compile Include="Helpers\CalculationHelper.cs" />
     <Compile Include="PlanTemplateClasses\TBIAutoPlanTemplate.cs" />
     <Compile Include="UIHelpers\ConfigurationUIHelper.cs" />
@@ -143,7 +142,6 @@
     </Compile>
     <Compile Include="Structs\OptDataContainerStruct.cs" />
     <Compile Include="Helpers\OptimizationSetupHelper.cs" />
-    <Compile Include="Enums\PlanTypeEnum.cs" />
     <Compile Include="Helpers\StructureTuningHelper.cs" />
     <Compile Include="Helpers\TargetsHelper.cs" />
     <Compile Include="Logging\Logger.cs" />

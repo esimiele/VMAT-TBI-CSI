@@ -21,7 +21,7 @@ namespace VMS.TPS
                     bool addOptLaunchOption = false;
                     bool isCSIPlan = false;
                     ExternalPlanSetup plan = context.ExternalPlanSetup;
-                    if (plan != null && (plan.Id.ToLower().Contains("tbi") || plan.Id.ToLower().Contains("csi") && !plan.IsDoseValid)
+                    if (plan != null && (plan.Id.ToLower().Contains("tbi") || plan.Id.ToLower().Contains("csi") && !plan.IsDoseValid))
                     {
                         addOptLaunchOption = true;
                         if (plan.Id.ToLower().Contains("csi")) isCSIPlan = true;

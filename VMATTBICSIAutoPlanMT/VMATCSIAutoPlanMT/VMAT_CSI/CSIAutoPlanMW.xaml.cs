@@ -967,9 +967,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     //the btn has a unique tag to it, so we can just loop through all children in the structureManipulationSP children list and find which button is equivalent to our button
                     if (row)
                     {
-                        if (c.SelectedItem.ToString() != "Mean Dose < Rx Dose" &&
-                            c.SelectedItem.ToString() != "Crop target from structure" &&
-                            c.SelectedItem.ToString() != "Crop from Body")
+                        if ((TSManipulationType)c.SelectedItem == TSManipulationType.None)
                         {
                             (obj1 as TextBox).Visibility = Visibility.Hidden;
                         }

@@ -54,6 +54,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return (fail, sb);
         }
 
+        /// <summary>
+        /// Contour overlap between two structures
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="normal"></param>
+        /// <param name="marginInCm"></param>
+        /// <returns></returns>
         public static (bool, StringBuilder) ContourOverlap(Structure target, Structure normal, double marginInCm)
         {
             StringBuilder sb = new StringBuilder();
@@ -233,6 +240,36 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             sb.AppendLine($"Iso position: ({v.x:0.0}, {v.y:0.0}, {v.z:0.0}) mm");
             sb.AppendLine($"Max lateral dimension: {maxDimension:0.0} mm");
             return (maxDimension, sb);
+        }
+
+        public static (VVector[], StringBuilder) GetLateralBoundingBoxForStructure(Structure theStructure)
+        {
+            StringBuilder sb = new StringBuilder();
+            VVector[] boundingBox;
+
+            Point3DCollection pts = theStructure.MeshGeometry.Positions;
+            double xMax = pts.Max(p => p.X);
+            double xMin = pts.Min(p => p.X);
+            double yMax = pts.Max(p => p.Y);
+            double yMin = pts.Min(p => p.Y);
+
+            sb.AppendLine($"Lateral bounding box for structure: {theStructure.Id}");
+            sb.AppendLine($" xMax: {xMax}");
+            sb.AppendLine($" xMin: {xMin}");
+            sb.AppendLine($" yMax: {yMax}");
+            sb.AppendLine($" yMin: {yMin}");
+
+             boundingBox = new[] {
+                                new VVector(xMax, yMax, 0),
+                                new VVector(xMax, 0, 0),
+                                new VVector(xMax, yMin, 0),
+                                new VVector(0, yMin, 0),
+                                new VVector(xMin, yMin, 0),
+                                new VVector(xMin, 0, 0),
+                                new VVector(xMin, yMax, 0),
+                                new VVector(0, yMax, 0)};
+
+            return (boundingBox, sb);
         }
     }
 }

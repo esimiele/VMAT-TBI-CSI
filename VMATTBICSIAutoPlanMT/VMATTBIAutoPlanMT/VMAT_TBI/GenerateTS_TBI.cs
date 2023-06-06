@@ -10,6 +10,7 @@ using VMATTBICSIAutoPlanningHelpers.Prompts;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
 using System.Text;
+using System.Runtime.ExceptionServices;
 
 namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
@@ -40,6 +41,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             flashMargin = fM;
         }
 
+        [HandleProcessCorruptedStateExceptions]
         public override bool Run()
         {
             try 
@@ -50,6 +52,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (TSManipulationList.Any()) if (CheckHighResolution()) return true; 
                 if (CreateTSStructures()) return true;
                 if (PerformTSStructureManipulation()) return true;
+                if (GenerateTSTarget()) return true;
                 if (useFlash) if (CreateFlash()) return true;
                 MessageBox.Show("Structures generated successfully!\nPlease proceed to the beam placement tab!");
             }
@@ -163,7 +166,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             int counter = 0;
             //Need to add the Human body, PTV_BODY, and TS_PTV_VMAT contours manually
             //if these structures were present, they should have been removed (regardless if they were contoured or not). 
-            foreach (Tuple<string, string> itr in TS_structures) AddTSStructures(itr);
+            foreach (Tuple<string, string> itr in TS_structures)
+            {
+                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Adding {itr.Item2} to the structure set!");
+                AddTSStructures(itr);
+            }
 
             ProvideUIUpdate(100, "Finished adding tuning structures!");
             ProvideUIUpdate(0, "Contouring tuning structures!");
@@ -196,10 +203,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 {
                     if (ContourLungsEvalVolume(addedStructure)) return true;
                 }
-                else
-                {
-                    if (ContourInnerOuterStructure(addedStructure, ref counter)) return true;
-                }
+                //else
+                //{
+                //    if (ContourInnerOuterStructure(addedStructure, ref counter)) return true;
+                //}
             }
 
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
@@ -226,13 +233,25 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 {
                     if (ManipulateTuningStructures(itr, ptv_body, ref counter, ref calcItems)) return true;
                 }
-                Structure addedTSTarget = GetTSTarget(addedStructures.First(x => x.ToLower().Contains("ptv_body")));
-                (bool fail, StringBuilder message) = ContourHelper.CopyStructureOntoStructure(ptv_body, addedTSTarget);
-                if(fail)
-                {
-                    ProvideUIUpdate(message.ToString(), true);
-                    return true;
-                }
+                
+            }
+            return false;
+        }
+
+        private bool GenerateTSTarget()
+        {
+            Structure ptv_body = StructureTuningHelper.GetStructureFromId("ptv_body", selectedSS);
+            Structure addedTSTarget = GetTSTarget(ptv_body.Id);
+            (bool fail, StringBuilder message) = ContourHelper.CopyStructureOntoStructure(ptv_body, addedTSTarget);
+            if (fail)
+            {
+                ProvideUIUpdate(message.ToString(), true);
+                return true;
+            }
+            if (StructureTuningHelper.DoesStructureExistInSS("matchline", selectedSS))
+            {
+                //matchplane exists and needs to be cut from TS_PTV_Body. Also remove all TS_PTV_Body segements inferior to match plane
+                if (CutTSTargetFromMatchline(addedTSTarget)) return true;
             }
             return false;
         }
@@ -240,68 +259,61 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private bool CutTSTargetFromMatchline(Structure addedTSTarget)
         {
             //ts_ptv_vmat
-            //matchplane exists and needs to be cut from TS_PTV_Body. Also remove all TS_PTV_Body segements inferior to match plane
-            if (selectedSS.Structures.Where(x => x.Id.ToLower() == "matchline").Any())
+            //find the image plane where the matchline is location. Record this value and break the loop. Also find the first slice where the ptv_body contour starts and record this value
+            Structure matchline = StructureTuningHelper.GetStructureFromId("matchline", selectedSS);
+            if(matchline.IsEmpty)
             {
-                //find the image plane where the matchline is location. Record this value and break the loop. Also find the first slice where the ptv_body contour starts and record this value
-                Structure matchline = StructureTuningHelper.GetStructureFromId("matchline", selectedSS);
-                if(matchline.IsEmpty)
-                {
-                    ProvideUIUpdate($"Error! Matchline structure is empty! Cannot cut {addedTSTarget.Id} at the matchplane! Exiting!", true);
-                    return true;
-                }
-                //bool lowLimNotFound = true;
-                //int lowLim = -1;
-                int matchplaneLocation = CalculationHelper.ComputeSlice(matchline.CenterPoint.z, selectedSS);
-                int addedTSTargetMinZ = CalculationHelper.ComputeSlice(addedTSTarget.MeshGeometry.Positions.Min(p => p.Z), selectedSS);
-                //for (int i = 0; i != selectedSS.Image.ZSize - 1; i++)
-                //{
-                //    if (matchline.GetContoursOnImagePlane(i).Any())
-                //    {
-                //        matchplaneLocation = i;
-                //        break;
-                //    }
-                //    if (lowLimNotFound && addedTSTarget.GetContoursOnImagePlane(i).Any())
-                //    {
-                //        lowLim = i;
-                //        lowLimNotFound = false;
-                //    }
-                //}
-
-                if (selectedSS.Structures.Where(x => x.Id.ToLower() == "dummybox").Any()) selectedSS.RemoveStructure(selectedSS.Structures.First(x => x.Id.ToLower() == "dummybox"));
-                Structure dummyBox = selectedSS.AddStructure("CONTROL", "DummyBox");
-
-                //get min/max positions of ptv_body contour to contour the dummy box for creating TS_PTV_Legs
-                Point3DCollection ptv_bodyPts = addedTSTarget.MeshGeometry.Positions;
-                double xMax = ptv_bodyPts.Max(p => p.X) + 50.0;
-                double xMin = ptv_bodyPts.Min(p => p.X) - 50.0;
-                double yMax = ptv_bodyPts.Max(p => p.Y) + 50.0;
-                double yMin = ptv_bodyPts.Min(p => p.Y) - 50.0;
-
-                //box with contour points located at (x,y), (x,0), (x,-y), (0,-y), (-x,-y), (-x,0), (-x, y), (0,y)
-                VVector[] pts = new[] {
-                                new VVector(xMax, yMax, 0),
-                                new VVector(xMax, 0, 0),
-                                new VVector(xMax, yMin, 0),
-                                new VVector(0, yMin, 0),
-                                new VVector(xMin, yMin, 0),
-                                new VVector(xMin, 0, 0),
-                                new VVector(xMin, yMax, 0),
-                                new VVector(0, yMax, 0)};
-
-                //give 5cm margin on TS_PTV_LEGS (one slice of the CT should be 5mm) in case user wants to include flash up to 5 cm
-                for (int i = matchplaneLocation; i > addedTSTargetMinZ - 10; i--) dummyBox.AddContourOnImagePlane(pts, i);
-
-                //do the structure manipulation
-                if (selectedSS.Structures.Where(x => x.Id.ToLower() == "ts_ptv_legs").Any()) selectedSS.RemoveStructure(selectedSS.Structures.First(x => x.Id.ToLower() == "ts_ptv_legs"));
-                Structure TS_legs = selectedSS.AddStructure("CONTROL", "TS_PTV_Legs");
-                TS_legs.SegmentVolume = dummyBox.And(addedTSTarget.Margin(0));
-                //subtract both dummybox and matchline from TS_PTV_VMAT
-                addedTSTarget.SegmentVolume = addedTSTarget.Sub(dummyBox.Margin(0.0));
-                addedTSTarget.SegmentVolume = addedTSTarget.Sub(matchline.Margin(0.0));
-                //remove the dummybox structure if flash is NOT being used as its no longer needed
-                if (!useFlash) selectedSS.RemoveStructure(dummyBox);
+                ProvideUIUpdate($"Error! Matchline structure is empty! Cannot cut {addedTSTarget.Id} at the matchplane! Exiting!", true);
+                return true;
             }
+            int matchplaneLocation = CalculationHelper.ComputeSlice(matchline.CenterPoint.z, selectedSS);
+            int addedTSTargetMinZ = CalculationHelper.ComputeSlice(addedTSTarget.MeshGeometry.Positions.Min(p => p.Z), selectedSS);
+            //number of buffer slices equal to 5 cn in z direction
+            //needed because the dummybox will be reused for flash generation (if applicable)
+            double bufferInMM = 50.0;
+            int bufferSlices = (int)Math.Ceiling(bufferInMM / selectedSS.Image.ZRes);
+                
+            (bool failDummy, Structure dummyBox) = CheckAndGenerateStructure("DummyBox");
+            if (failDummy) return true;
+
+            (VVector[] pts, StringBuilder latBoxMessage) = ContourHelper.GetLateralBoundingBoxForStructure(addedTSTarget);
+            ProvideUIUpdate(latBoxMessage.ToString());
+
+            //give 5cm margin on TS_PTV_LEGS (one slice of the CT should be 5mm) in case user wants to include flash up to 5 cm
+            for (int i = matchplaneLocation; i > addedTSTargetMinZ - bufferSlices; i--)
+            {
+                dummyBox.AddContourOnImagePlane(pts, i);
+            }
+
+            //do the structure manipulation
+            (bool failTSLegs, Structure TS_legs) = CheckAndGenerateStructure("TS_PTV_Legs");
+            if (failTSLegs) return true;
+                
+            (bool failOverlap, StringBuilder overlapMessage) = ContourHelper.ContourOverlap(addedTSTarget, dummyBox, 0.0);
+            if (failOverlap)
+            {
+                ProvideUIUpdate(overlapMessage.ToString(), true);
+                return true;
+            }
+
+            //subtract both dummybox and matchline from TS_PTV_VMAT
+            (bool failCropBox, StringBuilder cropBoxMessage) = ContourHelper.CropTargetFromStructure(addedTSTarget, dummyBox, 0.0);
+            if (failCropBox)
+            {
+                ProvideUIUpdate(cropBoxMessage.ToString(), true);
+                return true;
+            }
+
+            (bool failCropMatch, StringBuilder cropMatchMessage) = ContourHelper.CropTargetFromStructure(addedTSTarget, matchline, 0.0);
+            if (failCropMatch)
+            {
+                ProvideUIUpdate(cropMatchMessage.ToString(), true);
+                return true;
+            }
+
+            //remove the dummybox structure if flash is NOT being used as its no longer needed
+            if (!useFlash) selectedSS.RemoveStructure(dummyBox);
+
             return false;
         }
 
@@ -362,18 +374,18 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             {
                 if (spare.Item2 == TSManipulationType.CropTargetFromStructure)
                 {
-                    if (spare.Item1.ToLower() == "kidneys" && scleroTrial)
-                    {
-                        tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "kidney_block_r");
-                        ptv_flash.SegmentVolume = ptv_flash.Sub(tmp1.Margin(0.0));
-                        tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "kidney_block_l");
-                        ptv_flash.SegmentVolume = ptv_flash.Sub(tmp1.Margin(0.0));
-                    }
-                    else
-                    {
-                        tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == spare.Item1.ToLower());
-                        ptv_flash.SegmentVolume = ptv_flash.Sub(tmp1.Margin((spare.Item3) * 10));
-                    }
+                    //if (spare.Item1.ToLower() == "kidneys" && scleroTrial)
+                    //{
+                    //    tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "kidney_block_r");
+                    //    ptv_flash.SegmentVolume = ptv_flash.Sub(tmp1.Margin(0.0));
+                    //    tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "kidney_block_l");
+                    //    ptv_flash.SegmentVolume = ptv_flash.Sub(tmp1.Margin(0.0));
+                    //}
+                    //else
+                    //{
+                    //    tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == spare.Item1.ToLower());
+                    //    ptv_flash.SegmentVolume = ptv_flash.Sub(tmp1.Margin((spare.Item3) * 10));
+                    //}
                 }
             }
 

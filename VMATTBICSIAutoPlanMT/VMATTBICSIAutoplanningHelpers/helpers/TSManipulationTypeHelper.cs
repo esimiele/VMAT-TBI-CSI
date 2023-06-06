@@ -6,9 +6,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
     {
         public static TSManipulationType GetTSManipulationType(string manipulation)
         {
-            if (string.Equals(manipulation, "Crop target from structure")) return TSManipulationType.CropTargetFromStructure;
-            else if (string.Equals(manipulation, "Contour overlap with target")) return TSManipulationType.ContourOverlapWithTarget;
-            else if (string.Equals(manipulation, "Crop from body")) return TSManipulationType.CropFromBody;
+            manipulation = manipulation.Replace(" ", "").ToLower();
+            if (string.Equals(manipulation, "croptargetfromstructure")) return TSManipulationType.CropTargetFromStructure;
+            else if (string.Equals(manipulation, "contouroverlapwithtarget")) return TSManipulationType.ContourOverlapWithTarget;
+            else if (string.Equals(manipulation, "cropfrombody")) return TSManipulationType.CropFromBody;
+            else if (string.Equals(manipulation, "contoursubstructure")) return TSManipulationType.ContourSubStructure;
+            else if (string.Equals(manipulation, "contourouterstructure")) return TSManipulationType.ContourOuterStructure;
             else return TSManipulationType.None;
         }
     }
