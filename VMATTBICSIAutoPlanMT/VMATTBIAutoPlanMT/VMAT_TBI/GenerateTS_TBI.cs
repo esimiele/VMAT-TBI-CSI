@@ -245,15 +245,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 }
                 else if (itr.ToLower().Contains("ptv_body"))
                 {
-                    if (CopyBodyStructureOnToStructure(addedStructure)) return true;
-                    //contour the arms as the overlap between the current armsAvoid structure and the body with a 5mm outer margin
-                    (bool fail, StringBuilder errorMessage) = ContourHelper.CropStructureFromBody(addedStructure, selectedSS, -targetMargin);
-                    if (fail)
-                    {
-                        ProvideUIUpdate(errorMessage.ToString());
-                        return true;
-                    }
-                    ProvideUIUpdate($"Cropped {addedStructure.Id} from body with -{targetMargin} cm margin");
+                    if (GeneratePTV(addedStructure)) return true;
                 }
                 else if (itr.ToLower().Contains("_block"))
                 {
@@ -267,6 +259,19 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
 
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
+            return false;
+        }
+
+        private bool GeneratePTV(Structure addedStructure)
+        {
+            if (CopyBodyStructureOnToStructure(addedStructure)) return true;
+            (bool fail, StringBuilder errorMessage) = ContourHelper.CropStructureFromBody(addedStructure, selectedSS, -targetMargin);
+            if (fail)
+            {
+                ProvideUIUpdate(errorMessage.ToString());
+                return true;
+            }
+            ProvideUIUpdate($"Cropped {addedStructure.Id} from body with -{targetMargin} cm margin");
             return false;
         }
         #endregion
@@ -412,82 +417,118 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             return false;
         }
 
-        private bool CreateFlash()
+        private bool ContourBolus(Structure bolusFlash)
         {
-            //create flash for the plan per the users request
-            //NOTE: IT IS IMPORTANT THAT ALL OF THE STRUCTURES CREATED IN THIS METHOD (I.E., ALL STRUCTURES USED TO GENERATE FLASH HAVE THE KEYWORD 'FLASH' SOMEWHERE IN THE STRUCTURE ID)!
-            //first need to create a bolus structure (remove it if it already exists)
-            if (selectedSS.Structures.Where(x => x.Id.ToLower() == "bolus_flash").Any()) selectedSS.RemoveStructure(selectedSS.Structures.First(x => x.Id.ToLower() == "bolus_flash"));
-            Structure bolus = selectedSS.AddStructure("CONTROL", "BOLUS_FLASH");
             //if the flashStructure is not null, then the user wants local flash --> use flashStructure. If not, then the user wants global flash --> use body structure
             //add user-specified margin on top of structure of interest to generate flash. 
             //8 -14-2020, an asymmetric margin is used because I might intend to change this code so flash is added in all directions except for sup/inf/post
-            if (flashStructure != null) bolus.SegmentVolume = flashStructure.AsymmetricMargin(new AxisAlignedMargins(StructureMarginGeometry.Outer,
-                                                                                                                                 flashMargin * 10.0,
-                                                                                                                                 flashMargin * 10.0,
-                                                                                                                                 flashMargin * 10.0,
-                                                                                                                                 flashMargin * 10.0,
-                                                                                                                                 flashMargin * 10.0,
-                                                                                                                                 flashMargin * 10.0));
-            else bolus.SegmentVolume = selectedSS.Structures.First(x => x.Id.ToLower() == "body").AsymmetricMargin(new AxisAlignedMargins(StructureMarginGeometry.Outer,
-                                                                                                                                                  flashMargin * 10.0,
-                                                                                                                                                  flashMargin * 10.0,
-                                                                                                                                                  flashMargin * 10.0,
-                                                                                                                                                  flashMargin * 10.0,
-                                                                                                                                                  flashMargin * 10.0,
-                                                                                                                                                  flashMargin * 10.0));
-            //now subtract the body structure from the newly-created bolus structure
-            bolus.SegmentVolume = bolus.Sub(selectedSS.Structures.First(x => x.Id.ToLower() == "body").Margin(0.0));
-            //if the subtracted structre is empty, then that indicates that the structure used to generate the flash was NOT close enough to the body surface to generate flash for the user-specified margin
-            if (bolus.IsEmpty)
+            if (flashStructure != null)
             {
-                MessageBox.Show("Error! Created bolus structure does not extrude from the body! \nIs this the right structure?");
+                bolusFlash.SegmentVolume = flashStructure.AsymmetricMargin(new AxisAlignedMargins(StructureMarginGeometry.Outer,
+                                                                                                                                flashMargin * 10.0,
+                                                                                                                                flashMargin * 10.0,
+                                                                                                                                flashMargin * 10.0,
+                                                                                                                                flashMargin * 10.0,
+                                                                                                                                flashMargin * 10.0,
+                                                                                                                                flashMargin * 10.0));
+            }
+            else
+            {
+                Structure body = StructureTuningHelper.GetStructureFromId("body", selectedSS);
+                bolusFlash.SegmentVolume = body.AsymmetricMargin(new AxisAlignedMargins(StructureMarginGeometry.Outer,
+                                                                                                                      flashMargin * 10.0,
+                                                                                                                      flashMargin * 10.0,
+                                                                                                                      flashMargin * 10.0,
+                                                                                                                      flashMargin * 10.0,
+                                                                                                                      flashMargin * 10.0,
+                                                                                                                      flashMargin * 10.0));
+            }
+            return false;
+        }
+
+        private bool CreateFlash()
+        {
+            UpdateUILabel("Create flash:");
+            int percentComplete = 0;
+            int calcItems = 0;
+            //create flash for the plan per the users request
+            //NOTE: IT IS IMPORTANT THAT ALL OF THE STRUCTURES CREATED IN THIS METHOD (I.E., ALL STRUCTURES USED TO GENERATE FLASH HAVE THE KEYWORD 'FLASH' SOMEWHERE IN THE STRUCTURE ID)!
+            //first need to create a bolus structure (remove it if it already exists)
+            (bool failBolus, Structure bolusFlash) = CheckAndGenerateStructure("BOLUS_FLASH");
+            if (failBolus) return true;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Created structure: {bolusFlash.Id}");
+
+            //contour the bolus
+            if (ContourBolus(bolusFlash)) return true;
+
+            Structure body = StructureTuningHelper.GetStructureFromId("body", selectedSS);
+            //now subtract the body structure from the newly-created bolus structure
+            (bool failCrop, StringBuilder cropMessage) = ContourHelper.CropTargetFromStructure(bolusFlash, body, 0.0);
+            if (failCrop)
+            {
+                ProvideUIUpdate(cropMessage.ToString(), true);
                 return true;
             }
-            //assign the water to the bolus volume (HU = 0.0)
-            bolus.SetAssignedHU(0.0);
-            //crop flash at matchline ONLY if global flash is used
-            Structure dummyBox = null;
-            if (flashStructure == null && selectedSS.Structures.Where(x => x.Id.ToLower() == "matchline").Any() && !selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").IsEmpty)
+            
+            //if the subtracted structre is empty, then that indicates that the structure used to generate the flash was NOT close enough to the body surface to generate flash for the user-specified margin
+            if (bolusFlash.IsEmpty)
             {
-                dummyBox = selectedSS.Structures.First(x => x.Id.ToLower() == "dummybox");
-                bolus.SegmentVolume = bolus.Sub(dummyBox.Margin(0.0));
-                bolus.SegmentVolume = bolus.Sub(selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").Margin(0.0));
+                ProvideUIUpdate("Error! Created bolus structure does not extrude from the body! \nIs this the right structure?", true);
+                return true;
             }
-            //Now extend the body contour to include the bolus_flash structure. The reason for this is because Eclipse automatically sets the dose calculation grid to the body structure contour (no overriding this)
-            selectedSS.Structures.First(x => x.Id.ToLower() == "body").SegmentVolume = selectedSS.Structures.First(x => x.Id.ToLower() == "body").Or(bolus.Margin(0.0));
 
-            //now create the ptv_flash structure
-            if (selectedSS.Structures.Where(x => x.Id.ToLower() == "ts_ptv_flash").Any()) selectedSS.RemoveStructure(selectedSS.Structures.First(x => x.Id.ToLower() == "ts_ptv_flash"));
-            Structure ptv_flash = selectedSS.AddStructure("CONTROL", "TS_PTV_FLASH");
-            //copy the NEW body structure (i.e., body + bolus_flash) with a 3 mm inner margin
-            ptv_flash.SegmentVolume = selectedSS.Structures.First(x => x.Id.ToLower() == "body").Margin(-targetMargin * 10);
+            //assign the water to the bolus volume (HU = 0.0)
+            bolusFlash.SetAssignedHU(0.0);
 
-            //now subtract all the structures in the TSManipulationList from ts_ptv_flash (same code as used in the createTSStructures method)
-            Structure tmp1;
-            foreach (Tuple<string, TSManipulationType, double> spare in TSManipulationList)
+            //crop flash at matchline ONLY if global flash is used
+            Structure dummyBox = StructureTuningHelper.GetStructureFromId("dummybox", selectedSS);
+            if (flashStructure == null && StructureTuningHelper.DoesStructureExistInSS("matchline", selectedSS, true))
             {
-                if (spare.Item2 == TSManipulationType.CropTargetFromStructure)
+                (bool failCropBolus, StringBuilder cropBolusMessage) = ContourHelper.CropTargetFromStructure(bolusFlash, dummyBox, 0.0);
+                if (failCropBolus)
                 {
-                    //if (spare.Item1.ToLower() == "kidneys" && scleroTrial)
-                    //{
-                    //    tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "kidney_block_r");
-                    //    ptv_flash.SegmentVolume = ptv_flash.Sub(tmp1.Margin(0.0));
-                    //    tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == "kidney_block_l");
-                    //    ptv_flash.SegmentVolume = ptv_flash.Sub(tmp1.Margin(0.0));
-                    //}
-                    //else
-                    //{
-                    //    tmp1 = selectedSS.Structures.First(x => x.Id.ToLower() == spare.Item1.ToLower());
-                    //    ptv_flash.SegmentVolume = ptv_flash.Sub(tmp1.Margin((spare.Item3) * 10));
-                    //}
+                    ProvideUIUpdate(cropBolusMessage.ToString(), true);
+                    return true;
+                }
+                (bool failCropMatchline, StringBuilder cropMatchlineMessage) = ContourHelper.CropTargetFromStructure(bolusFlash, StructureTuningHelper.GetStructureFromId("matchline", selectedSS), 0.0);
+                if (failCropMatchline)
+                {
+                    ProvideUIUpdate(cropMatchlineMessage.ToString(), true);
+                    return true;
                 }
             }
 
-            //copy this structure onto a new structure called TS_FLASH_TARGET. This structure will be analogous to PTV_BODY but for the body that include flash
-            if (selectedSS.Structures.Where(x => x.Id.ToLower() == "ts_flash_target").Any()) selectedSS.RemoveStructure(selectedSS.Structures.First(x => x.Id.ToLower() == "ts_flash_target"));
-            Structure flash_target = selectedSS.AddStructure("CONTROL", "TS_FLASH_TARGET");
-            flash_target.SegmentVolume = ptv_flash.Margin(0.0);
+            //Now extend the body contour to include the bolus_flash structure. The reason for this is because Eclipse automatically sets the dose calculation grid to the body structure contour (no overriding this)
+            (bool overlapFail, StringBuilder overlapMessage) = ContourHelper.ContourUnion(bolusFlash, body, 0.0);
+            if (overlapFail)
+            {
+                ProvideUIUpdate(overlapMessage.ToString(), true);
+                return true;
+            }
+
+            //now create the ptv_flash structure
+            (bool failPTVFlash, Structure ptv_flash) = CheckAndGenerateStructure("TS_PTV_FLASH");
+            if (failPTVFlash) return true;
+
+            //copy the NEW body structure (i.e., body + bolus_flash)
+            if (GeneratePTV(ptv_flash)) return true;
+
+            foreach (Tuple<string, TSManipulationType, double> itr in TSManipulationList.Where(x => x.Item2 == TSManipulationType.ContourOverlapWithTarget || x.Item2 == TSManipulationType.CropTargetFromStructure))
+            {
+                ManipulateTuningStructures(itr, ptv_flash, ref percentComplete, ref calcItems);
+            }
+
+            //now create the ptv_flash structure
+            (bool failFlashTarget, Structure flash_target) = CheckAndGenerateStructure("TS_FLASH_TARGET");
+            if (failFlashTarget) return true;
+
+            (bool failCopyTarget, StringBuilder copyErrorMessage) = ContourHelper.CopyStructureOntoStructure(ptv_flash, flash_target);
+            if (failCopyTarget)
+            {
+                ProvideUIUpdate(copyErrorMessage.ToString(), true);
+                return true;
+            }
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Copied structure {ptv_flash.Id} onto {flash_target.Id}");
 
             //now we need to cut ts_ptv_flash at the matchline and remove all contours below the matchline (basically the same process as generating ts_ptv_vmat in the createTSStructures method)
             //need another if-statement here to create ts_legs_flash if necessary

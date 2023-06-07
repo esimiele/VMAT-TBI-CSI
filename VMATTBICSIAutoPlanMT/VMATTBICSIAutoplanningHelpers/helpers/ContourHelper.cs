@@ -83,6 +83,35 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return (fail, sb);
         }
 
+        /// <summary>
+        /// Helper method to union target and normal structures ONTO the normal structure
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="normal"></param>
+        /// <param name="marginInCm"></param>
+        /// <returns></returns>
+        public static (bool, StringBuilder) ContourUnion(Structure target, Structure normal, double marginInCm)
+        {
+            StringBuilder sb = new StringBuilder();
+            bool fail = false;
+            //margin is in cm
+            if (target != null && normal != null)
+            {
+                if (marginInCm >= -5.0 && marginInCm <= 5.0) normal.SegmentVolume = target.Or(normal.Margin(marginInCm * 10));
+                else
+                {
+                    sb.AppendLine("Added margin MUST be within +/- 5.0 cm!");
+                    fail = true;
+                }
+            }
+            else
+            {
+                sb.AppendLine("Error either target or normal structures are missing! Can't union target and normal structure!");
+                fail = true;
+            }
+            return (fail, sb);
+        }
+
         public static (bool, StringBuilder) CreateRing(Structure target, Structure ring, StructureSet selectedSS, double marginInCm, double thickness)
         {
             StringBuilder sb = new StringBuilder();
