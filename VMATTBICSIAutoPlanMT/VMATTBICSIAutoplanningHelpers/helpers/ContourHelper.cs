@@ -55,7 +55,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         }
 
         /// <summary>
-        /// Contour overlap between two structures
+        /// Contour overlap between two structures ONTO the normal structure
         /// </summary>
         /// <param name="target"></param>
         /// <param name="normal"></param>
@@ -271,18 +271,25 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return (maxDimension, sb);
         }
 
-        public static (VVector[], StringBuilder) GetLateralBoundingBoxForStructure(Structure theStructure)
+        /// <summary>
+        /// Create a 2D bounding box for the specified target in the ant-post and lateral directions with added margin (in cm)
+        /// </summary>
+        /// <param name="theStructure"></param>
+        /// <param name="addedMargin"></param>
+        /// <returns></returns>
+        public static (VVector[], StringBuilder) GetLateralBoundingBoxForStructure(Structure theStructure, double addedMargin = 0.0)
         {
             StringBuilder sb = new StringBuilder();
             VVector[] boundingBox;
 
             Point3DCollection pts = theStructure.MeshGeometry.Positions;
-            double xMax = pts.Max(p => p.X);
-            double xMin = pts.Min(p => p.X);
-            double yMax = pts.Max(p => p.Y);
-            double yMin = pts.Min(p => p.Y);
+            double xMax = pts.Max(p => p.X) + addedMargin * 10;
+            double xMin = pts.Min(p => p.X) - addedMargin * 10;
+            double yMax = pts.Max(p => p.Y) + addedMargin * 10;
+            double yMin = pts.Min(p => p.Y) - addedMargin * 10;
 
             sb.AppendLine($"Lateral bounding box for structure: {theStructure.Id}");
+            sb.AppendLine($"Added margin: {addedMargin} cm");
             sb.AppendLine($" xMax: {xMax}");
             sb.AppendLine($" xMin: {xMin}");
             sb.AppendLine($" yMax: {yMax}");
