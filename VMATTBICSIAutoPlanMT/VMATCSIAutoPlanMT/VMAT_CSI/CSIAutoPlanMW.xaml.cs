@@ -717,12 +717,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private void TsGenerateVsManipulateInfo_Click(object sender, RoutedEventArgs e)
         {
             string message = "What's the difference between TS structure generation vs manipulation?" + Environment.NewLine;
-            message += String.Format("TS structure generation involves adding structures to the structure set to shape the dose distribution. These include rings and substructures. E.g.,") + Environment.NewLine;
+            message += String.Format("TS structure generation involves adding structures to the structure set to shape the dose distribution. These include rings, preliminary targets, etc. E.g.,") + Environment.NewLine;
             message += String.Format("TS_ring900  -->  ring structure around the targets using a nominal dose level of 900 cGy to determine fall-off") + Environment.NewLine;
-            message += String.Format("Kidneys-1cm  -->  substructure for the Kidneys volume where the Kidneys are contracted by 1 cm") + Environment.NewLine + Environment.NewLine;
+            message += String.Format("PTV_Spine  -->  preliminary target used to aid physician contouring of the final target that will be approved") + Environment.NewLine;
             message += String.Format("TS structure manipulation involves manipulating/modifying the structure itself or target structures. E.g.,") + Environment.NewLine;
             message += String.Format("(Ovaries, Crop target from structure, 1.5cm)  -->  modify the target structure such that the ovaries structure is cropped from the target with a 1.5 cm margin") + Environment.NewLine;
             message += String.Format("(Brainstem, Contour overlap, 0.0 cm)  -->  Identify the overlapping regions between the brainstem and target structure(s) and contour them as new structures") + Environment.NewLine + Environment.NewLine;
+            message += String.Format("Kidneys-1cm  -->  substructure for the Kidneys volume where the Kidneys are contracted by 1 cm") + Environment.NewLine + Environment.NewLine;
             MessageBox.Show(message);
         }
 
@@ -1301,7 +1302,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             if(jnxs.Any())
             {
-                defaultListList = InsertTSJnxOptConstraints(defaultListList);
+                defaultListList = OptimizationSetupUIHelper.InsertTSJnxOptConstraints(defaultListList, jnxs, prescriptions);
             }
 
             //12/27/2022 this line needs to be fixed as it assumes prescriptions is arranged such that each entry in the list contains a unique plan ID
@@ -1309,27 +1310,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //an issue for the following line is that boost constraints might end up being added to the initial plan (if there are two prescriptions for the initial plan)
             //need to implement function to get unique plan Id's sorted by Rx
             foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in defaultListList) AddOptimizationConstraintItems(itr.Item2, itr.Item1, theSP);
-        }
-
-        private List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> InsertTSJnxOptConstraints(List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> list)
-        {
-            //we want to insert the optimization constraints for these junction structure right after the ptv constraints, so find the last index of the target ptv structure and insert
-            //the junction structure constraints directly after the target structure constraints
-            foreach(Tuple < string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in list)
-            {
-                if(jnxs.Any(x => string.Equals(x.Item1.Id.ToLower(), itr.Item1.ToLower())))
-                {
-                    int index = itr.Item2.FindLastIndex(x => x.Item1.ToLower().Contains("ptv") || x.Item1.ToLower().Contains("ts_overlap"));
-                    double rxDose = TargetsHelper.GetHighestRxForPlan(prescriptions, itr.Item1);
-                    foreach (Structure itr1 in jnxs.First(x => string.Equals(x.Item1.Id.ToLower(), itr.Item1.ToLower())).Item2)
-                    {
-                        //per Nataliya's instructions, add both a lower and upper constraint to the junction volumes. Make the constraints match those of the ptv target
-                        itr.Item2.Insert(++index, new Tuple<string, OptimizationObjectiveType, double, double, int>(itr1.Id, OptimizationObjectiveType.Lower, rxDose, 100.0, 100));
-                        itr.Item2.Insert(++index, new Tuple<string, OptimizationObjectiveType, double, double, int>(itr1.Id, OptimizationObjectiveType.Upper, rxDose * 1.01, 0.0, 100));
-                    }
-                }
-            }
-            return list;
         }
 
         private void ScanSSAndAddOptimizationConstraints_Click(object sender, RoutedEventArgs e)

@@ -18,11 +18,14 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
     {
         public int GetNumberOfIsocenters() { return numIsos; }
         public int GetNumberOfVMATIsocenters() { return numVMATIsos; }
+        public List<Tuple<string, List<Tuple<string, string>>>> GetTsTargets() { return tsTargets; }
 
         //DICOM types
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
         private List<Tuple<string, string>> TS_structures;
+        //plan id, list<target id, ts target id>
+        private List<Tuple<string, List<Tuple<string, string>>>> tsTargets = new List<Tuple<string, List<Tuple<string, string>>>> { };
         private int numIsos;
         private int numVMATIsos;
         private double targetMargin;
@@ -322,6 +325,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             int calcItems = 2;
             Structure addedTSTarget = GetTSTarget(baseTarget.Id);
             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contoured TS target: {addedTSTarget.Id}");
+            tsTargets.Add(Tuple.Create("_VMAT TBI", new List<Tuple<string, string>> { Tuple.Create(baseTarget.Id, addedTSTarget.Id) }));
             
             if (StructureTuningHelper.DoesStructureExistInSS("matchline", selectedSS, true))
             {
@@ -539,32 +543,32 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contour union betwen between {bolusFlash.Id} and body onto body");
 
             //now create the ptv_flash structure
-            (bool failPTVFlash, Structure ptv_flash) = CheckAndGenerateStructure("TS_PTV_FLASH");
+            (bool failPTVFlash, Structure ptvBodyFlash) = CheckAndGenerateStructure("PTV_BODY_FLASH");
             if (failPTVFlash) return true;
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Created structure: {ptv_flash.Id}");
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Created structure: {ptvBodyFlash.Id}");
 
             //copy the NEW body structure (i.e., body + bolus_flash)
-            if (GeneratePTVFromBody(ptv_flash)) return true;
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contoured {ptv_flash.Id} structure from body structure");
+            if (GeneratePTVFromBody(ptvBodyFlash)) return true;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contoured {ptvBodyFlash.Id} structure from body structure");
+            
 
             foreach (Tuple<string, TSManipulationType, double> itr in TSManipulationList.Where(x => x.Item2 == TSManipulationType.ContourOverlapWithTarget || x.Item2 == TSManipulationType.CropTargetFromStructure))
             {
-                ManipulateTuningStructures(itr, ptv_flash, ref percentComplete, ref calcItems);
+                ManipulateTuningStructures(itr, ptvBodyFlash, ref percentComplete, ref calcItems);
             }
 
-            //now create the ptv_flash structure
-            (bool failFlashTarget, Structure flash_target) = CheckAndGenerateStructure("TS_FLASH_TARGET");
+            //now create the ptv_flash structure (analogous to PTV_Body)
+            (bool failFlashTarget, Structure TSPTVFlash) = CheckAndGenerateStructure("TS_PTV_FLASH");
             if (failFlashTarget) return true;
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Created structure: {flash_target.Id}");
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Created structure: {TSPTVFlash.Id}");
 
-            (bool failCopyTarget, StringBuilder copyErrorMessage) = ContourHelper.CopyStructureOntoStructure(ptv_flash, flash_target);
+            (bool failCopyTarget, StringBuilder copyErrorMessage) = ContourHelper.CopyStructureOntoStructure(ptvBodyFlash, TSPTVFlash);
             if (failCopyTarget)
             {
                 ProvideUIUpdate(copyErrorMessage.ToString(), true);
                 return true;
             }
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Copied structure {ptv_flash.Id} onto {flash_target.Id}");
-
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Copied structure {ptvBodyFlash.Id} onto {TSPTVFlash.Id}");
 
             if(StructureTuningHelper.DoesStructureExistInSS("matchline", selectedSS, true))
             {
@@ -585,8 +589,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //    return true;
                 //}
 
-                if (CutTSTargetFromMatchline(ptv_flash, StructureTuningHelper.GetStructureFromId("matchline", selectedSS), dummyBox)) return true;
-                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Cut {ptv_flash.Id} structure at matchline structure");
+                if (CutTSTargetFromMatchline(TSPTVFlash, StructureTuningHelper.GetStructureFromId("matchline", selectedSS), dummyBox)) return true;
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Cut {TSPTVFlash.Id} structure at matchline structure");
 
                 ////subtract both dummybox and matchline from TS_PTV_flash
                 //(bool failCropBox, StringBuilder cropBoxMessage) = ContourHelper.CropStructureFromStructure(ptv_flash, dummyBox, 0.0);
@@ -604,8 +608,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //    return true;
                 //}
                 //ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Cropped target {ptv_flash.Id} from {ptv_flash.Id}");
-
             }
+            tsTargets.Clear();
+            tsTargets.Add(Tuple.Create("_VMAT TBI", new List<Tuple<string, string>> { Tuple.Create(ptvBodyFlash.Id, TSPTVFlash.Id) }));
 
             return false;
         }

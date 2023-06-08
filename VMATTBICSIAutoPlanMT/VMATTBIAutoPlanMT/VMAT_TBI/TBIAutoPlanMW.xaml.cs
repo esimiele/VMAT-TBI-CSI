@@ -86,14 +86,15 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         List<Tuple<string, TSManipulationType, double>> defaultTSStructureManipulations = new List<Tuple<string, TSManipulationType, double>> { };
         //list to hold the current structure ids in the structure set in addition to the prospective ids after unioning the left and right structures together
         List<string> structureIdsPostUnion = new List<string> { };
-        List<Tuple<string, TSManipulationType>> optParameters = new List<Tuple<string, TSManipulationType>> { };
         //list of junction structures (i.e., overlap regions between adjacent isocenters)
         List<Tuple<ExternalPlanSetup, List<Structure>>> jnxs = new List<Tuple<ExternalPlanSetup, List<Structure>>> { };
         ExternalPlanSetup VMATplan = null;
         int numIsos = 0;
         int numVMATIsos = 0;
-        public List<string> isoNames = new List<string> { };
-        Tuple<int, DoseValue> prescription = null;
+        //plan Id, list of isocenter names for this plan
+        public List<Tuple<string, List<string>>> isoNames = new List<Tuple<string, List<string>>> { };
+        //plan ID, target Id, numFx, dosePerFx, cumulative dose
+        List<Tuple<string,string,int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
         bool useFlash = false;
         string flashType = "";
         Structure flashStructure = null;
@@ -487,12 +488,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private void TsGenerateVsManipulateInfo_Click(object sender, RoutedEventArgs e)
         {
             string message = "What's the difference between TS structure generation vs manipulation?" + Environment.NewLine;
-            message += String.Format("TS structure generation involves adding structures to the structure set to shape the dose distribution. These include rings and substructures. E.g.,") + Environment.NewLine;
+            message += String.Format("TS structure generation involves adding structures to the structure set to shape the dose distribution. These include rings, preliminary targets, etc. E.g.,") + Environment.NewLine;
             message += String.Format("TS_ring900  -->  ring structure around the targets using a nominal dose level of 900 cGy to determine fall-off") + Environment.NewLine;
-            message += String.Format("Kidneys-1cm  -->  substructure for the Kidneys volume where the Kidneys are contracted by 1 cm") + Environment.NewLine + Environment.NewLine;
+            message += String.Format("PTV_Spine  -->  preliminary target used to aid physician contouring of the final target that will be approved") + Environment.NewLine;
             message += String.Format("TS structure manipulation involves manipulating/modifying the structure itself or target structures. E.g.,") + Environment.NewLine;
             message += String.Format("(Ovaries, Crop target from structure, 1.5cm)  -->  modify the target structure such that the ovaries structure is cropped from the target with a 1.5 cm margin") + Environment.NewLine;
             message += String.Format("(Brainstem, Contour overlap, 0.0 cm)  -->  Identify the overlapping regions between the brainstem and target structure(s) and contour them as new structures") + Environment.NewLine + Environment.NewLine;
+            message += String.Format("Kidneys-1cm  -->  substructure for the Kidneys volume where the Kidneys are contracted by 1 cm") + Environment.NewLine + Environment.NewLine;
             MessageBox.Show(message);
         }
 
@@ -721,36 +723,44 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             GenerateTS_TBI generate = new GenerateTS_TBI(createTSStructureList, TSManipulationList, selectedSS, targetMargin, false, useFlash, flashStructure, flashMargin);
             //overloaded constructor depending on if the user requested to use flash or not. If so, pass the relevant flash parameters to the generateTS class
             pi.BeginModifications();
-            if (generate.Execute()) return;
+            bool result = generate.Execute();
+            //grab the log output regardless if it passes or fails
+            log.AppendLogOutput("TS Generation and manipulation output:", generate.GetLogOutput());
+            if (result) return;
 
             //FIX ME!!
+            //get prescription
+            double dosePerFx = 0.1;
+            int numFractions = 1;
+            if (double.TryParse(dosePerFxTB.Text, out dosePerFx) && int.TryParse(numFxTB.Text, out numFractions))
+            {
+                prescriptions.Add(Tuple.Create("PTV_Body", "_VMAT TBI", numFractions, new DoseValue(dosePerFx, DoseValue.DoseUnit.cGy), dosePerFx * numFractions));
+            }
+            else
+            {
+                log.LogError("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
+            }
+            prescriptions.Add(Tuple.Create("PTV_Body", "_VMAT TBI", numFractions, new DoseValue(dosePerFx, DoseValue.DoseUnit.cGy), dosePerFx * numFractions));
 
             //does the structure sparing list need to be updated? This occurs when structures the user elected to spare with option of 'Mean Dose < Rx Dose' are high resolution. Since Eclipse can't perform
             //boolean operations on structures of two different resolutions, code was added to the generateTS class to automatically convert these structures to low resolution with the name of
             // '<original structure Id>_lowRes'. When these structures are converted to low resolution, the updateSparingList flag in the generateTS class is set to true to tell this class that the 
             //structure sparing list needs to be updated with the new low resolution structures.
-            //if (generate.GetUpdateSparingListStatus())
-            //{
-            //    ClearStructureManipulationsList(ClearStructureManipulationsBtn);
-            //    //update the structure sparing list in this class and update the structure sparing list displayed to the user in TS Generation tab
-            //    AddStructureManipulationVolumes(generate.GetSparingList(), structureManipulationSP);
-            //}
-            ////optParameters = generate.GetOptParameters();
-            //numIsos = generate.GetNumberOfIsocenters();
-            //numVMATIsos = generate.GetNumberOfVMATIsocenters();
-            //isoNames = generate.GetIsoNames().First().Item2;
+            if (generate.GetUpdateSparingListStatus())
+            {
+                List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> tmpList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
+                if (generate.GetTsTargets().Any()) tmpList = OptimizationSetupHelper.UpdateOptimizationConstraints(generate.GetTsTargets(), prescriptions, templateList.SelectedItem, tmpList);
+                ClearStructureManipulationsList(ClearStructureManipulationsBtn);
+                //update the structure sparing list in this class and update the structure sparing list displayed to the user in TS Generation tab
+                AddStructureManipulationVolumes(generate.GetSparingList(), structureManipulationSP);
+            }
+            numIsos = generate.GetNumberOfIsocenters();
+            numVMATIsos = generate.GetNumberOfVMATIsocenters();
+            isoNames = generate.GetIsoNames();
 
-            ////get prescription
-            //if (double.TryParse(dosePerFxTB.Text, out double dose_perFx) && int.TryParse(numFxTB.Text, out int numFractions)) prescription = Tuple.Create(numFractions, new DoseValue(dose_perFx, DoseValue.DoseUnit.cGy));
-            //else
-            //{
-            //    MessageBox.Show("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
-            //    prescription = Tuple.Create(1, new DoseValue(0.1, DoseValue.DoseUnit.cGy));
-            //}
-
-            ////populate the beams and optimization tabs
-            //PopulateBeamsTab();
-            //if (optParameters.Count() > 0) PopulateOptimizationTab();
+            //populate the beams and optimization tabs
+            PopulateBeamsTab();
+            PopulateOptimizationTab();
             isModified = true;
         }
         #endregion
@@ -788,8 +798,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             numVMATisosTB.Text = numVMATIsos.ToString();
 
             ////subtract a beam from the first isocenter (head) if the user is NOT interested in sparing the brain
-            if (!optParameters.Where(x => x.Item1.ToLower().Contains("brain")).Any()) beamsPerIso[0]--;
-            List<StackPanel> SPList = BeamPlacementUIHelper.PopulateBeamsTabHelper(structureManipulationSP, linacs, beamEnergies, isoNames, beamsPerIso, numIsos, numVMATIsos);
+            //if (!optParameters.Where(x => x.Item1.ToLower().Contains("brain")).Any()) beamsPerIso[0]--;
+            List<StackPanel> SPList = BeamPlacementUIHelper.PopulateBeamsTabHelper(structureManipulationSP, linacs, beamEnergies, isoNames, beamsPerIso);
             if (!SPList.Any()) return;
             foreach (StackPanel s in SPList) beamPlacementSP.Children.Add(s);
             ////subtract a beam from the second isocenter (chest/abdomen area) if the user is NOT interested in sparing the kidneys
@@ -805,10 +815,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             else if (tmp < 2 || tmp > 4) MessageBox.Show("Error! Requested number of VMAT isocenters is less than 2 or greater than 4! Please try again!");
             else
             {
-                if (!optParameters.Where(x => x.Item1.ToLower().Contains("brain")).Any()) beamsPerIso[0]++;
+                //if (!optParameters.Where(x => x.Item1.ToLower().Contains("brain")).Any()) beamsPerIso[0]++;
                 numIsos += tmp - numVMATIsos;
                 numVMATIsos = tmp;
-                isoNames = new List<string>(IsoNameHelper.GetIsoNames(numVMATIsos, numIsos));
+                isoNames = new List<Tuple<string, List<string>>> { Tuple.Create("_VMAT TBI", new List<string>(IsoNameHelper.GetIsoNames(numVMATIsos, numIsos)))};
                 PopulateBeamsTab();
             }
         }
@@ -891,9 +901,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 contourOverlapMargin *= 10.0;
                 //overloaded constructor for the placeBeams class
             }
-            PlaceBeams_TBI place = new PlaceBeams_TBI(selectedSS, isoNames, numIsos, numVMATIsos, singleAPPAplan, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, useFlash, contourOverlap, contourOverlapMargin);
+            PlaceBeams_TBI place = new PlaceBeams_TBI(selectedSS, isoNames.First().Item2, numIsos, numVMATIsos, singleAPPAplan, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, useFlash, contourOverlap, contourOverlapMargin);
 
-            place.Initialize("VMAT TBI", new List<Tuple<string, string, int, DoseValue, double>> { Tuple.Create("VMAT TBI", "", prescription.Item1, prescription.Item2, 0.0) });
+            place.Initialize("VMAT TBI", prescriptions);
             place.Execute();
             VMATplan = place.GetGeneratedPlans().First();
             //VMATplan = place.generatePlans("VMAT TBI", new List<Tuple<string, string, int, DoseValue, double>> { Tuple.Create("VMAT TBI", "", prescription.Item1, prescription.Item2, 0.0)}).First();
@@ -947,30 +957,30 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //    return;
             //}
 
-            if (optParameters.Any())
-            {
-                //there are items in the optParameters vector, indicating the TSgeneration was performed. Use the values in the OptParameters vector.
-                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in tmp)
-                {
-                    //always add PTV objectives to optimization objectives list
-                    if (opt.Item1.Contains("PTV"))
-                    {
-                        //if user requested to add flash, optimize on the TS_PTV_FLASH structure instead of the TS_PTV_VMAT structure!
-                        if (useFlash) defaultList.Add(Tuple.Create(selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_flash").Id, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
-                        else defaultList.Add(opt);
-                    }
-                    //only add template optimization objectives for each structure to default list if that structure is present in the selected structure set and contoured
-                    else
-                    {
-                        //12-22-2020 coded added to account for the situation where the structure selected for sparing had to be converted to a low resolution structure
-                        if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()) != null && 
-                            !selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()).IsEmpty) defaultList.Add(Tuple.Create(optParameters.FirstOrDefault(x => x.Item1.ToLower() == (opt.Item1 + "_lowRes").ToLower()).Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
-                        else if (!selectedSS.Structures.First(x => x.Id.ToLower() == opt.Item1.ToLower()).IsEmpty) defaultList.Add(Tuple.Create(optParameters.FirstOrDefault(x => x.Item1.ToLower() == opt.Item1.ToLower()).Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
-                    }
-                }
-            }
-            else
-            {
+            //if (optParameters.Any())
+            //{
+            //    //there are items in the optParameters vector, indicating the TSgeneration was performed. Use the values in the OptParameters vector.
+            //    foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in tmp)
+            //    {
+            //        //always add PTV objectives to optimization objectives list
+            //        if (opt.Item1.Contains("PTV"))
+            //        {
+            //            //if user requested to add flash, optimize on the TS_PTV_FLASH structure instead of the TS_PTV_VMAT structure!
+            //            if (useFlash) defaultList.Add(Tuple.Create(selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_flash").Id, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
+            //            else defaultList.Add(opt);
+            //        }
+            //        //only add template optimization objectives for each structure to default list if that structure is present in the selected structure set and contoured
+            //        else
+            //        {
+            //            //12-22-2020 coded added to account for the situation where the structure selected for sparing had to be converted to a low resolution structure
+            //            if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()) != null && 
+            //                !selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()).IsEmpty) defaultList.Add(Tuple.Create(optParameters.FirstOrDefault(x => x.Item1.ToLower() == (opt.Item1 + "_lowRes").ToLower()).Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
+            //            else if (!selectedSS.Structures.First(x => x.Id.ToLower() == opt.Item1.ToLower()).IsEmpty) defaultList.Add(Tuple.Create(optParameters.FirstOrDefault(x => x.Item1.ToLower() == opt.Item1.ToLower()).Item1, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
+            //        }
+            //    }
+            //}
+            //else
+            //{
                 //No items in the optParameters vector, indicating the user just wants to set/reset the optimization parameters. 
                 //In this case, just search through the structure set to see if any of the contoured structure IDs match the structures in the optimization parameter templates
                 if (selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ptv")).Any())
@@ -980,7 +990,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                         if (opt.Item1.Contains("PTV"))
                         {
                             //The user needs to check the use flash checkbox for this code to consider the ts_flash structures
-                            if (useFlash) defaultList.Add(Tuple.Create(selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_flash").Id, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
+                            if (useFlash) defaultList.Add(Tuple.Create(StructureTuningHelper.GetStructureFromId("TS_PTV_FLASH", selectedSS).Id, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
                             else defaultList.Add(opt);
                         }
                         else if (selectedSS.Structures.Where(x => x.Id.ToLower().Contains(opt.Item1.ToLower()) && !x.IsEmpty).Any())
@@ -994,10 +1004,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 }
                 else
                 {
-                    MessageBox.Show("Warning! No PTV structures in the selected structure set! Add a PTV structure and try again!");
+                    log.LogError("Warning! No PTV structures in the selected structure set! Add a PTV structure and try again!");
                     return;
                 }
-            }
+           // }
 
             //check if the user requested to contour the overlap between fields in adjacent isocenters and also check if there are any structures in the junction structure stack (jnxs)
             if (contourOverlap_chkbox.IsChecked.Value || jnxs.Any())
@@ -1005,11 +1015,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //we want to insert the optimization constraints for these junction structure right after the ptv constraints, so find the last index of the target ptv structure and insert
                 //the junction structure constraints directly after the target structure constraints
                 int index = defaultList.FindLastIndex(x => x.Item1.ToLower().Contains("ptv"));
+                // FIX ME
+                double rxDose = TargetsHelper.GetHighestRxForPlan(prescriptions, "_VMAT TBI");
                 foreach (Structure s in jnxs.First().Item2)
                 {
                     //per Nataliya's instructions, add both a lower and upper constraint to the junction volumes. Make the constraints match those of the ptv target
-                    defaultList.Insert(++index, new Tuple<string, OptimizationObjectiveType, double, double, int>(s.Id, OptimizationObjectiveType.Lower, prescription.Item2.Dose * prescription.Item1, 100.0, 100));
-                    defaultList.Insert(++index, new Tuple<string, OptimizationObjectiveType, double, double, int>(s.Id, OptimizationObjectiveType.Upper, prescription.Item2.Dose * prescription.Item1 * 1.01, 0.0, 100));
+                    defaultList.Insert(++index, new Tuple<string, OptimizationObjectiveType, double, double, int>(s.Id, OptimizationObjectiveType.Lower, rxDose, 100.0, 100));
+                    defaultList.Insert(++index, new Tuple<string, OptimizationObjectiveType, double, double, int>(s.Id, OptimizationObjectiveType.Upper, rxDose * 1.01, 0.0, 100));
                 }
             }
 
@@ -1022,12 +1034,17 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private void ScanSS_Click(object sender, RoutedEventArgs e)
         {
             //get prescription
-            if (double.TryParse(dosePerFxTB.Text, out double dose_perFx) && int.TryParse(numFxTB.Text, out int numFractions)) prescription = Tuple.Create(numFractions, new DoseValue(dose_perFx, DoseValue.DoseUnit.cGy));
+            double dosePerFx = 0.1;
+            int numFractions = 1;
+            if (double.TryParse(dosePerFxTB.Text, out dosePerFx) && int.TryParse(numFxTB.Text, out numFractions))
+            {
+                prescriptions.Add(Tuple.Create("PTV_Body", "_VMAT TBI", numFractions, new DoseValue(dosePerFx, DoseValue.DoseUnit.cGy), dosePerFx * numFractions));
+            }
             else
             {
-                MessageBox.Show("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
-                prescription = Tuple.Create(1, new DoseValue(0.1, DoseValue.DoseUnit.cGy));
+                log.LogError("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
             }
+            prescriptions.Add(Tuple.Create("PTV_Body", "_VMAT TBI", numFractions, new DoseValue(dosePerFx, DoseValue.DoseUnit.cGy), dosePerFx * numFractions));
             if (selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ts_jnx")).Any())
             {
                 jnxs = new List<Tuple<ExternalPlanSetup, List<Structure>>> { new Tuple<ExternalPlanSetup, List<Structure>>(null, selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ts_jnx")).ToList()) };
@@ -1138,58 +1155,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         }
 
         #endregion
-        //private void Sclero_chkbox_Checked(object sender, RoutedEventArgs e)
-        //{
-        //    if (sclero_chkbox.IsChecked.Value)
-        //    {
-        //        if (nonmyelo_chkbox.IsChecked.Value) nonmyelo_chkbox.IsChecked = false;
-        //        if (myelo_chkbox.IsChecked.Value) myelo_chkbox.IsChecked = false;
-        //        //first arguement is the dose perfraction and the second argument is the number of fractions
-        //        SetPresciptionInfo(scleroDosePerFx, scleroNumFx);
-        //    }
-        //    else if (!nonmyelo_chkbox.IsChecked.Value && !myelo_chkbox.IsChecked.Value && dosePerFx.Text == scleroDosePerFx.ToString() && numFx.Text == scleroNumFx.ToString())
-        //    {
-        //        dosePerFx.Text = "";
-        //        numFx.Text = "";
-        //        if (useFlashByDefault) flash_chkbox.IsChecked = false;
-        //        UpdateUseFlash();
-        //    }
-        //}
-
-        //private void Myelo_chkbox_Checked(object sender, RoutedEventArgs e)
-        //{
-        //    if (myelo_chkbox.IsChecked.Value)
-        //    {
-        //        if (nonmyelo_chkbox.IsChecked.Value) nonmyelo_chkbox.IsChecked = false;
-        //        if (sclero_chkbox.IsChecked.Value) sclero_chkbox.IsChecked = false;
-        //        SetPresciptionInfo(myeloDosePerFx, myeloNumFx);
-        //    }
-        //    else if (!nonmyelo_chkbox.IsChecked.Value && !sclero_chkbox.IsChecked.Value && dosePerFx.Text == myeloDosePerFx.ToString() && numFx.Text == myeloNumFx.ToString())
-        //    {
-        //        dosePerFx.Text = "";
-        //        numFx.Text = "";
-        //        if (useFlashByDefault) flash_chkbox.IsChecked = false;
-        //        UpdateUseFlash();
-        //    }
-        //}
-
-        //private void NonMyelo_chkbox_Checked(object sender, RoutedEventArgs e)
-        //{
-        //    if (nonmyelo_chkbox.IsChecked.Value)
-        //    {
-        //        if (myelo_chkbox.IsChecked.Value) myelo_chkbox.IsChecked = false;
-        //        if (sclero_chkbox.IsChecked.Value) sclero_chkbox.IsChecked = false;
-        //        SetPresciptionInfo(nonmyeloDosePerFx, nonmyeloNumFx);
-        //    }
-        //    else if (!myelo_chkbox.IsChecked.Value && !sclero_chkbox.IsChecked.Value && dosePerFx.Text == nonmyeloDosePerFx.ToString() && numFx.Text == nonmyeloNumFx.ToString())
-        //    {
-        //        dosePerFx.Text = "";
-        //        numFx.Text = "";
-        //        if (useFlashByDefault) flash_chkbox.IsChecked = false;
-        //        UpdateUseFlash();
-        //    }
-        //}
-
 
         #region plan preparation
         private void GenerateShiftNote_Click(object sender, RoutedEventArgs e)
@@ -1301,7 +1266,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //do nothing. Eclipse v15.6 doesn't have this capability, but v16 and later does. This method is a placeholder (the planSum button exists in the UI.xaml file, but its visibility is set to 'hidden')
         }
         #endregion
-
 
         #region TemplateBuilder
         private void TemplateDosePerFx_TextChanged(object sender, TextChangedEventArgs e)
