@@ -875,7 +875,7 @@ namespace VMATTBICSIOptLoopMT
                             {
                                 while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {
-                                    prescriptions.Add(ConfigurationHelper.ParsePrescriptionsFromLogFile(line));
+                                    prescriptions.Add(LogHelper.ParsePrescriptionsFromLogFile(line));
                                 }
                             }
                             else if (line.Contains("Plan UIDs:"))
@@ -889,7 +889,7 @@ namespace VMATTBICSIOptLoopMT
                             {
                                 while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {
-                                    normalizationVolumes.Add(ConfigurationHelper.ParseNormalizationVolumeFromLogFile(line));
+                                    normalizationVolumes.Add(LogHelper.ParseNormalizationVolumeFromLogFile(line));
                                 }
                             }
                             else if (line.Contains("Optimization constraints:"))
