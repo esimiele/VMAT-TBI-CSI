@@ -633,7 +633,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                             }
 
                             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Cropping structure ({itr}) from target ({target.Id})");
-                            (bool failCrop, StringBuilder errorCropMessage) = ContourHelper.CropTargetFromStructure(cropResult.cropStructure, normal, 0.0);
+                            (bool failCrop, StringBuilder errorCropMessage) = ContourHelper.CropStructureFromStructure(cropResult.cropStructure, normal, 0.0);
                             if (failCrop)
                             {
                                 ProvideUIUpdate(errorCropMessage.ToString());

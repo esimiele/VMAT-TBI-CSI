@@ -117,7 +117,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             {
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Cropping target {target.Id} from {manipulationItem.Item1} with margin {manipulationItem.Item3} cm");
                 //crop target from structure
-                (bool failCrop, StringBuilder errorCropMessage) = ContourHelper.CropTargetFromStructure(target, theStructure, manipulationItem.Item3);
+                (bool failCrop, StringBuilder errorCropMessage) = ContourHelper.CropStructureFromStructure(target, theStructure, manipulationItem.Item3);
                 if (failCrop)
                 {
                     ProvideUIUpdate(errorCropMessage.ToString());

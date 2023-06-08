@@ -1,5 +1,8 @@
 ﻿namespace VMATTBICSIAutoPlanningHelpers.Enums
 {
+    /// <summary>
+    /// Tuning structure manipulation type as an enum
+    /// </summary>
     public enum TSManipulationType
     {
         None,
@@ -10,6 +13,9 @@
         ContourOuterStructure
     };
 
+    /// <summary>
+    /// Optimization objective type as an enum. Created own copy to include mean in list
+    /// </summary>
     public enum OptimizationObjectiveType
     {
         None,
@@ -19,6 +25,9 @@
         Mean
     };
 
+    /// <summary>
+    /// Plan type, either csi or tbi
+    /// </summary>
     public enum PlanType
     {
         VMAT_TBI,

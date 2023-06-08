@@ -5,7 +5,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public static class CalculationHelper
     {
-        //tolerance of 1um
+        /// <summary>
+        /// Determine if x and y lengths are equivalent within tolerance (default value of 1 um)
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="tolerance"></param>
+        /// <returns></returns>
         public static bool AreEqual(double x, double y, double tolerance = 0.001)
         {
             bool equal = false;
@@ -14,14 +20,26 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return equal;
         }
 
+        /// <summary>
+        /// Compute mean of x and y (not included in Math library)
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <returns></returns>
         public static double ComputeAverage(double x, double y)
         {
             return (x + y) / 2;
         }
 
-        public static int ComputeSlice(double x, StructureSet ss)
+        /// <summary>
+        /// Helper method to compute which CT slice a given z position is located
+        /// </summary>
+        /// <param name="z"></param>
+        /// <param name="ss"></param>
+        /// <returns></returns>
+        public static int ComputeSlice(double z, StructureSet ss)
         {
-            return (int)Math.Round(((x - ss.Image.Origin.z) / ss.Image.ZRes));
+            return (int)Math.Round(((z - ss.Image.Origin.z) / ss.Image.ZRes));
         }
     }
 }

@@ -4,6 +4,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public static class IsoNameHelper
     {
+        /// <summary>
+        /// Helper method to determine the names of isocenters for both CSI and TBI plans. Names determined based on plan type and supplied number of isocenters
+        /// </summary>
+        /// <param name="numVMATIsos"></param>
+        /// <param name="numIsos"></param>
+        /// <param name="isCSI"></param>
+        /// <returns></returns>
         public static List<string> GetIsoNames(int numVMATIsos, int numIsos, bool isCSI = false)
         {
             List<string> isoNames = new List<string> { };

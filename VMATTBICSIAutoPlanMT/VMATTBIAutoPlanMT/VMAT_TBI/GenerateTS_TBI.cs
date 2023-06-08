@@ -214,12 +214,12 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             ProvideUIUpdate($"Base structure: {baseStructure.Id}");
             ProvideUIUpdate("Margins:");
             ProvideUIUpdate($"Inner or outer: {margins.Geometry}");
-            ProvideUIUpdate($"X1: {margins.X1}");
-            ProvideUIUpdate($"X2: {margins.X2}");
-            ProvideUIUpdate($"Y1: {margins.Y1}");
-            ProvideUIUpdate($"Y2: {margins.Y2}");
-            ProvideUIUpdate($"Z1: {margins.Z1}");
-            ProvideUIUpdate($"Z2: {margins.Z2}");
+            ProvideUIUpdate($"X1: {margins.X1:0.0} mm");
+            ProvideUIUpdate($"X2: {margins.X2:0.0} mm");
+            ProvideUIUpdate($"Y1: {margins.Y1:0.0} mm");
+            ProvideUIUpdate($"Y2: {margins.Y2:0.0} mm");
+            ProvideUIUpdate($"Z1: {margins.Z1:0.0} mm");
+            ProvideUIUpdate($"Z2: {margins.Z2:0.0} mm");
 
             addedStructure.SegmentVolume = baseStructure.AsymmetricMargin(margins);
             ProvideUIUpdate($"Contoured block volume for structure: {addedStructure.Id}");
@@ -415,27 +415,24 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private bool CutTSTargetFromMatchline(Structure addedTSTarget, Structure matchline, Structure dummyBox)
         {
             UpdateUILabel($"Cut {addedTSTarget.Id} at matchline:");
-            int percentComplete = 0;
-            int calcItems = 12;
             
             //subtract both dummybox and matchline from TS_PTV_VMAT
-            (bool failCropBox, StringBuilder cropBoxMessage) = ContourHelper.CropTargetFromStructure(addedTSTarget, dummyBox, 0.0);
+            (bool failCropBox, StringBuilder cropBoxMessage) = ContourHelper.CropStructureFromStructure(addedTSTarget, dummyBox, 0.0);
             if (failCropBox)
             {
                 ProvideUIUpdate(cropBoxMessage.ToString(), true);
                 return true;
             }
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Cropped target {addedTSTarget.Id} from {dummyBox.Id}");
+            ProvideUIUpdate($"Cropped target {addedTSTarget.Id} from {dummyBox.Id}");
 
-            (bool failCropMatch, StringBuilder cropMatchMessage) = ContourHelper.CropTargetFromStructure(addedTSTarget, matchline, 0.0);
+            (bool failCropMatch, StringBuilder cropMatchMessage) = ContourHelper.CropStructureFromStructure(addedTSTarget, matchline, 0.0);
             if (failCropMatch)
             {
                 ProvideUIUpdate(cropMatchMessage.ToString(), true);
                 return true;
             }
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Cropped target {addedTSTarget.Id} from {matchline.Id}");
+            ProvideUIUpdate($"Cropped target {addedTSTarget.Id} from {matchline.Id}");
            
-            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
 
@@ -472,7 +469,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             UpdateUILabel("Create flash:");
             int percentComplete = 0;
-            int calcItems = 10;
+            int calcItems = 13;
             //create flash for the plan per the users request
             //NOTE: IT IS IMPORTANT THAT ALL OF THE STRUCTURES CREATED IN THIS METHOD (I.E., ALL STRUCTURES USED TO GENERATE FLASH HAVE THE KEYWORD 'FLASH' SOMEWHERE IN THE STRUCTURE ID)!
             //first need to create a bolus structure (remove it if it already exists)
@@ -482,16 +479,21 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
             //contour the bolus
             if (ContourBolus(bolusFlash)) return true;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contoured bolus structure: {bolusFlash.Id}");
+
 
             Structure body = StructureTuningHelper.GetStructureFromId("body", selectedSS);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved body structure: {body.Id}");
+
             //now subtract the body structure from the newly-created bolus structure
-            (bool failCrop, StringBuilder cropMessage) = ContourHelper.CropTargetFromStructure(bolusFlash, body, 0.0);
+            (bool failCrop, StringBuilder cropMessage) = ContourHelper.CropStructureFromStructure(bolusFlash, body, 0.0);
             if (failCrop)
             {
                 ProvideUIUpdate(cropMessage.ToString(), true);
                 return true;
             }
-            
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Cropped {body.Id} from {bolusFlash.Id}");
+
             //if the subtracted structre is empty, then that indicates that the structure used to generate the flash was NOT close enough to the body surface to generate flash for the user-specified margin
             if (bolusFlash.IsEmpty)
             {
@@ -501,19 +503,25 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
             //assign the water to the bolus volume (HU = 0.0)
             bolusFlash.SetAssignedHU(0.0);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Assigned {bolusFlash.Id} HU to 0.0");
+
 
             //crop flash at matchline ONLY if global flash is used
             Structure dummyBox = StructureTuningHelper.GetStructureFromId("dummybox", selectedSS);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved dummy box structure: {dummyBox.Id}");
+
             if (flashStructure == null && StructureTuningHelper.DoesStructureExistInSS("matchline", selectedSS, true))
             {
                 if (CutTSTargetFromMatchline(bolusFlash, StructureTuningHelper.GetStructureFromId("matchline", selectedSS), dummyBox)) return true;
-                //(bool failCropBolus, StringBuilder cropBolusMessage) = ContourHelper.CropTargetFromStructure(bolusFlash, dummyBox, 0.0);
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Cut {bolusFlash.Id} structure at matchline structure");
+
+                //(bool failCropBolus, StringBuilder cropBolusMessage) = ContourHelper.CropStructureFromStructure(bolusFlash, dummyBox, 0.0);
                 //if (failCropBolus)
                 //{
                 //    ProvideUIUpdate(cropBolusMessage.ToString(), true);
                 //    return true;
                 //}
-                //(bool failCropMatchline, StringBuilder cropMatchlineMessage) = ContourHelper.CropTargetFromStructure(bolusFlash, StructureTuningHelper.GetStructureFromId("matchline", selectedSS), 0.0);
+                //(bool failCropMatchline, StringBuilder cropMatchlineMessage) = ContourHelper.CropStructureFromStructure(bolusFlash, StructureTuningHelper.GetStructureFromId("matchline", selectedSS), 0.0);
                 //if (failCropMatchline)
                 //{
                 //    ProvideUIUpdate(cropMatchlineMessage.ToString(), true);
@@ -528,13 +536,16 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 ProvideUIUpdate(unionMessage.ToString(), true);
                 return true;
             }
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contour union betwen between {bolusFlash.Id} and body onto body");
 
             //now create the ptv_flash structure
             (bool failPTVFlash, Structure ptv_flash) = CheckAndGenerateStructure("TS_PTV_FLASH");
             if (failPTVFlash) return true;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Created structure: {ptv_flash.Id}");
 
             //copy the NEW body structure (i.e., body + bolus_flash)
             if (GeneratePTVFromBody(ptv_flash)) return true;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contoured {ptv_flash.Id} structure from body structure");
 
             foreach (Tuple<string, TSManipulationType, double> itr in TSManipulationList.Where(x => x.Item2 == TSManipulationType.ContourOverlapWithTarget || x.Item2 == TSManipulationType.CropTargetFromStructure))
             {
@@ -544,6 +555,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //now create the ptv_flash structure
             (bool failFlashTarget, Structure flash_target) = CheckAndGenerateStructure("TS_FLASH_TARGET");
             if (failFlashTarget) return true;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Created structure: {flash_target.Id}");
 
             (bool failCopyTarget, StringBuilder copyErrorMessage) = ContourHelper.CopyStructureOntoStructure(ptv_flash, flash_target);
             if (failCopyTarget)
@@ -574,9 +586,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //}
 
                 if (CutTSTargetFromMatchline(ptv_flash, StructureTuningHelper.GetStructureFromId("matchline", selectedSS), dummyBox)) return true;
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Cut {ptv_flash.Id} structure at matchline structure");
 
                 ////subtract both dummybox and matchline from TS_PTV_flash
-                //(bool failCropBox, StringBuilder cropBoxMessage) = ContourHelper.CropTargetFromStructure(ptv_flash, dummyBox, 0.0);
+                //(bool failCropBox, StringBuilder cropBoxMessage) = ContourHelper.CropStructureFromStructure(ptv_flash, dummyBox, 0.0);
                 //if (failCropBox)
                 //{
                 //    ProvideUIUpdate(cropBoxMessage.ToString(), true);
@@ -584,7 +597,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //}
                 //ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Cropped target {ptv_flash.Id} from {dummyBox.Id}");
 
-                //(bool failCropMatch, StringBuilder cropMatchMessage) = ContourHelper.CropTargetFromStructure(ptv_flash, StructureTuningHelper.GetStructureFromId("matchline", selectedSS), 0.0);
+                //(bool failCropMatch, StringBuilder cropMatchMessage) = ContourHelper.CropStructureFromStructure(ptv_flash, StructureTuningHelper.GetStructureFromId("matchline", selectedSS), 0.0);
                 //if (failCropMatch)
                 //{
                 //    ProvideUIUpdate(cropMatchMessage.ToString(), true);
@@ -592,7 +605,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //}
                 //ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Cropped target {ptv_flash.Id} from {ptv_flash.Id}");
 
-                //selectedSS.RemoveStructure(dummyBox);
             }
 
             return false;
@@ -600,47 +612,51 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         protected override bool CalculateNumIsos()
         {
-            Point3DCollection pts = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "body").MeshGeometry.Positions;
+            Structure body = StructureTuningHelper.GetStructureFromId("body", selectedSS);
+            Point3DCollection pts = body.MeshGeometry.Positions;
+            double bodyExtent = pts.Max(p => p.Z) - pts.Min(p => p.Z);
+            double minFieldOverlap = 20.0;
+            double maxFieldExtent = 400.0;
             //calculate number of required isocenters
-            if (!(selectedSS.Structures.Where(x => x.Id.ToLower() == "matchline").Any()))
+            if (!StructureTuningHelper.DoesStructureExistInSS("matchline", selectedSS))
             {
                 //no matchline implying that this patient will be treated with VMAT only. For these cases the maximum number of allowed isocenters is 3.
                 //the reason for the explicit statements calculating the number of isos and then truncating them to 3 was to account for patients requiring < 3 isos and if, later on, we want to remove the restriction of 3 isos
-                numIsos = numVMATIsos = (int)Math.Ceiling(((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 - 20.0)));
+                numIsos = numVMATIsos = (int)Math.Ceiling((bodyExtent / (maxFieldExtent - minFieldOverlap)));
                 if (numIsos > 3) numIsos = numVMATIsos = 3;
             }
             else
             {
                 //matchline structure is present, but empty
-                if (selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").IsEmpty)
+                if (!StructureTuningHelper.DoesStructureExistInSS("matchline", selectedSS, true))
                 {
                     ConfirmPrompt CP = new ConfirmPrompt("I found a matchline structure in the structure set, but it's empty!" + Environment.NewLine + Environment.NewLine + "Do you want to continue without using the matchline structure?!");
                     CP.ShowDialog();
                     if (!CP.GetSelection()) return true;
 
                     //continue and ignore the empty matchline structure (same calculation as VMAT only)
-                    numIsos = numVMATIsos = (int)Math.Ceiling(((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 - 20.0)));
+                    numIsos = numVMATIsos = (int)Math.Ceiling((bodyExtent / (maxFieldExtent - minFieldOverlap)));
                     if (numIsos > 3) numIsos = numVMATIsos = 3;
                 }
                 //matchline structure is present and not empty
                 else
                 {
+                    Structure matchline = StructureTuningHelper.GetStructureFromId("matchline", selectedSS);
                     //get number of isos for PTV superior to matchplane (always truncate this value to a maximum of 4 isocenters)
-                    numVMATIsos = (int)Math.Ceiling(((pts.Max(p => p.Z) - selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z) / (400.0 - 20.0)));
+                    numVMATIsos = (int)Math.Ceiling(((pts.Max(p => p.Z) - matchline.CenterPoint.z) / (maxFieldExtent - minFieldOverlap)));
                     if (numVMATIsos > 4) numVMATIsos = 4;
 
                     //get number of iso for PTV inferior to matchplane
                     //if (selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - pts.Min(p => p.Z) - 3.0 <= (400.0 - 20.0)) numIsos = numVMATIsos + 1;
 
                     //5-20-2020 Nataliya said to only add a second legs iso if the extent of the TS_PTV_LEGS is > 40.0 cm
-                    if (selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - pts.Min(p => p.Z) - 3.0 <= (400.0 - 0.0)) numIsos = numVMATIsos + 1;
+                    if (matchline.CenterPoint.z - pts.Min(p => p.Z) - 3.0 <= maxFieldExtent) numIsos = numVMATIsos + 1;
                     else numIsos = numVMATIsos + 2;
-                    //MessageBox.Show(String.Format("{0}", selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - pts.Min(p => p.Z) - 3.0));
                 }
             }
 
             //set isocenter names based on numIsos and numVMATIsos (determined these names from prior cases)
-            isoNames.Add(Tuple.Create("_VMAT TBI", new List<string>(IsoNameHelper.GetIsoNames(numVMATIsos, numIsos, true))));
+            isoNames.Add(Tuple.Create("_VMAT TBI", new List<string>(IsoNameHelper.GetIsoNames(numVMATIsos, numIsos))));
             return false;
         }
     }
