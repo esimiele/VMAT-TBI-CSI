@@ -12,7 +12,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public static class TargetsHelper
     {
-        public static (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) GetPrescriptions(List<Tuple<string, double, string>> targets, string initDosePerFxText, string initNumFxText, string initRxText, string boostDosePerFxText, string boostNumFxText)
+        public static (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) GetPrescriptions(List<Tuple<string, double, string>> targets, string initDosePerFxText, string initNumFxText, string initRxText, string boostDosePerFxText = "", string boostNumFxText = "")
         {
             StringBuilder sb = new StringBuilder();
             List<Tuple<string, string, int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };

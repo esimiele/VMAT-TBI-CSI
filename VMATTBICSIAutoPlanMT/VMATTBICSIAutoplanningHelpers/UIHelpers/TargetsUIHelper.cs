@@ -8,6 +8,7 @@ using VMS.TPS.Common.Model.API;
 using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.BaseClasses;
+using VMATTBICSIAutoPlanningHelpers.Helpers;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
@@ -20,7 +21,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             if (template != null)
             {
                 tmpList = new List<Tuple<string, double, string>>(template.GetTargets());
-                foreach (Tuple<string, double, string> itr in tmpList) if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.Item1.ToLower()) != null || itr.Item1.ToLower() == "ptv_csi") targetList.Add(itr);
+                foreach (Tuple<string, double, string> itr in tmpList) targetList.Add(itr);
             }
             else targetList = new List<Tuple<string, double, string>>(tmpList);
             return targetList;
@@ -207,17 +208,6 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                         {
                             //MessageBox.Show(String.Format("Error! Plan Id '{0}' is greater than maximum length allowed by Eclipse (13)! Exiting!", planID));
                             planID = planID.Substring(0, 13);
-                        }
-                        //only add the current row to the structure sparing list if all the parameters were successful parsed
-                        if (!structure.ToLower().Contains("ctv_spine") && !structure.ToLower().Contains("ctv_brain") && !structure.ToLower().Contains("ptv_spine") && !structure.ToLower().Contains("ptv_brain") && !structure.ToLower().Contains("ptv_csi"))
-                        {
-                            //if the requested target does not have an id that contains ctv, ptv, brain, spine, or ptv_csi, check to make sure it actually exists in the structure set before proceeding
-                            Structure unknownStructure = selectedSS.Structures.FirstOrDefault(x => x.Id == structure);
-                            if (unknownStructure == null || unknownStructure.IsEmpty)
-                            {
-                                sb.AppendLine(String.Format("Error! Structure: {0} not found or is empty! Please remove and try again!", structure));
-                                return (listTargets, sb);
-                            }
                         }
                         listTargets.Add(Tuple.Create(structure, tgtRx, planID));
                     }

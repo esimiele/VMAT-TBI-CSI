@@ -174,7 +174,6 @@
                     <RowDefinition Height="*"></RowDefinition>
                     <RowDefinition Height="*"></RowDefinition>
                     <RowDefinition Height="*"></RowDefinition>
-                    <RowDefinition Height="*"></RowDefinition>
                 </Grid.RowDefinitions>
                     
                 <Grid Grid.ColumnSpan="2" Grid.Row="0" HorizontalAlignment="Center">
@@ -242,26 +241,49 @@
                     <Label x:Name="flashVolumeLabel" Content="Volume:" Grid.Column="5" HorizontalAlignment="Right" VerticalAlignment="Center" Visibility="Hidden"/>
                     <ComboBox x:Name="flashVolume" HorizontalContentAlignment="Center" Grid.Column="6" HorizontalAlignment="Left" VerticalAlignment="Center" Width="120" Visibility="Hidden"/>
                 </Grid>
-                <Grid Grid.Row="7" Grid.ColumnSpan="2" Margin="0,0,0,10" Width="400">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="1.2*"/>
-                        <ColumnDefinition Width="0.5*"/>
-                        <ColumnDefinition Width="0.5*"/>
-                    </Grid.ColumnDefinitions>
-                    <Label Content="PTV inner margin from body (cm):" FontSize="13" FontStyle="Normal" HorizontalAlignment="Right" VerticalAlignment="Center" Grid.Column="0" ></Label>
-                    <TextBox x:Name="targetMarginTB" FontSize="12" TextAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Center" Width="85" Height="22" Grid.Column="1" ></TextBox>
-                    <Button x:Name="targetMarginInfo" Content="?" HorizontalAlignment="Center" VerticalAlignment="Center" Width="30" Grid.Column="2" Height="22" Click="TargetMarginInfo_Click"></Button>
-                </Grid>
+                
             </Grid>
             
             <Grid Background="DarkGray">
                 <TabControl Background="DarkGray" TabStripPlacement="Left" HorizontalAlignment="Left" Height="480" Margin="-2,0,0,0" VerticalAlignment="Bottom">
-                    <TabItem Header="TS Generation" BorderThickness="0,1,1,0" Height="29" VerticalAlignment="Top">
+                    <TabItem Header="Specify Targets" BorderThickness="0,1,1,0" x:Name="targetsTabItem">
+                        <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
+                            <StackPanel HorizontalAlignment="Center" Margin="0">
+                                <Label Content="Select Targets" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                                <Grid Height="25" Width ="600" HorizontalAlignment="Center" Margin="0,5,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Content="Add Target" Width="100" Grid.Column="0" VerticalAlignment="Top" Click="AddTarget_Click"/>
+                                    <Button x:Name="AddDefaultsTargetsBtn" Content="Add Defaults" Width="120" Grid.Column="1" VerticalAlignment="Top"  Click="AddTargetDefaults_Click"/>
+                                    <Button x:Name="ClearTargetList" Content="Clear List" Width="100" Grid.Column="3"  VerticalAlignment="Top" Click="ClearTargetList_Click"/>
+                                </Grid>
+                                <ScrollViewer x:Name="targetsScroller" Height="370" Width="550" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                    <StackPanel Name="targetsSP" Margin="5">
+                                    </StackPanel>
+                                </ScrollViewer>
+                                <Button Content="Set Targets" FontWeight="Bold" Width="150" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,7,0,0" Click="SetTargets_Click"></Button>
+                            </StackPanel>
+                        </Border>
+                    </TabItem>
+                    <TabItem Header="Structure Tuning" BorderThickness="0,1,1,0" Height="29" x:Name="structureTuningTabItem" VerticalAlignment="Top">
                         <TabControl TabStripPlacement="Top" Background="DarkGray">
                             <TabItem Header="Tuning Structure Generation" BorderThickness="1,1,1,1" Width="280">
                             <Border BorderBrush="Black" BorderThickness="1,0,0,0">
                                 <StackPanel HorizontalAlignment="Center">
-                                    <Grid Width="490" HorizontalAlignment="Center">
+                                        <Grid Margin="5" Width="400">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="1.2*"/>
+                                                <ColumnDefinition Width="0.5*"/>
+                                                <ColumnDefinition Width="0.5*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Label Content="PTV inner margin from body (cm):" FontSize="13" FontStyle="Normal" HorizontalAlignment="Right" VerticalAlignment="Center" Grid.Column="0"></Label>
+                                            <TextBox x:Name="targetMarginTB" FontSize="12" TextAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Center" Width="85" Height="22" Grid.Column="1" ></TextBox>
+                                            <Button x:Name="targetMarginInfo" Content="?" HorizontalAlignment="Center" VerticalAlignment="Center" Width="20" Grid.Column="2" Height="22" Click="TargetMarginInfo_Click"></Button>
+                                        </Grid>
+                                        <Grid Width="490" HorizontalAlignment="Center">
                                         <Label Grid.Column="0" Content="Create Tuning Structures" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" ></Label>
                                         <Button Grid.Column="1" Content="?" Width="20" Height="24" HorizontalAlignment="Right" Click="TsGenerateVsManipulateInfo_Click"/>
                                     </Grid>
@@ -282,7 +304,7 @@
                                 </StackPanel>
                             </Border>
                         </TabItem>
-                            <TabItem Header="Tuning Structure Manipulation" BorderThickness="0,1,1,1" Width="280">
+                            <TabItem Header="Tuning Structure Manipulation" BorderThickness="0,1,1,1" Width="280" x:Name="TSManipulationTabItem">
                                 <Border BorderBrush="Black" BorderThickness="1,0,0,0">
                                     <StackPanel Name="TS_SP" HorizontalAlignment="Center" Margin="0">
                                         <Label Content="Structure Manipulation" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
@@ -385,7 +407,7 @@
                             </StackPanel>
                         </Border>
                     </TabItem>
-                    <TabItem Header="Template Builder" VerticalAlignment="Bottom" BorderThickness="0,1,1,0" Margin="0,0,0,-164">
+                    <TabItem Header="Template Builder" VerticalAlignment="Bottom" BorderThickness="0,1,1,0" Margin="0,0,0,-152">
                         <TabControl Background="DarkGray" Width="564">
                             <TabItem Header="Name and Rx" BorderThickness="1,1,1,0">
                                 <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
@@ -407,6 +429,21 @@
                                             <TextBox x:Name="templateInitPlanNumFxTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,59,86,0" TextChanged="TemplateNumFx_TextChanged"></TextBox>
                                             <TextBox x:Name="templateInitPlanRxTB" TextAlignment="Center" HorizontalAlignment="Right" VerticalAlignment="Top" Width="75" Height="20" Margin="0,89,86,0" IsReadOnly="True"></TextBox>
                                         </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </TabItem>
+                            <TabItem Header="Targets" BorderThickness="0,1,1,0">
+                                <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
+                                    <StackPanel>
+                                        <Label Content="Specify Targets" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                                        <Grid Height="25" Width ="500" HorizontalAlignment="Center" Margin="0,5,0,0">
+                                            <Button x:Name="templateAddTargetBtn" Content="Add Target" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="AddTarget_Click"/>
+                                            <Button x:Name="templateClearTargetList" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="ClearTargetList_Click"/>
+                                        </Grid>
+                                        <ScrollViewer x:Name="targetTemplateScroller" Height="365" Width="550" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                            <StackPanel x:Name="targetTemplate_sp" Margin="5">
+                                            </StackPanel>
+                                        </ScrollViewer>
                                     </StackPanel>
                                 </Border>
                             </TabItem>
@@ -480,7 +517,7 @@
                             </TabItem>
                         </TabControl>
                     </TabItem>
-                    <TabItem Header="Script Configuration" HorizontalContentAlignment="Center" VerticalAlignment="Bottom" BorderThickness="0,1,1,1" Margin="0,0,0,-97">
+                    <TabItem Header="Script Configuration" HorizontalContentAlignment="Center" VerticalAlignment="Bottom" BorderThickness="0,1,1,1" Margin="0,0,0,-91">
                         <Border BorderBrush="Black" BorderThickness="1,0,0,0">
                             <StackPanel Name="configuration">
                                 <Label Content="Current Script Configuration Parameters" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>

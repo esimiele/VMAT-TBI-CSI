@@ -509,13 +509,12 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             bolusFlash.SetAssignedHU(0.0);
             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Assigned {bolusFlash.Id} HU to 0.0");
 
-
-            //crop flash at matchline ONLY if global flash is used
-            Structure dummyBox = StructureTuningHelper.GetStructureFromId("dummybox", selectedSS);
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved dummy box structure: {dummyBox.Id}");
-
             if (flashStructure == null && StructureTuningHelper.DoesStructureExistInSS("matchline", selectedSS, true))
             {
+                //crop flash at matchline ONLY if global flash is used
+                Structure dummyBox = StructureTuningHelper.GetStructureFromId("dummybox", selectedSS);
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved dummy box structure: {dummyBox.Id}");
+
                 if (CutTSTargetFromMatchline(bolusFlash, StructureTuningHelper.GetStructureFromId("matchline", selectedSS), dummyBox)) return true;
                 ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Cut {bolusFlash.Id} structure at matchline structure");
 
@@ -572,6 +571,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
             if(StructureTuningHelper.DoesStructureExistInSS("matchline", selectedSS, true))
             {
+                //crop flash at matchline ONLY if global flash is used
+                Structure dummyBox = StructureTuningHelper.GetStructureFromId("dummybox", selectedSS);
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved dummy box structure: {dummyBox.Id}");
                 //(bool failLegsFlash, Structure legsFlash) = CheckAndGenerateStructure("TS_LEGS_FLASH");
                 //if (failLegsFlash) return true;
 

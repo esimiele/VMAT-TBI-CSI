@@ -74,11 +74,15 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         Logger log = null;
         public Patient pi = null;
         StructureSet selectedSS = null;
+        public int clearTargetBtnCounter = 0;
+        public int clearTargetTemplateBtnCounter = 0;
         private bool firstOptStruct = true;
         public int clearSpareBtnCounter = 0;
         private int clearTemplateSpareBtnCounter = 0;
         public int clearOptBtnCounter = 0;
         public int clearTemplateOptBtnCounter = 0;
+        //structure id, Rx dose, plan Id
+        List<Tuple<string, double, string>> targets = new List<Tuple<string, double, string>> { };
         //general tuning structures to be added (if selected for sparing) to all case types
         //default general tuning structures to be added (specified in CSI_plugin_config.ini file)
         List<Tuple<string, string>> defaultTSStructures = new List<Tuple<string, string>> { };
@@ -158,6 +162,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             targetMarginTB.Text = defaultTargetMargin;
 
             DisplayConfigurationParameters();
+            targetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             return false;
         }
 
@@ -263,6 +268,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         private void LoadTemplateDefaults()
         {
+            AddTargetDefaults_Click(null, null);
             AddDefaultTuningStructures_Click(null, null);
             AddDefaultStructureManipulations();
         }
@@ -383,6 +389,180 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 }
             }
         }
+
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        #region Set targets
+        private (ScrollViewer, StackPanel) GetSVAndSPTargetsTab(object sender)
+        {
+            Button btn = (Button)sender;
+            ScrollViewer theScroller;
+            StackPanel theSP;
+            if (btn.Name.Contains("template"))
+            {
+                theScroller = targetTemplateScroller;
+                theSP = targetTemplate_sp;
+            }
+            else
+            {
+                theScroller = targetsScroller;
+                theSP = targetsSP;
+            }
+            return (theScroller, theSP);
+        }
+
+        private void AddTarget_Click(object sender, RoutedEventArgs e)
+        {
+            (ScrollViewer, StackPanel) SVSP = GetSVAndSPTargetsTab(sender);
+            AddTargetVolumes(new List<Tuple<string, double, string>> { Tuple.Create("--select--", 0.0, "--select--") }, SVSP.Item2);
+            SVSP.Item1.ScrollToBottom();
+        }
+
+        private void AddTargetDefaults_Click(object sender, RoutedEventArgs e)
+        {
+            if (selectedSS == null)
+            {
+                log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
+                return;
+            }
+            List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>>(TargetsUIHelper.AddTargetDefaults((templateList.SelectedItem as TBIAutoPlanTemplate), selectedSS));
+            ClearAllTargetItems();
+            AddTargetVolumes(targetList, targetsSP);
+            targetsScroller.ScrollToBottom();
+        }
+
+        private void ClearTargetItem_click(object sender, RoutedEventArgs e)
+        {
+            //same deal as the clear sparing structure button (clearStructBtn_click)
+            StackPanel theSP = GetSVAndSPTargetsTab(sender).Item2;
+            //clear entire list if there are only two entries (header + 1 real entry)
+            if (GeneralUIHelper.ClearRow(sender, theSP)) ClearAllTargetItems((Button)sender);
+        }
+
+        private void ClearTargetList_Click(object sender, RoutedEventArgs e) { ClearAllTargetItems((Button)sender); }
+
+        private void ClearAllTargetItems(Button btn = null)
+        {
+            if (btn == null || btn.Name == "clear_target_list" || !btn.Name.Contains("template"))
+            {
+                targetsSP.Children.Clear();
+                clearTargetBtnCounter = 0;
+            }
+            else
+            {
+                targetTemplate_sp.Children.Clear();
+                clearTargetTemplateBtnCounter = 0;
+            }
+        }
+
+        private void AddTargetVolumes(List<Tuple<string, double, string>> defaultList, StackPanel theSP)
+        {
+            int counter;
+            string clearBtnNamePrefix;
+            if (theSP.Name == "targetsSP")
+            {
+                counter = clearTargetBtnCounter;
+                clearBtnNamePrefix = "clearTargetBtn";
+            }
+            else
+            {
+                counter = clearTargetTemplateBtnCounter;
+                clearBtnNamePrefix = "templateClearTargetBtn";
+            }
+            if (theSP.Children.Count == 0) AddTargetHeader(theSP);
+            List<string> planIDs = new List<string> { };
+            //assumes each target has a unique planID 
+            //TODO: add function to return unique list of planIDs sorted by Rx ascending
+            foreach (Tuple<string, double, string> itr in defaultList) planIDs.Add(itr.Item3);
+            foreach (Tuple<string, double, string> itr in defaultList)
+            {
+                counter++;
+                theSP.Children.Add(TargetsUIHelper.AddTargetVolumes(theSP.Width,
+                                                           itr,
+                                                           clearBtnNamePrefix,
+                                                           counter,
+                                                           planIDs,
+                                                           (delegate (object sender, SelectionChangedEventArgs e) { TargetPlanId_SelectionChanged(theSP, sender, e); }),
+                                                           new RoutedEventHandler(this.ClearTargetItem_click)));
+            }
+        }
+
+        private void TargetPlanId_SelectionChanged(StackPanel theSP, object sender, EventArgs e)
+        {
+            //not the most elegent code, but it works. Basically, it finds the combobox where the selection was changed and asks the user to enter the id of the plan or the target id
+            ComboBox c = (ComboBox)sender;
+            if (c.SelectedItem.ToString() != "--Add New--") return;
+            bool isTargetStructure = true;
+            if (c.Name != "str_cb") isTargetStructure = false;
+            foreach (object obj in theSP.Children)
+            {
+                UIElementCollection row = ((StackPanel)obj).Children;
+                foreach (object obj1 in row)
+                {
+                    //the btn has a unique tag to it, so we can just loop through all children in the structureManipulationSP children list and find which button is equivalent to our button
+                    if (obj1.Equals(c))
+                    {
+                        string msg = "Enter the Id of the target structure!";
+                        if (!isTargetStructure) msg = "Enter the requested plan Id!";
+                        EnterMissingInfoPrompt EMIP = new EnterMissingInfoPrompt(msg, "Id:");
+                        EMIP.ShowDialog();
+                        if (EMIP.GetSelection())
+                        {
+                            c.Items.Insert(c.Items.Count - 1, EMIP.GetEnteredValue());
+                            //c.Items.Add(emi.value.Text);
+                            c.Text = EMIP.GetEnteredValue();
+                        }
+                        else c.SelectedIndex = 0;
+                        return;
+                    }
+                }
+            }
+        }
+
+        private void AddTargetHeader(StackPanel theSP)
+        {
+            theSP.Children.Add(TargetsUIHelper.GetTargetHeader(theSP.Width));
+        }
+
+        private void SetTargets_Click(object sender, RoutedEventArgs e)
+        {
+            if (selectedSS == null)
+            {
+                log.LogError("Please select a structure set before setting the targets!");
+                return;
+            }
+            if (targetsSP.Children.Count == 0)
+            {
+                log.LogError("No targets present in list! Please add some targets to the list before setting the target structures!");
+                return;
+            }
+
+            //target id, target Rx, plan id
+            (List<Tuple<string, double, string>>, StringBuilder) parsedTargets = TargetsUIHelper.ParseTargets(targetsSP, selectedSS);
+            if (!parsedTargets.Item1.Any())
+            {
+                log.LogError(parsedTargets.Item2);
+                return;
+            }
+
+            targets = new List<Tuple<string, double, string>>(parsedTargets.Item1);
+            (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) parsedPrescriptions = TargetsHelper.GetPrescriptions(targets,
+                                                                                                                                      dosePerFxTB.Text,
+                                                                                                                                      numFxTB.Text,
+                                                                                                                                      RxTB.Text);
+            if (!parsedPrescriptions.Item1.Any())
+            {
+                log.LogError(parsedPrescriptions.Item2);
+                return;
+            }
+            prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(parsedPrescriptions.Item1);
+            targetsTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+            structureTuningTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
+            TSManipulationTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
+            //need targets to be assigned prior to populating the ring defaults
+            log.targets = targets;
+            log.Prescriptions = prescriptions;
+        }
+        #endregion
 
         #region TS generation and manipulation
         private List<string> CheckLRStructures()
