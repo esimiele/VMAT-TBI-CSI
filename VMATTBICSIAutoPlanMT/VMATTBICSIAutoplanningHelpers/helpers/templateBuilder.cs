@@ -27,8 +27,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             if (prospectiveTemplate.GetTargets().Any())
             {
                 output += String.Format(" {0} targets:", prospectiveTemplate.GetTemplateName()) + Environment.NewLine;
-                output += String.Format("  {0, -15} | {1, -8} | {2, -14} |", "structure Id", "Rx (cGy)", "Plan Id") + Environment.NewLine;
-                foreach (Tuple<string, double, string> tgt in prospectiveTemplate.GetTargets()) output += String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |" + Environment.NewLine, tgt.Item1, tgt.Item2, tgt.Item3);
+                output += String.Format(String.Format("  {0, -15} | {1, -8} | {2, -14} |", "structure Id", "Rx (cGy)", "Num Fx", "Plan Id"));
+                foreach (Tuple<string, double, string> tgt in prospectiveTemplate.GetTargets()) output += String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |", tgt.Item1, tgt.Item2, tgt.Item3);
                 output += Environment.NewLine;
             }
             else output += String.Format(" No targets set for template: {0}", prospectiveTemplate.GetTemplateName()) + Environment.NewLine + Environment.NewLine;

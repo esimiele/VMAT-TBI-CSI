@@ -5,16 +5,14 @@ using System.Windows.Controls;
 using System.Windows;
 using System.Text;
 using VMS.TPS.Common.Model.API;
-using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.BaseClasses;
-using VMATTBICSIAutoPlanningHelpers.Helpers;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
     public static class TargetsUIHelper
     {
-        public static List<Tuple<string, double, string>> AddTargetDefaults(AutoPlanTemplateBase template, StructureSet selectedSS)
+        public static List<Tuple<string, double, string>> AddTargetDefaults(AutoPlanTemplateBase template)
         {
             List<Tuple<string, double, string>> tmpList = new List<Tuple<string, double, string>> { Tuple.Create("--select--", 0.0, "--select--") };
             List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>> { };
@@ -159,7 +157,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sp;
         }
 
-        public static (List<Tuple<string, double, string>>, StringBuilder) ParseTargets(StackPanel theSP, StructureSet selectedSS)
+        public static (List<Tuple<string, double, string>>, StringBuilder) ParseTargets(StackPanel theSP)
         {
             StringBuilder sb = new StringBuilder();
             List<Tuple<string, double, string>> listTargets = new List<Tuple<string, double, string>> { };

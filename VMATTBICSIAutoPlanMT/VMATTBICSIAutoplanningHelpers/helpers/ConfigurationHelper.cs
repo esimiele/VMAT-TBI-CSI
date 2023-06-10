@@ -253,14 +253,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             //structure id, sparing type, added margin in cm (ignored if sparing type is Dmax ~ Rx Dose)
             string structure;
             string planId;
-            double val;
+            double rx;
             line = CropLine(line, "{");
             structure = line.Substring(0, line.IndexOf(","));
             line = CropLine(line, ",");
-            val = double.Parse(line.Substring(0, line.IndexOf(",")));
+            rx = double.Parse(line.Substring(0, line.IndexOf(",")));
             line = CropLine(line, ",");
             planId = line.Substring(0, line.IndexOf("}"));
-            return Tuple.Create(structure, val, planId);
+            return Tuple.Create(structure, rx, planId);
         }
 
         /// <summary>

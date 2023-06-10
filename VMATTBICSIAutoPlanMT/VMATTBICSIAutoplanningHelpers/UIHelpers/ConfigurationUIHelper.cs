@@ -106,7 +106,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             if (itr.GetTargets().Any())
             {
                 sb.AppendLine($" {itr.GetTemplateName()} targets:");
-                sb.AppendLine(String.Format("  {0, -15} | {1, -8} | {2, -14} |", "structure Id", "Rx (cGy)", "Plan Id"));
+                sb.AppendLine(String.Format("  {0, -15} | {1, -8} | {1, -8} | {3, -14} |", "structure Id", "Rx (cGy)", "Num Fx", "Plan Id"));
                 foreach (Tuple<string, double, string> tgt in itr.GetTargets()) sb.AppendLine(String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |", tgt.Item1, tgt.Item2, tgt.Item3));
                 sb.AppendLine(Environment.NewLine);
             }

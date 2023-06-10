@@ -98,7 +98,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         //plan Id, list of isocenter names for this plan
         public List<Tuple<string, List<string>>> isoNames = new List<Tuple<string, List<string>>> { };
         //plan ID, target Id, numFx, dosePerFx, cumulative dose
-        List<Tuple<string,string,int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+        List<Tuple<string, string, int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
         bool useFlash = false;
         string flashType = "";
         Structure flashStructure = null;
@@ -424,7 +424,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
                 return;
             }
-            List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>>(TargetsUIHelper.AddTargetDefaults((templateList.SelectedItem as TBIAutoPlanTemplate), selectedSS));
+            List<Tuple<string, double,string>> targetList = new List<Tuple<string, double, string>>(TargetsUIHelper.AddTargetDefaults((templateList.SelectedItem as TBIAutoPlanTemplate)));
             ClearAllTargetItems();
             AddTargetVolumes(targetList, targetsSP);
             targetsScroller.ScrollToBottom();
@@ -473,6 +473,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //assumes each target has a unique planID 
             //TODO: add function to return unique list of planIDs sorted by Rx ascending
             foreach (Tuple<string, double, string> itr in defaultList) planIDs.Add(itr.Item3);
+            planIDs.Add("--Add New--");
             foreach (Tuple<string, double, string> itr in defaultList)
             {
                 counter++;
@@ -537,14 +538,20 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
 
             //target id, target Rx, plan id
-            (List<Tuple<string, double, string>>, StringBuilder) parsedTargets = TargetsUIHelper.ParseTargets(targetsSP, selectedSS);
+            (List<Tuple<string, double, string>>, StringBuilder) parsedTargets = TargetsUIHelper.ParseTargets(targetsSP);
             if (!parsedTargets.Item1.Any())
             {
                 log.LogError(parsedTargets.Item2);
                 return;
             }
+            (bool fail, StringBuilder errorMessage) = VerifySelectedTargetsIntegrity(parsedTargets.Item1);
+            if(fail)
+            {
+                log.LogError(errorMessage);
+                return;
+            }
 
-            targets = new List<Tuple<string, double, string>>(parsedTargets.Item1);
+            targets = new List<Tuple<string, double,string>>(parsedTargets.Item1);
             (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) parsedPrescriptions = TargetsHelper.GetPrescriptions(targets,
                                                                                                                                       dosePerFxTB.Text,
                                                                                                                                       numFxTB.Text,
@@ -561,6 +568,20 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //need targets to be assigned prior to populating the ring defaults
             log.targets = targets;
             log.Prescriptions = prescriptions;
+        }
+
+        private (bool, StringBuilder) VerifySelectedTargetsIntegrity(List<Tuple<string, double, string>> parsedTargets)
+        {
+            //verify selected targets are APPROVED
+            bool fail = false;
+            StringBuilder sb = new StringBuilder();
+            //for tbi, we only want to make there is one plan (not configured for sequential boosts)
+            if(parsedTargets.Select(x => x.Item3).Distinct().Count() > 1)
+            {
+                sb.AppendLine($"Error! Multiple plan Ids entered! This script is only configured to auto-plan one TBI plan!");
+                fail = true;
+            }
+            return (fail, sb);
         }
         #endregion
 
@@ -837,7 +858,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //check that there are actually structures to spare in the sparing list
             if (structureManipulationSP.Children.Count == 0)
             {
-                MessageBox.Show("No structures present to generate tuning structures!");
+                log.LogError("No structures present to generate tuning structures!");
                 return;
             }
 
@@ -859,10 +880,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (flashType == "Local")
                 {
                     //if flash type is local, grab an instance of the structure class associated with the selected structure 
-                    flashStructure = selectedSS.Structures.First(x => x.Id.ToLower() == flashVolume.SelectedItem.ToString().ToLower());
-                    if (flashStructure == null || flashStructure.IsEmpty)
+                    if (!StructureTuningHelper.DoesStructureExistInSS(flashVolume.SelectedItem.ToString(), selectedSS, true))
                     {
-                        MessageBox.Show("Error! Selected local flash structure is either null or empty! \nExiting!");
+                        log.LogError("Error! Selected local flash structure is either null or empty! \nExiting!");
                         return;
                     }
                 }
@@ -920,7 +940,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             {
                 log.LogError("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
             }
-            prescriptions.Add(Tuple.Create("PTV_Body", "_VMAT TBI", numFractions, new DoseValue(dosePerFx, DoseValue.DoseUnit.cGy), dosePerFx * numFractions));
 
             //does the structure sparing list need to be updated? This occurs when structures the user elected to spare with option of 'Mean Dose < Rx Dose' are high resolution. Since Eclipse can't perform
             //boolean operations on structures of two different resolutions, code was added to the generateTS class to automatically convert these structures to low resolution with the name of
@@ -1204,6 +1223,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     defaultList.Insert(++index, new Tuple<string, OptimizationObjectiveType, double, double, int>(s.Id, OptimizationObjectiveType.Upper, rxDose * 1.01, 0.0, 100));
                 }
             }
+
+            //if (jnxs.Any())
+            //{
+            //    defaultListList = OptimizationSetupUIHelper.InsertTSJnxOptConstraints(defaultListList, jnxs, prescriptions);
+            //}
 
             //clear the current list of optimization objectives
             Clear_optimization_parameter_list();

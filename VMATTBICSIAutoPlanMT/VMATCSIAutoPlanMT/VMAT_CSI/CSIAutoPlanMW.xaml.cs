@@ -518,7 +518,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!"); 
                 return; 
             }
-            List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>>(TargetsUIHelper.AddTargetDefaults((templateList.SelectedItem as CSIAutoPlanTemplate), selectedSS));
+            List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>>(TargetsUIHelper.AddTargetDefaults((templateList.SelectedItem as CSIAutoPlanTemplate)));
             ClearAllTargetItems();
             AddTargetVolumes(targetList, targetsSP);
             targetsScroller.ScrollToBottom();
@@ -649,7 +649,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
 
             //target id, target Rx, plan id
-            (List<Tuple<string, double, string>>, StringBuilder) parsedTargets = TargetsUIHelper.ParseTargets(targetsSP, selectedSS);
+            (List<Tuple<string, double, string>>, StringBuilder) parsedTargets = TargetsUIHelper.ParseTargets(targetsSP);
             if (!parsedTargets.Item1.Any())
             {
                 log.LogError(parsedTargets.Item2);
@@ -668,7 +668,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                                                                                                                       initNumFxTB.Text,
                                                                                                                                       initRxTB.Text,
                                                                                                                                       boostDosePerFxTB.Text,
-                                                                                                                                      boostNumFxTB.Text);
+                                                                                                                                      boostNumFxTB.Text,
+                                                                                                                                      boostRxTB.Text);
             if(!parsedPrescriptions.Item1.Any())
             {
                 log.LogError(parsedPrescriptions.Item2);
@@ -691,7 +692,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             StringBuilder sb = new StringBuilder();
             foreach (Tuple<string, double, string> itr in parsedTargets)
             {
-                if (!selectedSS.Structures.Any(x => string.Equals(x.Id, itr.Item1) && !x.IsEmpty))
+                if (!StructureTuningHelper.DoesStructureExistInSS(itr.Item1, selectedSS, true))
                 {
                     sb.AppendLine($"Error! {itr.Item1} is either NOT present in structure set or is not contoured!");
                     fail = true;
@@ -699,7 +700,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 else
                 {
                     //structure is present and contoured
-                    Structure tgt = selectedSS.Structures.First(x => string.Equals(x.Id, itr.Item1));
+                    Structure tgt = StructureTuningHelper.GetStructureFromId(itr.Item1, selectedSS);
                     if (tgt.ApprovalHistory.First().ApprovalStatus != StructureApprovalStatus.Approved)
                     {
                         sb.AppendLine($"Error! {tgt.Id} is NOT approved!");
@@ -1791,7 +1792,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             else if(templateBuildOptionCB.SelectedItem.ToString().ToLower() == "current parameters")
             {
                 //add targets (checked first to ensure the user has actually input some parameters into the UI before trying to make a template based on the current settings)
-                (List<Tuple<string, double, string>> targetList, StringBuilder) parsedTargetList = TargetsUIHelper.ParseTargets(targetsSP, selectedSS);
+                (List<Tuple<string, double, string>> targetList, StringBuilder) parsedTargetList = TargetsUIHelper.ParseTargets(targetsSP);
                 if (!parsedTargetList.targetList.Any())
                 {
                     log.LogError("Error! Enter parameters into the UI before trying to use them to make a new plan template!");
@@ -1902,7 +1903,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
 
             //sort targets by prescription dose (ascending order)
-            prospectiveTemplate.SetTargets(TargetsUIHelper.ParseTargets(targetTemplate_sp, selectedSS).Item1.OrderBy(x => x.Item2).ToList());
+            prospectiveTemplate.SetTargets(TargetsUIHelper.ParseTargets(targetTemplate_sp).Item1.OrderBy(x => x.Item2).ToList());
             prospectiveTemplate.SetCreateTSStructures(StructureTuningUIHelper.ParseCreateTSStructureList(templateTSSP).Item1);
             prospectiveTemplate.SetCreateRings(RingUIHelper.ParseCreateRingList(templateCreateRingsSP).Item1);
             prospectiveTemplate.SetTSManipulations(StructureTuningUIHelper.ParseTSManipulationList(templateStructuresSP).Item1);
