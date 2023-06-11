@@ -33,6 +33,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private List<Tuple<string, List<Tuple<string, string>>>> tsTargets = new List<Tuple<string, List<Tuple<string, string>>>> { };
         //planId, lower dose target id, list<manipulation target id, operation>
         private List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations = new List<Tuple<string, string, List<Tuple<string, string>>>> { };
+        //plan id, normalization volume
         private List<Tuple<string, string>> normVolumes = new List<Tuple<string, string>> { };
         private List<string> cropAndOverlapStructures = new List<string> { };
         private int numVMATIsos;
@@ -426,10 +427,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             armsAvoid.SegmentVolume = armsAvoid.Or(dummyBoxR.Margin(0.0));
             ProvideUIUpdate((int)(100 * ++counter / calcItems), "Contouring overlap between arms avoid and body with 5mm outer margin!");
             //contour the arms as the overlap between the current armsAvoid structure and the body with a 5mm outer margin
-            (bool fail, StringBuilder errorMessage) = ContourHelper.CropStructureFromBody(armsAvoid, selectedSS, 0.5);
-            if (fail)
+            (bool failCrop, StringBuilder cropErrorMessage) = ContourHelper.CropStructureFromBody(armsAvoid, selectedSS, 0.5);
+            if (failCrop)
             {
-                ProvideUIUpdate(errorMessage.ToString());
+                ProvideUIUpdate(cropErrorMessage.ToString());
                 return true;
             }
 

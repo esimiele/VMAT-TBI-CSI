@@ -945,10 +945,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //boolean operations on structures of two different resolutions, code was added to the generateTS class to automatically convert these structures to low resolution with the name of
             // '<original structure Id>_lowRes'. When these structures are converted to low resolution, the updateSparingList flag in the generateTS class is set to true to tell this class that the 
             //structure sparing list needs to be updated with the new low resolution structures.
-            PopulateBeamsTab();
             if (generate.GetUpdateSparingListStatus())
             {
-                
+
                 ClearStructureManipulationsList(ClearStructureManipulationsBtn);
                 //update the structure sparing list in this class and update the structure sparing list displayed to the user in TS Generation tab
                 AddStructureManipulationVolumes(generate.GetSparingList(), structureManipulationSP);
@@ -956,7 +955,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             isoNames = generate.GetIsoNames();
             numIsos = generate.GetNumberOfIsocenters();
             numVMATIsos = generate.GetNumberOfVMATIsocenters();
-
+           
+            PopulateBeamsTab();
             if (generate.GetTsTargets().Any())
             {
                 List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> tmpList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
@@ -976,7 +976,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             log.IsoNames = isoNames;
             
             //populate the beams and optimization tabs
-            PopulateOptimizationTab();
+            //PopulateOptimizationTab();
         }
         #endregion
 

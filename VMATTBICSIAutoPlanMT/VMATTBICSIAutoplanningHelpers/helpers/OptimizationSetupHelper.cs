@@ -5,7 +5,6 @@ using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
 using System.Text;
-using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
@@ -139,10 +138,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose
             if (selectedTemplate != null)
             {
-                if (selectedTemplate != null)
-                {
-                    list = CreateOptimizationConstraintList(selectedTemplate, TargetsHelper.GetPlanTargetList(prescriptions));
-                }
+                list = CreateOptimizationConstraintList(selectedTemplate, TargetsHelper.GetPlanTargetList(prescriptions));
             }
             else sb.AppendLine("No template selected!");
             return (list, sb);
@@ -186,7 +182,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                         if ((selectedTemplate as CSIAutoPlanTemplate).GetInitOptimizationConstraints().Any()) list.Add(Tuple.Create("CSI-init", (selectedTemplate as CSIAutoPlanTemplate).GetInitOptimizationConstraints()));
                         if ((selectedTemplate as CSIAutoPlanTemplate).GetBoostOptimizationConstraints().Any()) list.Add(Tuple.Create("CSI-bst", (selectedTemplate as CSIAutoPlanTemplate).GetBoostOptimizationConstraints()));
                     }
-                    else if ((selectedTemplate as TBIAutoPlanTemplate).GetInitOptimizationConstraints().Any()) list.Add(Tuple.Create("_VMAT-TBI", (selectedTemplate as TBIAutoPlanTemplate).GetInitOptimizationConstraints()));
+                    else if ((selectedTemplate as TBIAutoPlanTemplate).GetInitOptimizationConstraints().Any()) list.Add(Tuple.Create("VMAT-TBI", (selectedTemplate as TBIAutoPlanTemplate).GetInitOptimizationConstraints()));
                 }
             }
             return list;

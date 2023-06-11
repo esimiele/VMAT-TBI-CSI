@@ -146,7 +146,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                                         }
                                     }
                                     else if (line.Contains("add TS manipulation")) TSManipulation_temp.Add(ParseTSManipulation(line));
-                                    else if (line.Contains("add init opt constraint")) initOptConst_temp.Add(ParseOptimizationConstraint(line));
+                                    else if (line.Contains("add opt constraint")) initOptConst_temp.Add(ParseOptimizationConstraint(line));
                                     else if (line.Contains("create TS")) TSstructures_temp.Add(ParseCreateTS(line));
                                     else if (line.Contains("add target")) targets_temp.Add(ParseTargets(line));
                                     else if (line.Contains("add optimization TS structure")) requestedTSstructures_temp.Add(ParseOptimizationTSstructure(line));

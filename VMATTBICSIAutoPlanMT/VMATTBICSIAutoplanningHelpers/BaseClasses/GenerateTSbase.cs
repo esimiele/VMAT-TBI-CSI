@@ -82,9 +82,11 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
-        protected Structure GetTSTarget(string targetId)
+        protected Structure GetTSTarget(string targetId, string requestedTSTargetId = "")
         {
-            string newName = $"TS_{targetId}";
+            string newName;
+            if (string.IsNullOrEmpty(requestedTSTargetId)) newName = $"TS_{targetId}";
+            else newName = requestedTSTargetId;
             if (newName.Length > 16) newName = newName.Substring(0, 16);
             ProvideUIUpdate($"Retrieving TS target: {newName}");
             Structure addedTSTarget = StructureTuningHelper.GetStructureFromId(newName, selectedSS);

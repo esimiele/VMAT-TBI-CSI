@@ -330,8 +330,8 @@
                     </TabItem>
                     <TabItem Header="Beam Placement" BorderThickness="0,1,1,0" x:Name="beamPlacementTabItem">
                         <Border BorderBrush="Black" BorderThickness="1,0,0,0">
-                            <StackPanel  Name="BEAMS_HEADER" HorizontalAlignment="Center" Margin="5">
-                                <Grid Margin="5">
+                            <StackPanel  Name="BEAMS_HEADER" HorizontalAlignment="Center" Margin="5,0,5,0">
+                                <Grid Margin="0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="4.*"/>
                                         <ColumnDefinition Width="0.3*"/>
@@ -346,7 +346,7 @@
                                     <Button Grid.Column="4" x:Name="contourOverlapInfo" Content="?" HorizontalAlignment="Right" VerticalAlignment="Center" Width="30" Height="20" Margin="0,2,0,0" Click="ContourOverlapInfo_Click"></Button>
                                 </Grid>
                                 
-                                <Grid Margin="5">
+                                <Grid Margin="0,5,0,0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="2*"/>
                                         <ColumnDefinition Width="0.4*"/>
@@ -358,7 +358,7 @@
                                 </Grid>
                                 
                                 <Label Content="Proposed isocenters and beams per isocenter" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0"></Label>
-                                <StackPanel  Name="beamPlacementSP" HorizontalAlignment="Center" Width="550" Height="320" Margin="5,5,0,0">
+                                <StackPanel  Name="beamPlacementSP" HorizontalAlignment="Center" Width="550" Height="330" Margin="5,5,0,0">
                                 </StackPanel>
                                 <Button Content="Place Beams" FontWeight="Bold" Width="100" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,5,0,0" Click="Place_beams_Click"/>
                             </StackPanel>

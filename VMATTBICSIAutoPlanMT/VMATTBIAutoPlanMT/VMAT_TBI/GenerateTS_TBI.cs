@@ -27,8 +27,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         //plan id, structure id, num fx, dose per fx, cumulative dose
         private List<Tuple<string, string, int, DoseValue, double>> prescriptions;
         private List<Tuple<string, string>> TS_structures;
-        //plan id, list<target id, ts target id>
+        //plan id, list<original target id, ts target id>
         private List<Tuple<string, List<Tuple<string, string>>>> tsTargets = new List<Tuple<string, List<Tuple<string, string>>>> { };
+        //plan id, normalization volume
         private List<Tuple<string, string>> normVolumes = new List<Tuple<string, string>> { };
 
         private int numIsos;
@@ -63,6 +64,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (PerformTSStructureManipulation()) return true;
                 if (useFlash) if (CreateFlash()) return true;
                 if (CleanUpDummyBox()) return true;
+                if (CalculateNumIsos()) return true;
                 UpdateUILabel("Finished!");
                 ProvideUIUpdate(100, "Finished Structure Tuning!");
                 ProvideUIUpdate($"Run time: {GetElapsedTime()} (mm:ss)");
@@ -337,25 +339,25 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (string.Equals(itr.Item2.ToLower(), "ptv_body"))
                 {
                     //ts_ptv_vmat needs to be handled after ts manipulation because ptv_body itsself needs to be cropped from all the relevant structures
-                    (bool fail, string tsPTVVMATId) = GenerateTSPTVBodyTarget(target);
+                    (bool fail, string tsPTVVMATId) = GenerateTSPTVBodyTarget(target, "TS_PTV_VMAT");
                     if (fail) return true;
                     tmpTSTargetList.Add(new Tuple<string, string>(itr.Item2, tsPTVVMATId));
                 }
             }
             //only one plan is allowed for the prescriptions --> last item is the highest Rx target for this plan and needs to be set as the normalization volume
-            normVolumes.Add(Tuple.Create(prescriptions.Last().Item1, prescriptions.Last().Item2));
+            normVolumes.Add(Tuple.Create(prescriptions.Last().Item1, tmpTSTargetList.Last().Item2));
             tsTargets.Add(new Tuple<string, List<Tuple<string, string>>>(tmpPlanId, new List<Tuple<string, string>>(tmpTSTargetList)));
 
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
 
-        private (bool, string) GenerateTSPTVBodyTarget(Structure baseTarget)
+        private (bool, string) GenerateTSPTVBodyTarget(Structure baseTarget, string requestedTsTargetId)
         {
-            UpdateUILabel($"Create TS_{baseTarget.Id}:");
+            UpdateUILabel($"Create {requestedTsTargetId}:");
             int percentComplete = 0;
             int calcItems = 2;
-            Structure addedTSTarget = GetTSTarget(baseTarget.Id);
+            Structure addedTSTarget = GetTSTarget(baseTarget.Id, requestedTsTargetId);
             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contoured TS target: {addedTSTarget.Id}");
             
             if (StructureTuningHelper.DoesStructureExistInSS("matchline", selectedSS, true))
@@ -642,9 +644,32 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //}
                 //ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Cropped target {ptv_flash.Id} from {ptv_flash.Id}");
             }
-            tsTargets.Clear();
-            tsTargets.Add(Tuple.Create("_VMAT TBI", new List<Tuple<string, string>> { Tuple.Create(ptvBodyFlash.Id, TSPTVFlash.Id) }));
+            UpdateNormVolumesTsTargetsWithFlash();
+            return false;
+        }
 
+        private bool UpdateNormVolumesTsTargetsWithFlash()
+        {
+            //only update the normalization volumes if ts_ptv_vmat was set to the normalization volume for this plan
+            if(string.Equals(normVolumes.First().Item2, "TS_PTV_VMAT"))
+            {
+                //normalization volume for plan is ts_ptv_vmat
+                //--> update to ts_ptv_flash
+                normVolumes.Clear();
+                normVolumes.Add(Tuple.Create(prescriptions.First().Item1, "TS_PTV_FLASH"));
+            }
+
+            //we know ts_PTV_VMAT was listed as a ts target, so we will need to go in and replace that with the corresponding flash targets
+            List<Tuple<string, string>> tmpTargets = new List<Tuple<string, string>> { };
+            foreach (Tuple<string,string> itr in tsTargets.First().Item2)
+            {
+                if (string.Equals(itr.Item2, "TS_PTV_VMAT"))
+                {
+                    tmpTargets.Add(Tuple.Create(itr.Item1, "TS_PTV_FLASH"));
+                }
+                else tmpTargets.Add(itr);
+            }
+            tsTargets = new List<Tuple<string, List<Tuple<string, string>>>> { Tuple.Create(prescriptions.First().Item1, tmpTargets) };
             return false;
         }
 
@@ -694,7 +719,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
 
             //set isocenter names based on numIsos and numVMATIsos (determined these names from prior cases)
-            isoNames.Add(Tuple.Create("_VMAT TBI", new List<string>(IsoNameHelper.GetIsoNames(numVMATIsos, numIsos))));
+            isoNames.Add(Tuple.Create(prescriptions.First().Item1, new List<string>(IsoNameHelper.GetIsoNames(numVMATIsos, numIsos))));
             return false;
         }
     }
