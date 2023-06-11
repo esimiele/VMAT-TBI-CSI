@@ -364,7 +364,7 @@
                             </StackPanel>
                         </Border>
                     </TabItem>
-                    <TabItem Header="Optimization Setup" BorderThickness="0,1,1,0">
+                    <TabItem Header="Optimization Setup" BorderThickness="0,1,1,0" x:Name="optimizationSetupTabItem">
                         <Border BorderBrush="Black" BorderThickness="1,0,0,0">
                             <StackPanel Name="OPT" HorizontalAlignment="Center" Margin="5">
                                 <Label Content="Optimization Parameters" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"></Label>

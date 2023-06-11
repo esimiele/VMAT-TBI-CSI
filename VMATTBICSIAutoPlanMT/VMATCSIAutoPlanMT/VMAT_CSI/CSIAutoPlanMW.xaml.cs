@@ -1452,7 +1452,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> tmpListList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
                 List<Tuple<string, OptimizationObjectiveType, double, double, int>> tmp = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
-                if (optParametersSP.Children.Count > 0)
+                if (theSP.Children.Count > 0)
                 {
                     //read list of current objectives
                     (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(theSP, false);
@@ -1461,7 +1461,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                         log.LogError(parsedOptimizationConstraints.Item2);
                         return;
                     }
-                    foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in parsedOptimizationConstraints.Item1)
+                    foreach(Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in parsedOptimizationConstraints.Item1)
                     {
                         if (itr.Item1 == thePlan.Id)
                         {
