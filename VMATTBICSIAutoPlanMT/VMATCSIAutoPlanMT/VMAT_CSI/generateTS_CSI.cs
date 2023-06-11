@@ -190,7 +190,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (addedStructure.Id.ToLower().Contains("globes")) isGlobes = true;
 
             //try to grab ptv_brain first
-            //Structure targetStructure = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "ptv_brain") && !x.IsEmpty);
+            //6/11/23 THIS CODE WILL NEED TO BE MODIFIED FOR SIB PLANS
             string initTargetId = TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, prescriptions.First().Item1);
             Structure targetStructure = StructureTuningHelper.GetStructureFromId(initTargetId, selectedSS);
             double margin = 0;
@@ -330,10 +330,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 ProvideUIUpdate("Error! Body and/or lungs structures were not found or are empty! Exiting!", true);
                 return true;
             }
-            Structure initPlanTarget = StructureTuningHelper.GetStructureFromId(TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, prescriptions.First().Item1), selectedSS);
-            if(initPlanTarget == null || initPlanTarget.IsEmpty) 
+            //get longest target for initial plan (first item in gettargetlistforeachplan should be the plan,list of targets for initial plan)
+            (bool fail, Structure initPlanTarget, double length, StringBuilder errorMessage) = TargetsHelper.GetLongestTargetInPlan(TargetsHelper.GetTargetListForEachPlan(prescriptions).First(), selectedSS);
+            if(fail) 
             {
-                ProvideUIUpdate($"Error {initPlanTarget} is null or empty! Exiting!", true);
+                ProvideUIUpdate(errorMessage.ToString(), true);
                 return true;
             }
             MeshGeometry3D mesh = initPlanTarget.MeshGeometry;
@@ -446,17 +447,21 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             int calcItems = TSManipulationList.Count * prescriptions.Count;
             string tmpPlanId = prescriptions.First().Item1;
             List<Tuple<string, string>> tmpTSTargetList = new List<Tuple<string, string>> { };
+            string prevTargetId = "";
+            //prescriptions are inherently sorted by increasing cumulative Rx to targets
             foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
             {
                 if(!string.Equals(itr.Item1, tmpPlanId))
                 {
                     //new plan
                     tsTargets.Add(new Tuple<string, List<Tuple<string, string>>>(tmpPlanId, new List<Tuple<string, string>>(tmpTSTargetList)));
+                    normVolumes.Add(Tuple.Create(tmpPlanId, prevTargetId));
                     tmpTSTargetList = new List<Tuple<string, string>> { };
                     tmpPlanId = itr.Item1;
                 }
                 //create a new TS target for optimization and copy the original target structure onto the new TS structure
                 Structure addedTSTarget = GetTSTarget(itr.Item2);
+                prevTargetId = addedTSTarget.Id;
                 tmpTSTargetList.Add(new Tuple<string, string>(itr.Item2, addedTSTarget.Id));
                 ProvideUIUpdate($"Cropping TS target from body with {3.0} mm inner margin");
                 (bool fail, StringBuilder errorMessage) = ContourHelper.CropStructureFromBody(addedTSTarget, selectedSS, -0.3);
@@ -474,8 +479,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     }
                 }
                 else ProvideUIUpdate("No TS manipulations requested!");
-                normVolumes.Add(Tuple.Create(itr.Item1, addedTSTarget.Id));
             }
+            normVolumes.Add(Tuple.Create(tmpPlanId, prevTargetId));
             tsTargets.Add(new Tuple<string, List<Tuple<string, string>>>(tmpPlanId, new List<Tuple<string, string>>(tmpTSTargetList)));
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;

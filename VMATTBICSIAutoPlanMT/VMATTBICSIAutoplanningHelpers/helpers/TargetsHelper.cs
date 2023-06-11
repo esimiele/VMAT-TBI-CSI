@@ -18,14 +18,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             List<Tuple<string, string, int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
             double dose_perFx = 0.0;
             int numFractions = 0;
-            double initRxDose = 0.0;
             double boostRxDose = 0.0;
-            if(string.IsNullOrEmpty(initRxText) || !double.TryParse(initRxText, out initRxDose))
+            if(string.IsNullOrEmpty(initRxText) || !double.TryParse(initRxText, out double initRxDose))
             {
                 sb.AppendLine("Error! Initial Plan Rx dose is either empty or could not be parsed! Exiting!");
                 return (prescriptions, sb);
             }
-            else if (!string.IsNullOrEmpty(boostRxText) && !double.TryParse(boostRxText, out boostRxDose))
+            if (!string.IsNullOrEmpty(boostRxText) && !double.TryParse(boostRxText, out boostRxDose))
             {
                 sb.AppendLine("Error! Boost Plan Rx dose is not empty or could not be parsed! Exiting!");
                 return (prescriptions, sb);

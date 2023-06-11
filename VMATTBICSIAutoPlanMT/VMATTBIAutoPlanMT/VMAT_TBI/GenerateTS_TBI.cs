@@ -19,24 +19,30 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         public int GetNumberOfIsocenters() { return numIsos; }
         public int GetNumberOfVMATIsocenters() { return numVMATIsos; }
         public List<Tuple<string, List<Tuple<string, string>>>> GetTsTargets() { return tsTargets; }
+        public List<Tuple<string, string>> GetNormalizationVolumes() { return normVolumes; }
 
         //DICOM types
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
+        //plan id, structure id, num fx, dose per fx, cumulative dose
+        private List<Tuple<string, string, int, DoseValue, double>> prescriptions;
         private List<Tuple<string, string>> TS_structures;
         //plan id, list<target id, ts target id>
         private List<Tuple<string, List<Tuple<string, string>>>> tsTargets = new List<Tuple<string, List<Tuple<string, string>>>> { };
+        private List<Tuple<string, string>> normVolumes = new List<Tuple<string, string>> { };
+
         private int numIsos;
         private int numVMATIsos;
         private double targetMargin;
         private Structure flashStructure = null;
         private double flashMargin;
 
-        public GenerateTS_TBI(List<Tuple<string, string>> ts, List<Tuple<string, TSManipulationType, double>> list, StructureSet ss, double tm, bool st, bool flash, Structure fSt, double fM)
+        public GenerateTS_TBI(List<Tuple<string, string>> ts, List<Tuple<string, TSManipulationType, double>> list, List<Tuple<string, string, int, DoseValue, double>> presc, StructureSet ss, double tm, bool st, bool flash, Structure fSt, double fM)
         {
             //overloaded constructor for the case where the user wants to include flash in the simulation
             TS_structures = new List<Tuple<string, string>>(ts);
             TSManipulationList = new List<Tuple<string, TSManipulationType, double>>(list);
+            prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(presc);
             selectedSS = ss;
             targetMargin = tm;
             useFlash = flash;
@@ -296,36 +302,61 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             UpdateUILabel("Perform TS Manipulations: ");
             int counter = 0;
-            int calcItems = TSManipulationList.Count;
+            int calcItems = TSManipulationList.Count * prescriptions.Count;
             //determine if any TS structures need to be added to the selected structure set (i.e., were not present or were removed in the first foreach loop)
             //this is provided here to only add additional TS if they are relevant to the current case (i.e., it doesn't make sense to add the brain TS's if we 
             //are not interested in sparing brain)
-            if (TSManipulationList.Any())
+            string tmpPlanId = prescriptions.First().Item1;
+            List<Tuple<string, string>> tmpTSTargetList = new List<Tuple<string, string>> { };
+            //prescriptions are inherently sorted by increasing cumulative Rx to targets
+            foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
             {
-                Structure ptv_body = StructureTuningHelper.GetStructureFromId("ptv_body", selectedSS);
-                if(ptv_body == null || ptv_body.IsEmpty)
+                Structure target = null;
+                if (string.Equals(itr.Item2.ToLower(), "ptv_body"))
                 {
-                    ProvideUIUpdate($"Error! PTV_Body structure is null or empty! Cannot perform tuning structure manipulations! Exiting!", true);
+                    target = StructureTuningHelper.GetStructureFromId(itr.Item2, selectedSS);
+                }
+                else
+                {
+                    target = GetTSTarget(itr.Item2);
+                    tmpTSTargetList.Add(new Tuple<string, string>(itr.Item2, target.Id));
+                }
+                if (target == null || target.IsEmpty)
+                {
+                    ProvideUIUpdate($"Error! Target structure: {itr.Item2} is null or empty! Cannot perform tuning structure manipulations! Exiting!", true);
                     return true;
                 }
-                foreach (Tuple<string, TSManipulationType, double> itr in TSManipulationList)
+                if (TSManipulationList.Any())
                 {
-                    if (ManipulateTuningStructures(itr, ptv_body, ref counter, ref calcItems)) return true;
+                    foreach (Tuple<string, TSManipulationType, double> itr1 in TSManipulationList)
+                    {
+                        if (ManipulateTuningStructures(itr1, target, ref counter, ref calcItems)) return true;
+                    }
                 }
-                if (GenerateTSTarget(ptv_body)) return true;
+                else ProvideUIUpdate("No TS manipulations requested!");
+                if (string.Equals(itr.Item2.ToLower(), "ptv_body"))
+                {
+                    //ts_ptv_vmat needs to be handled after ts manipulation because ptv_body itsself needs to be cropped from all the relevant structures
+                    (bool fail, string tsPTVVMATId) = GenerateTSPTVBodyTarget(target);
+                    if (fail) return true;
+                    tmpTSTargetList.Add(new Tuple<string, string>(itr.Item2, tsPTVVMATId));
+                }
             }
+            //only one plan is allowed for the prescriptions --> last item is the highest Rx target for this plan and needs to be set as the normalization volume
+            normVolumes.Add(Tuple.Create(prescriptions.Last().Item1, prescriptions.Last().Item2));
+            tsTargets.Add(new Tuple<string, List<Tuple<string, string>>>(tmpPlanId, new List<Tuple<string, string>>(tmpTSTargetList)));
+
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
 
-        private bool GenerateTSTarget(Structure baseTarget)
+        private (bool, string) GenerateTSPTVBodyTarget(Structure baseTarget)
         {
             UpdateUILabel($"Create TS_{baseTarget.Id}:");
             int percentComplete = 0;
             int calcItems = 2;
             Structure addedTSTarget = GetTSTarget(baseTarget.Id);
             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contoured TS target: {addedTSTarget.Id}");
-            tsTargets.Add(Tuple.Create("_VMAT TBI", new List<Tuple<string, string>> { Tuple.Create(baseTarget.Id, addedTSTarget.Id) }));
             
             if (StructureTuningHelper.DoesStructureExistInSS("matchline", selectedSS, true))
             {
@@ -336,14 +367,14 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved matchline structure: {matchline.Id}");
 
                 (bool failContourDummyBox, Structure dummyBox) = ContourDummyBox(matchline, addedTSTarget);
-                if (failContourDummyBox) return true;
+                if (failContourDummyBox) return (true, addedTSTarget.Id);
 
-                if (ContourTSLegs("TS_PTV_Legs", dummyBox, addedTSTarget)) return true;
+                if (ContourTSLegs("TS_PTV_Legs", dummyBox, addedTSTarget)) return (true, addedTSTarget.Id);
 
                 //matchplane exists and needs to be cut from TS_PTV_Body. Also remove all TS_PTV_Body segements inferior to match plane
-                if (CutTSTargetFromMatchline(addedTSTarget, matchline, dummyBox)) return true;
+                if (CutTSTargetFromMatchline(addedTSTarget, matchline, dummyBox)) return (true, addedTSTarget.Id);
             }
-            return false;
+            return (false, addedTSTarget.Id);
         }
 
         private (bool, Structure) ContourDummyBox(Structure matchline, Structure target)

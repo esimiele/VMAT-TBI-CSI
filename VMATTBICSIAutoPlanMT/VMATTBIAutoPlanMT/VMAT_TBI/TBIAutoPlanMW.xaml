@@ -328,7 +328,7 @@
                             </TabItem>
                         </TabControl>
                     </TabItem>
-                    <TabItem Header="Beam Placement" BorderThickness="0,1,1,0">
+                    <TabItem Header="Beam Placement" BorderThickness="0,1,1,0" x:Name="beamPlacementTabItem">
                         <Border BorderBrush="Black" BorderThickness="1,0,0,0">
                             <StackPanel  Name="BEAMS_HEADER" HorizontalAlignment="Center" Margin="5">
                                 <Grid Margin="5">

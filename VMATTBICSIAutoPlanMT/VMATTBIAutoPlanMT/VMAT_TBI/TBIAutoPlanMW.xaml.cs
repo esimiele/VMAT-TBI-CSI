@@ -920,7 +920,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //The scleroderma trial contouring/margins are specific to the trial, so this trial needs to be handled separately from the generic VMAT treatment type
 
             //GenerateTS_TBI generate = new GenerateTS_TBI(TS_structures, scleroStructures, structureSpareList, selectedSS, targetMargin, sclero_chkbox.IsChecked.Value, useFlash, flashStructure, flashMargin);
-            GenerateTS_TBI generate = new GenerateTS_TBI(createTSStructureList, TSManipulationList, selectedSS, targetMargin, false, useFlash, flashStructure, flashMargin);
+            GenerateTS_TBI generate = new GenerateTS_TBI(createTSStructureList, TSManipulationList, prescriptions, selectedSS, targetMargin, false, useFlash, flashStructure, flashMargin);
             //overloaded constructor depending on if the user requested to use flash or not. If so, pass the relevant flash parameters to the generateTS class
             pi.BeginModifications();
             bool result = generate.Execute();
@@ -930,37 +930,53 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
             //FIX ME!!
             //get prescription
-            double dosePerFx = 0.1;
-            int numFractions = 1;
-            if (double.TryParse(dosePerFxTB.Text, out dosePerFx) && int.TryParse(numFxTB.Text, out numFractions))
-            {
-                prescriptions.Add(Tuple.Create("PTV_Body", "_VMAT TBI", numFractions, new DoseValue(dosePerFx, DoseValue.DoseUnit.cGy), dosePerFx * numFractions));
-            }
-            else
-            {
-                log.LogError("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
-            }
+            //double dosePerFx = 0.1;
+            //int numFractions = 1;
+            //if (double.TryParse(dosePerFxTB.Text, out dosePerFx) && int.TryParse(numFxTB.Text, out numFractions))
+            //{
+            //    prescriptions.Add(Tuple.Create("PTV_Body", "_VMAT TBI", numFractions, new DoseValue(dosePerFx, DoseValue.DoseUnit.cGy), dosePerFx * numFractions));
+            //}
+            //else
+            //{
+            //    log.LogError("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
+            //}
 
             //does the structure sparing list need to be updated? This occurs when structures the user elected to spare with option of 'Mean Dose < Rx Dose' are high resolution. Since Eclipse can't perform
             //boolean operations on structures of two different resolutions, code was added to the generateTS class to automatically convert these structures to low resolution with the name of
             // '<original structure Id>_lowRes'. When these structures are converted to low resolution, the updateSparingList flag in the generateTS class is set to true to tell this class that the 
             //structure sparing list needs to be updated with the new low resolution structures.
+            PopulateBeamsTab();
             if (generate.GetUpdateSparingListStatus())
             {
-                List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> tmpList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
-                if (generate.GetTsTargets().Any()) tmpList = OptimizationSetupHelper.UpdateOptimizationConstraints(generate.GetTsTargets(), prescriptions, templateList.SelectedItem, tmpList);
+                
                 ClearStructureManipulationsList(ClearStructureManipulationsBtn);
                 //update the structure sparing list in this class and update the structure sparing list displayed to the user in TS Generation tab
                 AddStructureManipulationVolumes(generate.GetSparingList(), structureManipulationSP);
             }
+            isoNames = generate.GetIsoNames();
             numIsos = generate.GetNumberOfIsocenters();
             numVMATIsos = generate.GetNumberOfVMATIsocenters();
-            isoNames = generate.GetIsoNames();
 
-            //populate the beams and optimization tabs
-            PopulateBeamsTab();
-            PopulateOptimizationTab();
+            if (generate.GetTsTargets().Any())
+            {
+                List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> tmpList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
+                if (generate.GetTsTargets().Any()) tmpList = OptimizationSetupHelper.UpdateOptimizationConstraints(generate.GetTsTargets(), prescriptions, templateList.SelectedItem, tmpList);
+                //handles if crop/overlap operations were performed for all targets and the optimization constraints need to be updated
+                PopulateOptimizationTab(optParametersSP, tmpList);
+            }
+            else PopulateOptimizationTab(optParametersSP);
+
             isModified = true;
+            structureTuningTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+            TSManipulationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+            beamPlacementTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
+            log.AddedStructures = generate.GetAddedStructures();
+            log.StructureManipulations = TSManipulationList;
+            log.NormalizationVolumes = generate.GetNormalizationVolumes();
+            log.IsoNames = isoNames;
+            
+            //populate the beams and optimization tabs
+            PopulateOptimizationTab();
         }
         #endregion
 
@@ -1119,6 +1135,114 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         #endregion
 
         #region optimization setup
+        private void PopulateOptimizationTab(StackPanel theSP, List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> tmpList = null, bool checkIfStructurePresentInSS = true)
+        {
+            List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> defaultListList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
+            if (tmpList == null)
+            {
+                //tmplist is empty indicating that no optimization constraints were present on the UI when this method was called
+                //retrieve constraints from template
+                (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(templateList.SelectedItem as TBIAutoPlanTemplate, prescriptions);
+                if (!parsedConstraints.constraints.Any())
+                {
+                    log.LogError(parsedConstraints.errorMessage);
+                    return;
+                }
+                tmpList = parsedConstraints.constraints;
+            }
+
+            if (checkIfStructurePresentInSS)
+            {
+                foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in tmpList)
+                {
+                    List<Tuple<string, OptimizationObjectiveType, double, double, int>> defaultList = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+                    foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in itr.Item2)
+                    {
+                        //always add PTV objectives to optimization objectives list
+                        if (opt.Item1.Contains("--select--") || opt.Item1.Contains("PTV")) defaultList.Add(opt);
+                        //only add template optimization objectives for each structure to default list if that structure is present in the selected structure set and contoured
+                        //12-22-2020 coded added to account for the situation where the structure selected for sparing had to be converted to a low resolution structure
+                        else if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()) != null &&
+                                 !selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()).IsEmpty) defaultList.Add(Tuple.Create(selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()).Id, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
+                        else if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == opt.Item1.ToLower()) != null && !selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == opt.Item1.ToLower()).IsEmpty) defaultList.Add(opt);
+                    }
+                    defaultListList.Add(Tuple.Create(itr.Item1, new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(defaultList)));
+                }
+            }
+            else
+            {
+                //do NOT check to ensure structures in optimization constraint list are present in structure set before adding them to the UI list
+                defaultListList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>(tmpList);
+            }
+
+            if (jnxs.Any())
+            {
+                defaultListList = OptimizationSetupUIHelper.InsertTSJnxOptConstraints(defaultListList, jnxs, prescriptions);
+            }
+
+            //12/27/2022 this line needs to be fixed as it assumes prescriptions is arranged such that each entry in the list contains a unique plan ID
+            //1/18/2023 super ugly, but it works. A simple check is performed to ensure that we won't exceed the number of prescriptions in the loop
+            //an issue for the following line is that boost constraints might end up being added to the initial plan (if there are two prescriptions for the initial plan)
+            //need to implement function to get unique plan Id's sorted by Rx
+            foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in defaultListList) AddOptimizationConstraintItems(itr.Item2, itr.Item1, theSP);
+        }
+
+        private void AddOptimizationConstraintsHeader(StackPanel theSP)
+        {
+            theSP.Children.Add(OptimizationSetupUIHelper.GetOptHeader(theSP.Width));
+        }
+
+        private void AddOptimizationConstraintItems(List<Tuple<string, OptimizationObjectiveType, double, double, int>> defaultList, string planId, StackPanel theSP)
+        {
+            if (selectedSS == null)
+            {
+                log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
+                return;
+            }
+            int counter;
+            string clearBtnNamePrefix;
+            if (theSP.Name.Contains("template"))
+            {
+                counter = clearTemplateOptBtnCounter;
+                clearBtnNamePrefix = "templateClearOptConstraintBtn";
+            }
+            else
+            {
+                counter = clearOptBtnCounter;
+                clearBtnNamePrefix = "clearOptConstraintBtn";
+            }
+            theSP.Children.Add(OptimizationSetupUIHelper.AddPlanIdtoOptList(theSP, planId));
+            AddOptimizationConstraintsHeader(theSP);
+            for (int i = 0; i < defaultList.Count; i++)
+            {
+                counter++;
+                theSP.Children.Add(OptimizationSetupUIHelper.AddOptVolume(theSP, selectedSS, defaultList[i], clearBtnNamePrefix, counter, new RoutedEventHandler(this.ClearOptimizationConstraint_Click), theSP.Name.Contains("template")));
+            }
+        }
+
+        private void ClearOptimizationConstraintsList_Click(object sender, RoutedEventArgs e)
+        {
+            StackPanel theSP;
+            if ((sender as Button).Name.Contains("template")) theSP = templateOptParams_sp;
+            else theSP = optParametersSP;
+            ClearOptimizationConstraintsList(theSP);
+        }
+
+        private void ClearOptimizationConstraint_Click(object sender, EventArgs e)
+        {
+            StackPanel theSP;
+            if ((sender as Button).Name.Contains("template")) theSP = templateOptParams_sp;
+            else theSP = optParametersSP;
+            if (GeneralUIHelper.ClearRow(sender, theSP)) ClearOptimizationConstraintsList(theSP);
+        }
+
+        private void ClearOptimizationConstraintsList(StackPanel theSP)
+        {
+            theSP.Children.Clear();
+            if (theSP.Name.Contains("template")) clearTemplateOptBtnCounter = 0;
+            else clearOptBtnCounter = 0;
+        }
+
         private void PopulateOptimizationTab()
         {
             List<Tuple<string, OptimizationObjectiveType, double, double, int>> tmp = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
@@ -1334,11 +1458,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
         }
 
-        private void ClearOptimizationConstraintsList_Click(object sender, RoutedEventArgs e) 
-        { 
-            Clear_optimization_parameter_list(); 
-        }
-
         private void ClearOptStructBtn_click(object sender, EventArgs e)
         {
             if (GeneralUIHelper.ClearRow(sender, optParametersSP)) Clear_optimization_parameter_list();
@@ -1350,14 +1469,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             firstOptStruct = true;
             clearOptBtnCounter = 0;
         }
-
-        private void ClearOptimizationConstraintsList(StackPanel theSP)
-        {
-            theSP.Children.Clear();
-            if (theSP.Name.Contains("template")) clearTemplateOptBtnCounter = 0;
-            else clearOptBtnCounter = 0;
-        }
-
         #endregion
 
         #region plan preparation
