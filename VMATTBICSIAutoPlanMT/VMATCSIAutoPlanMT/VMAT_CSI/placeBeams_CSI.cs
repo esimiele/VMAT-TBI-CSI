@@ -44,7 +44,22 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             try
             {
-                return GeneratePlanList();
+                if (CheckExistingCourse()) return true;
+                if (CheckExistingPlans()) return true;
+                if (CreateVMATPlans()) return true;
+                //plan, List<isocenter position, isocenter name, number of beams per isocenter>
+                List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> isoLocations = GetIsocenterPositions();
+                UpdateUILabel("Assigning isocenters and beams: ");
+                int isoCount = 0;
+                foreach (Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> itr in isoLocations)
+                {
+                    if (SetBeams(itr)) return true;
+                    //ensure contour overlap is requested AND there are more than two isocenters for this plan
+                    if (contourOverlap && itr.Item2.Count > 1) if (ContourFieldOverlap(itr, isoCount)) return true;
+                    isoCount += itr.Item2.Count;
+                }
+                UpdateUILabel("Finished!");
+                return false;
             }
             catch(Exception e)
             {
@@ -166,7 +181,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             VVector userOrigin = image.UserOrigin;
             int count = 0;
             List<Tuple<string, List<string>>> planIdTargets = new List<Tuple<string, List<string>>>(TargetsHelper.GetTargetListForEachPlan(prescriptions));
-            foreach (ExternalPlanSetup itr in plans)
+            foreach (ExternalPlanSetup itr in vmatPlans)
             {
                 ProvideUIUpdate($"Retrieving number of isocenters for plan: {itr.Id}");
                 int numIsos = planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, itr.Id)).Item2.Count;
@@ -309,7 +324,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 ProvideUIUpdate($"Error! No structure named: {errorMessage} found or contoured!", true);
             }
-            target = longestTargetInPlan;
+            Structure target = longestTargetInPlan;
 
             if (target == null || target.IsEmpty) 
             { 

@@ -6,6 +6,7 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
+using VMATTBICSIAutoPlanningHelpers.Helpers;
 using System.Runtime.ExceptionServices;
 
 namespace VMATTBIAutoPlanMT.VMAT_TBI
@@ -27,9 +28,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private ExternalBeamMachineParameters ebmpArc;
         private ExternalBeamMachineParameters ebmpStatic;
         private List<VRect<double>> jawPos;
-        private bool useFlash;
+        private double targetMargin;
 
-        public PlaceBeams_TBI(StructureSet ss, List<string> i, int iso, int vmatIso, bool appaPlan, int[] beams, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool flash, bool overlap, double overlapMargin)
+        public PlaceBeams_TBI(StructureSet ss, List<string> i, int iso, int vmatIso, bool appaPlan, int[] beams, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, double tgtMargin, bool overlap, double overlapMargin)
         {
             selectedSS = ss;
             isoNames = new List<string>(i);
@@ -48,7 +49,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             useGPUdose = gpuDose;
             useGPUoptimization = gpuOpt;
             MRrestart = mr;
-            useFlash = flash;
+            //convert from cm to mm
+            targetMargin = tgtMargin * 10.0;
             //user wants to contour the overlap between fields in adjacent VMAT isocenters
             contourOverlap = overlap;
             contourOverlapMargin = overlapMargin;
@@ -57,32 +59,68 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         [HandleProcessCorruptedStateExceptions]
         public override bool Run()
         {
-            CheckExistingPlans();
-            return false;
+            try
+            {
+                if (CheckExistingCourse()) return true;
+                if (CheckExistingPlans()) return true;
+                if (CreateVMATPlans()) return true;
+                if (numIsos > numVMATIsos && CreateAPPAPlan()) return true;
+                //plan, List<isocenter position, isocenter name, number of beams per isocenter>
+                List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> isoLocations = GetIsocenterPositions();
+                UpdateUILabel("Assigning isocenters and beams: ");
+                int isoCount = 0;
+                foreach (Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> itr in isoLocations)
+                {
+                    if (SetBeams(itr)) return true;
+                    //ensure contour overlap is requested AND there are more than two isocenters for this plan
+                    if (contourOverlap && itr.Item2.Count > 1) if (ContourFieldOverlap(itr, isoCount)) return true;
+                    isoCount += itr.Item2.Count;
+                }
+                UpdateUILabel("Finished!");
+                if (checkIsoPlacement) MessageBox.Show($"WARNING: < {checkIsoPlacementLimit / 10:0.00} cm margin at most superior and inferior locations of body! Verify isocenter placement!");
+                return false;
+            }
+            catch (Exception e)
+            {
+                ProvideUIUpdate($"{e.Message}", true);
+                stackTraceError = e.StackTrace;
+                return true;
+            }
         }
 
         protected override bool CheckExistingPlans()
         {
-            string planID = prescriptions.First().Item1;
-            //6-10-2020 EAS, research system only!
-            //if (tbi.ExternalPlanSetups.Where(x => x.Id == "_VMAT TBI").Any()) if (tbi.CanRemovePlanSetup((tbi.ExternalPlanSetups.First(x => x.Id == "_VMAT TBI")))) tbi.RemovePlanSetup(tbi.ExternalPlanSetups.First(x => x.Id == "_VMAT TBI"));
-            if (theCourse.ExternalPlanSetups.Where(x => x.Id == String.Format("_{0}", planID)).Any())
-            {
-                MessageBox.Show(String.Format("A plan named '_{0}' Already exists! \nESAPI can't remove plans in the clinical environment! \nPlease manually remove this plan and try again.", planID));
-                return true;
-            }
+            //check for vmat plans (contained in prescriptions vector)
+            if (base.CheckExistingPlans()) return true;
 
-            if ((numIsos > numVMATIsos) && theCourse.ExternalPlanSetups.Where(x => x.Id.ToLower().Contains("legs")).Any())
+            //check for any plans containing 'legs' if the total number of isocenters is greater than the number of vmat isocenters
+            if ((numIsos > numVMATIsos) && theCourse.ExternalPlanSetups.Any(x => x.Id.ToLower().Contains("legs")))
             {
-                MessageBox.Show("Plan(s) with the string 'legs' already exists! \nESAPI can't remove plans in the clinical environment! \nPlease manually remove this plan and try again.");
+                ProvideUIUpdate(0, $"One or more legs plans exist in course {theCourse.Id}");
+                ProvideUIUpdate("ESAPI can't remove plans in the clinical environment!");
+                ProvideUIUpdate("Please manually remove this plan and try again.", true);
                 return true;
             }
+            return false;
+        }
+
+        private bool CreateAPPAPlan()
+        {
+            //6-10-2020 EAS, checked if exisiting _Legs plan is present in createPlan method
+            legs_planUpper = theCourse.AddExternalPlanSetup(selectedSS);
+            if (singleAPPAplan) legs_planUpper.Id = String.Format("_Legs");
+            else legs_planUpper.Id = String.Format("{0} Upper Legs", numVMATIsos + 1);
+            //100% dose prescribed in plan
+            //FIX FOR SIB PLANS
+            legs_planUpper.SetPrescription(prescriptions.First().Item3, prescriptions.First().Item4, 1.0);
+            legs_planUpper.SetCalculationModel(CalculationType.PhotonVolumeDose, calculationModel);
+
             return false;
         }
 
         protected override List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> GetIsocenterPositions()
         {
-            plan = plans.First();
+            plan = vmatPlans.First();
             //List<Tuple<ExternalPlanSetup, List<VVector>>> allIsocenters = new List<Tuple<ExternalPlanSetup, List<VVector>>> { };
             List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> allIsocenters = new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
             //List<VVector> iso = new List<VVector> { };
@@ -92,15 +130,17 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             VVector userOrigin = image.UserOrigin;
             //if the user requested to add flash to the plan, be sure to grab the ptv_body_flash structure (i.e., the ptv_body structure created from the body with added flash). 
             //This structure is named 'TS_FLASH_TARGET'
-            if (useFlash) target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_flash_target");
-            else target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_body");
+            Structure target = StructureTuningHelper.GetStructureFromId("body", selectedSS);
+            double targetSupExtent = target.MeshGeometry.Positions.Max(p => p.Z) - targetMargin;
+            double targetInfExtent = target.MeshGeometry.Positions.Min(p => p.Z) + targetMargin;
 
             //matchline is present and not empty
-            if (selectedSS.Structures.Where(x => x.Id.ToLower() == "matchline").Any() && !selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").IsEmpty)
+            if (StructureTuningHelper.DoesStructureExistInSS("matchline",selectedSS,true))
             {
+                Structure matchline = StructureTuningHelper.GetStructureFromId("matchline", selectedSS);
                 //5-11-2020 update EAS. isoSeparationSup is the isocenter separation for the VMAT isos and isoSeparationInf is the iso separation for the AP/PA isocenters
-                double isoSeparationSup = Math.Round(((target.MeshGeometry.Positions.Max(p => p.Z) - selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - 380.0) / (numVMATIsos - 1)) / 10.0f) * 10.0f;
-                double isoSeparationInf = Math.Round((selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - target.MeshGeometry.Positions.Min(p => p.Z) - 380.0) / 10.0f) * 10.0f;
+                double isoSeparationSup = Math.Round(((targetSupExtent - matchline.CenterPoint.z - 380.0) / (numVMATIsos - 1)) / 10.0f) * 10.0f;
+                double isoSeparationInf = Math.Round((matchline.CenterPoint.z - targetInfExtent - 380.0) / 10.0f) * 10.0f;
                 if (isoSeparationSup > 380.0 || isoSeparationInf > 380.0)
                 {
                     ConfirmPrompt CP = new ConfirmPrompt("Calculated isocenter separation > 38.0 cm, which reduces the overlap between adjacent fields!" + Environment.NewLine + Environment.NewLine + "Truncate isocenter separation to 38.0 cm?!");
@@ -113,14 +153,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     }
                 }
 
-                double matchlineZ = selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z;
                 for (int i = 0; i < numVMATIsos; i++)
                 {
                     VVector v = new VVector();
                     v.x = userOrigin.x;
                     v.y = userOrigin.y;
                     //6-10-2020 EAS, want to count up from matchplane to ensure distance from matchplane is fixed at 190 mm
-                    v.z = matchlineZ + i * isoSeparationSup + 190.0;
+                    v.z = matchline.CenterPoint.z + i * isoSeparationSup + 190.0;
                     //round z position to the nearest integer
                     v = plan.StructureSet.Image.DicomToUser(v, plan);
                     v.z = Math.Round(v.z / 10.0f) * 10.0f;
@@ -134,7 +173,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 tmp.Reverse();
                 //6-11-2020 EAS, this is used to account for any rounding of the isocenter position immediately superior to the matchline
                 //double offset = iso.LastOrDefault().z - matchlineZ;
-                double offset = tmp.LastOrDefault().Item1.z - matchlineZ;
+                double offset = tmp.LastOrDefault().Item1.z - matchline.CenterPoint.z;
 
                 for (int i = 0; i < (numIsos - numVMATIsos); i++)
                 {
@@ -143,7 +182,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     v.y = userOrigin.y;
                     //5-11-2020 update EAS (the first isocenter immediately inferior to the matchline is now a distance = offset away). This ensures the isocenters immediately inferior and superior to the 
                     //matchline are equidistant from the matchline
-                    v.z = matchlineZ - i * isoSeparationInf - offset;
+                    v.z = matchline.CenterPoint.z - i * isoSeparationInf - offset;
                     //round z position to the nearest integer
                     v = plan.StructureSet.Image.DicomToUser(v, plan);
                     v.z = Math.Round(v.z / 10.0f) * 10.0f;
@@ -162,7 +201,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //isoSeparation = Math.Round(((target.MeshGeometry.Positions.Max(p => p.Z) - target.MeshGeometry.Positions.Min(p => p.Z) - 30.0) / 3) / 10.0f) * 10.0f;
 
                 //however, the actual correct equation is given below:
-                isoSeparation = Math.Round(((target.MeshGeometry.Positions.Max(p => p.Z) - target.MeshGeometry.Positions.Min(p => p.Z) - 380.0) / (numVMATIsos - 1)) / 10.0f) * 10.0f;
+                isoSeparation = Math.Round(((targetSupExtent - targetInfExtent - 380.0) / (numVMATIsos - 1)) / 10.0f) * 10.0f;
 
                 //It is calculated by setting the most superior and inferior isocenters to be 19.0 cm from the target volume edge in the z-direction. The isocenter separtion is then calculated as half the distance between these two isocenters (sep = ((max-19cm)-(min+19cm)/2).
                 //Tested on 5-7-2020. When the correct equation is rounded, it gives the same answer as the original empirical equation above, however, the isocenters are better positioned in the target volume (i.e., more symmetric about the target volume). 
@@ -181,7 +220,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     v.x = userOrigin.x;
                     v.y = userOrigin.y;
                     //5-7-2020 isocenter positions for actual isocenter separation equation described above
-                    v.z = (target.MeshGeometry.Positions.Max(p => p.Z) - i * isoSeparation - 190.0);
+                    v.z = (targetSupExtent - i * isoSeparation - 190.0);
                     //round z position to the nearest integer
                     v = plan.StructureSet.Image.DicomToUser(v, plan);
                     v.z = Math.Round(v.z / 10.0f) * 10.0f;
@@ -197,8 +236,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //7-17-2020, checkIsoPlacementLimit = 5 mm
             VVector firstIso = tmp.First().Item1;
             VVector lastIso = tmp.Last().Item1;
-            if (!((firstIso.z + 200.0) - target.MeshGeometry.Positions.Max(p => p.Z) >= checkIsoPlacementLimit) ||
-                !(target.MeshGeometry.Positions.Min(p => p.Z) - (lastIso.z - 200.0) >= checkIsoPlacementLimit)) checkIsoPlacement = true;
+            if (!((firstIso.z + 200.0) - targetSupExtent >= checkIsoPlacementLimit) ||
+                !(targetInfExtent - (lastIso.z - 200.0) >= checkIsoPlacementLimit)) checkIsoPlacement = true;
 
             //MessageBox.Show(String.Format("{0}, {1}, {2}, {3}, {4}, {5}",
             //    firstIso.z,
@@ -275,12 +314,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 legs_planUpper.SetPrescription(prescriptions.First().Item3, prescriptions.First().Item4, 1.0);
                 legs_planUpper.SetCalculationModel(CalculationType.PhotonVolumeDose, calculationModel);
 
-                Structure target;
-                if (useFlash) target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_flash_target");
-                else target = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "ptv_body");
+                Structure target = StructureTuningHelper.GetStructureFromId("body", selectedSS);
+                double targetInfExtent = target.MeshGeometry.Positions.Min(p => p.Z) + targetMargin;
 
                 //adjust x2 jaw (furthest from matchline) so that it covers edge of target volume
-                double x2 = iso.Item2.ElementAt(numVMATIsos).Item1.z - (target.MeshGeometry.Positions.Min(p => p.Z) - 20.0);
+                double x2 = iso.Item2.ElementAt(numVMATIsos).Item1.z - (targetInfExtent - 20.0);
                 if (x2 > 200.0) x2 = 200.0;
                 else if (x2 < 10.0) x2 = 10.0;
 
@@ -310,14 +348,14 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
                     double x1 = -200.0;
                     //if the distance between the matchline and the inferior edge of the target is < 600 mm, set the beams in the second isocenter (inferior-most) to be half-beam blocks
-                    if (selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - target.MeshGeometry.Positions.Min(p => p.Z) < 600.0)
+                    if (selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - targetInfExtent < 600.0)
                     {
                         infIso.z = iso.Item2.ElementAt(numVMATIsos).Item1.z - 200.0;
                         x1 = 0.0;
                     }
                     else infIso.z = iso.Item2.ElementAt(numVMATIsos).Item1.z - 390.0;
                     //fit x1 jaw to extend of patient
-                    x2 = infIso.z - (target.MeshGeometry.Positions.Min(p => p.Z) - 20.0);
+                    x2 = infIso.z - (targetInfExtent - 20.0);
                     if (x2 > 200.0) x2 = 200.0;
                     else if (x2 < 10.0) x2 = 10.0;
 

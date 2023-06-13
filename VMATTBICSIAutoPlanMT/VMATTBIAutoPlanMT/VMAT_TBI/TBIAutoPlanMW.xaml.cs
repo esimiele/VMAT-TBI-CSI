@@ -853,19 +853,18 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
         }
 
-        private (bool, double, double) ParseFlashAndTargetMargins()
+        private (bool, double) ParseFlashMargin()
         {
             //get the relevant flash parameters if the user requested to add flash to the target volume(s)
             bool fail = false;
             double flashMargin = 0.0;
-            double targetMargin = 0.0;
             if (useFlash)
             {
                 if (!double.TryParse(flashMarginTB.Text, out flashMargin))
                 {
                     log.LogError("Error! Added flash margin is NaN! \nExiting!");
                     fail = true;
-                    return (fail, flashMargin, targetMargin);
+                    return (fail, flashMargin);
 
                 }
                 //ESAPI has a limit on the margin for structure of 5.0 cm. The margin should always be positive (i.e., an outer margin)
@@ -873,7 +872,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 {
                     log.LogError("Error! Added flash margin is either < 0.0 or > 5.0 cm \nExiting!");
                     fail = true;
-                    return (fail, flashMargin, targetMargin);
+                    return (fail, flashMargin);
 
                 }
                 if (flashType == "Local")
@@ -883,25 +882,33 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     {
                         log.LogError("Error! Selected local flash structure is either null or empty! \nExiting!");
                         fail = true;
-                        return (fail, flashMargin, targetMargin);
+                        return (fail, flashMargin);
 
                     }
                 }
             }
+            return (fail, flashMargin);
+        }
+
+        private (bool, double) ParseTargetMargin()
+        {
+            //get the relevant flash parameters if the user requested to add flash to the target volume(s)
+            bool fail = false;
+            double targetMargin;
             if (!double.TryParse(targetMarginTB.Text, out targetMargin))
             {
                 log.LogError("Error! PTV margin from body is NaN! \nExiting!");
                 fail = true;
-                return (fail, flashMargin, targetMargin);
+                return (fail, targetMargin);
             }
             if (targetMargin < 0.0 || targetMargin > 5.0)
             {
                 log.LogError("Error! PTV margin from body is either < 0.0 or > 5.0 cm \nExiting!");
                 fail = true;
-                return (fail, flashMargin, targetMargin);
+                return (fail, targetMargin);
 
             }
-            return (fail, flashMargin, targetMargin);
+            return (fail, targetMargin);
         }
 
         private void PerformTSStructureGenerationManipulation_Click(object sender, RoutedEventArgs e)
@@ -914,8 +921,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
 
             //margins in cm (conversion to mm handled in generateTS_TBI)
-            (bool fail, double flashMargin, double targetMargin) = ParseFlashAndTargetMargins();
-            if (fail) return;
+            (bool flashParseFail, double flashMargin) = ParseFlashMargin();
+            (bool targetParseFail, double targetMargin) = ParseTargetMargin();
+            if (flashParseFail || targetParseFail) return;
 
             List<Tuple<string, string>> createTSStructureList;
             List<Tuple<string, TSManipulationType, double>> TSManipulationList;
@@ -1137,6 +1145,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 }
             }
 
+            (bool targetParseFail, double targetMargin) = ParseTargetMargin();
+            if (targetParseFail) return;
+
             PlaceBeams_TBI place = new PlaceBeams_TBI(selectedSS, 
                                                       isoNames.First().Item2, 
                                                       numIsos, 
@@ -1152,7 +1163,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                                                       useGPUdose, 
                                                       useGPUoptimization, 
                                                       MRrestartLevel, 
-                                                      useFlash, 
+                                                      targetMargin, 
                                                       contourOverlap,
                                                       contourOverlapMargin);
 

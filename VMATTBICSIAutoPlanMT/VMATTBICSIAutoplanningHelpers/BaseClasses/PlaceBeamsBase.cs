@@ -13,13 +13,13 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 {
     public class PlaceBeamsBase : SimpleMTbase
     {
-        public List<ExternalPlanSetup> GetGeneratedPlans() { return plans; }
+        public List<ExternalPlanSetup> GetGeneratedVMATPlans() { return vmatPlans; }
         public List<Tuple<ExternalPlanSetup, List<Structure>>> GetFieldJunctionStructures() { return jnxs; }
         public string GetErrorStackTrace() { return stackTraceError; }
 
         protected bool contourOverlap = false;
         protected bool checkIsoPlacement = false;
-        protected List<ExternalPlanSetup> plans = new List<ExternalPlanSetup> { };
+        protected List<ExternalPlanSetup> vmatPlans = new List<ExternalPlanSetup> { };
         protected double checkIsoPlacementLimit = 5.0;
         private string courseId;
         protected Course theCourse;
@@ -33,33 +33,10 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         protected string MRrestart = "";
         protected double contourOverlapMargin;
         protected List<Tuple<ExternalPlanSetup,List<Structure>>> jnxs = new List<Tuple<ExternalPlanSetup, List<Structure>>> { };
-        protected Structure target = null;
         protected int numVMATIsos;
         protected string stackTraceError;
 
         #region virtual methods
-        protected virtual bool GeneratePlanList()
-        {
-            if (CheckExistingCourse()) return true;
-            if (CheckExistingPlans()) return true;
-            if (CreatePlans()) return true;
-            //plan, List<isocenter position, isocenter name, number of beams per isocenter>
-            List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> isoLocations = GetIsocenterPositions();
-            UpdateUILabel("Assigning isocenters and beams: ");
-            int isoCount = 0;
-            foreach(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> itr in isoLocations)
-            {
-                if(SetBeams(itr)) return true;
-                //ensure contour overlap is requested AND there are more than two isocenters for this plan
-                if (contourOverlap && itr.Item2.Count > 1) if (ContourFieldOverlap(itr, isoCount)) return true;
-                isoCount += itr.Item2.Count;
-            }
-            UpdateUILabel("Finished!");
-
-            if (checkIsoPlacement) MessageBox.Show($"WARNING: < {checkIsoPlacementLimit / 10:0.00} cm margin at most superior and inferior locations of body! Verify isocenter placement!");
-            return false;
-        }
-
         //2-12-2023 to be converted to non-virtual method so TBI uses the same plan checking syntax as CSI
         protected virtual bool CheckExistingPlans()
         {
@@ -107,7 +84,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(presc);
         }
 
-        private bool CheckExistingCourse()
+        protected bool CheckExistingCourse()
         {
             UpdateUILabel("Check course: ");
             int calcItems = 1;
@@ -149,7 +126,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return tmpCourse;
         }
 
-        private bool CreatePlans()
+        protected bool CreateVMATPlans()
         {
             UpdateUILabel("Creating plans: ");
             foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
@@ -233,7 +210,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 //v16 of Eclipse allows for the creation of a plan with a named target structure and named primary reference point. Neither of these options are available in v15
                 //plan.TargetVolumeID = selectedSS.Structures.First(x => x.Id == "xx");
                 //plan.PrimaryReferencePoint = plan.ReferencePoints.Fisrt(x => x.Id == "xx");
-                plans.Add(thePlan);
+                vmatPlans.Add(thePlan);
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Added plan {itr.Item1} to stack!");
             }
             ProvideUIUpdate(100, "Finished creating and initializing plans!");
@@ -243,7 +220,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 
         //function used to contour the overlap between fields in adjacent isocenters for the VMAT Plans ONLY!
         //this option is requested by the user by selecting the checkbox on the main UI on the beam placement tab
-        private bool ContourFieldOverlap(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> isoLocations, int isoCount)
+        protected bool ContourFieldOverlap(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> isoLocations, int isoCount)
         {
             UpdateUILabel("Contour field overlap:");
 
