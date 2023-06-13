@@ -360,7 +360,7 @@
                                 <Label Content="Proposed isocenters and beams per isocenter" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0"></Label>
                                 <StackPanel  Name="beamPlacementSP" HorizontalAlignment="Center" Width="550" Height="330" Margin="5,5,0,0">
                                 </StackPanel>
-                                <Button Content="Place Beams" FontWeight="Bold" Width="100" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,5,0,0" Click="Place_beams_Click"/>
+                                <Button Content="Place Beams" FontWeight="Bold" Width="100" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,5,0,0" Click="CreatePlanAndSetBeams_Click"/>
                             </StackPanel>
                         </Border>
                     </TabItem>

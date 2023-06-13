@@ -69,7 +69,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             int counter = 0;
             foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
             {
-                if (theCourse.ExternalPlanSetups.Where(x => x.Id == itr.Item1).Any())
+                if (theCourse.ExternalPlanSetups.Where(x => string.Equals(x.Id, itr.Item1)).Any())
                 {
                     numExistingPlans++;
                     ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Plan {itr.Item1} EXISTS in course {courseId}");
@@ -246,6 +246,11 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         private bool ContourFieldOverlap(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> isoLocations, int isoCount)
         {
             UpdateUILabel("Contour field overlap:");
+
+            ProvideUIUpdate($"Contour overlap margin: {contourOverlapMargin:0.0} cm");
+            contourOverlapMargin *= 10;
+            ProvideUIUpdate($"Contour overlap margin: {contourOverlapMargin:0.00} mm");
+
             int percentCompletion = 0;
             int calcItems = 3 + 7 * isoLocations.Item2.Count - 1;
             //grab target Id for this prescription item

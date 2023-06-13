@@ -20,14 +20,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private double[] CW = { 181.0, 179.0 };
         private double[] CCW = { 179.0, 181.0 };
         private ExternalBeamMachineParameters ebmpArc;
-        private bool autoFitJaws;
 
-        public PlaceBeams_CSI(StructureSet ss, List<Tuple<string, List<Tuple<string, int>>>> planInfo, double[] coll, bool autoFit, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool overlap, double overlapMargin)
+        public PlaceBeams_CSI(StructureSet ss, List<Tuple<string, List<Tuple<string, int>>>> planInfo, double[] coll, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool overlap, double overlapMargin)
         {
             selectedSS = ss;
             planIsoBeamInfo = new List<Tuple<string, List<Tuple<string, int>>>>(planInfo);
             collRot = coll;
-            autoFitJaws = autoFit;
             ebmpArc = new ExternalBeamMachineParameters(linac, energy, 600, "ARC", null);
             //copy the calculation model
             calculationModel = calcModel;

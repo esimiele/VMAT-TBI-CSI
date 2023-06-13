@@ -1202,24 +1202,21 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
 
             //Added code to account for the scenario where the user either requested or did not request to contour the overlap between fields in adjacent isocenew OptimizationSetupUIHelper()nters
-            bool contourOverlap = false;
+            bool contourOverlap = contourOverlap_chkbox.IsChecked.Value;
             double contourOverlapMargin = 0.0;
-            if (contourOverlap_chkbox.IsChecked.Value)
+            if (contourOverlap)
             {
+                //contour overlap in cm (conversion performed in contourfieldoverlap method in placebeamsbase)
                 //ensure the value entered in the added margin text box for contouring field overlap is a valid double
                 if (!double.TryParse(contourOverlapTB.Text, out contourOverlapMargin))
                 {
                     log.LogError("Error! The entered added margin for the contour overlap text box is NaN! Please enter a valid number and try again!");
                     return;
                 }
-                contourOverlap = true;
-                //convert from cm to mm
-                contourOverlapMargin *= 10.0;
             }
             PlaceBeams_CSI place = new PlaceBeams_CSI(selectedSS, 
                                                       planIsoBeamInfo, 
                                                       collRot, 
-                                                      autoFitJaws,
                                                       chosenLinac, 
                                                       chosenEnergy, 
                                                       calculationModel, 

@@ -853,6 +853,57 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
         }
 
+        private (bool, double, double) ParseFlashAndTargetMargins()
+        {
+            //get the relevant flash parameters if the user requested to add flash to the target volume(s)
+            bool fail = false;
+            double flashMargin = 0.0;
+            double targetMargin = 0.0;
+            if (useFlash)
+            {
+                if (!double.TryParse(flashMarginTB.Text, out flashMargin))
+                {
+                    log.LogError("Error! Added flash margin is NaN! \nExiting!");
+                    fail = true;
+                    return (fail, flashMargin, targetMargin);
+
+                }
+                //ESAPI has a limit on the margin for structure of 5.0 cm. The margin should always be positive (i.e., an outer margin)
+                if (flashMargin < 0.0 || flashMargin > 5.0)
+                {
+                    log.LogError("Error! Added flash margin is either < 0.0 or > 5.0 cm \nExiting!");
+                    fail = true;
+                    return (fail, flashMargin, targetMargin);
+
+                }
+                if (flashType == "Local")
+                {
+                    //if flash type is local, grab an instance of the structure class associated with the selected structure 
+                    if (!StructureTuningHelper.DoesStructureExistInSS(flashVolume.SelectedItem.ToString(), selectedSS, true))
+                    {
+                        log.LogError("Error! Selected local flash structure is either null or empty! \nExiting!");
+                        fail = true;
+                        return (fail, flashMargin, targetMargin);
+
+                    }
+                }
+            }
+            if (!double.TryParse(targetMarginTB.Text, out targetMargin))
+            {
+                log.LogError("Error! PTV margin from body is NaN! \nExiting!");
+                fail = true;
+                return (fail, flashMargin, targetMargin);
+            }
+            if (targetMargin < 0.0 || targetMargin > 5.0)
+            {
+                log.LogError("Error! PTV margin from body is either < 0.0 or > 5.0 cm \nExiting!");
+                fail = true;
+                return (fail, flashMargin, targetMargin);
+
+            }
+            return (fail, flashMargin, targetMargin);
+        }
+
         private void PerformTSStructureGenerationManipulation_Click(object sender, RoutedEventArgs e)
         {
             //check that there are actually structures to spare in the sparing list
@@ -862,41 +913,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 return;
             }
 
-            //get the relevant flash parameters if the user requested to add flash to the target volume(s)
-            double flashMargin = 0.0;
-            if (useFlash)
-            {
-                if (!double.TryParse(flashMarginTB.Text, out flashMargin))
-                {
-                    MessageBox.Show("Error! Added flash margin is NaN! \nExiting!");
-                    return;
-                }
-                //ESAPI has a limit on the margin for structure of 5.0 cm. The margin should always be positive (i.e., an outer margin)
-                if (flashMargin < 0.0 || flashMargin > 5.0)
-                {
-                    MessageBox.Show("Error! Added flash margin is either < 0.0 or > 5.0 cm \nExiting!");
-                    return;
-                }
-                if (flashType == "Local")
-                {
-                    //if flash type is local, grab an instance of the structure class associated with the selected structure 
-                    if (!StructureTuningHelper.DoesStructureExistInSS(flashVolume.SelectedItem.ToString(), selectedSS, true))
-                    {
-                        log.LogError("Error! Selected local flash structure is either null or empty! \nExiting!");
-                        return;
-                    }
-                }
-            }
-            if (!double.TryParse(targetMarginTB.Text, out double targetMargin))
-            {
-                MessageBox.Show("Error! PTV margin from body is NaN! \nExiting!");
-                return;
-            }
-            if (targetMargin < 0.0 || targetMargin > 5.0)
-            {
-                MessageBox.Show("Error! PTV margin from body is either < 0.0 or > 5.0 cm \nExiting!");
-                return;
-            }
+            //margins in cm (conversion to mm handled in generateTS_TBI)
+            (bool fail, double flashMargin, double targetMargin) = ParseFlashAndTargetMargins();
+            if (fail) return;
 
             List<Tuple<string, string>> createTSStructureList;
             List<Tuple<string, TSManipulationType, double>> TSManipulationList;
@@ -920,26 +939,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //The scleroderma trial contouring/margins are specific to the trial, so this trial needs to be handled separately from the generic VMAT treatment type
 
             //GenerateTS_TBI generate = new GenerateTS_TBI(TS_structures, scleroStructures, structureSpareList, selectedSS, targetMargin, sclero_chkbox.IsChecked.Value, useFlash, flashStructure, flashMargin);
-            GenerateTS_TBI generate = new GenerateTS_TBI(createTSStructureList, TSManipulationList, prescriptions, selectedSS, targetMargin, false, useFlash, flashStructure, flashMargin);
+            GenerateTS_TBI generate = new GenerateTS_TBI(createTSStructureList, TSManipulationList, prescriptions, selectedSS, targetMargin, useFlash, flashStructure, flashMargin);
             //overloaded constructor depending on if the user requested to use flash or not. If so, pass the relevant flash parameters to the generateTS class
             pi.BeginModifications();
             bool result = generate.Execute();
             //grab the log output regardless if it passes or fails
             log.AppendLogOutput("TS Generation and manipulation output:", generate.GetLogOutput());
             if (result) return;
-
-            //FIX ME!!
-            //get prescription
-            //double dosePerFx = 0.1;
-            //int numFractions = 1;
-            //if (double.TryParse(dosePerFxTB.Text, out dosePerFx) && int.TryParse(numFxTB.Text, out numFractions))
-            //{
-            //    prescriptions.Add(Tuple.Create("PTV_Body", "_VMAT TBI", numFractions, new DoseValue(dosePerFx, DoseValue.DoseUnit.cGy), dosePerFx * numFractions));
-            //}
-            //else
-            //{
-            //    log.LogError("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
-            //}
 
             //does the structure sparing list need to be updated? This occurs when structures the user elected to spare with option of 'Mean Dose < Rx Dose' are high resolution. Since Eclipse can't perform
             //boolean operations on structures of two different resolutions, code was added to the generateTS class to automatically convert these structures to low resolution with the name of
@@ -1001,9 +1007,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             //default option to contour overlap between fields in adjacent isocenters and assign the resulting structures as targets
             contourOverlap_chkbox.IsChecked = contourOverlap;
-            contourOverlapLabel.Visibility = Visibility.Visible;
-            contourOverlapTB.Visibility = Visibility.Visible;
+            ContourOverlapChecked(null, null);
             contourOverlapTB.Text = contourFieldOverlapMargin;
+
             beamPlacementSP.Children.Clear();
             numVMATisosTB.Text = numVMATIsos.ToString();
 
@@ -1033,7 +1039,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
         }
 
-        private void Place_beams_Click(object sender, RoutedEventArgs e)
+        private void CreatePlanAndSetBeams_Click(object sender, RoutedEventArgs e)
         {
             if (beamPlacementSP.Children.Count == 0)
             {
@@ -1041,47 +1047,58 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 return;
             }
 
-            int count = 0;
-            bool firstCombo = true;
-            string chosenLinac = "";
-            string chosenEnergy = "";
-            int[] numBeams = new int[numIsos];
-            foreach (object obj in beamPlacementSP.Children)
+            (string, string, List<List<int>>, StringBuilder) parseSelections = BeamPlacementUIHelper.GetBeamSelections(beamPlacementSP, isoNames);
+            if (string.IsNullOrEmpty(parseSelections.Item1))
             {
-                foreach (object obj1 in ((StackPanel)obj).Children)
-                {
-                    if (obj1.GetType() == typeof(ComboBox))
-                    {
-                        //similar code to parsing the structure sparing list
-                        if (firstCombo)
-                        {
-                            chosenLinac = (obj1 as ComboBox).SelectedItem.ToString();
-                            firstCombo = false;
-                        }
-                        else chosenEnergy = (obj1 as ComboBox).SelectedItem.ToString();
-                    }
-                    if (obj1.GetType() == typeof(TextBox))
-                    {
-                        // log.LogError(count.ToString());
-                        if (!int.TryParse((obj1 as TextBox).Text, out numBeams[count]))
-                        {
-                            log.LogError(String.Format("Error! \nNumber of beams entered in iso {0} is NaN!", isoNames.ElementAt(count)));
-                            return;
-                        }
-                        else if (numBeams[count] < 1)
-                        {
-                            log.LogError(String.Format("Error! \nNumber of beams entered in iso {0} is < 1!", isoNames.ElementAt(count)));
-                            return;
-                        }
-                        else if (numBeams[count] > 4)
-                        {
-                            log.LogError(String.Format("Error! \nNumber of beams entered in iso {0} is > 4!", isoNames.ElementAt(count)));
-                            return;
-                        }
-                        count++;
-                    }
-                }
+                log.LogError(parseSelections.Item4);
+                return;
             }
+
+            string chosenLinac = parseSelections.Item1;
+            string chosenEnergy = parseSelections.Item2;
+            List<List<int>> numBeams = parseSelections.Item3;
+
+            //int count = 0;
+            //bool firstCombo = true;
+            //string chosenLinac = "";
+            //string chosenEnergy = "";
+            //int[] numBeams = new int[numIsos];
+            //foreach (object obj in beamPlacementSP.Children)
+            //{
+            //    foreach (object obj1 in ((StackPanel)obj).Children)
+            //    {
+            //        if (obj1.GetType() == typeof(ComboBox))
+            //        {
+            //            //similar code to parsing the structure sparing list
+            //            if (firstCombo)
+            //            {
+            //                chosenLinac = (obj1 as ComboBox).SelectedItem.ToString();
+            //                firstCombo = false;
+            //            }
+            //            else chosenEnergy = (obj1 as ComboBox).SelectedItem.ToString();
+            //        }
+            //        if (obj1.GetType() == typeof(TextBox))
+            //        {
+            //            // log.LogError(count.ToString());
+            //            if (!int.TryParse((obj1 as TextBox).Text, out numBeams[count]))
+            //            {
+            //                log.LogError(String.Format("Error! \nNumber of beams entered in iso {0} is NaN!", isoNames.ElementAt(count)));
+            //                return;
+            //            }
+            //            else if (numBeams[count] < 1)
+            //            {
+            //                log.LogError(String.Format("Error! \nNumber of beams entered in iso {0} is < 1!", isoNames.ElementAt(count)));
+            //                return;
+            //            }
+            //            else if (numBeams[count] > 4)
+            //            {
+            //                log.LogError(String.Format("Error! \nNumber of beams entered in iso {0} is > 4!", isoNames.ElementAt(count)));
+            //                return;
+            //            }
+            //            count++;
+            //        }
+            //    }
+            //}
 
             //AP/PA stuff (THIS NEEDS TO GO AFTER THE ABOVE CHECKS!). Ask the user if they want to split the AP/PA isocenters into two plans if there are two AP/PA isocenters
             bool singleAPPAplan = true;
@@ -1095,23 +1112,49 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (string.Equals(SIP.GetSelectedItem(), "Separate plans")) singleAPPAplan = false;
             }
 
-            //Added code to account for the scenario where the user either requested or did not request to contour the overlap between fields in adjacent isocenters
-            bool contourOverlap = false;
-            double contourOverlapMargin = 0.0;
-            if (contourOverlap_chkbox.IsChecked.Value)
+            //now that we have a list of plans each with a list of isocenter names, we want to make a new list of plans each with a list of tuples of isocenter names and beams per isocenter
+            List<Tuple<string, List<Tuple<string, int>>>> planIsoBeamInfo = new List<Tuple<string, List<Tuple<string, int>>>> { };
+            int count = 0;
+            foreach (Tuple<string, List<string>> itr in isoNames)
             {
+                List<Tuple<string, int>> isoNameBeams = new List<Tuple<string, int>> { };
+                for (int i = 0; i < itr.Item2.Count; i++) isoNameBeams.Add(new Tuple<string, int>(itr.Item2.ElementAt(i), numBeams.ElementAt(count).ElementAt(i)));
+                planIsoBeamInfo.Add(new Tuple<string, List<Tuple<string, int>>>(itr.Item1, new List<Tuple<string, int>>(isoNameBeams)));
+                count++;
+            }
+
+            //Added code to account for the scenario where the user either requested or did not request to contour the overlap between fields in adjacent isocenters
+            bool contourOverlap = contourOverlap_chkbox.IsChecked.Value;
+            double contourOverlapMargin = 0.0;
+            if (contourOverlap)
+            {
+                //contour overlap in cm (conversion performed in contourfieldoverlap method in placebeamsbase)
                 //ensure the value entered in the added margin text box for contouring field overlap is a valid double
                 if (!double.TryParse(contourOverlapTB.Text, out contourOverlapMargin))
                 {
                     log.LogError("Error! The entered added margin for the contour overlap text box is NaN! Please enter a valid number and try again!");
                     return;
                 }
-                contourOverlap = true;
-                //convert from mm to cm
-                contourOverlapMargin *= 10.0;
-                //overloaded constructor for the placeBeams class
             }
-            PlaceBeams_TBI place = new PlaceBeams_TBI(selectedSS, isoNames.First().Item2, numIsos, numVMATIsos, singleAPPAplan, numBeams, collRot, jawPos, chosenLinac, chosenEnergy, calculationModel, optimizationModel, useGPUdose, useGPUoptimization, MRrestartLevel, useFlash, contourOverlap, contourOverlapMargin);
+
+            PlaceBeams_TBI place = new PlaceBeams_TBI(selectedSS, 
+                                                      isoNames.First().Item2, 
+                                                      numIsos, 
+                                                      numVMATIsos, 
+                                                      singleAPPAplan, 
+                                                      numBeams, 
+                                                      collRot, 
+                                                      jawPos, 
+                                                      chosenLinac, 
+                                                      chosenEnergy, 
+                                                      calculationModel, 
+                                                      optimizationModel, 
+                                                      useGPUdose, 
+                                                      useGPUoptimization, 
+                                                      MRrestartLevel, 
+                                                      useFlash, 
+                                                      contourOverlap,
+                                                      contourOverlapMargin);
 
             place.Initialize("VMAT TBI", prescriptions);
             place.Execute();
