@@ -1042,7 +1042,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //if (!optParameters.Where(x => x.Item1.ToLower().Contains("brain")).Any()) beamsPerIso[0]++;
                 numIsos += tmp - numVMATIsos;
                 numVMATIsos = tmp;
-                isoNames = new List<Tuple<string, List<string>>> { Tuple.Create("_VMAT TBI", new List<string>(IsoNameHelper.GetIsoNames(numVMATIsos, numIsos)))};
+                isoNames = new List<Tuple<string, List<string>>> { Tuple.Create("VMAT TBI", new List<string>(IsoNameHelper.GetIsoNames(numVMATIsos, numIsos)))};
                 PopulateBeamsTab();
             }
         }
@@ -1170,7 +1170,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             place.Initialize("VMAT TBI", prescriptions);
             place.Execute();
             log.AppendLogOutput("Plan generation and beam placement output:", place.GetLogOutput());
-            VMATplan = place.GetGeneratedPlans().First();
+            VMATplan = place.GetGeneratedVMATPlans().First();
             if (VMATplan == null) return;
 
             //if the user elected to contour the overlap between fields in adjacent isocenters, get this list of structures from the placeBeams class and copy them to the jnxs vector

@@ -53,7 +53,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 int isoCount = 0;
                 foreach (Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> itr in isoLocations)
                 {
-                    if (SetBeams(itr)) return true;
+                    if (SetVMATBeams(itr)) return true;
                     //ensure contour overlap is requested AND there are more than two isocenters for this plan
                     if (contourOverlap && itr.Item2.Count > 1) if (ContourFieldOverlap(itr, isoCount)) return true;
                     isoCount += itr.Item2.Count;
@@ -158,20 +158,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return (fail, spineYMin, spineZMin, spineZMax);
         }
 
-        private VVector RoundIsocenterPositions(VVector v, ExternalPlanSetup plan, ref int counter, ref int calcItems)
-        {
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), "Rounding Y- and Z-positions to nearest integer values");
-            //round z position to the nearest integer
-            v = selectedSS.Image.DicomToUser(v, plan);
-            v.x = Math.Round(v.x / 10.0f) * 10.0f;
-            v.y = Math.Round(v.y / 10.0f) * 10.0f;
-            v.z = Math.Round(v.z / 10.0f) * 10.0f;
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Calculated isocenter position (user coordinates): ({v.x}, {v.y}, {v.z})");
-            v = selectedSS.Image.UserToDicom(v, plan);
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), "Adding calculated isocenter position to stack!");
-            return v;
-        }
-
         protected override List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> GetIsocenterPositions()
         {
             UpdateUILabel("Calculating isocenter positions: ");
@@ -267,7 +253,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return allIsocenters;
         }
 
-        protected override bool SetBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
+        protected override bool SetVMATBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
         {
             ProvideUIUpdate(0, $"Preparing to set isocenters for plan: {iso.Item1.Id}");
             int counter = 0;
