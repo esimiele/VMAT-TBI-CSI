@@ -52,7 +52,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
 
             //get the isocenter names using the isoNameHelper class
-            names = new List<string>(IsoNameHelper.GetTBIIsoNames(numVMATIsos, numIsos));
+            names = new List<string>(IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos));
+            if (appaPlan.Any()) names.AddRange(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos));
 
             //get the user origin in user coordinates
             VVector uOrigin = vmatPlan.StructureSet.Image.UserOrigin;

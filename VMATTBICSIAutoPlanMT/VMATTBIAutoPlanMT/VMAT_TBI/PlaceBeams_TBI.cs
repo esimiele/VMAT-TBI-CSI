@@ -13,9 +13,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
     public class PlaceBeams_TBI : PlaceBeamsBase
     {
-        private int numIsos;
-        private int[] numBeams;
-        private List<string> isoNames;
+        //list plan, list<iso name, num beams for iso>
+        private List<Tuple<string, List<Tuple<string, int>>>> planIsoBeamInfo;
         private bool singleAPPAplan;
         private ExternalPlanSetup vmatPlan = null;
         private ExternalPlanSetup legsPlan = null;
@@ -28,15 +27,17 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private ExternalBeamMachineParameters ebmpStatic;
         private List<VRect<double>> jawPos;
         private double targetMargin;
+        private int numVMATIsos;
+        private int totalNumIsos;
 
-        public PlaceBeams_TBI(StructureSet ss, List<string> i, int iso, int vmatIso, bool appaPlan, int[] beams, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, double tgtMargin, bool overlap, double overlapMargin)
+        public PlaceBeams_TBI(StructureSet ss, List<Tuple<string, List<Tuple<string, int>>>> planInfo, bool appaPlan, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, double tgtMargin, bool overlap, double overlapMargin)
         {
             selectedSS = ss;
-            isoNames = new List<string>(i);
-            numIsos = iso;
-            numVMATIsos = vmatIso;
+            planIsoBeamInfo = new List<Tuple<string, List<Tuple<string, int>>>>(planInfo);
+            numVMATIsos = planIsoBeamInfo.First().Item2.Count;
+            if (planIsoBeamInfo.Count > 1) totalNumIsos = numVMATIsos + planIsoBeamInfo.Last().Item2.Count;
+            else totalNumIsos = numVMATIsos;
             singleAPPAplan = appaPlan;
-            numBeams = beams;
             collRot = coll;
             jawPos = new List<VRect<double>>(jp);
             ebmpArc = new ExternalBeamMachineParameters(linac, energy, 600, "ARC", null);
@@ -64,7 +65,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (CheckExistingPlans()) return true;
                 if (CreateVMATPlans()) return true;
                 vmatPlan = vmatPlans.First();
-                if (numIsos > numVMATIsos && CreateAPPAPlan()) return true;
+                if (planIsoBeamInfo.Count > 1 && CreateAPPAPlan()) return true;
                 //plan, List<isocenter position, isocenter name, number of beams per isocenter>
                 List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> isoLocations = GetIsocenterPositions();
                 UpdateUILabel("Assigning isocenters and beams: ");
@@ -95,7 +96,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (base.CheckExistingPlans()) return true;
 
             //check for any plans containing 'legs' if the total number of isocenters is greater than the number of vmat isocenters
-            if ((numIsos > numVMATIsos) && theCourse.ExternalPlanSetups.Any(x => x.Id.ToLower().Contains("legs")))
+            if (planIsoBeamInfo.Count > 1 && theCourse.ExternalPlanSetups.Any(x => x.Id.ToLower().Contains("legs")))
             {
                 ProvideUIUpdate(0, $"One or more legs plans exist in course {theCourse.Id}");
                 ProvideUIUpdate("ESAPI can't remove plans in the clinical environment!");
@@ -129,6 +130,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         private List<Tuple<VVector, string, int>> CalculateVMATIsoPositions(double targetSupExtent, double targetInfExtent, double supInfTargetMargin, double maxFieldYExtent, double minOverlap)
         {
+            int percentComplete = 0;
+            int calcItems = 10;
             List<Tuple<VVector, string, int>> tmp = new List<Tuple<VVector, string, int>> { };
             Image _image = selectedSS.Image;
             VVector userOrigin = _image.UserOrigin;
@@ -159,7 +162,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 v.z = Math.Round(v.z / 10.0f) * 10.0f;
                 v = _image.UserToDicom(v, vmatPlan);
                 //iso.Add(v);
-                tmp.Add(new Tuple<VVector, string, int>(v, isoNames.ElementAt(i), numBeams.ElementAt(i)));
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Calculated isocenter position {i + 1}");
+                tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPositions(v, vmatPlan, ref percentComplete, ref calcItems),
+                                                        planIsoBeamInfo.First().Item2.ElementAt(i).Item1,
+                                                        planIsoBeamInfo.First().Item2.ElementAt(i).Item2));
             }
 
             //6-10-2020 EAS, need to reverse order of list because it has to be descending from z location (i.e., sup to inf) for beam placement to work correctly
@@ -170,11 +176,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         private List<Tuple<VVector, string, int>> CalculateAPPAIsoPositions(double targetSupExtent, double targetInfExtent, double maxFieldYExtent, double minOverlap, double lastVMATIsoZPosition)
         {
+            int percentComplete = 0;
+            int calcItems = 10;
             List<Tuple<VVector, string, int>> tmp = new List<Tuple<VVector, string, int>> { };
             Image _image = selectedSS.Image;
             VVector userOrigin = _image.UserOrigin;
             double isoSeparation = 0;
-            if(numIsos - numVMATIsos > 1) isoSeparation = Math.Round(((targetSupExtent - targetInfExtent - (maxFieldYExtent - minOverlap)) / (numVMATIsos - 1)) / 10.0f) * 10.0f;
+            if(totalNumIsos - numVMATIsos > 1) isoSeparation = Math.Round(((targetSupExtent - targetInfExtent - (maxFieldYExtent - minOverlap)) / (numVMATIsos - 1)) / 10.0f) * 10.0f;
             //5-11-2020 update EAS. isoSeparationSup is the isocenter separation for the VMAT isos and isoSeparationInf is the iso separation for the AP/PA isocenters
             if (isoSeparation > 380.0)
             {
@@ -191,7 +199,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
             double offset = lastVMATIsoZPosition - targetSupExtent;
 
-            for (int i = 0; i < (numIsos - numVMATIsos); i++)
+            for (int i = 0; i < (totalNumIsos - numVMATIsos); i++)
             {
                 VVector v = new VVector();
                 v.x = userOrigin.x;
@@ -204,7 +212,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 v.z = Math.Round(v.z / 10.0f) * 10.0f;
                 v = _image.UserToDicom(v, legsPlan);
                 //iso.Add(v);
-                tmp.Add(new Tuple<VVector, string, int>(v, isoNames.ElementAt(numVMATIsos + i), numBeams.ElementAt(numVMATIsos + i)));
+                tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPositions(v, legsPlan, ref percentComplete, ref calcItems),
+                                                        planIsoBeamInfo.Last().Item2.ElementAt(i).Item1,
+                                                        planIsoBeamInfo.Last().Item2.ElementAt(i).Item2));
+                //tmp.Add(new Tuple<VVector, string, int>(v, isoNames.ElementAt(numVMATIsos + i), numBeams.ElementAt(numVMATIsos + i)));
             }
             return tmp;
         }
@@ -346,22 +357,37 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         protected override bool SetVMATBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
         {
+            ProvideUIUpdate(0, $"Preparing to set isocenters for plan: {iso.Item1.Id}");
+            int percentComplete = 0;
+            int calcItems = 3;
             //DRR parameters (dummy parameters to generate DRRs for each field)
-            DRRCalculationParameters DRR = new DRRCalculationParameters();
-            DRR.DRRSize = 500.0;
-            DRR.FieldOutlines = true;
-            DRR.StructureOutlines = true;
+            DRRCalculationParameters DRR = new DRRCalculationParameters
+            {
+                DRRSize = 500.0,
+                FieldOutlines = true,
+                StructureOutlines = true
+            };
             DRR.SetLayerParameters(1, 1.0, 100.0, 1000.0);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), "Created default DRR parameters");
 
             //place the beams for the VMAT plan
             //unfortunately, all of Nataliya's requirements for beam placement meant that this process couldn't simply draw from beam placement templates. Some of the beam placements for specific isocenters
             //and under certain conditions needed to be hard-coded into the script. I'm not really a fan of this, but it was the only way to satisify Nataliya's requirements.
+            ProvideUIUpdate(100, "Preparation complete!");
+
+            //place the beams for the VMAT plan
             int count = 0;
             string beamName;
             VRect<double> jp;
-            for (int i = 0; i < numVMATIsos; i++)
+            calcItems = 0;
+            percentComplete = 0;
+            for (int i = 0; i < iso.Item2.Count; i++)
             {
-                for (int j = 0; j < numBeams[i]; j++)
+                calcItems += iso.Item2.ElementAt(i).Item3 * 5;
+                ProvideUIUpdate(0, $"Assigning isocenter: {i + 1}");
+
+                //beam counter
+                for (int j = 0; j < iso.Item2.ElementAt(i).Item3; j++)
                 {
                     //second isocenter and third beam requires the x-jaw positions to be mirrored about the y-axis (these jaw positions are in the fourth element of the jawPos list)
                     //this is generally the isocenter located in the pelvis and we want the beam aimed at the kidneys-area
@@ -373,7 +399,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     beamName += String.Format("{0} ", count + 1);
                     //zero collimator rotations of two main fields for beams in isocenter immediately superior to matchline. Adjust the third beam such that collimator rotation is 90 degrees. Do not adjust 4th beam
                     double coll = collRot[j];
-                    if ((numIsos > numVMATIsos) && (i == (numVMATIsos - 1)))
+                    if ((totalNumIsos > numVMATIsos) && (i == (numVMATIsos - 1)))
                     {
                         if (j < 2) coll = 0.0;
                         else if (j == 2) coll = 90.0;
@@ -382,117 +408,128 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     if (count % 2 == 0)
                     {
                         b = vmatPlan.AddArcBeam(ebmpArc, jp, coll, CCW[0], CCW[1], GantryDirection.CounterClockwise, 0, iso.Item2.ElementAt(i).Item1);
-                        if (j >= 2) beamName += String.Format("CCW {0}{1}", isoNames.ElementAt(i), 90);
-                        else beamName += String.Format("CCW {0}{1}", isoNames.ElementAt(i), "");
+                        ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Added arc beam to iso: {i + 1}");
+
+                        if (j >= 2) beamName += $"CCW {iso.Item2.ElementAt(i).Item2}{90}";
+                        else beamName += $"CCW {iso.Item2.ElementAt(i).Item2}";
                     }
                     else
                     {
                         b = vmatPlan.AddArcBeam(ebmpArc, jp, coll, CW[0], CW[1], GantryDirection.Clockwise, 0, iso.Item2.ElementAt(i).Item1);
-                        if (j >= 2) beamName += String.Format("CW {0}{1}", isoNames.ElementAt(i), 90);
-                        else beamName += String.Format("CW {0}{1}", isoNames.ElementAt(i), "");
+                        ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Added arc beam to iso: {i + 1}");
+
+                        if (j >= 2) beamName += $"CW {iso.Item2.ElementAt(i).Item2}{90}";
+                        else beamName += $"CW {iso.Item2.ElementAt(i).Item2}";
                     }
                     b.Id = beamName;
+                    ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Assigned beam id: {beamName}");
+
                     b.CreateOrReplaceDRR(DRR);
+                    ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Assigned DRR to beam: {beamName}");
+
                     count++;
                 }
             }
 
-            //add additional plan for ap/pa legs fields (all ap/pa isocenter fields will be contained within this plan)
-            if (numIsos > numVMATIsos)
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
+            return false;
+        }
+
+        private bool SetAPPABeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
+        {
+            ProvideUIUpdate(0, $"Preparing to set isocenters for plan: {iso.Item1.Id}");
+            int percentComplete = 0;
+            int calcItems = 3;
+            //DRR parameters (dummy parameters to generate DRRs for each field)
+            DRRCalculationParameters DRR = new DRRCalculationParameters
             {
-                //6-10-2020 EAS, checked if exisiting _Legs plan is present in createPlan method
-                legsPlan = theCourse.AddExternalPlanSetup(selectedSS);
-                if (singleAPPAplan) legsPlan.Id = String.Format("_Legs");
-                else legsPlan.Id = String.Format("{0} Upper Legs", numVMATIsos + 1);
-                //100% dose prescribed in plan
-                legsPlan.SetPrescription(prescriptions.First().Item3, prescriptions.First().Item4, 1.0);
-                legsPlan.SetCalculationModel(CalculationType.PhotonVolumeDose, calculationModel);
+                DRRSize = 500.0,
+                FieldOutlines = true,
+                StructureOutlines = true
+            };
+            DRR.SetLayerParameters(1, 1.0, 100.0, 1000.0);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), "Created default DRR parameters");
 
-                Structure target = StructureTuningHelper.GetStructureFromId("body", selectedSS);
-                double targetInfExtent = target.MeshGeometry.Positions.Min(p => p.Z) + targetMargin;
+            Structure target = StructureTuningHelper.GetStructureFromId("body", selectedSS);
+            double targetInfExtent = target.MeshGeometry.Positions.Min(p => p.Z) + targetMargin;
 
-                //adjust x2 jaw (furthest from matchline) so that it covers edge of target volume
-                double x2 = iso.Item2.ElementAt(numVMATIsos).Item1.z - (targetInfExtent - 20.0);
+            //place the beams for the VMAT plan
+            //unfortunately, all of Nataliya's requirements for beam placement meant that this process couldn't simply draw from beam placement templates. Some of the beam placements for specific isocenters
+            //and under certain conditions needed to be hard-coded into the script. I'm not really a fan of this, but it was the only way to satisify Nataliya's requirements.
+            ProvideUIUpdate(100, "Preparation complete!");
+
+            //place the beams for the VMAT plan
+            int count = 0;
+            calcItems = 0;
+            percentComplete = 0;
+            calcItems += iso.Item2.First().Item3 * 5;
+            ProvideUIUpdate(0, $"Assigning isocenter: {1}");
+
+            //adjust x2 jaw (furthest from matchline) so that it covers edge of target volume
+            double x2 = iso.Item2.First().Item1.z - (targetInfExtent - 20.0);
+            if (x2 > 200.0) x2 = 200.0;
+            else if (x2 < 10.0) x2 = 10.0;
+            double x1 = -200.0;
+
+            //AP field
+            //set MLC positions. First row is bank number 0 (X1 leaves) and second row is bank number 1 (X2).
+            float[,] MLCpos = BuildMLCArray(x1, x2);
+            Beam b = legsPlan.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(x1, -200.0, x2, 200.0), 90.0, 0.0, 0.0, iso.Item2.First().Item1);
+            b.Id = String.Format("{0} AP Upper Legs", ++count);
+            b.CreateOrReplaceDRR(DRR);
+
+            //PA field
+            b = legsPlan.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(x1, -200.0, x2, 200.0), 90.0, 180.0, 0.0, iso.Item2.First().Item1);
+            b.Id = String.Format("{0} PA Upper Legs", ++count);
+            b.CreateOrReplaceDRR(DRR);
+
+            if ((totalNumIsos - numVMATIsos) == 2)
+            {
+                calcItems += iso.Item2.Last().Item3 * 5;
+                VVector infIso = new VVector();
+                //the element at numVMATIsos in isoLocations vector is the first AP/PA isocenter
+                infIso.x = iso.Item2.Last().Item1.x;
+                infIso.y = iso.Item2.Last().Item1.y;
+
+                x1 = -200.0;
+                //if the distance between the matchline and the inferior edge of the target is < 600 mm, set the beams in the second isocenter (inferior-most) to be half-beam blocks
+                if (StructureTuningHelper.GetStructureFromId("matchline", selectedSS).CenterPoint.z - targetInfExtent < 600.0)
+                {
+                    infIso.z = iso.Item2.First().Item1.z - 200.0;
+                    x1 = 0.0;
+                }
+                else infIso.z = iso.Item2.First().Item1.z - 390.0;
+                //fit x1 jaw to extent of patient
+                x2 = infIso.z - (targetInfExtent - 20.0);
                 if (x2 > 200.0) x2 = 200.0;
                 else if (x2 < 10.0) x2 = 10.0;
 
+                //set MLC positions
+                MLCpos = BuildMLCArray(x1, x2);
                 //AP field
-                //set MLC positions. First row is bank number 0 (X1 leaves) and second row is bank number 1 (X2).
-                float[,] MLCpos = new float[2, 60];
-                for (int i = 0; i < 60; i++)
-                {
-                    MLCpos[0, i] = (float)-200.0;
-                    MLCpos[1, i] = (float)(x2);
-                }
-                Beam b = legsPlan.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(-200.0, -200.0, x2, 200.0), 90.0, 0.0, 0.0, iso.Item2.ElementAt(numVMATIsos).Item1);
-                b.Id = String.Format("{0} AP Upper Legs", ++count);
+                b = legsPlan.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(x1, -200.0, x2, 200.0), 90.0, 0.0, 0.0, infIso);
+                b.Id = String.Format("{0} AP Lower Legs", ++count);
                 b.CreateOrReplaceDRR(DRR);
 
                 //PA field
-                b = legsPlan.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(-200.0, -200.0, x2, 200.0), 90.0, 180.0, 0.0, iso.Item2.ElementAt(numVMATIsos).Item1);
-                b.Id = String.Format("{0} PA Upper Legs", ++count);
+                b = legsPlan.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(x1, -200.0, x2, 200.0), 90.0, 180.0, 0.0, infIso);
+                b.Id = String.Format("{0} PA Lower Legs", ++count);
                 b.CreateOrReplaceDRR(DRR);
-
-                if ((numIsos - numVMATIsos) == 2)
-                {
-                    VVector infIso = new VVector();
-                    //the element at numVMATIsos in isoLocations vector is the first AP/PA isocenter
-                    infIso.x = iso.Item2.ElementAt(numVMATIsos).Item1.x;
-                    infIso.y = iso.Item2.ElementAt(numVMATIsos).Item1.y;
-
-                    double x1 = -200.0;
-                    //if the distance between the matchline and the inferior edge of the target is < 600 mm, set the beams in the second isocenter (inferior-most) to be half-beam blocks
-                    if (selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - targetInfExtent < 600.0)
-                    {
-                        infIso.z = iso.Item2.ElementAt(numVMATIsos).Item1.z - 200.0;
-                        x1 = 0.0;
-                    }
-                    else infIso.z = iso.Item2.ElementAt(numVMATIsos).Item1.z - 390.0;
-                    //fit x1 jaw to extend of patient
-                    x2 = infIso.z - (targetInfExtent - 20.0);
-                    if (x2 > 200.0) x2 = 200.0;
-                    else if (x2 < 10.0) x2 = 10.0;
-
-                    //set MLC positions
-                    MLCpos = new float[2, 60];
-                    for (int i = 0; i < 60; i++)
-                    {
-                        MLCpos[0, i] = (float)(x1);
-                        MLCpos[1, i] = (float)(x2);
-                    }
-                    //AP field
-                    if (singleAPPAplan)
-                    {
-                        b = legsPlan.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(x1, -200.0, x2, 200.0), 90.0, 0.0, 0.0, infIso);
-                        b.Id = String.Format("{0} AP Lower Legs", ++count);
-                        b.CreateOrReplaceDRR(DRR);
-
-                        //PA field
-                        b = legsPlan.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(x1, -200.0, x2, 200.0), 90.0, 180.0, 0.0, infIso);
-                        b.Id = String.Format("{0} PA Lower Legs", ++count);
-                        b.CreateOrReplaceDRR(DRR);
-                    }
-                    else
-                    {
-                        //create a new legs plan if the user wants to separate the two APPA isocenters into separate plans
-                        ExternalPlanSetup legs_planLower = theCourse.AddExternalPlanSetup(selectedSS);
-                        legs_planLower.Id = String.Format("{0} Lower Legs", numIsos);
-                        legs_planLower.SetPrescription(prescriptions.First().Item3, prescriptions.First().Item4, 1.0);
-                        legs_planLower.SetCalculationModel(CalculationType.PhotonVolumeDose, calculationModel);
-
-                        b = legs_planLower.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(x1, -200.0, x2, 200.0), 90.0, 0.0, 0.0, infIso);
-                        b.Id = String.Format("{0} AP Lower Legs", ++count);
-                        b.CreateOrReplaceDRR(DRR);
-
-                        //PA field
-                        b = legs_planLower.AddMLCBeam(ebmpStatic, MLCpos, new VRect<double>(x1, -200.0, x2, 200.0), 90.0, 180.0, 0.0, infIso);
-                        b.Id = String.Format("{0} PA Lower Legs", ++count);
-                        b.CreateOrReplaceDRR(DRR);
-                    }
-                }
             }
-            MessageBox.Show("Beams placed successfully!\nPlease proceed to the optimization setup tab!");
+
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
+        }
+
+        private float[,] BuildMLCArray(double x1, double x2)
+        {
+            float[,] MLCpos = new float[2, 60];
+            for (int j = 0; j < 60; j++)
+            {
+                MLCpos[0, j] = (float)(x1);
+                MLCpos[1, j] = (float)(x2);
+            }
+            return MLCpos;
         }
     }
 }

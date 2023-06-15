@@ -33,7 +33,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         protected string MRrestart = "";
         protected double contourOverlapMargin;
         protected List<Tuple<ExternalPlanSetup,List<Structure>>> jnxs = new List<Tuple<ExternalPlanSetup, List<Structure>>> { };
-        protected int numVMATIsos;
         protected string stackTraceError;
 
         #region virtual methods

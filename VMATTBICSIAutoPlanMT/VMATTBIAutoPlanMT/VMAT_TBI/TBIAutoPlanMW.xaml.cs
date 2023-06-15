@@ -1150,12 +1150,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             (bool targetParseFail, double targetMargin) = ParseTargetMargin();
             if (targetParseFail) return;
 
-            PlaceBeams_TBI place = new PlaceBeams_TBI(selectedSS, 
-                                                      isoNames.First().Item2, 
-                                                      numIsos, 
-                                                      numVMATIsos, 
+            PlaceBeams_TBI place = new PlaceBeams_TBI(selectedSS,
+                                                      planIsoBeamInfo,
                                                       singleAPPAplan, 
-                                                      numBeams, 
                                                       collRot, 
                                                       jawPos, 
                                                       chosenLinac, 
