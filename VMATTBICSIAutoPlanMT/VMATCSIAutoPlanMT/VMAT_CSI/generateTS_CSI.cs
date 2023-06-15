@@ -843,7 +843,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
                 //set isocenter names based on numIsos and numVMATIsos (be sure to pass 'true' for the third argument to indicate that this is a CSI plan(s))
                 //plan Id, list of isocenter names for this plan
-                isoNames.Add(Tuple.Create(itr.Item1, new List<string>(IsoNameHelper.GetIsoNames(numVMATIsos, numVMATIsos, true))));
+                isoNames.Add(Tuple.Create(itr.Item1, new List<string>(IsoNameHelper.GetCSIIsoNames(numVMATIsos))));
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), "Added isocenter to stack!");
             }
             ProvideUIUpdate($"Required Number of Isocenters: {numVMATIsos}");

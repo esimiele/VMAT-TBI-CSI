@@ -1023,7 +1023,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
             ////subtract a beam from the first isocenter (head) if the user is NOT interested in sparing the brain
             //if (!optParameters.Where(x => x.Item1.ToLower().Contains("brain")).Any()) beamsPerIso[0]--;
-            List<StackPanel> SPList = BeamPlacementUIHelper.PopulateBeamsTabHelper(structureManipulationSP, linacs, beamEnergies, isoNames, beamsPerIso);
+            List<StackPanel> SPList = BeamPlacementUIHelper.PopulateBeamsTabHelper(structureManipulationSP.Width, linacs, beamEnergies, isoNames, beamsPerIso);
             if (!SPList.Any()) return;
             foreach (StackPanel s in SPList) beamPlacementSP.Children.Add(s);
             ////subtract a beam from the second isocenter (chest/abdomen area) if the user is NOT interested in sparing the kidneys
@@ -1042,7 +1042,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //if (!optParameters.Where(x => x.Item1.ToLower().Contains("brain")).Any()) beamsPerIso[0]++;
                 numIsos += tmp - numVMATIsos;
                 numVMATIsos = tmp;
-                isoNames = new List<Tuple<string, List<string>>> { Tuple.Create("VMAT TBI", new List<string>(IsoNameHelper.GetIsoNames(numVMATIsos, numIsos)))};
+                isoNames.Clear();
+                isoNames = new List<Tuple<string, List<string>>> { Tuple.Create(prescriptions.First().Item1, new List<string>(IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos)))};
+                if(numIsos > numVMATIsos) isoNames.Add(Tuple.Create("_Legs", new List<string>(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos))));
                 PopulateBeamsTab();
             }
         }

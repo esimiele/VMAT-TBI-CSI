@@ -713,13 +713,15 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     //if (selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - pts.Min(p => p.Z) - 3.0 <= (400.0 - 20.0)) numIsos = numVMATIsos + 1;
 
                     //5-20-2020 Nataliya said to only add a second legs iso if the extent of the TS_PTV_LEGS is > 40.0 cm
+                    //6-15-23, not entirely sure where the '-3.0' came from.. will need to do a bit of digging?
                     if (matchline.CenterPoint.z - pts.Min(p => p.Z) - 3.0 <= maxFieldExtent) numIsos = numVMATIsos + 1;
                     else numIsos = numVMATIsos + 2;
                 }
             }
 
             //set isocenter names based on numIsos and numVMATIsos (determined these names from prior cases)
-            isoNames.Add(Tuple.Create(prescriptions.First().Item1, new List<string>(IsoNameHelper.GetIsoNames(numVMATIsos, numIsos))));
+            isoNames.Add(Tuple.Create(prescriptions.First().Item1, new List<string>(IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos))));
+            if (numIsos > numVMATIsos) isoNames.Add(Tuple.Create("_Legs", new List<string>(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos))));
             return false;
         }
     }

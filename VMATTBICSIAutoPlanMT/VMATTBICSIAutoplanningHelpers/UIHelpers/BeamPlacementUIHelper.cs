@@ -144,13 +144,13 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return theSPList;
         }
 
-        public static List<StackPanel> PopulateBeamsTabHelper(StackPanel theSP, List<string> linacs, List<string> beamEnergies, List<Tuple<string, List<string>>> isoNames, int[] beamsPerIso)
+        public static List<StackPanel> PopulateBeamsTabHelper(double width, List<string> linacs, List<string> beamEnergies, List<Tuple<string, List<string>>> isoNames, int[] beamsPerIso)
         {
             List<StackPanel> theSPList = new List<StackPanel> { };
             StackPanel sp = new StackPanel
             {
                 Height = 30,
-                Width = theSP.Width,
+                Width = width,
                 Orientation = Orientation.Horizontal,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Margin = new Thickness(5)
@@ -195,7 +195,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             sp = new StackPanel
             {
                 Height = 30,
-                Width = theSP.Width,
+                Width = width,
                 Orientation = Orientation.Horizontal,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Margin = new Thickness(5)
@@ -241,7 +241,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 sp = new StackPanel
                 {
                     Height = 30,
-                    Width = theSP.Width,
+                    Width = width,
                     Orientation = Orientation.Horizontal,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     Margin = new Thickness(2)
@@ -264,7 +264,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                     sp = new StackPanel
                     {
                         Height = 30,
-                        Width = theSP.Width,
+                        Width = width,
                         Orientation = Orientation.Horizontal,
                         HorizontalAlignment = HorizontalAlignment.Center,
                         Margin = new Thickness(2)
@@ -292,9 +292,12 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                         VerticalAlignment = VerticalAlignment.Center,
                         Margin = new Thickness(0, 0, 80, 0),
 
-                        Text = beamsPerIso[j].ToString(),
                         TextAlignment = TextAlignment.Center
                     };
+                    //ugly provision to override suggested number of beams per iso to 2 for leg AP/PA isocenters for TBI plans
+                    if (!isoNames.ElementAt(i).Item1.Contains("_Legs")) beams_tb.Text = beamsPerIso[j].ToString();
+                    else beams_tb.Text = "2";
+
                     sp.Children.Add(beams_tb);
                     theSPList.Add(sp);
                 }

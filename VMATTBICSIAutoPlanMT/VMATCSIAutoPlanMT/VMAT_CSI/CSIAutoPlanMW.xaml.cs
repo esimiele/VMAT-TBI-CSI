@@ -1166,7 +1166,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             beamPlacementSP.Children.Clear();
 
             //number of isocenters = number of vmat isocenters
-            List<StackPanel> SPList = BeamPlacementUIHelper.PopulateBeamsTabHelper(structureManipulationSP, linacs, beamEnergies, isoNames, beamsPerIso);
+            List<StackPanel> SPList = BeamPlacementUIHelper.PopulateBeamsTabHelper(structureManipulationSP.Width, linacs, beamEnergies, isoNames, beamsPerIso);
             if (!SPList.Any()) return;
             foreach (StackPanel s in SPList) beamPlacementSP.Children.Add(s);
         }
@@ -1230,7 +1230,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             place.Initialize("VMAT CSI", prescriptions);
             place.Execute();
             log.AppendLogOutput("Plan generation and beam placement output:", place.GetLogOutput());
-            VMATplans = new List<ExternalPlanSetup>(place.GetGeneratedPlans());
+            VMATplans = new List<ExternalPlanSetup>(place.GetGeneratedVMATPlans());
             if (!VMATplans.Any()) return;
 
             //if the user elected to contour the overlap between fields in adjacent isocenters, get this list of structures from the placeBeams class and copy them to the jnxs vector

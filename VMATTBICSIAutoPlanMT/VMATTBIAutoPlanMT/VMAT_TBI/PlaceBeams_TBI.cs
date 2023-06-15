@@ -163,7 +163,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
 
             //6-10-2020 EAS, need to reverse order of list because it has to be descending from z location (i.e., sup to inf) for beam placement to work correctly
-            //iso.Reverse();
            // tmp.Reverse();
             
             return tmp;
