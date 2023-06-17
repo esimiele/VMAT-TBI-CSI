@@ -18,9 +18,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         public string GetErrorStackTrace() { return stackTraceError; }
 
         protected bool contourOverlap = false;
-        protected bool checkIsoPlacement = false;
         protected List<ExternalPlanSetup> vmatPlans = new List<ExternalPlanSetup> { };
-        protected double checkIsoPlacementLimit = 5.0;
         private string courseId;
         protected Course theCourse;
         protected StructureSet selectedSS;

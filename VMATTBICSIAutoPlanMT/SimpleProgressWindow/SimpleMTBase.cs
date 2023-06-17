@@ -49,19 +49,19 @@ namespace SimpleProgressWindow
         protected void UpdateUILabel(string message) 
         { 
             _logOutput.AppendLine(message); 
-            _dispatch.BeginInvoke((Action)(() => { _pw.UpdateLabel(message); })); 
+            _dispatch.Invoke((Action)(() => { _pw.UpdateLabel(message); })); 
         }
 
         protected void ProvideUIUpdate(int percentComplete, string message = "", bool fail = false) 
         {
             if(!string.IsNullOrEmpty(message)) _logOutput.AppendLine(message);
-            _dispatch.BeginInvoke((Action)(() => { _pw.ProvideUpdate(percentComplete, message, fail); })); 
+            _dispatch.Invoke((Action)(() => { _pw.ProvideUpdate(percentComplete, message, fail); })); 
         }
 
         protected void ProvideUIUpdate(string message, bool fail = false) 
         {
             _logOutput.AppendLine(message);
-            _dispatch.BeginInvoke((Action)(() => { _pw.ProvideUpdate(message, fail); })); 
+            _dispatch.Invoke((Action)(() => { _pw.ProvideUpdate(message, fail); })); 
         }
 
         //protected void ProvideUIUpdate(object sender, ProgressReportModel e)

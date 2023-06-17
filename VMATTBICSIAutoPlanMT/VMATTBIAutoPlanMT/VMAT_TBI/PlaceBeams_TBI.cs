@@ -13,6 +13,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
     public class PlaceBeams_TBI : PlaceBeamsBase
     {
+        //get methods
+        public bool GetCheckIsoPlacementStatus() { return checkIsoPlacement; }
+        public double GetCheckIsoPlacementLimit() { return checkIsoPlacementLimit; }
+
         //list plan, list<iso name, num beams for iso>
         private List<Tuple<string, List<Tuple<string, int>>>> planIsoBeamInfo;
         private bool singleAPPAplan;
@@ -29,6 +33,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private double targetMargin;
         private int numVMATIsos;
         private int totalNumIsos;
+        protected double checkIsoPlacementLimit = 5.0;
+        protected bool checkIsoPlacement = false;
 
         public PlaceBeams_TBI(StructureSet ss, List<Tuple<string, List<Tuple<string, int>>>> planInfo, bool appaPlan, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, double tgtMargin, bool overlap, double overlapMargin)
         {
@@ -69,17 +75,15 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //plan, List<isocenter position, isocenter name, number of beams per isocenter>
                 List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> isoLocations = GetIsocenterPositions();
                 UpdateUILabel("Assigning isocenters and beams: ");
-                int isoCount = 0;
-                foreach (Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> itr in isoLocations)
+                if (SetVMATBeams(isoLocations.First())) return true;
+                //ensure contour overlap is requested AND there are more than two isocenters for this plan
+                if (contourOverlap && isoLocations.First().Item2.Count > 1) if (ContourFieldOverlap(isoLocations.First(), 0)) return true;
+                if (isoLocations.Count > 1)
                 {
-                    if (SetVMATBeams(itr)) return true;
-                    //ensure contour overlap is requested AND there are more than two isocenters for this plan
-                    if (contourOverlap && itr.Item2.Count > 1) if (ContourFieldOverlap(itr, isoCount)) return true;
-                    isoCount += itr.Item2.Count;
+                    if (SetAPPABeams(isoLocations.Last())) return true;
                 }
                 UpdateUILabel("Finished!");
-                ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
-                if (checkIsoPlacement) MessageBox.Show($"WARNING: < {checkIsoPlacementLimit / 10:0.00} cm margin at most superior and inferior locations of body! Verify isocenter placement!");
+                ProvideUIUpdate(100,$"Elapsed time: {GetElapsedTime()}");
                 return false;
             }
             catch (Exception e)

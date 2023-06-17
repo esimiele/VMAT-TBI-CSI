@@ -142,7 +142,7 @@
             </Setter>
         </Style>
     </Window.Resources>
-    <Grid Width="700">
+    <Grid Width="720">
         <!--Grid.Background>
             <ImageBrush ImageSource="/Images/Stanford.png" Stretch="Uniform" AlignmentY="Top" Opacity="0.20">
                 <ImageBrush.Transform>
@@ -250,7 +250,7 @@
                         <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                             <StackPanel HorizontalAlignment="Center" Margin="0">
                                 <Label Content="Select Targets" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top"/>
-                                <Grid Height="25" Width ="600" HorizontalAlignment="Center" Margin="0,5,0,0">
+                                <Grid Height="25" Width ="580" HorizontalAlignment="Center" Margin="0,5,0,0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="*"/>
@@ -260,7 +260,7 @@
                                     <Button x:Name="AddDefaultsTargetsBtn" Content="Add Defaults" Width="120" Grid.Column="1" VerticalAlignment="Top"  Click="AddTargetDefaults_Click"/>
                                     <Button x:Name="ClearTargetList" Content="Clear List" Width="100" Grid.Column="3"  VerticalAlignment="Top" Click="ClearTargetList_Click"/>
                                 </Grid>
-                                <ScrollViewer x:Name="targetsScroller" Height="370" Width="550" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                <ScrollViewer x:Name="targetsScroller" Height="370" Width="570" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                     <StackPanel Name="targetsSP" Margin="5">
                                     </StackPanel>
                                 </ScrollViewer>
@@ -270,7 +270,7 @@
                     </TabItem>
                     <TabItem Header="Structure Tuning" BorderThickness="0,1,1,0" Height="29" x:Name="structureTuningTabItem" VerticalAlignment="Top">
                         <TabControl TabStripPlacement="Top" Background="DarkGray">
-                            <TabItem Header="Tuning Structure Generation" BorderThickness="1,1,1,1" Width="280">
+                            <TabItem Header="Tuning Structure Generation" BorderThickness="1,1,1,1" Width="290">
                             <Border BorderBrush="Black" BorderThickness="1,0,0,0">
                                 <StackPanel HorizontalAlignment="Center">
                                         <Grid Margin="5" Width="400">
@@ -297,14 +297,14 @@
                                         <Button Grid.Column="1" x:Name="addTSDefaultsBtn" Content="Add Defaults" Width="120" HorizontalAlignment="Center" VerticalAlignment="Center" Click="AddDefaultTuningStructures_Click"/>
                                         <Button Grid.Column="2" x:Name="clearTSListBtn" Content="Clear List" Width="100" HorizontalAlignment="Center" VerticalAlignment="Top" Click="ClearTuningStructureList_Click"/>
                                     </Grid>
-                                    <ScrollViewer x:Name="TSGenerationScroller" Height="360" Width="540" Margin="5,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                    <ScrollViewer x:Name="TSGenerationScroller" Height="320" Width="580" Margin="5,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                         <StackPanel x:Name="TSGenerationSP" Margin="5">
                                         </StackPanel>
                                     </ScrollViewer>
                                 </StackPanel>
                             </Border>
                         </TabItem>
-                            <TabItem Header="Tuning Structure Manipulation" BorderThickness="0,1,1,1" Width="280" x:Name="TSManipulationTabItem">
+                            <TabItem Header="Tuning Structure Manipulation" BorderThickness="0,1,1,1" Width="290" x:Name="TSManipulationTabItem">
                                 <Border BorderBrush="Black" BorderThickness="1,0,0,0">
                                     <StackPanel Name="TS_SP" HorizontalAlignment="Center" Margin="0">
                                         <Label Content="Structure Manipulation" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
@@ -318,7 +318,7 @@
                                             <Button Grid.Column="1" Content="Add Defaults" Width="100" HorizontalAlignment="Center" VerticalAlignment="Center" Click="AddDefaultStructureManipulations_Click"/>
                                             <Button Grid.Column="2" x:Name="ClearStructureManipulationsBtn" Content="Clear List" Width="100" HorizontalAlignment="Center" VerticalAlignment="Center" Click="ClearStructureManipulations_Click"/>
                                         </Grid>
-                                        <ScrollViewer x:Name="spareStructScroller" Height="325" Width="540" Margin="5,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                        <ScrollViewer x:Name="spareStructScroller" Height="325" Width="560" Margin="5,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                             <StackPanel Name="structureManipulationSP" Margin="5">
                                             </StackPanel>
                                         </ScrollViewer>
@@ -358,7 +358,7 @@
                                 </Grid>
                                 
                                 <Label Content="Proposed isocenters and beams per isocenter" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0"></Label>
-                                <StackPanel  Name="beamPlacementSP" HorizontalAlignment="Center" Width="550" Height="330" Margin="5,5,0,0">
+                                <StackPanel  Name="beamPlacementSP" HorizontalAlignment="Center" Width="570" Height="330" Margin="5,5,0,0">
                                 </StackPanel>
                                 <Button Content="Place Beams" FontWeight="Bold" Width="100" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,5,0,0" Click="CreatePlanAndSetBeams_Click"/>
                             </StackPanel>
@@ -373,7 +373,7 @@
                                     <Button Content="Scan RTSTRUCT and Add Constraints" Width="210" HorizontalAlignment="Center" VerticalAlignment="Top" Click="ScanSS_Click"/>
                                     <Button Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="ClearOptimizationConstraintsList_Click"/>
                                 </Grid>
-                                <ScrollViewer x:Name="optParamScroller" Height="360" Width="550" Margin="5,10,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                <ScrollViewer x:Name="optParamScroller" Height="360" Width="570" Margin="5,10,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                     <StackPanel Name="optParametersSP" Margin="5"></StackPanel>
                                 </ScrollViewer>
                                 <Button Content="Set Optimization Constraints" FontWeight="Bold" Width="170" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,5,0,0" Click="SetOptConst_Click"></Button>
@@ -382,7 +382,7 @@
                     </TabItem>
                     <TabItem Header="Plan Preparation" BorderThickness="0,1,1,1">
                         <Border BorderBrush="Black" BorderThickness="1,0,0,0">
-                            <StackPanel Name="PREP" Width="550" Margin="10">
+                            <StackPanel Name="PREP" Width="570" Margin="10">
                                 <Grid Height="40" Width ="400" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,10,0,0">
                                     <Label Content="Item" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" Margin="0,0,200,0"></Label>
                                     <Label Content="Completed?" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" Margin="200,0,0,0"></Label>
@@ -408,7 +408,7 @@
                         </Border>
                     </TabItem>
                     <TabItem Header="Template Builder" VerticalAlignment="Bottom" BorderThickness="0,1,1,0" Margin="0,0,0,-152">
-                        <TabControl Background="DarkGray" Width="564">
+                        <TabControl Background="DarkGray" Width="584">
                             <TabItem Header="Name and Rx" BorderThickness="1,1,1,0">
                                 <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                                     <StackPanel>
@@ -449,7 +449,7 @@
                             </TabItem>
                             <TabItem Header="Structure Tuning" BorderThickness="0,1,1,0">
                                 <TabControl Background="DarkGray">
-                                    <TabItem Header="TS Generation" Width="250" BorderThickness="1,1,1,0">
+                                    <TabItem Header="TS Generation" Width="286" BorderThickness="1,1,1,0">
                                         <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                                             <StackPanel HorizontalAlignment="Center" Margin="0">
                                                 <Grid Width="450" HorizontalAlignment="Center" Margin="0">
@@ -460,14 +460,14 @@
                                                     <Button x:Name="templateAddTSBtn" Content="Add TS" Width="80" HorizontalAlignment="Left" VerticalAlignment="Top" Click="AddTuningStructure_Click"/>
                                                     <Button x:Name="templateClearTSListBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="ClearTuningStructureList_Click"/>
                                                 </Grid>
-                                                <ScrollViewer x:Name="templateTSScroller" Height="320" Width="500" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                                <ScrollViewer x:Name="templateTSScroller" Height="320" Width="565" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                                     <StackPanel x:Name="templateTSSP" Margin="5">
                                                     </StackPanel>
                                                 </ScrollViewer>
                                             </StackPanel>
                                         </Border>
                                     </TabItem>
-                                    <TabItem Header="TS Manipulation" Width="250" BorderThickness="0,1,1,0">
+                                    <TabItem Header="TS Manipulation" Width="286" BorderThickness="0,1,1,0">
                                         <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                                             <StackPanel HorizontalAlignment="Center" Margin="0">
                                                 <Grid Width="490" HorizontalAlignment="Center" Margin="0">
@@ -478,7 +478,7 @@
                                                     <Button x:Name="templateAddSpareStructureBtn" Content="Add Structure" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="AddStructureManipulationItem_Click"/>
                                                     <Button x:Name="templateClearSpareStructuresBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="ClearStructureManipulations_Click"/>
                                                 </Grid>
-                                                <ScrollViewer x:Name="templateSpareStructScroller" Height="315" Width="500" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                                <ScrollViewer x:Name="templateSpareStructScroller" Height="315" Width="565" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                                     <StackPanel x:Name="templateStructuresSP" Margin="5">
                                                     </StackPanel>
                                                 </ScrollViewer>
@@ -496,7 +496,7 @@
                                             <Button Content="Scan RTSTRUCT and Add Constraints" Width="210" HorizontalAlignment="Center" VerticalAlignment="Top"/>
                                             <Button x:Name="templateClearOptConstraintsBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="ClearOptimizationConstraintsList_Click"/>
                                         </Grid>
-                                        <ScrollViewer x:Name="templateOptParamScroller" Height="357" Width="500" Margin="0,10,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                        <ScrollViewer x:Name="templateOptParamScroller" Height="357" Width="570" Margin="0,10,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                             <StackPanel x:Name="templateOptParams_sp" Margin="5"></StackPanel>
                                         </ScrollViewer>
                                     </StackPanel>
@@ -506,9 +506,9 @@
                                 <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                                     <StackPanel Margin="0,0,0,0">
                                         <Button Content="Generate preview" Width="120" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,5,0,0" Click="GenerateTemplatePreview_Click"></Button>
-                                        <Border BorderBrush="Black" BorderThickness="0,1,1,1" Width="500" Margin="0,7,0,0">
-                                            <ScrollViewer x:Name="templatePreviewScroller" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="500" Height="372" Margin="0" >
-                                                <TextBlock x:Name="templatePreviewTB" FontSize="12" FontFamily="Courier New" Width="570" Background="White" TextWrapping="Wrap" Margin="0"></TextBlock>
+                                        <Border BorderBrush="Black" BorderThickness="1,1,1,1" Width="550" Margin="0,7,0,0">
+                                            <ScrollViewer x:Name="templatePreviewScroller" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="550" Height="372" Margin="0" >
+                                                <TextBlock x:Name="templatePreviewTB" FontSize="12" FontFamily="Courier New" Width="530" Background="White" TextWrapping="Wrap" Margin="0"></TextBlock>
                                             </ScrollViewer>
                                         </Border>
                                         <Button Content="Build Template" Width="160" FontWeight="Bold" HorizontalAlignment="Center" Click="SerializeNewTemplate_Click" Margin="0,7,0,0"></Button>

@@ -111,7 +111,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                                                                                                                                       List<Tuple<string, string, int, DoseValue, double>> prescriptions,
                                                                                                                                       object selectedTemplate,
                                                                                                                                       List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> currentList = null)
-                        {
+        {
             if (!currentList.Any()) currentList = RetrieveOptConstraintsFromTemplate(selectedTemplate, prescriptions).Item1;
             if (currentList.Any())
             {
@@ -171,7 +171,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     if(isCSIplan)
                     {
                         if ((selectedTemplate as CSIAutoPlanTemplate).GetInitOptimizationConstraints().Any()) list.Add(Tuple.Create(planTargets.ElementAt(0).Item1, (selectedTemplate as CSIAutoPlanTemplate).GetInitOptimizationConstraints()));
-                        if ((selectedTemplate as CSIAutoPlanTemplate).GetBoostOptimizationConstraints().Any()) list.Add(Tuple.Create(planTargets.ElementAt(1).Item1, (selectedTemplate as CSIAutoPlanTemplate).GetBoostOptimizationConstraints()));
+                        if (planTargets.Count > 1 && (selectedTemplate as CSIAutoPlanTemplate).GetBoostOptimizationConstraints().Any()) list.Add(Tuple.Create(planTargets.ElementAt(1).Item1, (selectedTemplate as CSIAutoPlanTemplate).GetBoostOptimizationConstraints()));
                     }
                     else if ((selectedTemplate as TBIAutoPlanTemplate).GetInitOptimizationConstraints().Any()) list.Add(Tuple.Create(planTargets.ElementAt(0).Item1, (selectedTemplate as TBIAutoPlanTemplate).GetInitOptimizationConstraints()));
                 }
@@ -180,7 +180,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     if (isCSIplan)
                     {
                         if ((selectedTemplate as CSIAutoPlanTemplate).GetInitOptimizationConstraints().Any()) list.Add(Tuple.Create("CSI-init", (selectedTemplate as CSIAutoPlanTemplate).GetInitOptimizationConstraints()));
-                        if ((selectedTemplate as CSIAutoPlanTemplate).GetBoostOptimizationConstraints().Any()) list.Add(Tuple.Create("CSI-bst", (selectedTemplate as CSIAutoPlanTemplate).GetBoostOptimizationConstraints()));
+                        if (planTargets.Count > 1 && (selectedTemplate as CSIAutoPlanTemplate).GetBoostOptimizationConstraints().Any()) list.Add(Tuple.Create("CSI-bst", (selectedTemplate as CSIAutoPlanTemplate).GetBoostOptimizationConstraints()));
                     }
                     else if ((selectedTemplate as TBIAutoPlanTemplate).GetInitOptimizationConstraints().Any()) list.Add(Tuple.Create("VMAT-TBI", (selectedTemplate as TBIAutoPlanTemplate).GetInitOptimizationConstraints()));
                 }

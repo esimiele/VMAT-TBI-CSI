@@ -587,14 +587,17 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             planIDs.Add("--Add New--");
             foreach(Tuple<string,double,string> itr in defaultList)
             {
-                counter++;
-                theSP.Children.Add(TargetsUIHelper.AddTargetVolumes(theSP.Width, 
-                                                           itr, 
-                                                           clearBtnNamePrefix, 
-                                                           counter, 
-                                                           planIDs, 
-                                                           (delegate (object sender, SelectionChangedEventArgs e) { TargetPlanId_SelectionChanged(theSP, sender, e); }), 
-                                                           new RoutedEventHandler(this.ClearTargetItem_click)));
+                if(StructureTuningHelper.DoesStructureExistInSS(itr.Item1, selectedSS))
+                {
+                    counter++;
+                    theSP.Children.Add(TargetsUIHelper.AddTargetVolumes(theSP.Width,
+                                                               itr,
+                                                               clearBtnNamePrefix,
+                                                               counter,
+                                                               planIDs,
+                                                               (delegate (object sender, SelectionChangedEventArgs e) { TargetPlanId_SelectionChanged(theSP, sender, e); }),
+                                                               new RoutedEventHandler(this.ClearTargetItem_click)));
+                }
             }
         }
 
@@ -862,14 +865,17 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             for (int i = 0; i < lists.Count; i++)
             {
-                counter++;
-                theSP.Children.Add(RingUIHelper.AddRing(theSP, 
-                                                  targets.Select(x => x.Item1).ToList(), 
-                                                  lists[i], 
-                                                  clearBtnName, 
-                                                  counter, 
-                                                  new RoutedEventHandler(this.ClearRingItem_Click), 
-                                                  theSP.Name.Contains("template")));
+                if(StructureTuningHelper.DoesStructureExistInSS(lists.ElementAt(i).Item1, selectedSS, true))
+                {
+                    counter++;
+                    theSP.Children.Add(RingUIHelper.AddRing(theSP,
+                                                      targets.Select(x => x.Item1).ToList(),
+                                                      lists[i],
+                                                      clearBtnName,
+                                                      counter,
+                                                      new RoutedEventHandler(this.ClearRingItem_Click),
+                                                      theSP.Name.Contains("template")));
+                }
             }
         }
 
