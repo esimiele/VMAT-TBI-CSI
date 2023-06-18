@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using System.Windows.Forms;
 using System.Windows.Media.Media3D;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
@@ -353,6 +352,18 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                                     new VVector(0, yMax, 0)};
 
             return pts;
+        }
+
+        protected DRRCalculationParameters GenerateDRRParameters()
+        {
+            DRRCalculationParameters DRR = new DRRCalculationParameters
+            {
+                DRRSize = 500.0,
+                FieldOutlines = true,
+                StructureOutlines = true
+            };
+            DRR.SetLayerParameters(1, 1.0, 100.0, 1000.0);
+            return DRR;
         }
         #endregion
     }

@@ -33,4 +33,10 @@
         VMAT_TBI,
         VMAT_CSI
     };
+
+    public enum FlashType
+    {
+        Global,
+        Local
+    };
 }

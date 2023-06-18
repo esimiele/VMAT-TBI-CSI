@@ -118,6 +118,7 @@
     <Compile Include="BaseClasses\AutoPlanTemplateBase.cs" />
     <Compile Include="Enums\AllEnums.cs" />
     <Compile Include="Helpers\CalculationHelper.cs" />
+    <Compile Include="Helpers\FlashTypeHelper.cs" />
     <Compile Include="PlanTemplateClasses\TBIAutoPlanTemplate.cs" />
     <Compile Include="UIHelpers\ConfigurationUIHelper.cs" />
     <Compile Include="Helpers\ContourHelper.cs" />

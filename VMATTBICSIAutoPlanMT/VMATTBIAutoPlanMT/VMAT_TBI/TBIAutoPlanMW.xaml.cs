@@ -76,7 +76,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         StructureSet selectedSS = null;
         public int clearTargetBtnCounter = 0;
         public int clearTargetTemplateBtnCounter = 0;
-        private bool firstOptStruct = true;
         public int clearSpareBtnCounter = 0;
         private int clearTemplateSpareBtnCounter = 0;
         public int clearOptBtnCounter = 0;
@@ -100,7 +99,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         //plan ID, target Id, numFx, dosePerFx, cumulative dose
         List<Tuple<string, string, int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
         bool useFlash = false;
-        string flashType = "";
+        FlashType flashType = FlashType.Global;
         Structure flashStructure = null;
         PlanPrep_TBI prep = null;
         public VMS.TPS.Common.Model.API.Application app = null;
@@ -153,8 +152,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             LoadPlanTemplates();
 
             //pre-populate the flash comboxes (set global flash as default)
-            flashOption.Items.Add("Global");
-            flashOption.Items.Add("Local");
+            flashOption.Items.Add(FlashType.Global.ToString());
+            flashOption.Items.Add(FlashType.Local.ToString());
             flashOption.Text = defaultFlashType;
             flashMarginTB.Text = defaultFlashMargin;
 
@@ -295,17 +294,28 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private void FlashOption_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             //update the flash type whenever the user changes the option in the combo box. If the flash type is local, show the flash volume combo box and label. If not, hide them
-            flashType = flashOption.SelectedItem.ToString();
-            if (flashType == "Global")
+            flashType = FlashTypeHelper.GetFlashType(flashOption.SelectedItem.ToString());
+            if (flashType == FlashType.Global)
             {
                 flashVolumeLabel.Visibility = Visibility.Hidden;
                 flashVolume.Visibility = Visibility.Hidden;
+                flashStructure = null;
             }
             else
             {
                 flashVolumeLabel.Visibility = Visibility.Visible;
                 flashVolume.Visibility = Visibility.Visible;
             }
+        }
+
+        private void FlashVolume_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            //update the flash type whenever the user changes the option in the combo box. If the flash type is local, show the flash volume combo box and label. If not, hide them
+            if (StructureTuningHelper.DoesStructureExistInSS(flashVolume.SelectedItem.ToString(), selectedSS, true))
+            {
+                flashStructure = StructureTuningHelper.GetStructureFromId(flashVolume.SelectedItem.ToString(), selectedSS);
+            }
+            else log.LogError($"Error! Could not set flash structure because {flashVolume.SelectedItem.ToString()} does not exist or is empty! Please try again");
         }
         #endregion
 
@@ -321,7 +331,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 flashOption.Visibility = Visibility.Visible;
                 flashMarginLabel.Visibility = Visibility.Visible;
                 flashMarginTB.Visibility = Visibility.Visible;
-                if (flashType == "Local")
+                if (flashType == FlashType.Local)
                 {
                     flashVolumeLabel.Visibility = Visibility.Visible;
                     flashVolume.Visibility = Visibility.Visible;
@@ -332,11 +342,12 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 flashOption.Visibility = Visibility.Hidden;
                 flashMarginLabel.Visibility = Visibility.Hidden;
                 flashMarginTB.Visibility = Visibility.Hidden;
-                if (flashType == "Local")
+                if (flashType == FlashType.Local)
                 {
                     flashVolumeLabel.Visibility = Visibility.Hidden;
                     flashVolume.Visibility = Visibility.Hidden;
                 }
+                flashStructure = null;
             }
             //update whether the user wants to user flash or not
             useFlash = flash_chkbox.IsChecked.Value;
@@ -876,7 +887,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     return (fail, flashMargin);
 
                 }
-                if (flashType == "Local")
+                if (flashType == FlashType.Local)
                 {
                     //if flash type is local, grab an instance of the structure class associated with the selected structure 
                     if (!StructureTuningHelper.DoesStructureExistInSS(flashVolume.SelectedItem.ToString(), selectedSS, true))
@@ -1071,16 +1082,16 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             List<List<int>> numBeams = parseSelections.Item3;
 
             //AP/PA stuff (THIS NEEDS TO GO AFTER THE ABOVE CHECKS!). Ask the user if they want to split the AP/PA isocenters into two plans if there are two AP/PA isocenters
-            bool singleAPPAplan = true;
-            if (numIsos - numVMATIsos == 2)
-            {
-                string message = "What should I do with the AP/PA isocenters?" + Environment.NewLine + Environment.NewLine + Environment.NewLine + "Put them in:";
-                SelectItemPrompt SIP = new SelectItemPrompt(message, new List<string> { "One plane", "Separate plans"});
-                SIP.ShowDialog();
-                if (!SIP.GetSelection()) return;
-                //get the option the user chose from the combobox
-                if (string.Equals(SIP.GetSelectedItem(), "Separate plans")) singleAPPAplan = false;
-            }
+            //bool singleAPPAplan = true;
+            //if (numIsos - numVMATIsos == 2)
+            //{
+            //    string message = "What should I do with the AP/PA isocenters?" + Environment.NewLine + Environment.NewLine + Environment.NewLine + "Put them in:";
+            //    SelectItemPrompt SIP = new SelectItemPrompt(message, new List<string> { "One plane", "Separate plans"});
+            //    SIP.ShowDialog();
+            //    if (!SIP.GetSelection()) return;
+            //    //get the option the user chose from the combobox
+            //    if (string.Equals(SIP.GetSelectedItem(), "Separate plans")) singleAPPAplan = false;
+            //}
 
             //now that we have a list of plans each with a list of isocenter names, we want to make a new list of plans each with a list of tuples of isocenter names and beams per isocenter
             List<Tuple<string, List<Tuple<string, int>>>> planIsoBeamInfo = new List<Tuple<string, List<Tuple<string, int>>>> { };
@@ -1112,7 +1123,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
             PlaceBeams_TBI place = new PlaceBeams_TBI(selectedSS,
                                                       planIsoBeamInfo,
-                                                      singleAPPAplan, 
                                                       collRot, 
                                                       jawPos, 
                                                       chosenLinac, 
@@ -1394,7 +1404,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private void Clear_optimization_parameter_list()
         {
             optParametersSP.Children.Clear();
-            firstOptStruct = true;
             clearOptBtnCounter = 0;
         }
         #endregion
@@ -1991,49 +2000,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 app.Dispose();
             }
         }
-
-        //private void autorun_Click(object sender, RoutedEventArgs e)
-        //{
-        //    if (string.IsNullOrEmpty(RxTB.Text)) { MessageBox.Show("Error! Please select a template regimen or enter the dose per fx and number of fx!"); return; }
-
-        //    //copy the sparing structures in the defaultSpareStruct list to a temporary vector
-        //    List<Tuple<string, string, double>> templateList = new List<Tuple<string, string, double>>(defaultSpareStruct);
-        //    //add the case-specific sparing structures to the temporary list
-        //    if (nonmyelo_chkbox.IsChecked.Value) templateList = new List<Tuple<string, string, double>>(addCaseSpecificSpareStructures(nonmyeloSpareStruct, templateList));
-        //    else if (myelo_chkbox.IsChecked.Value) templateList = new List<Tuple<string, string, double>>(addCaseSpecificSpareStructures(myeloSpareStruct, templateList));
-        //    else if (sclero_chkbox.IsChecked.Value) templateList = new List<Tuple<string, string, double>>(addCaseSpecificSpareStructures(scleroSpareStruct, templateList));
-
-        //    autoRunData a = new autoRunData();
-        //    a.construct(TS_structures, scleroStructures, templateList, selectedSS, double.Parse(defaultTargetMargin), sclero_chkbox.IsChecked.Value, useFlash, flashStructure, double.Parse(defaultFlashMargin), app);
-        //    //create a new thread and pass it the data structure created above (it will copy this information to its local thread memory)
-        //    ESAPIworker slave = new ESAPIworker(a);
-        //    //create a new frame (multithreading jargon)
-        //    DispatcherFrame frame = new DispatcherFrame();
-        //    //start the optimization
-        //    //open a new window to run on the newly created thread called "slave"
-        //    //for definition of the syntax used below, google "statement lambda c#"
-        //    RunOnNewThread(() =>
-        //    {
-        //        //pass the progress window the newly created thread and this instance of the optimizationLoop class.
-        //        AutorunProgress arpw = new AutorunProgress(slave);
-        //        arpw.ShowDialog();
-
-        //        //tell the code to hold until the progress window closes.
-        //        frame.Continue = false;
-        //    });
-
-        //    Dispatcher.PushFrame(frame);
-        //    //addDefaultsBtn.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        //}
-
-        ////method to create the new thread, set the apartment state, set the new thread to be a background thread, and execute the action supplied to this method
-        //private void RunOnNewThread(Action a)
-        //{
-        //    Thread t = new Thread(() => a());
-        //    t.SetApartmentState(ApartmentState.STA);
-        //    t.IsBackground = true;
-        //    t.Start();
-        //}
 
         private void MainWindow_SizeChanged(object sender, RoutedEventArgs e)
         {

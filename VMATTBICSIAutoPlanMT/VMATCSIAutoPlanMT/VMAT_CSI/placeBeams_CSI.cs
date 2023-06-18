@@ -262,47 +262,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //if the plan id is equal to the plan Id in the first entry in the prescriptions, then this is the initial plan --> use special rules to fit fields
             if (string.Equals(iso.Item1.Id, prescriptions.First().Item1)) initCSIPlan = true;
             //DRR parameters (dummy parameters to generate DRRs for each field)
-            DRRCalculationParameters DRR = new DRRCalculationParameters
-            {
-                DRRSize = 500.0,
-                FieldOutlines = true,
-                StructureOutlines = true
-            };
-            DRR.SetLayerParameters(1, 1.0, 100.0, 1000.0);
+            DRRCalculationParameters DRR = GenerateDRRParameters();
             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), "Created default DRR parameters");
 
-            ////grab all prescriptions assigned to this plan
-            //List<string> targetIds = TargetsHelper.GetTargetIdListForPlan(prescriptions, iso.Item1.Id);
-            ////if any of the targets for this plan are ptv_csi, then you must use the special beam placement logic for the initial plan
-            //if (targetIds.Any(x => x.ToLower().Contains("ptv_csi")))
-            //{
-            //    //verify that BOTH PTV spine and PTV brain exist in the current structure set! If not, create them (used to fit the field jaws to the target
-            //    if (!selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), "ptv_brain")))
-            //    {
-            //        //uniform 5mm outer margin to create brain ptv from brain ctv/brain structure
-            //        (bool fail, StringBuilder info) = ContourHelper.CreateTargetStructure("PTV_Brain", "brain", selectedSS, new AxisAlignedMargins(StructureMarginGeometry.Outer, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0));
-            //        ProvideUIUpdate(info.ToString());
-            //        if (fail) return true;
-            //        ProvideUIUpdate(100);
-            //    }
-            //    if (!selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), "ptv_spine")))
-            //    {
-            //        //ctv_spine = spinal_cord+0.5cm ANT, +1.5cm Inf, and +1.0 cm in all other directions
-            //        //ptv_spine = ctv_spine + 5 mm outer margin --> add 5 mm to the asymmetric margins used to create the ctv
-            //        (bool fail, StringBuilder info) = ContourHelper.CreateTargetStructure("PTV_Spine", "spinalcord", selectedSS, new AxisAlignedMargins(StructureMarginGeometry.Outer, 15.0, 10.0, 20.0, 15.0, 15.0, 15.0), "spinal_cord");
-            //        ProvideUIUpdate(info.ToString());
-            //        if (fail) return true;
-            //        ProvideUIUpdate(100);
-            //    }
-            //    //grab ptv_brain as we will need it for the first iso field placement
-            //    target = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "ptv_brain"));
-            //    initCSIPlan = true;
-            //}
-            ////assumes only one target for the boos plan
-            //else
-            //{
-            //    target = StructureTuningHelper.GetStructureFromId(TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, iso.Item1.Id), selectedSS);
-            //}
             List<Tuple<string, List<string>>> planIdTargets = new List<Tuple<string, List<string>>>(TargetsHelper.GetTargetListForEachPlan(prescriptions));
             ProvideUIUpdate("Determining target with greatest extent");
             (bool fail, Structure longestTargetInPlan, double maxTargetLength, StringBuilder errorMessage) = TargetsHelper.GetLongestTargetInPlan(planIdTargets.FirstOrDefault(x => string.Equals(x.Item1, iso.Item1.Id)), selectedSS);
