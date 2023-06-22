@@ -1,12 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.4.33122.133
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30621.155
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VMATTBICSIAutoPlanningHelpers", "VMATTBICSIAutoplanningHelpers\VMATTBICSIAutoPlanningHelpers.csproj", "{B3FBF7B5-9E18-43BA-B40F-144682A3956E}"
 	ProjectSection(ProjectDependencies) = postProject
 		{66CAAA05-0903-43DA-879A-9EF766F1B742} = {66CAAA05-0903-43DA-879A-9EF766F1B742}
-		{E7300C6C-2781-406E-A6BE-AC949B893C99} = {E7300C6C-2781-406E-A6BE-AC949B893C99}
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParallelTest", "ParallelTest\ParallelTest.csproj", "{F66246AF-812B-412D-9375-FBF20EC79E41}"
@@ -16,22 +15,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_configuration", "_configur
 		_configuration\log_configuration.ini = _configuration\log_configuration.ini
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleProgressWindow", "SimpleProgressWindow\SimpleProgressWindow.csproj", "{E7300C6C-2781-406E-A6BE-AC949B893C99}"
-	ProjectSection(ProjectDependencies) = postProject
-		{0AAD3C94-288A-4872-BAA2-6564ECE0D980} = {0AAD3C94-288A-4872-BAA2-6564ECE0D980}
-	EndProjectSection
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ESAPIThreadWorker", "ESAPIThreadWorker\ESAPIThreadWorker.csproj", "{0AAD3C94-288A-4872-BAA2-6564ECE0D980}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OptimizationProgressWindow", "OptimizationProgressWindow\OptimizationProgressWindow.csproj", "{66CAAA05-0903-43DA-879A-9EF766F1B742}"
-	ProjectSection(ProjectDependencies) = postProject
-		{0AAD3C94-288A-4872-BAA2-6564ECE0D980} = {0AAD3C94-288A-4872-BAA2-6564ECE0D980}
-	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VMATTBIAutoPlanMT", "VMATTBIAutoPlanMT\VMATTBIAutoPlanMT.csproj", "{67E25E0B-FF2C-4AB6-9B8F-7E61AEC78A72}"
 	ProjectSection(ProjectDependencies) = postProject
-		{E7300C6C-2781-406E-A6BE-AC949B893C99} = {E7300C6C-2781-406E-A6BE-AC949B893C99}
-		{0AAD3C94-288A-4872-BAA2-6564ECE0D980} = {0AAD3C94-288A-4872-BAA2-6564ECE0D980}
 		{B3FBF7B5-9E18-43BA-B40F-144682A3956E} = {B3FBF7B5-9E18-43BA-B40F-144682A3956E}
 	EndProjectSection
 EndProject
@@ -65,22 +52,6 @@ Global
 		{F66246AF-812B-412D-9375-FBF20EC79E41}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F66246AF-812B-412D-9375-FBF20EC79E41}.Release|x64.ActiveCfg = Release|Any CPU
 		{F66246AF-812B-412D-9375-FBF20EC79E41}.Release|x64.Build.0 = Release|Any CPU
-		{E7300C6C-2781-406E-A6BE-AC949B893C99}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E7300C6C-2781-406E-A6BE-AC949B893C99}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E7300C6C-2781-406E-A6BE-AC949B893C99}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{E7300C6C-2781-406E-A6BE-AC949B893C99}.Debug|x64.Build.0 = Debug|Any CPU
-		{E7300C6C-2781-406E-A6BE-AC949B893C99}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E7300C6C-2781-406E-A6BE-AC949B893C99}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E7300C6C-2781-406E-A6BE-AC949B893C99}.Release|x64.ActiveCfg = Release|Any CPU
-		{E7300C6C-2781-406E-A6BE-AC949B893C99}.Release|x64.Build.0 = Release|Any CPU
-		{0AAD3C94-288A-4872-BAA2-6564ECE0D980}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0AAD3C94-288A-4872-BAA2-6564ECE0D980}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0AAD3C94-288A-4872-BAA2-6564ECE0D980}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{0AAD3C94-288A-4872-BAA2-6564ECE0D980}.Debug|x64.Build.0 = Debug|Any CPU
-		{0AAD3C94-288A-4872-BAA2-6564ECE0D980}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0AAD3C94-288A-4872-BAA2-6564ECE0D980}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0AAD3C94-288A-4872-BAA2-6564ECE0D980}.Release|x64.ActiveCfg = Release|Any CPU
-		{0AAD3C94-288A-4872-BAA2-6564ECE0D980}.Release|x64.Build.0 = Release|Any CPU
 		{66CAAA05-0903-43DA-879A-9EF766F1B742}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{66CAAA05-0903-43DA-879A-9EF766F1B742}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{66CAAA05-0903-43DA-879A-9EF766F1B742}.Debug|x64.ActiveCfg = Debug|Any CPU

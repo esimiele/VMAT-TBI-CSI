@@ -54,7 +54,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        public static Tuple<string, string> ParseNormalizationVolumeFromLogFile(string line)
+        public static Tuple<string, string> ParseKeyValuePairFromLogFile(string line)
         {
             string planId;
             string volumeId;

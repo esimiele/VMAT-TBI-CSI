@@ -84,6 +84,8 @@ namespace VMATTBICSIOptLoopMT
         List<Tuple<string, string, int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
         //plan id, volume id
         List<Tuple<string, string>> normalizationVolumes = new List<Tuple<string, string>> { };
+        //list<original target id, ts target id>
+        private List<Tuple<string, string>> tsTargets = new List<Tuple<string, string>> { };
 
         public OptLoopMW(string[] args)
         {
@@ -670,13 +672,16 @@ namespace VMATTBICSIOptLoopMT
             {
                 foreach (Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation> itr in obj)
                 {
-                    if (string.Equals(itr.Item1, "<targetId>"))
+                    string volume = itr.Item1;
+                    if (tsTargets.Any(x => string.Equals(x.Item1, itr.Item1)))
                     {
-                        tmp.Add(Tuple.Create(GetPlanTargetId(), itr.Item2, itr.Item3, itr.Item4, itr.Item5));
+                        //volume is a target and has a corresponding ts target
+                        //update volume if with ts target id
+                        volume = tsTargets.First(x => string.Equals(x.Item1, itr.Item1)).Item2;
                     }
-                    else
+                    if (StructureTuningHelper.DoesStructureExistInSS(volume, selectedSS, true))
                     {
-                        if (selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), itr.Item1.ToLower()) && !x.IsEmpty)) tmp.Add(Tuple.Create(itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5));
+                        tmp.Add(Tuple.Create(volume, itr.Item2, itr.Item3, itr.Item4, itr.Item5));
                     }
                 }
             }
@@ -885,11 +890,18 @@ namespace VMATTBICSIOptLoopMT
                                     planUIDs.Add(line);
                                 }
                             }
+                            else if (line.Contains("TS targets:"))
+                            {
+                                while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
+                                {
+                                    tsTargets.Add(LogHelper.ParseKeyValuePairFromLogFile(line));
+                                }
+                            }
                             else if (line.Contains("Normalization volumes:"))
                             {
                                 while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {
-                                    normalizationVolumes.Add(LogHelper.ParseNormalizationVolumeFromLogFile(line));
+                                    normalizationVolumes.Add(LogHelper.ParseKeyValuePairFromLogFile(line));
                                 }
                             }
                             else if (line.Contains("Optimization constraints:"))

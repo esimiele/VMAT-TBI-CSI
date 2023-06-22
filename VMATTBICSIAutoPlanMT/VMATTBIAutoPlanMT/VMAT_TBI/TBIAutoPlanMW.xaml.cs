@@ -925,8 +925,15 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         private void PerformTSStructureGenerationManipulation_Click(object sender, RoutedEventArgs e)
         {
+            //ensure the targets have been specified prior to generating and manipulating the tuning structures
+            if (!prescriptions.Any())
+            {
+                log.LogError("Please set the targets first on the 'Set Targets' tab!");
+                return;
+            }
+
             //check that there are actually structures to spare in the sparing list
-            if (structureManipulationSP.Children.Count == 0)
+            if (structureManipulationSP.Children.Count == 0 && TSGenerationSP.Children.Count == 0)
             {
                 log.LogError("No structures present to generate tuning structures!");
                 return;
@@ -998,6 +1005,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             beamPlacementTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             log.AddedStructures = generate.GetAddedStructures();
             log.StructureManipulations = TSManipulationList;
+            log.TSTargets = generate.GetTsTargets().SelectMany(x => x.Item2).ToList();
             log.NormalizationVolumes = generate.GetNormalizationVolumes();
             log.IsoNames = isoNames;
         }
@@ -1197,9 +1205,12 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                         if (opt.Item1.Contains("--select--") || opt.Item1.Contains("PTV")) defaultList.Add(opt);
                         //only add template optimization objectives for each structure to default list if that structure is present in the selected structure set and contoured
                         //12-22-2020 coded added to account for the situation where the structure selected for sparing had to be converted to a low resolution structure
-                        else if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()) != null &&
-                                 !selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()).IsEmpty) defaultList.Add(Tuple.Create(selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()).Id, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
-                        else if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == opt.Item1.ToLower()) != null && !selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == opt.Item1.ToLower()).IsEmpty) defaultList.Add(opt);
+                        else if (StructureTuningHelper.DoesStructureExistInSS(opt.Item1 + "_lowRes", selectedSS, true))
+                        {
+                            string lowResStructure = opt.Item1 + "_lowRes";
+                            defaultList.Add(Tuple.Create(StructureTuningHelper.GetStructureFromId(lowResStructure, selectedSS).Id, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
+                        }
+                        else if (StructureTuningHelper.DoesStructureExistInSS(opt.Item1, selectedSS, true)) defaultList.Add(opt);
                     }
                     defaultListList.Add(Tuple.Create(itr.Item1, new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(defaultList)));
                 }
@@ -1215,10 +1226,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 defaultListList = OptimizationSetupUIHelper.InsertTSJnxOptConstraints(defaultListList, jnxs, prescriptions);
             }
 
-            //12/27/2022 this line needs to be fixed as it assumes prescriptions is arranged such that each entry in the list contains a unique plan ID
-            //1/18/2023 super ugly, but it works. A simple check is performed to ensure that we won't exceed the number of prescriptions in the loop
-            //an issue for the following line is that boost constraints might end up being added to the initial plan (if there are two prescriptions for the initial plan)
-            //need to implement function to get unique plan Id's sorted by Rx
             foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in defaultListList) AddOptimizationConstraintItems(itr.Item2, itr.Item1, theSP);
         }
 
@@ -1251,7 +1258,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             for (int i = 0; i < defaultList.Count; i++)
             {
                 counter++;
-                theSP.Children.Add(OptimizationSetupUIHelper.AddOptVolume(theSP, selectedSS, defaultList[i], clearBtnNamePrefix, counter, new RoutedEventHandler(this.ClearOptimizationConstraint_Click), theSP.Name.Contains("template")));
+                theSP.Children.Add(OptimizationSetupUIHelper.AddOptVolume(theSP, 
+                                                                          selectedSS, 
+                                                                          defaultList[i], 
+                                                                          clearBtnNamePrefix, 
+                                                                          counter, 
+                                                                          new RoutedEventHandler(this.ClearOptimizationConstraint_Click), 
+                                                                          theSP.Name.Contains("template")));
             }
         }
 
@@ -1302,28 +1315,53 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         private void SetOptConst_Click(object sender, RoutedEventArgs e)
         {
-            //12/5/2022 super janky, but works for now. Needed to accomodate multiple plans for VMAT CSI. Will fix later
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParametersList = OptimizationSetupUIHelper.ParseOptConstraints(optParametersSP).Item1.First().Item2;
-            if (!optParametersList.Any()) return;
+            (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optParametersSP);
+            if (!parsedOptimizationConstraints.Item1.Any())
+            {
+                log.LogError(parsedOptimizationConstraints.Item2);
+                return;
+            }
+            bool constraintsAssigned = false;
+            Course theCourse = null;
             if (VMATplan == null)
             {
-                //search for a course named VMAT TBI. If it is found, search for a plan named VMAT TBI inside the VMAT TBI course. If neither are found, throw an error and return
-                if (!pi.Courses.Where(x => x.Id == "VMAT TBI").Any() || !pi.Courses.First(x => x.Id == "VMAT TBI").PlanSetups.Where(x => x.Id == "VMAT TBI").Any())
-                {
-                    log.LogError("No course or plan named 'VMAT TBI' found! Exiting...");
-                    return;
-                }
                 //if both are found, grab an instance of that plan
-                VMATplan = pi.Courses.First(x => x.Id == "VMAT TBI").PlanSetups.First(x => x.Id == "VMAT TBI") as ExternalPlanSetup;
+                theCourse = pi.Courses.First(x => x.Id == "VMAT TBI");
                 pi.BeginModifications();
+                //additional check if the plan was not found in the list of VMATplans
+                VMATplan = theCourse.ExternalPlanSetups.FirstOrDefault(x => x.Id == parsedOptimizationConstraints.Item1.First().Item1);
             }
-            if (VMATplan.OptimizationSetup.Objectives.Count() > 0)
+
+            List<Tuple<string, OptimizationObjectiveType, double, double, int>> constraints = parsedOptimizationConstraints.Item1.First().Item2;
+            if (VMATplan != null)
             {
-                //the plan has existing objectives, which need to be removed be assigning the new objectives
-                foreach (OptimizationObjective o in VMATplan.OptimizationSetup.Objectives) VMATplan.OptimizationSetup.RemoveObjective(o);
+                if (VMATplan.OptimizationSetup.Objectives.Count() > 0)
+                {
+                    foreach (OptimizationObjective o in VMATplan.OptimizationSetup.Objectives) VMATplan.OptimizationSetup.RemoveObjective(o);
+                }
+                OptimizationSetupUIHelper.AssignOptConstraints(constraints, VMATplan, true, 0.0);
+                constraintsAssigned = true;
             }
-            //optimization parameter list, the plan object, enable jaw tracking?, Auto NTO priority
-            OptimizationSetupUIHelper.AssignOptConstraints(optParametersList, VMATplan, true, 0.0);
+            else
+            {
+                log.LogError($"VMAT TBI plan not found! Exiting!");
+                return;
+            }
+
+            if (constraintsAssigned)
+            {
+                string message = "Optimization objectives have been successfully set!" + Environment.NewLine + Environment.NewLine + "Please review the generated structures, placed isocenters, placed beams, and optimization parameters!";
+                if (constraints.Any(x => x.Item1.ToLower().Contains("_lowres"))) message += "\n\nBE SURE TO VERIFY THE ACCURACY OF THE GENERATED LOW-RESOLUTION CONTOURS!";
+                if (numIsos != 0 && numIsos != numVMATIsos)
+                {
+                    //VMAT only TBI plan was created with the script in this instance info or the user wants to only set the optimization constraints
+                    message += "\n\nFor the AP/PA Legs plan, be sure to change the orientation from head-first supine to feet-first supine!";
+                }
+                MessageBox.Show(message);
+                isModified = true;
+                optimizationSetupTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+                log.OptimizationConstraints = parsedOptimizationConstraints.Item1;
+            }
 
             //confirmUI CUI = new confirmUI();
             //CUI.message.Text = "Optimization objectives have been successfully set!" + Environment.NewLine + Environment.NewLine + "Save changes and launch optimization loop?";
@@ -1341,17 +1379,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //}
             //else
             //{
-            string message = "Optimization objectives have been successfully set!" + Environment.NewLine + Environment.NewLine + "Please review the generated structures, placed isocenters, placed beams, and optimization parameters!";
-            if (optParametersList.Where(x => x.Item1.ToLower().Contains("_lowres")).Any()) message += "\n\nBE SURE TO VERIFY THE ACCURACY OF THE GENERATED LOW-RESOLUTION CONTOURS!";
-            if (numIsos != 0 && numIsos != numVMATIsos)
-            {
-                //VMAT only TBI plan was created with the script in this instance info or the user wants to only set the optimization constraints
-                message += "\n\nFor the AP/PA Legs plan, be sure to change the orientation from head-first supine to feet-first supine!";
-            }
-            MessageBox.Show(message);
+
             //}
-            autoSave = true;
-            isModified = true;
         }
 
         private void AddOptimizationConstraint_Click(object sender, RoutedEventArgs e)
@@ -1366,7 +1395,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (theSP.Children.Count > 0)
             {
                 //stuff in the optimization UI. Parse it, and add a blank optimization constraint at the end
-                
                 //read list of current objectives
                 (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(theSP, false);
                 foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in parsedOptimizationConstraints.Item1)
@@ -1636,7 +1664,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     return;
                 }
                 ClearOptimizationConstraintsList(templateOptParams_sp);
-                //PopulateOptimizationTab(templateOptParams_sp, parsedOptimizationConstraints.Item1, false);
+                PopulateOptimizationTab(templateOptParams_sp, parsedOptimizationConstraints.Item1, false);
             }
         }
 
@@ -1714,6 +1742,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         }
         #endregion
 
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        #region Script Configuration
         //stuff related to script configuration
         private void LoadNewConfigFile_Click(object sender, RoutedEventArgs e)
         {
@@ -1951,54 +1981,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
             return false;
         }
+        #endregion
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            //be sure to close the patient before closing the application. Not doing so will result in unclosed timestamps in eclipse
-            //if (autoSave) { app.SaveModifications(); Process.Start(optLoopProcess); }
-            if (isModified)
-            {
-                if (autoSave)
-                {
-                    app.SaveModifications();
-                    log.AppendLogOutput("Modifications saved to database!");
-                    log.ChangesSaved = true;
-                }
-                else
-                {
-                    SaveChangesPrompt SCP = new SaveChangesPrompt();
-                    SCP.ShowDialog();
-                    if (SCP.GetSelection())
-                    {
-                        app.SaveModifications();
-                        log.AppendLogOutput("Modifications saved to database!");
-                        log.ChangesSaved = true;
-                    }
-                    else
-                    {
-                        log.AppendLogOutput("Modifications NOT saved to database!");
-                        log.ChangesSaved = false;
-                    }
-                }
-            }
-            else
-            {
-                log.AppendLogOutput("No modifications made to database objects!");
-                log.ChangesSaved = false;
-            }
-            log.User = String.Format("{0} ({1})", app.CurrentUser.Name, app.CurrentUser.Id);
-            if (app != null)
-            {
-                if (pi != null)
-                {
-                    app.ClosePatient();
-                    if (log.Dump())
-                    {
-                        MessageBox.Show("Error! Could not save log file!");
-                    }
-                }
-                app.Dispose();
-            }
+            AppClosingHelper.CloseApplication(app, pi != null, isModified, autoSave, log);
         }
 
         private void MainWindow_SizeChanged(object sender, RoutedEventArgs e)

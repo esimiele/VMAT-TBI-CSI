@@ -376,7 +376,7 @@
                                 <ScrollViewer x:Name="optParamScroller" Height="360" Width="570" Margin="5,10,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
                                     <StackPanel Name="optParametersSP" Margin="5"></StackPanel>
                                 </ScrollViewer>
-                                <Button Content="Set Optimization Constraints" FontWeight="Bold" Width="170" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,5,0,0" Click="SetOptConst_Click"></Button>
+                                <Button Content="Set Optimization Constraints" FontWeight="Bold" Width="190" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,5,0,0" Click="SetOptConst_Click"></Button>
                             </StackPanel>
                         </Border>
                     </TabItem>
@@ -521,8 +521,8 @@
                         <Border BorderBrush="Black" BorderThickness="1,0,0,0">
                             <StackPanel Name="configuration">
                                 <Label Content="Current Script Configuration Parameters" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
-                                <ScrollViewer x:Name ="configScroller" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="540" Height="400" Margin="5" BorderBrush="Black">
-                                    <TextBlock x:Name="configTB" FontSize="12" FontFamily="Courier New" Width="523" Background="White" TextWrapping="Wrap"></TextBlock>
+                                <ScrollViewer x:Name ="configScroller" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="565" Height="400" Margin="5" BorderBrush="Black">
+                                    <TextBlock x:Name="configTB" FontSize="12" FontFamily="Courier New" Width="550" Background="White" TextWrapping="Wrap"></TextBlock>
                                 </ScrollViewer>
                                 <Button x:Name="loadNewConfigFile" Content="Load new configuration file" Width="160" HorizontalAlignment="Center" Click="LoadNewConfigFile_Click"></Button>
                             </StackPanel>

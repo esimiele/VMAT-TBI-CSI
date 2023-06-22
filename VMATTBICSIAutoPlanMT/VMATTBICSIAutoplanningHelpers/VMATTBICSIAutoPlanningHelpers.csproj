@@ -68,6 +68,9 @@
     </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
+    <Reference Include="SimpleProgressWindow, Version=1.1.8563.29216, Culture=neutral, processorArchitecture=AMD64">
+      <HintPath>..\packages\SimpleProgressWindow.1.1.8563.29216\lib\net472\SimpleProgressWindow.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Buffers, Version=4.0.2.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Buffers.4.4.0\lib\netstandard2.0\System.Buffers.dll</HintPath>
@@ -117,6 +120,7 @@
     <Compile Include="BaseClasses\PlanPrepBase.cs" />
     <Compile Include="BaseClasses\AutoPlanTemplateBase.cs" />
     <Compile Include="Enums\AllEnums.cs" />
+    <Compile Include="Helpers\AppClosingHelper.cs" />
     <Compile Include="Helpers\CalculationHelper.cs" />
     <Compile Include="Helpers\FlashTypeHelper.cs" />
     <Compile Include="PlanTemplateClasses\TBIAutoPlanTemplate.cs" />
@@ -173,10 +177,6 @@
     <ProjectReference Include="..\OptimizationProgressWindow\OptimizationProgressWindow.csproj">
       <Project>{66caaa05-0903-43da-879a-9ef766f1b742}</Project>
       <Name>OptimizationProgressWindow</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\SimpleProgressWindow\SimpleProgressWindow.csproj">
-      <Project>{e7300c6c-2781-406e-a6be-ac949b893c99}</Project>
-      <Name>SimpleProgressWindow</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

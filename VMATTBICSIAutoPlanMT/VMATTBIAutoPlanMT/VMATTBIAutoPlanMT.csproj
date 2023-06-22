@@ -35,6 +35,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="SimpleProgressWindow, Version=1.1.8563.29216, Culture=neutral, processorArchitecture=AMD64">
+      <HintPath>..\packages\SimpleProgressWindow.1.1.8563.29216\lib\net472\SimpleProgressWindow.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
@@ -99,6 +102,7 @@
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <None Include="Configuration\VMAT_TBI_config.ini" />
+    <None Include="packages.config" />
     <None Include="PlanTemplates\TBI_SclerodermaTrial.ini" />
     <None Include="PlanTemplates\TBI_NonMyeloablative.ini" />
     <None Include="PlanTemplates\TBI_Myeloablative.ini" />
@@ -111,14 +115,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ESAPIThreadWorker\ESAPIThreadWorker.csproj">
-      <Project>{0aad3c94-288a-4872-baa2-6564ece0d980}</Project>
-      <Name>ESAPIThreadWorker</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\SimpleProgressWindow\SimpleProgressWindow.csproj">
-      <Project>{e7300c6c-2781-406e-a6be-ac949b893c99}</Project>
-      <Name>SimpleProgressWindow</Name>
-    </ProjectReference>
     <ProjectReference Include="..\VMATTBICSIAutoplanningHelpers\VMATTBICSIAutoPlanningHelpers.csproj">
       <Project>{b3fbf7b5-9e18-43ba-b40f-144682a3956e}</Project>
       <Name>VMATTBICSIAutoPlanningHelpers</Name>

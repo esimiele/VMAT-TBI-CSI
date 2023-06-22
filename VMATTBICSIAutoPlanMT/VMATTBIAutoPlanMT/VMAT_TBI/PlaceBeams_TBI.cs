@@ -80,7 +80,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     if (SetAPPABeams(isoLocations.Last())) return true;
                 }
                 UpdateUILabel("Finished!");
-                ProvideUIUpdate(100,$"Elapsed time: {GetElapsedTime()}");
                 return false;
             }
             catch (Exception e)
@@ -110,7 +109,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private bool CreateAPPAPlan()
         {
             UpdateUILabel("Creating AP/PA plan: ");
-            //6-10-2020 EAS, checked if exisiting _Legs plan is present in createPlan method
             int percentComplete = 0;
             int calcItems = 4;
             legsPlan = theCourse.AddExternalPlanSetup(selectedSS);
@@ -144,9 +142,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (CP.GetSelection())
                 {
                     isoSeparation = 380.0;
-                    //if (isoSeparationSup > 380.0 && isoSeparationInf > 380.0) isoSeparationSup = isoSeparationInf = 380.0;
-                    //else if (isoSeparationSup > 380.0) isoSeparationSup = 380.0;
-                    //else isoSeparationInf = 380.0;
                 }
             }
 
@@ -214,9 +209,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         protected override List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> GetIsocenterPositions()
         {
-            //List<Tuple<ExternalPlanSetup, List<VVector>>> allIsocenters = new List<Tuple<ExternalPlanSetup, List<VVector>>> { };
             List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> allIsocenters = new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
-            //List<VVector> iso = new List<VVector> { };
             List<Tuple<VVector, string, int>> tmp = new List<Tuple<VVector, string, int>> { };
 
             Image image = selectedSS.Image;
