@@ -8,6 +8,8 @@ using VMATTBICSIAutoPlanningHelpers.Helpers;
 using VMATTBICSIAutoPlanningHelpers.UIHelpers;
 using VMATTBICSIAutoPlanningHelpers.Structs;
 using VMATTBICSIAutoPlanningHelpers.Enums;
+using VMATTBICSIAutoPlanningHelpers.Prompts;
+
 
 namespace VMATTBICSIOptLoopMT.VMAT_TBI
 {
@@ -17,6 +19,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
         {
             _data = _d;
             InitializeLogPathAndName();
+            CalculateNumberOfItemsToComplete();
         }
 
         public override bool Run()
@@ -48,7 +51,11 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                 if (RunOptimizationLoop(_data.plans)) return true;
                 OptimizationLoopFinished();
             }
-            catch (Exception e) { ProvideUIUpdate(String.Format("{0}", e.Message), true); return true; }
+            catch (Exception e) 
+            { 
+                ProvideUIUpdate($"{e.Message}", true); 
+                return true; 
+            }
             return false;
         }
 
@@ -61,6 +68,49 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             if (_data.oneMoreOpt) optLoopItems += 3;
             overallCalcItems += optLoopItems;
         }
+
+        #region preliminary checks specific to TBI
+        private bool PreliminaryChecksSpinningManny(StructureSet ss)
+        {
+            int percentComplete = 0;
+            int calcItems = 3;
+
+            Structure spinningManny = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinmannysurface" || x.Id.ToLower() == "couchmannysurfac");
+            if (spinningManny == null) ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Spinning Manny structure not found"));
+            else ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Retrieved Spinning Manny structure"));
+
+            Structure matchline = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "matchline");
+            if (matchline == null) ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Matchline structure not found"));
+            else ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Retrieved Matchline structure"));
+
+            //check if there is a matchline contour. If so, is it empty?
+            if (matchline != null && !matchline.IsEmpty)
+            {
+                //if a matchline contour is present and filled, does the spinning manny couch exist in the structure set? 
+                //If not, let the user know so they can decide if they want to continue of stop the optimization loop
+                if (spinningManny == null || spinningManny.IsEmpty)
+                {
+                    ConfirmPrompt CP = new ConfirmPrompt(String.Format("I found a matchline, but no spinning manny couch or it's empty!") + Environment.NewLine + Environment.NewLine + "Continue?!");
+                    CP.ShowDialog();
+                    if (!CP.GetSelection())
+                    {
+                        KillOptimizationLoop();
+                        return true;
+                    }
+                }
+            }
+
+            if ((spinningManny != null && !spinningManny.IsEmpty))
+            {
+                if (spinningManny.GetContoursOnImagePlane(0).Any() || spinningManny.GetContoursOnImagePlane(ss.Image.ZSize - 1).Any()) _checkSupportStructures = true;
+                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Checking if Spinningy Manny structure is on first or last slices of image", _checkSupportStructures));
+            }
+            else ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("No Spinning Manny structure present --> nothing to check"));
+
+            UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
+            return false;
+        }
+        #endregion
 
         #region coverage check
         private bool RunCoverageCheck(ExternalPlanSetup plan, double relativeDose, double targetVolCoverage, bool useFlash)
@@ -107,7 +157,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), " Plan normalized!");
 
             //print useful info about target coverage and global dmax
-            ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, plan));
+            ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, plan, _data.normalizationVolumes));
 
             //calculate global Dmax expressed as a percent of the prescription dose (if dose has been calculated)
             if (plan.IsDoseValid && ((plan.Dose.DoseMax3D.Dose / plan.TotalDose.Dose) > 1.40))
@@ -169,7 +219,8 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                     CalculateDose(_data.isDemo, itr, _data.app);
                     ProvideUIUpdate((int)(100 * (++overallPercentCompletion) / overallCalcItems), " Dose calculated, normalizing plan!");
                     ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
-                    NormalizePlan(itr, TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, OptimizationLoopHelper.GetNormaliztionVolumeIdForPlan(itr.Id, _data.normalizationVolumes), false, _data.planType), _data.relativeDose, _data.targetVolCoverage);
+                    //force the plan to normalize to TS_PTV_VMAT after removing flash
+                    NormalizePlan(itr, TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, "", false, _data.planType), _data.relativeDose, _data.targetVolCoverage);
                     ProvideUIUpdate((int)(100 * (++overallPercentCompletion) / overallCalcItems), " Plan normalized!");
                 }
             }

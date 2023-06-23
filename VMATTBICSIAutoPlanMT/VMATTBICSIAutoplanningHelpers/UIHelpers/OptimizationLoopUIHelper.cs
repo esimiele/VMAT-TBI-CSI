@@ -6,6 +6,7 @@ using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
+using VMATTBICSIAutoPlanningHelpers.Helpers;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
@@ -74,11 +75,9 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sb.ToString();
         }
 
-        public static string PrintAdditionalPlanDoseInfo(List<Tuple<string, string, double, string>> requestedInfo, ExternalPlanSetup plan)
+        public static string PrintAdditionalPlanDoseInfo(List<Tuple<string, string, double, string>> requestedInfo, ExternalPlanSetup plan, List<Tuple<string, string>> normalizationVolumes)
         {
             StringBuilder sb = new StringBuilder();
-            Structure structure;
-            List<Structure> planStructures = plan.StructureSet.Structures.ToList();
 
             sb.AppendLine(Environment.NewLine + $"Additional infomation for plan: {plan.Id}");
             foreach (Tuple<string, string, double, string> itr in requestedInfo)
@@ -90,7 +89,13 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 }
                 else
                 {
-                    structure = planStructures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), itr.Item1.ToLower()));
+                    string structureId = "";
+                    if (itr.Item1.Contains("<target>"))
+                    {
+                        structureId = OptimizationLoopHelper.GetNormaliztionVolumeIdForPlan(plan.Id, normalizationVolumes);
+                    }
+                    else structureId = itr.Item1;
+                    Structure structure = StructureTuningHelper.GetStructureFromId(structureId, plan.StructureSet);
                     if (structure != null)
                     {
                         if (itr.Item2.Contains("max") || itr.Item2.Contains("min"))
@@ -142,7 +147,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             foreach (Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>> itr in requestedTSstructures)
             {
                 sb.Append(String.Format("{0, -16} | {1, -9:N1} | {2,-10:N1} | {3,-5:N1} | {4,-8} |", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5));
-                if (!itr.Item6.Any()) sb.Append(String.Format("{0,-10} |", "none"));
+                if (!itr.Item6.Any()) sb.AppendLine(String.Format(" {0,-10} |", "none"));
                 else
                 {
                     int index = 0;

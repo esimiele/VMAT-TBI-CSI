@@ -300,21 +300,21 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         //target structure
         public static Structure GetTargetStructureForPlanType(StructureSet ss, string targetId, bool useFlash, PlanType type)
         {
-            Structure target = null;
+            Structure target;
             if (string.IsNullOrEmpty(targetId))
             {
                 //case where no targetId is supplied --> use default target for all plans
                 if(type == PlanType.VMAT_TBI)
                 {
                     //flash should only be present for vmat tbi plans
-                    if (useFlash) target = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_flash");
-                    else target = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_vmat");
+                    if (useFlash) target = StructureTuningHelper.GetStructureFromId("ts_ptv_flash", ss); 
+                    else target = StructureTuningHelper.GetStructureFromId("ts_ptv_vmat", ss); 
                 }
-                else target = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_csi");
+                else target = StructureTuningHelper.GetStructureFromId("ts_ptv_csi", ss);
             }
             else
             {
-                target = ss.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), targetId.ToLower()));
+                target = StructureTuningHelper.GetStructureFromId(targetId, ss);
             }
             return target;
         }

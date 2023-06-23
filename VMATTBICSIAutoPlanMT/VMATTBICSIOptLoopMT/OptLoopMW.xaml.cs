@@ -471,10 +471,6 @@ namespace VMATTBICSIOptLoopMT
                 initNormVolume.Text = normalizationVolumes.First().Item2;
                 if(normalizationVolumes.Count > 1) bstNormVolume.Text = normalizationVolumes.Last().Item2;
             }
-            else
-            {
-                initNormVolume.Text = GetPlanTargetId();
-            }
         }
 
         private void PopulateOptimizationTab(StackPanel theSP)
@@ -614,9 +610,6 @@ namespace VMATTBICSIOptLoopMT
             //does the user want to copy and save each plan after it's optimized (so the user can choose between the various plans)?
             copyAndSavePlanItr = copyAndSave.IsChecked.Value;
 
-            //construct the actual plan objective array
-            planDoseInfo = new List<Tuple<string, string, double, string>>(ConstructPlanDoseInfo());
-
             //create a new instance of the structure dataContainer and assign the optimization loop parameters entered by the user to the various data members
             OptDataContainer data = new OptDataContainer();
             data.Construct(plans, 
@@ -646,25 +639,6 @@ namespace VMATTBICSIOptLoopMT
             optLoop.Execute();
         }
 
-        private List<Tuple<string,string,double,string>> ConstructPlanDoseInfo()
-        {
-            List<Tuple<string, string, double, string>> tmp = new List<Tuple<string, string, double, string>> { };
-
-            foreach(Tuple<string,string,double,string> itr in planDoseInfo)
-            {
-                if (string.Equals(itr.Item1, "<targetId>"))
-                {
-                    tmp.Add(Tuple.Create(GetPlanTargetId(), itr.Item2, itr.Item3, itr.Item4));
-                }
-                else
-                {
-                    tmp.Add(Tuple.Create(itr.Item1, itr.Item2, itr.Item3, itr.Item4));
-                }
-            }
-            return tmp;
-        }
-           
-
         private List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> ConstructPlanObjectives(List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> obj)
         {
             List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> tmp = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> { };
@@ -686,13 +660,6 @@ namespace VMATTBICSIOptLoopMT
                 }
             }
             return tmp;
-        }
-
-        private string GetPlanTargetId()
-        {
-            //if(useFlash) planObj.Add(Tuple.Create("TS_PTV_FLASH", obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
-            //else planObj.Add(Tuple.Create("TS_PTV_VMAT", obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
-            return TargetsHelper.GetTargetStructureForPlanType(selectedSS, "", useFlash, planType).Id;
         }
         #endregion
 
@@ -837,7 +804,9 @@ namespace VMATTBICSIOptLoopMT
             {
                 foreach (string itr in Directory.GetFiles(path, "*.ini", option).OrderBy(x => x))
                 {
-                    PlanTemplates.Add(ConfigurationHelper.ReadCSITemplatePlan(itr, count++));
+                    if(type == PlanType.VMAT_CSI) PlanTemplates.Add(ConfigurationHelper.ReadCSITemplatePlan(itr, count++));
+                    else PlanTemplates.Add(ConfigurationHelper.ReadTBITemplatePlan(itr, count++));
+
                 }
             }
             catch(Exception e)
@@ -890,7 +859,7 @@ namespace VMATTBICSIOptLoopMT
                                     planUIDs.Add(line);
                                 }
                             }
-                            else if (line.Contains("TS targets:"))
+                            else if (line.Contains("TS Targets:"))
                             {
                                 while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {

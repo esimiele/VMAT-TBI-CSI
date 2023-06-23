@@ -36,6 +36,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //user wants to contour the overlap between fields in adjacent VMAT isocenters
             contourOverlap = overlap;
             contourOverlapMargin = overlapMargin;
+            SetCloseOnFinish(true, 500);
         }
 
         //to handle system access exception violation
@@ -46,6 +47,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 if (CheckExistingCourse()) return true;
                 if (CheckExistingPlans()) return true;
+                if(CheckTSArmsAvoid())
+                {
+                    if (ExtendBodyContour()) return true;
+                }
                 if (CreateVMATPlans()) return true;
                 //plan, List<isocenter position, isocenter name, number of beams per isocenter>
                 List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> isoLocations = GetIsocenterPositions();
@@ -58,6 +63,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     if (contourOverlap && itr.Item2.Count > 1) if (ContourFieldOverlap(itr, isoCount)) return true;
                     isoCount += itr.Item2.Count;
                 }
+                if(CheckTSArmsAvoid())
+                {
+                    if (CropBodyFromArmsAvoid()) return true;
+                }
                 UpdateUILabel("Finished!");
                 return false;
             }
@@ -67,6 +76,73 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 stackTraceError = e.StackTrace;
                 return true;
             }
+        }
+
+        private bool CheckTSArmsAvoid()
+        {
+            return StructureTuningHelper.DoesStructureExistInSS("TS_ArmsAvoid", selectedSS, true);
+        }
+
+        private bool ExtendBodyContour()
+        {
+            int percentComplete = 0;
+            int calcItems = 4;
+
+            Structure body = StructureTuningHelper.GetStructureFromId("body", selectedSS);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved body structure: {body.Id}");
+            if (selectedSS.CanAddStructure("CONTROL", "human_body"))
+            {
+                Structure bodyCopy = selectedSS.AddStructure("CONTROL", "human_body");
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Created structure: {bodyCopy.Id}");
+                bodyCopy.SegmentVolume = body.Margin(0.0);
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Copied body structure onto {bodyCopy.Id}");
+            }
+            else
+            {
+                ProvideUIUpdate($"Error! Could not add human_body structure to compensate for TS_ArmsAvoid! Exiting!", true);
+                return true;
+            }
+
+            (bool unionFail, StringBuilder unionMessage) = ContourHelper.ContourUnion(StructureTuningHelper.GetStructureFromId("TS_ArmsAvoid", selectedSS),
+                                                                                      body,
+                                                                                      0.0);
+            if (unionFail)
+            {
+                ProvideUIUpdate(unionMessage.ToString(), true);
+                return true;
+            }
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contour union betwen between TS_ArmsAvoid and body onto body");
+            return false;
+        }
+
+        private bool CropBodyFromArmsAvoid()
+        {
+            int percentComplete = 0;
+            int calcItems = 4;
+            Structure bodyCopy = StructureTuningHelper.GetStructureFromId("human_body", selectedSS);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved body copy structure: {bodyCopy.Id}");
+            Structure body = StructureTuningHelper.GetStructureFromId("body", selectedSS);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved body structure: {body.Id}");
+
+            (bool failCopyTarget, StringBuilder copyErrorMessage) = ContourHelper.CopyStructureOntoStructure(bodyCopy, body);
+            if (failCopyTarget)
+            {
+                ProvideUIUpdate(copyErrorMessage.ToString(), true);
+                return true;
+            }
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Copied structure {bodyCopy.Id} onto {body.Id}");
+
+            if(selectedSS.CanRemoveStructure(bodyCopy))
+            {
+                selectedSS.RemoveStructure(bodyCopy);
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Removed {bodyCopy.Id} from structure set");
+            }
+            else
+            {
+                ProvideUIUpdate($"Error! Could not remove {bodyCopy.Id} structure! Exiting!", true);
+                return true;
+            }
+            return false;
         }
 
         private (bool, double) GetBrainZCenter(ref int counter, ref int calcItems)

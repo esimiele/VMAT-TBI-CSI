@@ -49,6 +49,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             useFlash = flash;
             flashStructure = fSt;
             flashMargin = fM;
+            SetCloseOnFinish(true, 500);
         }
 
         [HandleProcessCorruptedStateExceptions]
@@ -518,7 +519,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (ContourBolus(bolusFlash)) return true;
             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contoured bolus structure: {bolusFlash.Id}");
 
-
+            //get body structure
             Structure body = StructureTuningHelper.GetStructureFromId("body", selectedSS);
             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved body structure: {body.Id}");
 

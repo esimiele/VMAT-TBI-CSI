@@ -34,7 +34,16 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         private string _writeLocation;
         private string _patID;
 
-        public CTImageExport(VMS.TPS.Common.Model.API.Image img, string imgWriteLocation, string patientID, string exportFormat = "png", string DCMTK_BIN_PATH = @"N:\RadiationTherapy\Public\CancerCTR\RSPD\v36\bin", string AET = @"DCMTK", string AEC = @"VMSDBD", string AEM = @"VMSFD", string IP_PORT = @" 10.151.176.60 51402", string CMD_FILE_FMT = @"move-{1}-{2}.cmd") 
+        public CTImageExport(VMS.TPS.Common.Model.API.Image img, 
+                             string imgWriteLocation, 
+                             string patientID, 
+                             string exportFormat = "png", 
+                             string DCMTK_BIN_PATH = @"N:\RadiationTherapy\Public\CancerCTR\RSPD\v36\bin", 
+                             string AET = @"DCMTK", 
+                             string AEC = @"VMSDBD", 
+                             string AEM = @"VMSFD", 
+                             string IP_PORT = @" 10.151.176.60 51402", 
+                             string CMD_FILE_FMT = @"move-{1}-{2}.cmd") 
         {
             _DCMTK_BIN_PATH = DCMTK_BIN_PATH;
             _AET = AET;
