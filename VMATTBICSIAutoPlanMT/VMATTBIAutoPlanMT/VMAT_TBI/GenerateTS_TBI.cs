@@ -49,7 +49,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             useFlash = flash;
             flashStructure = fSt;
             flashMargin = fM;
-            SetCloseOnFinish(true, 500);
+            SetCloseOnFinish(true, 1000);
         }
 
         [HandleProcessCorruptedStateExceptions]

@@ -46,7 +46,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(presc);
             selectedSS = ss;
             cropAndOverlapStructures = new List<string>(cropStructs);
-            SetCloseOnFinish(true, 500);
+            SetCloseOnFinish(true, 1000);
         }
 
         #region Run Control

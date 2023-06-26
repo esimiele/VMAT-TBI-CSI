@@ -36,7 +36,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //user wants to contour the overlap between fields in adjacent VMAT isocenters
             contourOverlap = overlap;
             contourOverlapMargin = overlapMargin;
-            SetCloseOnFinish(true, 500);
+            SetCloseOnFinish(true, 1000);
         }
 
         //to handle system access exception violation
