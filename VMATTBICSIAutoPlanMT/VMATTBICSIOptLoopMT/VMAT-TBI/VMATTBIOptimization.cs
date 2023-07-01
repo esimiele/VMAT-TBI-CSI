@@ -186,14 +186,14 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
 
         private bool RemoveFlashAndRecalc(List<ExternalPlanSetup> plans)
         {
-            ProvideUIUpdate((int)(100 * (++overallPercentCompletion) / overallCalcItems), String.Format(Environment.NewLine + " Removing flash, recalculating dose, and renormalizing to TS_PTV_VMAT!"));
-            ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
+            ProvideUIUpdate((int)(100 * (++overallPercentCompletion) / overallCalcItems), String.Format(Environment.NewLine + "Removing flash, recalculating dose, and renormalizing to TS_PTV_VMAT!"));
+            ProvideUIUpdate(String.Format("Elapsed time: {0}", GetElapsedTime()));
 
             Structure bolus = _data.selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "bolus_flash");
             if (bolus == null)
             {
                 //no structure named bolus_flash found. This is a problem. 
-                ProvideUIUpdate(" No structure named 'BOLUS_FLASH' found in structure set! Exiting!", true);
+                ProvideUIUpdate("No structure named 'BOLUS_FLASH' found in structure set! Exiting!", true);
                 return true;
             }
             else
@@ -217,11 +217,18 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                 foreach (ExternalPlanSetup itr in plansWithCalcDose)
                 {
                     CalculateDose(_data.isDemo, itr, _data.app);
-                    ProvideUIUpdate((int)(100 * (++overallPercentCompletion) / overallCalcItems), " Dose calculated, normalizing plan!");
-                    ProvideUIUpdate(String.Format(" Elapsed time: {0}", GetElapsedTime()));
-                    //force the plan to normalize to TS_PTV_VMAT after removing flash
-                    NormalizePlan(itr, TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, "", false, _data.planType), _data.relativeDose, _data.targetVolCoverage);
-                    ProvideUIUpdate((int)(100 * (++overallPercentCompletion) / overallCalcItems), " Plan normalized!");
+                    ProvideUIUpdate((int)(100 * (++overallPercentCompletion) / overallCalcItems), "Dose calculated, normalizing plan!");
+                    ProvideUIUpdate(String.Format("Elapsed time: {0}", GetElapsedTime()));
+                    if(plans.Any(x => x == itr))
+                    {
+                        //force the plan to normalize to TS_PTV_VMAT after removing flash
+                        NormalizePlan(itr, TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, "", false, _data.planType), _data.relativeDose, _data.targetVolCoverage);
+                        ProvideUIUpdate((int)(100 * (++overallPercentCompletion) / overallCalcItems), "Plan normalized!");
+                    }
+                    else
+                    {
+                        ProvideUIUpdate((int)(100 * (++overallPercentCompletion) / overallCalcItems), $"Plan: {itr.Id} is not contained in the plan list! Skipping normalization!");
+                    }
                 }
             }
             return false;
