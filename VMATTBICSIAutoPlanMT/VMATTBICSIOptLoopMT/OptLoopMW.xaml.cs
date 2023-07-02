@@ -74,8 +74,8 @@ namespace VMATTBICSIOptLoopMT
         bool useFlash = false;
         bool logFileLoaded = false;
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
-        public ObservableCollection<CSIAutoPlanTemplate> PlanTemplates { get; set; }
-        public CSIAutoPlanTemplate selectedTemplate;
+        public ObservableCollection<AutoPlanTemplateBase> PlanTemplates { get; set; }
+        public AutoPlanTemplateBase selectedTemplate;
         string selectedTemplateName = "";
         //to be read from the plan prep log files
         PlanType planType;
@@ -84,6 +84,8 @@ namespace VMATTBICSIOptLoopMT
         List<Tuple<string, string, int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
         //plan id, volume id
         List<Tuple<string, string>> normalizationVolumes = new List<Tuple<string, string>> { };
+        //list<original target id, ts target id>
+        private List<Tuple<string, string>> tsTargets = new List<Tuple<string, string>> { };
 
         public OptLoopMW(string[] args)
         {
@@ -99,7 +101,7 @@ namespace VMATTBICSIOptLoopMT
             string logConfigurationFile = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini";
             if (File.Exists(logConfigurationFile)) LoadConfigurationSettings(logConfigurationFile);
 
-            PlanTemplates = new ObservableCollection<CSIAutoPlanTemplate>() { new CSIAutoPlanTemplate("--select--") };
+            PlanTemplates = new ObservableCollection<AutoPlanTemplateBase>() { };
             DataContext = this;
             if(app != null)
             {
@@ -328,7 +330,7 @@ namespace VMATTBICSIOptLoopMT
         private void Templates_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (pi == null) return;
-            selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
+            selectedTemplate = templateList.SelectedItem as AutoPlanTemplateBase;
             if (selectedTemplate == null) return;
             UpdateSelectedTemplate();
         }
@@ -469,10 +471,6 @@ namespace VMATTBICSIOptLoopMT
                 initNormVolume.Text = normalizationVolumes.First().Item2;
                 if(normalizationVolumes.Count > 1) bstNormVolume.Text = normalizationVolumes.Last().Item2;
             }
-            else
-            {
-                initNormVolume.Text = GetPlanTargetId();
-            }
         }
 
         private void PopulateOptimizationTab(StackPanel theSP)
@@ -612,9 +610,6 @@ namespace VMATTBICSIOptLoopMT
             //does the user want to copy and save each plan after it's optimized (so the user can choose between the various plans)?
             copyAndSavePlanItr = copyAndSave.IsChecked.Value;
 
-            //construct the actual plan objective array
-            planDoseInfo = new List<Tuple<string, string, double, string>>(ConstructPlanDoseInfo());
-
             //create a new instance of the structure dataContainer and assign the optimization loop parameters entered by the user to the various data members
             OptDataContainer data = new OptDataContainer();
             data.Construct(plans, 
@@ -644,25 +639,6 @@ namespace VMATTBICSIOptLoopMT
             optLoop.Execute();
         }
 
-        private List<Tuple<string,string,double,string>> ConstructPlanDoseInfo()
-        {
-            List<Tuple<string, string, double, string>> tmp = new List<Tuple<string, string, double, string>> { };
-
-            foreach(Tuple<string,string,double,string> itr in planDoseInfo)
-            {
-                if (string.Equals(itr.Item1, "<targetId>"))
-                {
-                    tmp.Add(Tuple.Create(GetPlanTargetId(), itr.Item2, itr.Item3, itr.Item4));
-                }
-                else
-                {
-                    tmp.Add(Tuple.Create(itr.Item1, itr.Item2, itr.Item3, itr.Item4));
-                }
-            }
-            return tmp;
-        }
-           
-
         private List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> ConstructPlanObjectives(List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> obj)
         {
             List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> tmp = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> { };
@@ -670,24 +646,20 @@ namespace VMATTBICSIOptLoopMT
             {
                 foreach (Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation> itr in obj)
                 {
-                    if (string.Equals(itr.Item1, "<targetId>"))
+                    string volume = itr.Item1;
+                    if (tsTargets.Any(x => string.Equals(x.Item1, itr.Item1)))
                     {
-                        tmp.Add(Tuple.Create(GetPlanTargetId(), itr.Item2, itr.Item3, itr.Item4, itr.Item5));
+                        //volume is a target and has a corresponding ts target
+                        //update volume if with ts target id
+                        volume = tsTargets.First(x => string.Equals(x.Item1, itr.Item1)).Item2;
                     }
-                    else
+                    if (StructureTuningHelper.DoesStructureExistInSS(volume, selectedSS, true))
                     {
-                        if (selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), itr.Item1.ToLower()) && !x.IsEmpty)) tmp.Add(Tuple.Create(itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5));
+                        tmp.Add(Tuple.Create(volume, itr.Item2, itr.Item3, itr.Item4, itr.Item5));
                     }
                 }
             }
             return tmp;
-        }
-
-        private string GetPlanTargetId()
-        {
-            //if(useFlash) planObj.Add(Tuple.Create("TS_PTV_FLASH", obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
-            //else planObj.Add(Tuple.Create("TS_PTV_VMAT", obj.Item2, obj.Item3, obj.Item4, obj.Item5)); 
-            return TargetsHelper.GetTargetStructureForPlanType(selectedSS, "", useFlash, planType).Id;
         }
         #endregion
 
@@ -832,7 +804,9 @@ namespace VMATTBICSIOptLoopMT
             {
                 foreach (string itr in Directory.GetFiles(path, "*.ini", option).OrderBy(x => x))
                 {
-                    PlanTemplates.Add(ConfigurationHelper.ReadTemplatePlan(itr, count++));
+                    if(type == PlanType.VMAT_CSI) PlanTemplates.Add(ConfigurationHelper.ReadCSITemplatePlan(itr, count++));
+                    else PlanTemplates.Add(ConfigurationHelper.ReadTBITemplatePlan(itr, count++));
+
                 }
             }
             catch(Exception e)
@@ -875,7 +849,7 @@ namespace VMATTBICSIOptLoopMT
                             {
                                 while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {
-                                    prescriptions.Add(ConfigurationHelper.ParsePrescriptionsFromLogFile(line));
+                                    prescriptions.Add(LogHelper.ParsePrescriptionsFromLogFile(line));
                                 }
                             }
                             else if (line.Contains("Plan UIDs:"))
@@ -885,11 +859,18 @@ namespace VMATTBICSIOptLoopMT
                                     planUIDs.Add(line);
                                 }
                             }
+                            else if (line.Contains("TS Targets:"))
+                            {
+                                while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
+                                {
+                                    tsTargets.Add(LogHelper.ParseKeyValuePairFromLogFile(line));
+                                }
+                            }
                             else if (line.Contains("Normalization volumes:"))
                             {
                                 while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {
-                                    normalizationVolumes.Add(ConfigurationHelper.ParseNormalizationVolumeFromLogFile(line));
+                                    normalizationVolumes.Add(LogHelper.ParseKeyValuePairFromLogFile(line));
                                 }
                             }
                             else if (line.Contains("Optimization constraints:"))

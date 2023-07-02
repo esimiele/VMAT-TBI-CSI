@@ -60,8 +60,8 @@ namespace VMATTBICSIOptLoopMT.Prompts
                     {
                         if (Directory.GetFiles(itr, ".", SearchOption.TopDirectoryOnly).Any())
                         {
-                            string TBILogFile = Directory.GetFiles(itr, ".txt", SearchOption.TopDirectoryOnly).First();
-                            PatientMRNsTBI.Add(itr.Substring(TBILogFile.LastIndexOf("\\") + 1, TBILogFile.Length - TBILogFile.LastIndexOf("\\") - 1 - 4));
+                            string TBILogFile = Directory.GetFiles(itr, ".", SearchOption.TopDirectoryOnly).First();
+                            PatientMRNsTBI.Add(TBILogFile.Substring(TBILogFile.LastIndexOf("\\") + 1, TBILogFile.Length - TBILogFile.LastIndexOf("\\") - 1 - 4));
                         }
                     }
                 }

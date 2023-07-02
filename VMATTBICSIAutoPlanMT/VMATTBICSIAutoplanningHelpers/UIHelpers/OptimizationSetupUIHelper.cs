@@ -37,6 +37,29 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return defaultList;
         }
 
+        public static List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> InsertTSJnxOptConstraints(List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> list, 
+                                                                                                                                   List<Tuple<ExternalPlanSetup,List<Structure>>> jnxs,
+                                                                                                                                   List<Tuple<string,string,int,DoseValue,double>> prescriptions)
+        {
+            //we want to insert the optimization constraints for these junction structure right after the ptv constraints, so find the last index of the target ptv structure and insert
+            //the junction structure constraints directly after the target structure constraints
+            foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in list)
+            {
+                if (jnxs.Any(x => string.Equals(x.Item1.Id.ToLower(), itr.Item1.ToLower())))
+                {
+                    int index = itr.Item2.FindLastIndex(x => x.Item1.ToLower().Contains("ptv") || x.Item1.ToLower().Contains("ts_overlap"));
+                    double rxDose = TargetsHelper.GetHighestRxForPlan(prescriptions, itr.Item1);
+                    foreach (Structure itr1 in jnxs.First(x => string.Equals(x.Item1.Id.ToLower(), itr.Item1.ToLower())).Item2)
+                    {
+                        //per Nataliya's instructions, add both a lower and upper constraint to the junction volumes. Make the constraints match those of the ptv target
+                        itr.Item2.Insert(++index, new Tuple<string, OptimizationObjectiveType, double, double, int>(itr1.Id, OptimizationObjectiveType.Lower, rxDose, 100.0, 100));
+                        itr.Item2.Insert(++index, new Tuple<string, OptimizationObjectiveType, double, double, int>(itr1.Id, OptimizationObjectiveType.Upper, rxDose * 1.01, 0.0, 100));
+                    }
+                }
+            }
+            return list;
+        }
+
         public static bool RemoveOptimizationConstraintsFromPLan(ExternalPlanSetup plan)
         {
             if (plan.OptimizationSetup.Objectives.Count() > 0)

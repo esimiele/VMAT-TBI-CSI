@@ -21,14 +21,14 @@ namespace VMS.TPS
                     bool addOptLaunchOption = false;
                     bool isCSIPlan = false;
                     ExternalPlanSetup plan = context.ExternalPlanSetup;
-                    if (plan != null && (plan.Id.ToLower() == "_vmat tbi" || plan.Id.ToLower() == "_vmat csi") && !plan.IsDoseValid)
+                    if (plan != null && (plan.Id.ToLower().Contains("tbi") || plan.Id.ToLower().Contains("csi") && !plan.IsDoseValid))
                     {
                         addOptLaunchOption = true;
                         if (plan.Id.ToLower().Contains("csi")) isCSIPlan = true;
                     }
                     else
                     {
-                        List<Course> courses = context.Patient.Courses.Where(x => x.Id.ToLower().Contains("vmat tbi") || x.Id.ToLower().Contains("vmat csi")).ToList();
+                        List<Course> courses = context.Patient.Courses.Where(x => x.Id.ToLower().Contains("tbi") || x.Id.ToLower().Contains("csi")).ToList();
                         if (courses.Any())
                         {
                             foreach (Course c in courses)

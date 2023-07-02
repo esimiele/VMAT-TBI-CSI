@@ -6,7 +6,6 @@ using System.Windows.Threading;
 using System.Diagnostics;
 using System.IO;
 using System.Windows.Forms;
-using ESAPIThreadWorker;
 
 namespace OptimizationProgressWindow
 {

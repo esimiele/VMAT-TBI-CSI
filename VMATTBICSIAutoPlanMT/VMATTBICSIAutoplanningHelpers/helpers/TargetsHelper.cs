@@ -12,24 +12,38 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public static class TargetsHelper
     {
-        public static (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) GetPrescriptions(List<Tuple<string, double, string>> targets, string initDosePerFxText, string initNumFxText, string initRxText, string boostDosePerFxText, string boostNumFxText)
+        public static (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) GetPrescriptions(List<Tuple<string, double, string>> targets, string initDosePerFxText, string initNumFxText, string initRxText, string boostDosePerFxText = "", string boostNumFxText = "", string boostRxText = "")
         {
             StringBuilder sb = new StringBuilder();
             List<Tuple<string, string, int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
-            string targetid = "";
-            double rx = 0.0;
-            string pid = "";
-            int numPlans = 0;
             double dose_perFx = 0.0;
             int numFractions = 0;
-
-            foreach (Tuple<string, double, string> itr in targets)
+            double boostRxDose = 0.0;
+            if(string.IsNullOrEmpty(initRxText) || !double.TryParse(initRxText, out double initRxDose))
             {
-                if (itr.Item3 != pid) numPlans++;
-                pid = itr.Item3;
-                rx = itr.Item2;
-                targetid = itr.Item1;
-                if (rx == double.Parse(initRxText))
+                sb.AppendLine("Error! Initial Plan Rx dose is either empty or could not be parsed! Exiting!");
+                return (prescriptions, sb);
+            }
+            if (!string.IsNullOrEmpty(boostRxText) && !double.TryParse(boostRxText, out boostRxDose))
+            {
+                sb.AppendLine("Error! Boost Plan Rx dose is not empty or could not be parsed! Exiting!");
+                return (prescriptions, sb);
+            }
+
+            List<Tuple<string, List<Tuple<string, double>>>> orderedList = GetPlanTargetRxDoseList(targets);
+            (bool fail, StringBuilder errorMessage) = VerifyRequestedTargetIntegrity(orderedList, initRxDose, boostRxDose);
+            if(fail)
+            {
+                return (prescriptions, errorMessage);
+            }
+
+            double priorRxDoses = 0.0;
+            double rx;
+            foreach (Tuple<string, List<Tuple<string, double>>> itr in orderedList)
+            {
+                Tuple<string, double> highestRxTgtForPlan = itr.Item2.Last();
+                rx = highestRxTgtForPlan.Item2 - priorRxDoses;
+                if (rx == initRxDose)
                 {
                     if (!double.TryParse(initDosePerFxText, out dose_perFx) || !int.TryParse(initNumFxText, out numFractions))
                     {
@@ -39,7 +53,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                         return (prescriptions, sb);
                     }
                 }
-                else
+                else if (rx == boostRxDose)
                 {
                     if (!double.TryParse(boostDosePerFxText, out dose_perFx) || !int.TryParse(boostNumFxText, out numFractions))
                     {
@@ -49,15 +63,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                         return (prescriptions, sb);
                     }
                 }
-                prescriptions.Add(Tuple.Create(pid, targetid, numFractions, new DoseValue(dose_perFx, DoseValue.DoseUnit.cGy), rx));
-                if (numPlans > 2) 
-                { 
-                    sb.AppendLine("Error! Number of request plans is > 2! Exiting!"); 
-                    targets = new List<Tuple<string, double, string>> { }; 
-                    prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { }; 
-                    return (prescriptions, sb); 
+                foreach(Tuple<string,double> itr1 in itr.Item2)
+                {
+                    prescriptions.Add(Tuple.Create(itr.Item1, itr1.Item1, numFractions, new DoseValue((itr1.Item2 - priorRxDoses) / numFractions, DoseValue.DoseUnit.cGy), itr1.Item2));
                 }
+                priorRxDoses += rx;
             }
+            
             //sort the prescription list by the cumulative rx dose
             prescriptions.Sort(delegate (Tuple<string, string, int, DoseValue, double> x, Tuple<string, string, int, DoseValue, double> y) { return x.Item5.CompareTo(y.Item5); });
 
@@ -66,6 +78,52 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions) msg += String.Format("{0}, {1}, {2}, {3}, {4}", itr.Item1, itr.Item2, itr.Item3, itr.Item4.Dose, itr.Item5) + Environment.NewLine;
             MessageBox.Show(msg);
             return (prescriptions, sb);
+        }
+
+        private static (bool, StringBuilder) VerifyRequestedTargetIntegrity(List<Tuple<string, List<Tuple<string, double>>>> planTargetDoseList, double initRxDose, double boostRxDose)
+        {
+            bool fail = false;
+            StringBuilder sb = new StringBuilder();
+            if (planTargetDoseList.Count > 2)
+            {
+                sb.AppendLine("Error! Number of request plans is > 2! Exiting!");
+                fail = true;
+                return (fail, sb);
+            }
+            double rx;
+            double priorRxDoses = 0.0;
+            foreach (Tuple<string, List<Tuple<string, double>>> itr in planTargetDoseList)
+            {
+                Tuple<string, double> highestRxTgtForPlan = itr.Item2.Last();
+                rx = highestRxTgtForPlan.Item2 - priorRxDoses;
+                priorRxDoses += rx;
+                if (rx != initRxDose && rx != boostRxDose)
+                {
+                    sb.AppendLine($"Error! Highest Rx target ({highestRxTgtForPlan.Item1}, {rx} cGy) for plan: {itr.Item1} does not match either initial ({initRxDose} cGy) or boost ({boostRxDose} cGy) Rx doses! Exiting");
+                    fail = true;
+                }
+            }
+            return (fail, sb);
+        }
+
+        private static List<Tuple<string,List<Tuple<string,double>>>> GetPlanTargetRxDoseList(List<Tuple<string, double, string>> targets)
+        {
+            List<Tuple<string, List<Tuple<string, double>>>> theList = new List<Tuple<string, List<Tuple<string, double>>>> { };
+            List<Tuple<string, double, string>> tmpList = targets.OrderBy(x => x.Item2).ToList();
+            List<Tuple<string, double>> tgtListTmp = new List<Tuple<string, double>> { };
+            string tmpPlanId = tmpList.First().Item3;
+            foreach(Tuple<string, double, string> itr in tmpList)
+            {
+                if(!string.Equals(itr.Item3, tmpPlanId))
+                {
+                    theList.Add(Tuple.Create(tmpPlanId, new List<Tuple<string, double>>(tgtListTmp)));
+                    tmpPlanId = itr.Item3;
+                    tgtListTmp = new List<Tuple<string, double>> { };
+                }
+                tgtListTmp.Add(Tuple.Create(itr.Item1, itr.Item2));
+            }
+            theList.Add(Tuple.Create(tmpPlanId, new List<Tuple<string, double>>(tgtListTmp)));
+            return theList;
         }
 
         public static (bool, Structure, double, StringBuilder) GetLongestTargetInPlan(Tuple<string, List<string>> targetListForAllPlans, StructureSet selectedSS)
@@ -242,21 +300,21 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         //target structure
         public static Structure GetTargetStructureForPlanType(StructureSet ss, string targetId, bool useFlash, PlanType type)
         {
-            Structure target = null;
+            Structure target;
             if (string.IsNullOrEmpty(targetId))
             {
                 //case where no targetId is supplied --> use default target for all plans
                 if(type == PlanType.VMAT_TBI)
                 {
                     //flash should only be present for vmat tbi plans
-                    if (useFlash) target = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_flash");
-                    else target = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_vmat");
+                    if (useFlash) target = StructureTuningHelper.GetStructureFromId("ts_ptv_flash", ss); 
+                    else target = StructureTuningHelper.GetStructureFromId("ts_ptv_vmat", ss); 
                 }
-                else target = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "ts_ptv_csi");
+                else target = StructureTuningHelper.GetStructureFromId("ts_ptv_csi", ss);
             }
             else
             {
-                target = ss.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), targetId.ToLower()));
+                target = StructureTuningHelper.GetStructureFromId(targetId, ss);
             }
             return target;
         }

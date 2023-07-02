@@ -4,7 +4,12 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
     public static class GeneralUIHelper
     {
-        //common to both structure tuning and optimization setup tabs
+        /// <summary>
+        /// UI utility method to clear a row (stackpanel) of items if the 'clear' button was hit. Clear then entire list if there was only one item in the list
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="sp"></param>
+        /// <returns></returns>
         public static bool ClearRow(object sender, StackPanel sp)
         {
             //same deal as the clear sparing structure button (clearStructBtn_click)
@@ -27,6 +32,10 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return false;
         }
 
+        /// <summary>
+        /// Clear entire list of items in UI
+        /// </summary>
+        /// <param name="theSP"></param>
         public static void ClearList(StackPanel theSP)
         {
             theSP.Children.Clear();

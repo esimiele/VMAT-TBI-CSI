@@ -20,14 +20,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private double[] CW = { 181.0, 179.0 };
         private double[] CCW = { 179.0, 181.0 };
         private ExternalBeamMachineParameters ebmpArc;
-        private bool autoFitJaws;
 
-        public PlaceBeams_CSI(StructureSet ss, List<Tuple<string, List<Tuple<string, int>>>> planInfo, double[] coll, bool autoFit, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool overlap, double overlapMargin)
+        public PlaceBeams_CSI(StructureSet ss, List<Tuple<string, List<Tuple<string, int>>>> planInfo, double[] coll, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool overlap, double overlapMargin)
         {
             selectedSS = ss;
             planIsoBeamInfo = new List<Tuple<string, List<Tuple<string, int>>>>(planInfo);
             collRot = coll;
-            autoFitJaws = autoFit;
             ebmpArc = new ExternalBeamMachineParameters(linac, energy, 600, "ARC", null);
             //copy the calculation model
             calculationModel = calcModel;
@@ -38,6 +36,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //user wants to contour the overlap between fields in adjacent VMAT isocenters
             contourOverlap = overlap;
             contourOverlapMargin = overlapMargin;
+            SetCloseOnFinish(true, 1000);
         }
 
         //to handle system access exception violation
@@ -46,7 +45,30 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             try
             {
-                return GeneratePlanList();
+                if (CheckExistingCourse()) return true;
+                if (CheckExistingPlans()) return true;
+                if(CheckTSArmsAvoid())
+                {
+                    if (ExtendBodyContour()) return true;
+                }
+                if (CreateVMATPlans()) return true;
+                //plan, List<isocenter position, isocenter name, number of beams per isocenter>
+                List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> isoLocations = GetIsocenterPositions();
+                UpdateUILabel("Assigning isocenters and beams: ");
+                int isoCount = 0;
+                foreach (Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> itr in isoLocations)
+                {
+                    if (SetVMATBeams(itr)) return true;
+                    //ensure contour overlap is requested AND there are more than two isocenters for this plan
+                    if (contourOverlap && itr.Item2.Count > 1) if (ContourFieldOverlap(itr, isoCount)) return true;
+                    isoCount += itr.Item2.Count;
+                }
+                if(CheckTSArmsAvoid())
+                {
+                    if (CropBodyFromArmsAvoid()) return true;
+                }
+                UpdateUILabel("Finished!");
+                return false;
             }
             catch(Exception e)
             {
@@ -54,6 +76,73 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 stackTraceError = e.StackTrace;
                 return true;
             }
+        }
+
+        private bool CheckTSArmsAvoid()
+        {
+            return StructureTuningHelper.DoesStructureExistInSS("TS_ArmsAvoid", selectedSS, true);
+        }
+
+        private bool ExtendBodyContour()
+        {
+            int percentComplete = 0;
+            int calcItems = 4;
+
+            Structure body = StructureTuningHelper.GetStructureFromId("body", selectedSS);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved body structure: {body.Id}");
+            if (selectedSS.CanAddStructure("CONTROL", "human_body"))
+            {
+                Structure bodyCopy = selectedSS.AddStructure("CONTROL", "human_body");
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Created structure: {bodyCopy.Id}");
+                bodyCopy.SegmentVolume = body.Margin(0.0);
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Copied body structure onto {bodyCopy.Id}");
+            }
+            else
+            {
+                ProvideUIUpdate($"Error! Could not add human_body structure to compensate for TS_ArmsAvoid! Exiting!", true);
+                return true;
+            }
+
+            (bool unionFail, StringBuilder unionMessage) = ContourHelper.ContourUnion(StructureTuningHelper.GetStructureFromId("TS_ArmsAvoid", selectedSS),
+                                                                                      body,
+                                                                                      0.0);
+            if (unionFail)
+            {
+                ProvideUIUpdate(unionMessage.ToString(), true);
+                return true;
+            }
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contour union betwen between TS_ArmsAvoid and body onto body");
+            return false;
+        }
+
+        private bool CropBodyFromArmsAvoid()
+        {
+            int percentComplete = 0;
+            int calcItems = 4;
+            Structure bodyCopy = StructureTuningHelper.GetStructureFromId("human_body", selectedSS);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved body copy structure: {bodyCopy.Id}");
+            Structure body = StructureTuningHelper.GetStructureFromId("body", selectedSS);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved body structure: {body.Id}");
+
+            (bool failCopyTarget, StringBuilder copyErrorMessage) = ContourHelper.CopyStructureOntoStructure(bodyCopy, body);
+            if (failCopyTarget)
+            {
+                ProvideUIUpdate(copyErrorMessage.ToString(), true);
+                return true;
+            }
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Copied structure {bodyCopy.Id} onto {body.Id}");
+
+            if(selectedSS.CanRemoveStructure(bodyCopy))
+            {
+                selectedSS.RemoveStructure(bodyCopy);
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Removed {bodyCopy.Id} from structure set");
+            }
+            else
+            {
+                ProvideUIUpdate($"Error! Could not remove {bodyCopy.Id} structure! Exiting!", true);
+                return true;
+            }
+            return false;
         }
 
         private (bool, double) GetBrainZCenter(ref int counter, ref int calcItems)
@@ -145,20 +234,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return (fail, spineYMin, spineZMin, spineZMax);
         }
 
-        private VVector RoundIsocenterPositions(VVector v, ExternalPlanSetup plan, ref int counter, ref int calcItems)
-        {
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), "Rounding Y- and Z-positions to nearest integer values");
-            //round z position to the nearest integer
-            v = selectedSS.Image.DicomToUser(v, plan);
-            v.x = Math.Round(v.x / 10.0f) * 10.0f;
-            v.y = Math.Round(v.y / 10.0f) * 10.0f;
-            v.z = Math.Round(v.z / 10.0f) * 10.0f;
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Calculated isocenter position (user coordinates): ({v.x}, {v.y}, {v.z})");
-            v = selectedSS.Image.UserToDicom(v, plan);
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), "Adding calculated isocenter position to stack!");
-            return v;
-        }
-
         protected override List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> GetIsocenterPositions()
         {
             UpdateUILabel("Calculating isocenter positions: ");
@@ -168,17 +243,17 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             VVector userOrigin = image.UserOrigin;
             int count = 0;
             List<Tuple<string, List<string>>> planIdTargets = new List<Tuple<string, List<string>>>(TargetsHelper.GetTargetListForEachPlan(prescriptions));
-            foreach (ExternalPlanSetup itr in plans)
+            foreach (ExternalPlanSetup itr in vmatPlans)
             {
                 ProvideUIUpdate($"Retrieving number of isocenters for plan: {itr.Id}");
                 int numIsos = planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, itr.Id)).Item2.Count;
-                int counter = 0;
+                int percentComplete = 0;
                 int calcItems = numIsos;
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Num isos for plan (from generateTS): {itr.Id}");
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Num isos for plan (from generateTS): {itr.Id}");
 
                 ProvideUIUpdate($"Retrieving prescriptions for plan: {itr.Id}");
                 //grab the target in this plan with the greatest z-extent (plans can now have multiple targets assigned)
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), "Retrieved Presciptions");
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), "Retrieved Presciptions");
 
                 ProvideUIUpdate("Determining target with greatest extent");
                 (bool fail, Structure longestTargetInPlan, double maxTargetLength, StringBuilder errorMessage) = TargetsHelper.GetLongestTargetInPlan(planIdTargets.FirstOrDefault(x => string.Equals(x.Item1, itr.Id)), selectedSS);
@@ -187,21 +262,21 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     ProvideUIUpdate($"Error! No structure named: {errorMessage} found or contoured!", true);
                     return new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
                 }
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Longest target in plan {itr.Id}: {longestTargetInPlan.Id}");
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Longest target in plan {itr.Id}: {longestTargetInPlan.Id}");
 
                 List<Tuple<VVector, string, int>> tmp = new List<Tuple<VVector, string, int>> { };
                 isoSeparation = 380.0;
                 if (string.Equals(longestTargetInPlan.Id.ToLower(), "ptv_csi"))
                 {
-                    (bool failSpineRetrival, double spineYMin, double spineZMin, double spineZMax) = GetSpineYminZminZMax(ref counter, ref calcItems);
+                    (bool failSpineRetrival, double spineYMin, double spineZMin, double spineZMax) = GetSpineYminZminZMax(ref percentComplete, ref calcItems);
                     if (failSpineRetrival) return allIsocenters;
 
-                    (bool failBrainRetrival, double brainZCenter) = GetBrainZCenter(ref counter, ref calcItems);
+                    (bool failBrainRetrival, double brainZCenter) = GetBrainZCenter(ref percentComplete, ref calcItems);
                     if (failBrainRetrival) return allIsocenters;
                     //since Brain CTV = Brain and PTV = CTV + 5 mm uniform margin, center of brain is unaffected by adding the 5 mm margin if the PTV_Brain structure could not be found
                     ProvideUIUpdate($"Calculating distance between center of PTV_Brain and inf extent of PTV_Spine");
                     maxTargetLength = brainZCenter - spineZMin;
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Extent: {maxTargetLength:0.0} mm");
+                    ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Extent: {maxTargetLength:0.0} mm");
 
                     for (int i = 0; i < numIsos; i++)
                     {
@@ -221,8 +296,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                             }
                         }
                         
-                        ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Calculated isocenter position {i + 1}");
-                        tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPositions(v, itr, ref counter, ref calcItems),
+                        ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Calculated isocenter position {i + 1}");
+                        tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPositions(v, itr, ref percentComplete, ref calcItems),
                                                                 planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, itr.Id)).Item2.ElementAt(i).Item1,
                                                                 planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, itr.Id)).Item2.ElementAt(i).Item2));
                     }
@@ -240,13 +315,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                         z = longestTargetInPlan.CenterPoint.z
                     };
 
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Calculated isocenter position {1}");
-                    tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPositions(v, itr, ref counter, ref calcItems),
+                    ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Calculated isocenter position {1}");
+                    tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPositions(v, itr, ref percentComplete, ref calcItems),
                                                             planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, itr.Id)).Item2.ElementAt(0).Item1,
                                                             planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, itr.Id)).Item2.ElementAt(0).Item2));
                 }
 
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Finished retrieving isocenters for plan: {itr.Id}");
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Finished retrieving isocenters for plan: {itr.Id}");
                 allIsocenters.Add(Tuple.Create(itr, new List<Tuple<VVector, string, int>>(tmp)));
                 count++;
             }
@@ -254,56 +329,18 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return allIsocenters;
         }
 
-        protected override bool SetBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
+        protected override bool SetVMATBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
         {
             ProvideUIUpdate(0, $"Preparing to set isocenters for plan: {iso.Item1.Id}");
-            int counter = 0;
+            int percentComplete = 0;
             int calcItems = 3;
             bool initCSIPlan = false;
             //if the plan id is equal to the plan Id in the first entry in the prescriptions, then this is the initial plan --> use special rules to fit fields
             if (string.Equals(iso.Item1.Id, prescriptions.First().Item1)) initCSIPlan = true;
             //DRR parameters (dummy parameters to generate DRRs for each field)
-            DRRCalculationParameters DRR = new DRRCalculationParameters
-            {
-                DRRSize = 500.0,
-                FieldOutlines = true,
-                StructureOutlines = true
-            };
-            DRR.SetLayerParameters(1, 1.0, 100.0, 1000.0);
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), "Created default DRR parameters");
+            DRRCalculationParameters DRR = GenerateDRRParameters();
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), "Created default DRR parameters");
 
-            ////grab all prescriptions assigned to this plan
-            //List<string> targetIds = TargetsHelper.GetTargetIdListForPlan(prescriptions, iso.Item1.Id);
-            ////if any of the targets for this plan are ptv_csi, then you must use the special beam placement logic for the initial plan
-            //if (targetIds.Any(x => x.ToLower().Contains("ptv_csi")))
-            //{
-            //    //verify that BOTH PTV spine and PTV brain exist in the current structure set! If not, create them (used to fit the field jaws to the target
-            //    if (!selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), "ptv_brain")))
-            //    {
-            //        //uniform 5mm outer margin to create brain ptv from brain ctv/brain structure
-            //        (bool fail, StringBuilder info) = ContourHelper.CreateTargetStructure("PTV_Brain", "brain", selectedSS, new AxisAlignedMargins(StructureMarginGeometry.Outer, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0));
-            //        ProvideUIUpdate(info.ToString());
-            //        if (fail) return true;
-            //        ProvideUIUpdate(100);
-            //    }
-            //    if (!selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), "ptv_spine")))
-            //    {
-            //        //ctv_spine = spinal_cord+0.5cm ANT, +1.5cm Inf, and +1.0 cm in all other directions
-            //        //ptv_spine = ctv_spine + 5 mm outer margin --> add 5 mm to the asymmetric margins used to create the ctv
-            //        (bool fail, StringBuilder info) = ContourHelper.CreateTargetStructure("PTV_Spine", "spinalcord", selectedSS, new AxisAlignedMargins(StructureMarginGeometry.Outer, 15.0, 10.0, 20.0, 15.0, 15.0, 15.0), "spinal_cord");
-            //        ProvideUIUpdate(info.ToString());
-            //        if (fail) return true;
-            //        ProvideUIUpdate(100);
-            //    }
-            //    //grab ptv_brain as we will need it for the first iso field placement
-            //    target = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "ptv_brain"));
-            //    initCSIPlan = true;
-            //}
-            ////assumes only one target for the boos plan
-            //else
-            //{
-            //    target = StructureTuningHelper.GetStructureFromId(TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, iso.Item1.Id), selectedSS);
-            //}
             List<Tuple<string, List<string>>> planIdTargets = new List<Tuple<string, List<string>>>(TargetsHelper.GetTargetListForEachPlan(prescriptions));
             ProvideUIUpdate("Determining target with greatest extent");
             (bool fail, Structure longestTargetInPlan, double maxTargetLength, StringBuilder errorMessage) = TargetsHelper.GetLongestTargetInPlan(planIdTargets.FirstOrDefault(x => string.Equals(x.Item1, iso.Item1.Id)), selectedSS);
@@ -311,23 +348,22 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 ProvideUIUpdate($"Error! No structure named: {errorMessage} found or contoured!", true);
             }
-            target = longestTargetInPlan;
+            Structure target = longestTargetInPlan;
 
             if (target == null || target.IsEmpty) 
             { 
                 ProvideUIUpdate(0, $"Error! Target not found or is not contoured in plan {iso.Item1.Id}! Exiting!", true); 
                 return true; 
             }
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Longest target in plan {iso.Item1.Id}: {longestTargetInPlan.Id}");
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Retrieved target for plan: {iso.Item1.Id}");
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Longest target in plan {iso.Item1.Id}: {longestTargetInPlan.Id}");
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved target for plan: {iso.Item1.Id}");
             ProvideUIUpdate(100, "Preparation complete!");
 
             //place the beams for the VMAT plan
             int count = 0;
             string beamName;
-            //VRect<double> jp;
             calcItems = 0;
-            counter = 0;
+            percentComplete = 0;
             //iso counter
             for (int i = 0; i < iso.Item2.Count; i++)
             {
@@ -345,7 +381,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     if (i > 0 && iso.Item2.ElementAt(i).Item3 == 1 && iso.Item2.ElementAt(i - 1).Item3 == 1) j++;
 
                     (bool result, VRect<double> jaws) = GetXYJawPositionsForStructure(initCSIPlan, i == 0, iso.Item2.ElementAt(i).Item1, new FitToStructureMargins(30.0, 40.0, 30.0, 30.0), target);
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Jaw positions fit to target: {target.Id} (iso: {i + 1}, beam: {j + 1})");
+                    ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Jaw positions fit to target: {target.Id} (iso: {i + 1}, beam: {j + 1})");
                     if(!result)
                     {
                         ProvideUIUpdate($"Calculated jaw positions:");
@@ -356,13 +392,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     }
 
                     double coll = collRot[j];
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Retrieved collimator positions (iso: {i + 1}, beam: {j + 1})");
+                    ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved collimator positions (iso: {i + 1}, beam: {j + 1})");
 
                     //all even beams (e.g., 2, 4, etc.) will be CCW and all odd beams will be CW
                     if (count % 2 == 0)
                     {
                         b = iso.Item1.AddArcBeam(ebmpArc, jaws, coll, CCW[0], CCW[1], GantryDirection.CounterClockwise, 0, iso.Item2.ElementAt(i).Item1);
-                        ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Added arc beam to iso: {i + 1}");
+                        ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Added arc beam to iso: {i + 1}");
 
                         if (j >= 2) beamName += $"CCW {iso.Item2.ElementAt(i).Item2}{90}";
                         else beamName += $"CCW {iso.Item2.ElementAt(i).Item2}";
@@ -370,17 +406,17 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     else
                     {
                         b = iso.Item1.AddArcBeam(ebmpArc, jaws, coll, CW[0], CW[1], GantryDirection.Clockwise, 0, iso.Item2.ElementAt(i).Item1);
-                        ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Added arc beam to iso: {i + 1}");
+                        ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Added arc beam to iso: {i + 1}");
 
                         if (j >= 2) beamName += $"CW {iso.Item2.ElementAt(i).Item2}{90}";
                         else beamName += $"CW {iso.Item2.ElementAt(i).Item2}";
                     }
 
                     b.Id = beamName;
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Assigned beam id: {beamName}");
+                    ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Assigned beam id: {beamName}");
 
                     b.CreateOrReplaceDRR(DRR);
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Assigned DRR to beam: {beamName}");
+                    ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Assigned DRR to beam: {beamName}");
 
                     count++;
                 }

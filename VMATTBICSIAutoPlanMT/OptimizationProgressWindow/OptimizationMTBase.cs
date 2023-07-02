@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Windows.Threading;
-using ESAPIThreadWorker;
 
 namespace OptimizationProgressWindow
 {

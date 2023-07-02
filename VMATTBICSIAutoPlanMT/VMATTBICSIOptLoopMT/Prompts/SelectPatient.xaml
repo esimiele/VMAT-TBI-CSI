@@ -35,8 +35,8 @@
                         </Grid.RowDefinitions>
                         <Label Content="VMAT CSI" Grid.Column="0" Grid.Row="0" FontWeight="Bold" HorizontalAlignment="Center" Margin="0"/>
                         <Label Content="VMAT TBI" Grid.Column="1" Grid.Row="0" FontWeight="Bold" HorizontalAlignment="Center" Margin="0" Visibility="Visible"/>
-                        <ListBox x:Name="mrnListCSI" Grid.Column="0" Grid.Row="1" ItemsSource="{Binding PatientMRNsCSI}" HorizontalContentAlignment="Center" Height="200" Width="160" Margin="10,0,10,10" SelectionChanged="mrnListCSI_SelectionChanged"/>
-                        <ListBox x:Name="mrnListTBI" Grid.Column="1" Grid.Row="1" ItemsSource="{Binding PatientMRNsTBI}" HorizontalContentAlignment="Center" Height="200" Width="160" Margin="10,0,10,10" SelectionChanged="mrnListTBI_SelectionChanged" Visibility="Visible"/>
+                        <ListBox x:Name="mrnListCSI" Grid.Column="0" Grid.Row="1" ItemsSource="{Binding PatientMRNsCSI}" HorizontalContentAlignment="Center" Height="300" Width="160" Margin="10,0,10,10" SelectionChanged="mrnListCSI_SelectionChanged"/>
+                        <ListBox x:Name="mrnListTBI" Grid.Column="1" Grid.Row="1" ItemsSource="{Binding PatientMRNsTBI}" HorizontalContentAlignment="Center" Height="300" Width="160" Margin="10,0,10,10" SelectionChanged="mrnListTBI_SelectionChanged" Visibility="Visible"/>
                     </Grid>
                     <Grid>
                     </Grid>

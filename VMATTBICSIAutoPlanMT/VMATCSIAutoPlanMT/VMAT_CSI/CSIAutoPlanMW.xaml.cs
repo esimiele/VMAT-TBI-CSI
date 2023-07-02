@@ -239,7 +239,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             AddTargetDefaults_Click(null, null);
             AddDefaultTuningStructures_Click(null, null);
-            AddDefaultStructureManipulations_Click(null, null);
+            AddDefaultStructureManipulations();
         }
 
         private void Templates_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -518,7 +518,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!"); 
                 return; 
             }
-            List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>>(TargetsUIHelper.AddTargetDefaults((templateList.SelectedItem as CSIAutoPlanTemplate), selectedSS));
+            List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>>(TargetsUIHelper.AddTargetDefaults((templateList.SelectedItem as CSIAutoPlanTemplate)));
             ClearAllTargetItems();
             AddTargetVolumes(targetList, targetsSP);
             targetsScroller.ScrollToBottom();
@@ -587,14 +587,17 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             planIDs.Add("--Add New--");
             foreach(Tuple<string,double,string> itr in defaultList)
             {
-                counter++;
-                theSP.Children.Add(TargetsUIHelper.AddTargetVolumes(theSP.Width, 
-                                                           itr, 
-                                                           clearBtnNamePrefix, 
-                                                           counter, 
-                                                           planIDs, 
-                                                           (delegate (object sender, SelectionChangedEventArgs e) { TargetPlanId_SelectionChanged(theSP, sender, e); }), 
-                                                           new RoutedEventHandler(this.ClearTargetItem_click)));
+                if(StructureTuningHelper.DoesStructureExistInSS(itr.Item1, selectedSS))
+                {
+                    counter++;
+                    theSP.Children.Add(TargetsUIHelper.AddTargetVolumes(theSP.Width,
+                                                               itr,
+                                                               clearBtnNamePrefix,
+                                                               counter,
+                                                               planIDs,
+                                                               (delegate (object sender, SelectionChangedEventArgs e) { TargetPlanId_SelectionChanged(theSP, sender, e); }),
+                                                               new RoutedEventHandler(this.ClearTargetItem_click)));
+                }
             }
         }
 
@@ -649,7 +652,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
 
             //target id, target Rx, plan id
-            (List<Tuple<string, double, string>>, StringBuilder) parsedTargets = TargetsUIHelper.ParseTargets(targetsSP, selectedSS);
+            (List<Tuple<string, double, string>>, StringBuilder) parsedTargets = TargetsUIHelper.ParseTargets(targetsSP);
             if (!parsedTargets.Item1.Any())
             {
                 log.LogError(parsedTargets.Item2);
@@ -668,7 +671,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                                                                                                                       initNumFxTB.Text,
                                                                                                                                       initRxTB.Text,
                                                                                                                                       boostDosePerFxTB.Text,
-                                                                                                                                      boostNumFxTB.Text);
+                                                                                                                                      boostNumFxTB.Text,
+                                                                                                                                      boostRxTB.Text);
             if(!parsedPrescriptions.Item1.Any())
             {
                 log.LogError(parsedPrescriptions.Item2);
@@ -691,7 +695,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             StringBuilder sb = new StringBuilder();
             foreach (Tuple<string, double, string> itr in parsedTargets)
             {
-                if (!selectedSS.Structures.Any(x => string.Equals(x.Id, itr.Item1) && !x.IsEmpty))
+                if (!StructureTuningHelper.DoesStructureExistInSS(itr.Item1, selectedSS, true))
                 {
                     sb.AppendLine($"Error! {itr.Item1} is either NOT present in structure set or is not contoured!");
                     fail = true;
@@ -699,7 +703,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 else
                 {
                     //structure is present and contoured
-                    Structure tgt = selectedSS.Structures.First(x => string.Equals(x.Id, itr.Item1));
+                    Structure tgt = StructureTuningHelper.GetStructureFromId(itr.Item1, selectedSS);
                     if (tgt.ApprovalHistory.First().ApprovalStatus != StructureApprovalStatus.Approved)
                     {
                         sb.AppendLine($"Error! {tgt.Id} is NOT approved!");
@@ -717,12 +721,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private void TsGenerateVsManipulateInfo_Click(object sender, RoutedEventArgs e)
         {
             string message = "What's the difference between TS structure generation vs manipulation?" + Environment.NewLine;
-            message += String.Format("TS structure generation involves adding structures to the structure set to shape the dose distribution. These include rings and substructures. E.g.,") + Environment.NewLine;
+            message += String.Format("TS structure generation involves adding structures to the structure set to shape the dose distribution. These include rings, preliminary targets, etc. E.g.,") + Environment.NewLine;
             message += String.Format("TS_ring900  -->  ring structure around the targets using a nominal dose level of 900 cGy to determine fall-off") + Environment.NewLine;
-            message += String.Format("Kidneys-1cm  -->  substructure for the Kidneys volume where the Kidneys are contracted by 1 cm") + Environment.NewLine + Environment.NewLine;
+            message += String.Format("PTV_Spine  -->  preliminary target used to aid physician contouring of the final target that will be approved") + Environment.NewLine;
             message += String.Format("TS structure manipulation involves manipulating/modifying the structure itself or target structures. E.g.,") + Environment.NewLine;
             message += String.Format("(Ovaries, Crop target from structure, 1.5cm)  -->  modify the target structure such that the ovaries structure is cropped from the target with a 1.5 cm margin") + Environment.NewLine;
             message += String.Format("(Brainstem, Contour overlap, 0.0 cm)  -->  Identify the overlapping regions between the brainstem and target structure(s) and contour them as new structures") + Environment.NewLine + Environment.NewLine;
+            message += String.Format("Kidneys-1cm  -->  substructure for the Kidneys volume where the Kidneys are contracted by 1 cm") + Environment.NewLine + Environment.NewLine;
             MessageBox.Show(message);
         }
 
@@ -860,14 +865,17 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             for (int i = 0; i < lists.Count; i++)
             {
-                counter++;
-                theSP.Children.Add(RingUIHelper.AddRing(theSP, 
-                                                  targets.Select(x => x.Item1).ToList(), 
-                                                  lists[i], 
-                                                  clearBtnName, 
-                                                  counter, 
-                                                  new RoutedEventHandler(this.ClearRingItem_Click), 
-                                                  theSP.Name.Contains("template")));
+                if(StructureTuningHelper.DoesStructureExistInSS(lists.ElementAt(i).Item1, selectedSS, true))
+                {
+                    counter++;
+                    theSP.Children.Add(RingUIHelper.AddRing(theSP,
+                                                      targets.Select(x => x.Item1).ToList(),
+                                                      lists[i],
+                                                      clearBtnName,
+                                                      counter,
+                                                      new RoutedEventHandler(this.ClearRingItem_Click),
+                                                      theSP.Name.Contains("template")));
+                }
             }
         }
 
@@ -967,9 +975,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     //the btn has a unique tag to it, so we can just loop through all children in the structureManipulationSP children list and find which button is equivalent to our button
                     if (row)
                     {
-                        if (c.SelectedItem.ToString() != "Mean Dose < Rx Dose" &&
-                            c.SelectedItem.ToString() != "Crop target from structure" &&
-                            c.SelectedItem.ToString() != "Crop from Body")
+                        if ((TSManipulationType)c.SelectedItem == TSManipulationType.None)
                         {
                             (obj1 as TextBox).Visibility = Visibility.Hidden;
                         }
@@ -992,53 +998,44 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
         private void AddDefaultStructureManipulations_Click(object sender, RoutedEventArgs e)
         {
-            if (selectedSS == null) 
-            { 
-                log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!"); 
-                return; 
+            AddDefaultStructureManipulations(true);
+        }
+
+        private void AddDefaultStructureManipulations(bool fromButtonClickEvent = false)
+        {
+            if (selectedSS == null)
+            {
+                log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
+                return;
             }
             if (checkStructuresToUnion) structureIdsPostUnion = CheckLRStructures();
             //copy the sparing structures in the defaultSpareStruct list to a temporary vector
-            List<Tuple<string, TSManipulationType, double>> templateSpareList = new List<Tuple<string, TSManipulationType, double>>(defaultTSStructureManipulations);
+            List<Tuple<string, TSManipulationType, double>> templateManipulationList = new List<Tuple<string, TSManipulationType, double>>(defaultTSStructureManipulations);
             //add the case-specific sparing structures to the temporary list
             if (templateList.SelectedItem != null)
             {
-                templateSpareList = new List<Tuple<string, TSManipulationType, double>>(StructureTuningHelper.AddTemplateSpecificStructureManipulations((templateList.SelectedItem as CSIAutoPlanTemplate).GetTSManipulations(), templateSpareList, pi.Sex));
+                templateManipulationList = new List<Tuple<string, TSManipulationType, double>>(StructureTuningHelper.AddTemplateSpecificStructureManipulations((templateList.SelectedItem as CSIAutoPlanTemplate).GetTSManipulations(), templateManipulationList, pi.Sex));
             }
-            if (!templateSpareList.Any()) 
-            { 
-                log.LogError("Warning! No default tuning structure manipulations contained in the selected template!"); 
-                return; 
+            if (!templateManipulationList.Any())
+            {
+                if(fromButtonClickEvent) log.LogError("Warning! No default tuning structure manipulations contained in the selected template!");
+                return;
             }
 
-            string missOutput = "";
-            string emptyOutput = "";
-            int missCount = 0;
-            int emptyCount = 0;
+            (List<string> missingEmptyStructures, StringBuilder warnings) = StructureTuningUIHelper.VerifyTSManipulationIntputIntegrity(templateManipulationList.Select(x => x.Item1).Distinct().ToList(), structureIdsPostUnion, selectedSS);
+            if (missingEmptyStructures.Any()) log.LogError(warnings);
+
             List<Tuple<string, TSManipulationType, double>> defaultList = new List<Tuple<string, TSManipulationType, double>> { };
-            foreach (Tuple<string, TSManipulationType, double> itr in templateSpareList)
+            foreach (Tuple<string, TSManipulationType, double> itr in templateManipulationList)
             {
-                //check to ensure the structures in the templateSpareList vector are actually present in the selected structure set and are actually contoured. If they are, add them to the defaultList vector, which will be passed 
-                //to the add_sp_volumes method
-                if (!structureIdsPostUnion.Where(x => x.ToLower() == itr.Item1.ToLower()).Any())
+                if (!missingEmptyStructures.Any(x => string.Equals(x, itr.Item1)))
                 {
-                    if (missCount == 0) missOutput = String.Format("Warning! The following default structures are missing from the selected structure list:\n");
-                    missOutput += String.Format("{0}\n", itr.Item1);
-                    missCount++;
+                    defaultList.Add(Tuple.Create(structureIdsPostUnion.First(x => x.ToLower() == itr.Item1.ToLower()), itr.Item2, itr.Item3));
                 }
-                else if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.Item1.ToLower()) != null && selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == itr.Item1.ToLower()).IsEmpty)
-                {
-                    if (emptyCount == 0) emptyOutput = String.Format("Warning! The following default structures are present but empty:\n");
-                    emptyOutput += String.Format("{0}\n", itr.Item1);
-                    emptyCount++;
-                }
-                else defaultList.Add(Tuple.Create(structureIdsPostUnion.First(x => x.ToLower() == itr.Item1.ToLower()), itr.Item2, itr.Item3));
             }
 
             ClearStructureManipulationsList(ClearStructureManipulationsBtn);
             AddStructureManipulationVolumes(defaultList, structureManipulationSP);
-            if (missCount > 0) log.LogError(missOutput);
-            if (emptyCount > 0) log.LogError(emptyOutput);
         }
 
         //wipe the displayed list of sparing structures
@@ -1175,7 +1172,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             beamPlacementSP.Children.Clear();
 
             //number of isocenters = number of vmat isocenters
-            List<StackPanel> SPList = BeamPlacementUIHelper.PopulateBeamsTabHelper(structureManipulationSP, linacs, beamEnergies, isoNames, beamsPerIso);
+            List<StackPanel> SPList = BeamPlacementUIHelper.PopulateBeamsTabHelper(structureManipulationSP.Width, linacs, beamEnergies, isoNames, beamsPerIso);
             if (!SPList.Any()) return;
             foreach (StackPanel s in SPList) beamPlacementSP.Children.Add(s);
         }
@@ -1211,24 +1208,21 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
 
             //Added code to account for the scenario where the user either requested or did not request to contour the overlap between fields in adjacent isocenew OptimizationSetupUIHelper()nters
-            bool contourOverlap = false;
+            bool contourOverlap = contourOverlap_chkbox.IsChecked.Value;
             double contourOverlapMargin = 0.0;
-            if (contourOverlap_chkbox.IsChecked.Value)
+            if (contourOverlap)
             {
+                //contour overlap in cm (conversion performed in contourfieldoverlap method in placebeamsbase)
                 //ensure the value entered in the added margin text box for contouring field overlap is a valid double
                 if (!double.TryParse(contourOverlapTB.Text, out contourOverlapMargin))
                 {
                     log.LogError("Error! The entered added margin for the contour overlap text box is NaN! Please enter a valid number and try again!");
                     return;
                 }
-                contourOverlap = true;
-                //convert from cm to mm
-                contourOverlapMargin *= 10.0;
             }
             PlaceBeams_CSI place = new PlaceBeams_CSI(selectedSS, 
                                                       planIsoBeamInfo, 
                                                       collRot, 
-                                                      autoFitJaws,
                                                       chosenLinac, 
                                                       chosenEnergy, 
                                                       calculationModel, 
@@ -1242,7 +1236,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             place.Initialize("VMAT CSI", prescriptions);
             place.Execute();
             log.AppendLogOutput("Plan generation and beam placement output:", place.GetLogOutput());
-            VMATplans = new List<ExternalPlanSetup>(place.GetGeneratedPlans());
+            VMATplans = new List<ExternalPlanSetup>(place.GetGeneratedVMATPlans());
             if (!VMATplans.Any()) return;
 
             //if the user elected to contour the overlap between fields in adjacent isocenters, get this list of structures from the placeBeams class and copy them to the jnxs vector
@@ -1297,9 +1291,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                         if (opt.Item1.Contains("--select--") || opt.Item1.Contains("PTV")) defaultList.Add(opt);
                         //only add template optimization objectives for each structure to default list if that structure is present in the selected structure set and contoured
                         //12-22-2020 coded added to account for the situation where the structure selected for sparing had to be converted to a low resolution structure
-                        else if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()) != null && 
-                                 !selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()).IsEmpty) defaultList.Add(Tuple.Create(selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == (opt.Item1 + "_lowRes").ToLower()).Id, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
-                        else if (selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == opt.Item1.ToLower()) != null && !selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == opt.Item1.ToLower()).IsEmpty) defaultList.Add(opt);
+                        else if (StructureTuningHelper.DoesStructureExistInSS(opt.Item1 + "_lowRes", selectedSS, true))
+                        {
+                            string lowResStructure = opt.Item1 + "_lowRes";
+                            defaultList.Add(Tuple.Create(StructureTuningHelper.GetStructureFromId(lowResStructure, selectedSS).Id, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
+                        }
+                        else if (StructureTuningHelper.DoesStructureExistInSS(opt.Item1, selectedSS, true)) defaultList.Add(opt);
                     }
                     defaultListList.Add(Tuple.Create(itr.Item1, new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(defaultList)));
                 }
@@ -1312,7 +1309,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             if(jnxs.Any())
             {
-                defaultListList = InsertTSJnxOptConstraints(defaultListList);
+                defaultListList = OptimizationSetupUIHelper.InsertTSJnxOptConstraints(defaultListList, jnxs, prescriptions);
             }
 
             //12/27/2022 this line needs to be fixed as it assumes prescriptions is arranged such that each entry in the list contains a unique plan ID
@@ -1320,27 +1317,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //an issue for the following line is that boost constraints might end up being added to the initial plan (if there are two prescriptions for the initial plan)
             //need to implement function to get unique plan Id's sorted by Rx
             foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in defaultListList) AddOptimizationConstraintItems(itr.Item2, itr.Item1, theSP);
-        }
-
-        private List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> InsertTSJnxOptConstraints(List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> list)
-        {
-            //we want to insert the optimization constraints for these junction structure right after the ptv constraints, so find the last index of the target ptv structure and insert
-            //the junction structure constraints directly after the target structure constraints
-            foreach(Tuple < string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in list)
-            {
-                if(jnxs.Any(x => string.Equals(x.Item1.Id.ToLower(), itr.Item1.ToLower())))
-                {
-                    int index = itr.Item2.FindLastIndex(x => x.Item1.ToLower().Contains("ptv") || x.Item1.ToLower().Contains("ts_overlap"));
-                    double rxDose = TargetsHelper.GetHighestRxForPlan(prescriptions, itr.Item1);
-                    foreach (Structure itr1 in jnxs.First(x => string.Equals(x.Item1.Id.ToLower(), itr.Item1.ToLower())).Item2)
-                    {
-                        //per Nataliya's instructions, add both a lower and upper constraint to the junction volumes. Make the constraints match those of the ptv target
-                        itr.Item2.Insert(++index, new Tuple<string, OptimizationObjectiveType, double, double, int>(itr1.Id, OptimizationObjectiveType.Lower, rxDose, 100.0, 100));
-                        itr.Item2.Insert(++index, new Tuple<string, OptimizationObjectiveType, double, double, int>(itr1.Id, OptimizationObjectiveType.Upper, rxDose * 1.01, 0.0, 100));
-                    }
-                }
-            }
-            return list;
         }
 
         private void ScanSSAndAddOptimizationConstraints_Click(object sender, RoutedEventArgs e)
@@ -1385,8 +1361,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 ExternalPlanSetup plan = null;
                 
                 //additional check if the plan was not found in the list of VMATplans
-                if(theCourse != null) plan = theCourse.ExternalPlanSetups.FirstOrDefault(x => x.Id == itr.Item1);
-                else plan = VMATplans.FirstOrDefault(x => x.Id == itr.Item1);
+                if(VMATplans.Any()) plan = VMATplans.FirstOrDefault(x => x.Id == itr.Item1);
+                else plan = theCourse.ExternalPlanSetups.FirstOrDefault(x => x.Id == itr.Item1);
                 if (plan != null)
                 {
                     if (plan.OptimizationSetup.Objectives.Count() > 0)
@@ -1396,36 +1372,16 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     OptimizationSetupUIHelper.AssignOptConstraints(itr.Item2, plan, true, 0.0);
                     constraintsAssigned = true;
                 }
-                else log.LogError(String.Format("_{0} not found!", itr.Item1));
+                else log.LogError($"_{itr.Item1} not found!");
             }
             if(constraintsAssigned)
             {
                 string message = "Optimization objectives have been successfully set!" + Environment.NewLine + Environment.NewLine + "Please review the generated structures, placed isocenters, placed beams, and optimization parameters!";
                 MessageBox.Show(message);
                 isModified = true;
+                optimizationSetupTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+                log.OptimizationConstraints = parsedOptimizationConstraints.Item1;
             }
-            optimizationSetupTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
-            /*
-            if (VMATplan == null)
-            {
-                //search for a course named VMAT TBI. If it is found, search for a plan named _VMAT TBI inside the VMAT TBI course. If neither are found, throw an error and return
-                if (!pi.Courses.Where(x => x.Id == "VMAT TBI").Any() || !pi.Courses.First(x => x.Id == "VMAT TBI").PlanSetups.Where(x => x.Id == "_VMAT TBI").Any())
-                {
-                    MessageBox.Show("No course or plan named 'VMAT TBI' and '_VMAT TBI' found! Exiting...");
-                    return;
-                }
-                //if both are found, grab an instance of that plan
-                VMATplan = pi.Courses.First(x => x.Id == "VMAT TBI").PlanSetups.First(x => x.Id == "_VMAT TBI") as ExternalPlanSetup;
-                pi.BeginModifications();
-            }
-            if (VMATplan.OptimizationSetup.Objectives.Count() > 0)
-            {
-                //the plan has existing objectives, which need to be removed be assigning the new objectives
-                foreach (OptimizationObjective o in VMATplan.OptimizationSetup.Objectives) VMATplan.OptimizationSetup.RemoveObjective(o);
-            }
-            //optimization parameter list, the plan object, enable jaw tracking?, Auto NTO priority
-            helper.assignOptConstraints(optParametersList, VMATplan, true, 0.0);
-            */
 
             //ConfirmPrompt CUI = new ConfirmPrompt();
             //CUI.message.Text = "Optimization objectives have been successfully set!" + Environment.NewLine + Environment.NewLine + "Save changes and launch optimization loop?";
@@ -1451,7 +1407,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //}
             //}
             //autoSave = true;
-            log.OptimizationConstraints = parsedOptimizationConstraints.Item1;
         }
 
         private void AddOptimizationConstraint_Click(object sender, RoutedEventArgs e)
@@ -1482,7 +1437,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> tmpListList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
                 List<Tuple<string, OptimizationObjectiveType, double, double, int>> tmp = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
-                if (optParametersSP.Children.Count > 0)
+                if (theSP.Children.Count > 0)
                 {
                     //read list of current objectives
                     (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(theSP, false);
@@ -1491,7 +1446,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                         log.LogError(parsedOptimizationConstraints.Item2);
                         return;
                     }
-                    foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in parsedOptimizationConstraints.Item1)
+                    foreach(Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in parsedOptimizationConstraints.Item1)
                     {
                         if (itr.Item1 == thePlan.Id)
                         {
@@ -1567,7 +1522,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             for (int i = 0; i < defaultList.Count; i++)
             {
                 counter++;
-                theSP.Children.Add(OptimizationSetupUIHelper.AddOptVolume(theSP, selectedSS, defaultList[i], clearBtnNamePrefix, counter, new RoutedEventHandler(this.ClearOptimizationConstraint_Click), theSP.Name.Contains("template")));
+                theSP.Children.Add(OptimizationSetupUIHelper.AddOptVolume(theSP, 
+                                                                          selectedSS, 
+                                                                          defaultList[i], 
+                                                                          clearBtnNamePrefix, 
+                                                                          counter, 
+                                                                          new RoutedEventHandler(this.ClearOptimizationConstraint_Click), 
+                                                                          theSP.Name.Contains("template")));
             }
         }
 
@@ -1822,7 +1783,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             else if(templateBuildOptionCB.SelectedItem.ToString().ToLower() == "current parameters")
             {
                 //add targets (checked first to ensure the user has actually input some parameters into the UI before trying to make a template based on the current settings)
-                (List<Tuple<string, double, string>> targetList, StringBuilder) parsedTargetList = TargetsUIHelper.ParseTargets(targetsSP, selectedSS);
+                (List<Tuple<string, double, string>> targetList, StringBuilder) parsedTargetList = TargetsUIHelper.ParseTargets(targetsSP);
                 if (!parsedTargetList.targetList.Any())
                 {
                     log.LogError("Error! Enter parameters into the UI before trying to use them to make a new plan template!");
@@ -1933,7 +1894,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
 
             //sort targets by prescription dose (ascending order)
-            prospectiveTemplate.SetTargets(TargetsUIHelper.ParseTargets(targetTemplate_sp, selectedSS).Item1.OrderBy(x => x.Item2).ToList());
+            prospectiveTemplate.SetTargets(TargetsUIHelper.ParseTargets(targetTemplate_sp).Item1.OrderBy(x => x.Item2).ToList());
             prospectiveTemplate.SetCreateTSStructures(StructureTuningUIHelper.ParseCreateTSStructureList(templateTSSP).Item1);
             prospectiveTemplate.SetCreateRings(RingUIHelper.ParseCreateRingList(templateCreateRingsSP).Item1);
             prospectiveTemplate.SetTSManipulations(StructureTuningUIHelper.ParseTSManipulationList(templateStructuresSP).Item1);
@@ -1941,7 +1902,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             prospectiveTemplate.SetInitOptimizationConstraints(templateOptParametersListList.First().Item2);
             prospectiveTemplate.SetBoostOptimizationConstraints(templateOptParametersListList.Last().Item2);
 
-            templatePreviewTB.Text = TemplateBuilder.GenerateTemplatePreviewText(prospectiveTemplate);
+            templatePreviewTB.Text = TemplateBuilder.GenerateTemplatePreviewText(prospectiveTemplate).ToString();
             templatePreviewScroller.ScrollToTop();
         }
 
@@ -1970,7 +1931,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 }
             }
 
-            File.WriteAllText(fileName, TemplateBuilder.GenerateSerializedTemplate(prospectiveTemplate));
+            File.WriteAllText(fileName, TemplateBuilder.GenerateSerializedTemplate(prospectiveTemplate).ToString());
             PlanTemplates.Add(prospectiveTemplate);
             DisplayConfigurationParameters();
             templateList.ScrollIntoView(prospectiveTemplate);
@@ -2048,7 +2009,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             else configTB.Text += "No default TS manipulations to list" + Environment.NewLine + Environment.NewLine;
 
-            if(PlanTemplates.Any()) configTB.Text += ConfigurationUIHelper.PrintPlanTemplateConfigurationParameters(PlanTemplates.ToList()).ToString();
+            if(PlanTemplates.Any()) configTB.Text += ConfigurationUIHelper.PrintCSIPlanTemplateConfigurationParameters(PlanTemplates.ToList()).ToString();
 
             configScroller.ScrollToTop();
         }
@@ -2178,18 +2139,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                 line = ConfigurationHelper.CropLine(line, "{");
                                 energy_temp.Add(line.Substring(0, line.IndexOf("}")));
                             }
-                            //else if (line.Contains("add jaw position"))
-                            //{
-                            //    //parse the default requested number of beams per isocenter
-                            //    line = ConfigurationHelper.CropLine(line, "{");
-                            //    (bool fail, VRect<double> parsedPositions) = ConfigurationHelper.ParseJawPositions(line);
-                            //    if (fail)
-                            //    {
-                            //        log.LogError("Error! Jaw positions not defined correctly!");
-                            //        log.LogError(line);
-                            //    }
-                            //    else jawPos_temp.Add(parsedPositions);
-                            //}
                             else if (line.Contains("auto fit jaws to targets"))
                             {
                                 autoFitJaws = true;
@@ -2210,7 +2159,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //let the user know if the data parsing failed
             catch (Exception e) 
             { 
-                log.LogError(String.Format("Error could not load configuration file because: {0}\n\nAssuming default parameters", e.Message));
+                log.LogError($"Error could not load configuration file because: {e.Message}\n\nAssuming default parameters");
                 log.LogError(e.StackTrace, true);
                 return true; 
             }
@@ -2223,13 +2172,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 foreach (string itr in Directory.GetFiles(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\CSI\\", "*.ini").OrderBy(x => x))
                 {
-                    PlanTemplates.Add(ConfigurationHelper.ReadTemplatePlan(itr, count++));
+                    PlanTemplates.Add(ConfigurationHelper.ReadCSITemplatePlan(itr, count++));
                 }
 
             }
             catch(Exception e)
             {
-                log.LogError(String.Format("Error could not load plan template file because: {0}", e.Message));
+                log.LogError($"Error could not load plan template file because: {e.Message}");
                 log.LogError(e.StackTrace, true);
                 return true;
             }
@@ -2239,51 +2188,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            //be sure to close the patient before closing the application. Not doing so will result in unclosed timestamps in eclipse
-            //if (autoSave) { app.SaveModifications(); Process.Start(optLoopProcess); }
-            if (isModified)
-            {
-                if (autoSave)
-                {
-                    app.SaveModifications();
-                    log.AppendLogOutput("Modifications saved to database!");
-                    log.ChangesSaved = true;
-                }
-                else
-                {
-                    SaveChangesPrompt SCP = new SaveChangesPrompt();
-                    SCP.ShowDialog();
-                    if (SCP.GetSelection())
-                    {
-                        app.SaveModifications();
-                        log.AppendLogOutput("Modifications saved to database!");
-                        log.ChangesSaved = true;
-                    }
-                    else
-                    {
-                        log.AppendLogOutput("Modifications NOT saved to database!");
-                        log.ChangesSaved = false;
-                    }
-                }
-            }
-            else
-            {
-                log.AppendLogOutput("No modifications made to database objects!");
-                log.ChangesSaved = false;
-            }
-            log.User = String.Format("{0} ({1})", app.CurrentUser.Name, app.CurrentUser.Id);
-            if (app != null)
-            {
-                if (pi != null)
-                {
-                    app.ClosePatient();
-                    if(log.Dump())
-                    {
-                        MessageBox.Show("Error! Could not save log file!");
-                    }
-                }
-                app.Dispose();
-            }
+            AppClosingHelper.CloseApplication(app, pi != null, isModified, autoSave, log);
         }
 
         private void MainWindow_SizeChanged(object sender, RoutedEventArgs e)

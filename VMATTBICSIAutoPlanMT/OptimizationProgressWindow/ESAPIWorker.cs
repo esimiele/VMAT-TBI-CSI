@@ -2,7 +2,7 @@
 using System.Threading;
 using System.Windows.Threading;
 
-namespace ESAPIThreadWorker
+namespace OptimizationProgressWindow
 {
     //separate class to help facilitate multithreading
     public class ESAPIWorker

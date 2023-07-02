@@ -31,6 +31,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         public List<string> AddedStructures { set { addedStructures = new List<string>(value); } }
         //structure ID, sparing type, margin
         public List<Tuple<string, TSManipulationType, double>> StructureManipulations { set { structureManipulations = new List<Tuple<string, TSManipulationType, double>>(value); } }
+        //plan id, list<original target id, ts target id>
+        public List<Tuple<string, string>> TSTargets { set { tsTargets = new List<Tuple<string, string>>(value); } }
         //plan id, normalization volume for plan
         public List<Tuple<string, string>> NormalizationVolumes { set { normVolumes = new List<Tuple<string, string>>(value); } }
         //plan Id, list of isocenter names for this plan
@@ -56,11 +58,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         List<Tuple<string, string, int, DoseValue, double>> prescriptions;
         private List<string> addedPrelimTargets;
         private List<string> addedStructures;
-        private List<Tuple<string, TSManipulationType, double>> structureManipulations { get; set; }
-        private List<Tuple<string, string>> normVolumes { get; set; }
-        private List<Tuple<string, List<string>>> isoNames { get; set; }
-        private List<string> planUIDs { get; set; }
-        private List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> optimizationConstraints { get; set; }
+        private List<Tuple<string, TSManipulationType, double>> structureManipulations;
+        private List<Tuple<string, string>> tsTargets;
+        private List<Tuple<string, string>> normVolumes;
+        private List<Tuple<string, List<string>>> isoNames;
+        private List<string> planUIDs;
+        private List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> optimizationConstraints;
 
         public Logger(string path, PlanType theType, string patient)
         {
@@ -74,6 +77,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             addedPrelimTargets = new List<string> { };
             addedStructures = new List<string> { };
             structureManipulations = new List<Tuple<string, TSManipulationType, double>> { };
+            tsTargets = new List<Tuple<string, string>> { };
             normVolumes = new List<Tuple<string, string>> { };
             isoNames = new List<Tuple<string, List<string>>> { };
             planUIDs = new List<string> { };
@@ -156,10 +160,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions) sb.AppendLine(String.Format("    {{{0},{1},{2},{3},{4}}}",itr.Item1,itr.Item2,itr.Item3,itr.Item4.Dose,itr.Item5));
             sb.AppendLine(String.Format(""));
 
-            sb.AppendLine(String.Format("Added preliminary targets:"));
-            foreach (string itr in addedPrelimTargets) sb.AppendLine("    " + itr);
-            sb.AppendLine(String.Format(""));
-
+            if(planType == PlanType.VMAT_CSI)
+            {
+                sb.AppendLine(String.Format("Added preliminary targets:"));
+                foreach (string itr in addedPrelimTargets) sb.AppendLine("    " + itr);
+                sb.AppendLine(String.Format(""));
+            }
+            
             sb.AppendLine(String.Format("Added TS structures:"));
             foreach (string itr in addedStructures) sb.AppendLine("    " + itr);
             sb.AppendLine(String.Format(""));
@@ -183,6 +190,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             foreach (string itr in planUIDs)
             {
                 sb.AppendLine(String.Format("    {0}", itr));
+            }
+            sb.AppendLine(String.Format(""));
+
+            sb.AppendLine("TS Targets:");
+            foreach (Tuple<string, string> itr in tsTargets)
+            {
+                sb.AppendLine(String.Format("    {{{0},{1}}}", itr.Item1, itr.Item2));
             }
             sb.AppendLine(String.Format(""));
 

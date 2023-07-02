@@ -129,47 +129,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
-        protected bool PreliminaryChecksSpinningManny(StructureSet ss)
-        {
-            int percentComplete = 0;
-            int calcItems = 3;
-
-            Structure spinningManny = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinmannysurface" || x.Id.ToLower() == "couchmannysurfac");
-            if(spinningManny == null) ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Spinning Manny structure not found"));
-            else ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Retrieved Spinning Manny structure"));
-
-            Structure matchline = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "matchline");
-            if (matchline == null) ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Matchline structure not found"));
-            else ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Retrieved Matchline structure"));
-
-            //check if there is a matchline contour. If so, is it empty?
-            if (matchline != null && !matchline.IsEmpty)
-            {
-                //if a matchline contour is present and filled, does the spinning manny couch exist in the structure set? 
-                //If not, let the user know so they can decide if they want to continue of stop the optimization loop
-                if (spinningManny == null || spinningManny.IsEmpty)
-                {
-                    ConfirmPrompt CP = new ConfirmPrompt(String.Format("I found a matchline, but no spinning manny couch or it's empty!") + Environment.NewLine + Environment.NewLine + "Continue?!");
-                    CP.ShowDialog();
-                    if (!CP.GetSelection())
-                    {
-                        KillOptimizationLoop();
-                        return true;
-                    }
-                }
-            }
-
-            if ((spinningManny != null && !spinningManny.IsEmpty))
-            {
-                if (spinningManny.GetContoursOnImagePlane(0).Any() || spinningManny.GetContoursOnImagePlane(ss.Image.ZSize - 1).Any()) _checkSupportStructures = true;
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Checking if Spinningy Manny structure is on first or last slices of image", _checkSupportStructures));
-            }
-            else ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("No Spinning Manny structure present --> nothing to check"));
-
-            UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
-            return false;
-        }
-
         protected bool CheckSupportStructures(List<Course> courses, StructureSet ss)
         {
             int percentComplete = 0;
@@ -189,23 +148,14 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             {
                 //If dose has been calculated for this plan, need to clear the dose in this and any and all plans that reference this structure set
                 //check to see if this structure set is used in any other calculated plans
-                string message = "The following plans have dose calculated and use the same structure set:" + Environment.NewLine;
-                List<ExternalPlanSetup> otherPlans = new List<ExternalPlanSetup> { };
-                foreach (Course c in courses)
-                {
-                    foreach (ExternalPlanSetup p in c.ExternalPlanSetups)
-                    {
-                        if (p.IsDoseValid && p.StructureSet == ss)
-                        {
-                            message += String.Format("Course: {0}, Plan: {1}", c.Id, p.Id) + Environment.NewLine;
-                            otherPlans.Add(p);
-                        }
-                    }
-                }
+                
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Retrieved all plans that use this structure set that have dose calculated"));
 
-                if (otherPlans.Count > 0)
+                (List<ExternalPlanSetup> otherPlans, string planIdList) = GetPlansWithCalculatedDose(courses, ss);
+                if (otherPlans.Any())
                 {
+                    string message = "The following plans have dose calculated and use the same structure set:" + Environment.NewLine;
+                    message += planIdList;
                     message += Environment.NewLine + "I need to reset the dose matrix, crop the structures, then re-calculate the dose." + Environment.NewLine + "Continue?!";
                     //8-15-2020 dumbass way around the whole "dose has been calculated, you can't change anything!" issue.
                     CP = new ConfirmPrompt(message);
@@ -239,7 +189,25 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
-        private void ResetDoseMatrix(List<ExternalPlanSetup> plans, int percentComplete, int calcItems)
+        protected (List<ExternalPlanSetup>, string) GetPlansWithCalculatedDose(List<Course> courses, StructureSet ss)
+        {
+            List<ExternalPlanSetup> otherPlans = new List<ExternalPlanSetup> { };
+            string planIdList = "";
+            foreach (Course c in courses)
+            {
+                foreach (ExternalPlanSetup p in c.ExternalPlanSetups)
+                {
+                    if (p.IsDoseValid && p.StructureSet == ss)
+                    {
+                        planIdList += String.Format("Course: {0}, Plan: {1}", c.Id, p.Id) + Environment.NewLine;
+                        otherPlans.Add(p);
+                    }
+                }
+            }
+            return (otherPlans, planIdList);
+        }
+
+        protected void ResetDoseMatrix(List<ExternalPlanSetup> plans, int percentComplete, int calcItems)
         {
             calcItems += plans.Count;
             foreach (ExternalPlanSetup itr in plans)
@@ -269,14 +237,14 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
-        private void ReCalculateDose(List<ExternalPlanSetup> plans, int percentComplete, int calcItems)
+        protected void ReCalculateDose(List<ExternalPlanSetup> plans, int percentComplete, int calcItems)
         {
             calcItems += plans.Count;
             //recalculate dose for each plan that requires it
             foreach (ExternalPlanSetup itr in plans)
             {
+                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Re calculating dose for plan: {0}", itr.Id));
                 itr.CalculateDose();
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Calculated dose for plan: {0}", itr.Id));
             }
         }
         
@@ -399,7 +367,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 ProvideUIUpdate(String.Format("{0} normalized!", itr.Id));
 
                 //print requested additional info about the plan
-                ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, itr));
+                ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, itr, _data.normalizationVolumes));
             }
             return false;
         }
@@ -462,7 +430,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 if (!_data.isDemo && _data.copyAndSavePlanItr && (_data.oneMoreOpt || ((count + 1) != _data.numOptimizations))) CopyAndSavePlan(plan, count);
 
                 ProvideUIUpdate(OptimizationLoopUIHelper.PrintPlanOptimizationResultVsConstraints(plan, OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan), e.diffPlanOpt, e.totalCostPlanOpt));
-                ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, plan));
+                ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, plan, _data.normalizationVolumes));
 
                 //really crank up the priority and lower the dose objective on the cooler on the last iteration of the optimization loop
                 //this is basically here to avoid having to call op.updateConstraints a second time (if this batch of code was placed outside of the loop)
@@ -924,6 +892,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             if (plansTargets.Where(x => string.Equals(x.Item1, plan.Id)).Any()) targetId = plansTargets.FirstOrDefault(x => string.Equals(x.Item1, plan.Id)).Item2;
 
             Structure target = TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, targetId, _data.useFlash, _data.planType);
+            ProvideUIUpdate($"Retrieved target: {target.Id} for plan: {plan.Id} to evaluate requested heater/cooler structures");
             if (target == null)
             {
                 ProvideUIUpdate($"Error! Target structure not found for plan: {plan.Id}! Exiting!", true);
