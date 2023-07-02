@@ -24,7 +24,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             Structure body = StructureTuningHelper.GetStructureFromId("Body", selectedSS);
             if (body != null)
             {
-                if (marginInCm >= -5.0 && marginInCm <= 5.0) theStructure.SegmentVolume = theStructure.And(body.Margin(marginInCm * 10));
+                if (marginInCm >= -5.0 && marginInCm <= 5.0) theStructure.SegmentVolume = theStructure.SegmentVolume.And(body.SegmentVolume.Margin(marginInCm * 10));
                 else 
                 { 
                     sb.AppendLine("Cropping margin from body MUST be within +/- 5.0 cm!"); 
@@ -53,7 +53,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             //margin is in cm
             if (structureToCrop != null && baseStructure != null)
             {
-                if (marginInCm >= -5.0 && marginInCm <= 5.0) structureToCrop.SegmentVolume = structureToCrop.Sub(baseStructure.Margin(marginInCm * 10));
+                if (marginInCm >= -5.0 && marginInCm <= 5.0) structureToCrop.SegmentVolume = structureToCrop.SegmentVolume.Sub(baseStructure.SegmentVolume.Margin(marginInCm * 10));
                 else 
                 { 
                     sb.AppendLine("Cropping margin MUST be within +/- 5.0 cm!"); 
@@ -82,7 +82,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             //margin is in cm
             if (target != null && normal != null)
             {
-                if (marginInCm >= -5.0 && marginInCm <= 5.0) normal.SegmentVolume = target.And(normal.Margin(marginInCm * 10));
+                if (marginInCm >= -5.0 && marginInCm <= 5.0) normal.SegmentVolume = target.SegmentVolume.And(normal.SegmentVolume.Margin(marginInCm * 10));
                 else
                 {
                     sb.AppendLine("Added margin MUST be within +/- 5.0 cm!");
@@ -111,7 +111,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             //margin is in cm
             if (baseStructure != null && structureToUnion != null)
             {
-                if (marginInCm >= -5.0 && marginInCm <= 5.0) structureToUnion.SegmentVolume = baseStructure.Or(structureToUnion.Margin(marginInCm * 10));
+                if (marginInCm >= -5.0 && marginInCm <= 5.0) structureToUnion.SegmentVolume = baseStructure.SegmentVolume.Or(structureToUnion.SegmentVolume.Margin(marginInCm * 10));
                 else
                 {
                     sb.AppendLine("Added margin MUST be within +/- 5.0 cm!");
@@ -169,7 +169,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             Structure baseStructure = StructureTuningHelper.GetStructureFromId(baseStructureId, selectedSS);
             if (baseStructure != null)
             {
-                if (marginInCm >= -5.0 && marginInCm <= 5.0) PRVStructure.SegmentVolume = baseStructure.Margin(marginInCm * 10);
+                if (marginInCm >= -5.0 && marginInCm <= 5.0) PRVStructure.SegmentVolume = baseStructure.SegmentVolume.Margin(marginInCm * 10);
                 else
                 {
                     sb.AppendLine($"Error! Requested PRV margin ({marginInCm:0.0} cm) is outside +/- 5 cm! Exiting!");
@@ -196,7 +196,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             bool fail = false;
             try
             {
-                structureToContour.SegmentVolume = baseStructure.Margin(0.0);
+                structureToContour.SegmentVolume = baseStructure.SegmentVolume.Margin(0.0);
             }
             catch(Exception e)
             {
@@ -226,7 +226,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 {
                     Structure dummy = selectedSS.AddStructure("CONTROL", "Dummy");
                     dummy.SegmentVolume = target.And(normal.Margin(marginInCm * 10));
-                    unionStructure.SegmentVolume = unionStructure.Or(dummy.Margin(0.0));
+                    unionStructure.SegmentVolume = unionStructure.SegmentVolume.Or(dummy.SegmentVolume.Margin(0.0));
                     selectedSS.RemoveStructure(dummy);
                 }
                 else

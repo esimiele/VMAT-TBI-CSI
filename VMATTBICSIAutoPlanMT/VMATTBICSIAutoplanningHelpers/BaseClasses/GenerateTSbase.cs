@@ -18,7 +18,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         public List<Tuple<string, TSManipulationType, double>> GetSparingList() { return TSManipulationList; }
         public bool GetUpdateSparingListStatus() { return updateTSManipulationList; }
         public string GetErrorStackTrace() { return stackTraceError; }
-        private readonly object locker = new object();
 
         protected StructureSet selectedSS;
         //structure, manipulation type, added margin (if applicable)

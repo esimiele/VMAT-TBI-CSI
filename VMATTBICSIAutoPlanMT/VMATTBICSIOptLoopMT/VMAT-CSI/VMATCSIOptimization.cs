@@ -33,12 +33,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 ProvideUIUpdate("Performing preliminary checks now:");
                 if (PreliminaryChecksSSAndImage(_data.selectedSS, TargetsHelper.GetAllTargetIds(_data.prescriptions))) return true;
                 if (PreliminaryChecksCouch(_data.selectedSS)) return true;
-                if (_checkSupportStructures)
-                {
-                    if(CheckSupportStructures(_data.plans.First().Course.Patient.Courses.ToList(), _data.selectedSS)) return true;
-                }
                 if (PreliminaryChecksPlans(_data.plans)) return true;
-
                 if (RunOptimizationLoop(_data.plans)) return true;
                 OptimizationLoopFinished();
             }
