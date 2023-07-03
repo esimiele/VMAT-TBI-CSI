@@ -8,6 +8,8 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Windows.Media.Imaging;
+using System.Collections.Generic;
+using System.Linq;
 using EvilDICOM;
 using EvilDICOM.Core;
 using EvilDICOM.Core.Helpers;
@@ -37,13 +39,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         public CTImageExport(VMS.TPS.Common.Model.API.Image img, 
                              string imgWriteLocation, 
                              string patientID, 
-                             string exportFormat = "png", 
+                             string exportFormat = "dcm", 
                              string DCMTK_BIN_PATH = @"N:\RadiationTherapy\Public\CancerCTR\RSPD\v36\bin", 
                              string AET = @"DCMTK", 
                              string AEC = @"VMSDBD", 
                              string AEM = @"VMSFD", 
                              string IP_PORT = @" 10.151.176.60 51402", 
-                             string CMD_FILE_FMT = @"move-{1}-{2}.cmd") 
+                             string CMD_FILE_FMT = @"move-{0}-{1}.cmd") 
         {
             _DCMTK_BIN_PATH = DCMTK_BIN_PATH;
             _AET = AET;
@@ -238,144 +240,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 
         private bool ExportAsDCM()
         {
-            StringBuilder sb = new StringBuilder();
-            string temp = Environment.GetEnvironmentVariable("TEMP");
-            string filename = MakeFilenameValid(String.Format(_CMD_FILE_FMT, _patID, _image.Id));
-            filename = temp + @"\" + filename;
-            GenerateDicomMoveScript(filename);
-
-            string stdErr1;
-            string logFile = filename + "-log.txt";
-            using (Process process = new Process())
-            {
-
-                // this powershell command allows us to see the standard output and also log it.
-                string command = string.Format(@"&'{0}' | tee-object -filepath '{1}'", filename, logFile);
-                // Configure the process using the StartInfo properties.
-                process.StartInfo.FileName = "PowerShell.exe";
-                process.StartInfo.Arguments = command;
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.RedirectStandardError = true;
-
-                // Set our event handler to asynchronously accumulate std err
-                process.ErrorDataReceived += new DataReceivedEventHandler(StdErrHandler);
-
-                process.Start();
-
-                // Read the error stream first and then wait.
-                stdErr1 = process.StandardError.ReadToEnd();
-                //        process.BeginErrorReadLine();
-                //process.WaitForExit();
-                process.Close();
-            }
-
-            // dump out the standard error file, show them to user if they exist, and exit with a nice message.
-            string stdErrFile;
-
-            if (stdErr1.Length > 0)
-            {
-                stdErrFile = filename + "-err.txt";
-                File.WriteAllText(stdErrFile, stdErr1);
-            }
-
-            /*
-            string message = string.Format("Done processing. \n\nCommand File = {0}\n\nLog file: {1}\nStandard error log: {2}", filename, logFile, stdErrFile);
-            MessageBox.Show(message, "Varian Developer");
-
-            // 'Start' generated log file to launch Notepad
-            System.Diagnostics.Process.Start(logFile);
-            // 'Start' generated text file to launch Notepad
-            if (stdErr1.Length > 0)
-                System.Diagnostics.Process.Start(stdErrFile);
-            // Sleep for a few seconds to let notepad start
-            System.Threading.Thread.Sleep(TimeSpan.FromSeconds(2));
-            */
-
-            string sourcePath = @"\\shariatscap105\Dicom\RSDCM\Export\" + _patID;
-            string targetPath = @"P:\_DEMO\" + _patID;
-            if (!Directory.Exists(targetPath))
-            {
-                Directory.CreateDirectory(targetPath);
-            }
-            string fileName;
-            string destFile;
-            if (Directory.Exists(sourcePath))
-            {
-                string[] files = Directory.GetFiles(sourcePath);
-                // Copy the files and overwrite destination files if they already exist.
-                foreach (string s in files)
-                {
-                    // Use static Path methods to extract only the file name from the path.
-                    fileName = Path.GetFileName(s);
-                    destFile = Path.Combine(targetPath, fileName);
-                    File.Copy(s, destFile, true);
-                }
-            }
-            else
-            {
-                Console.WriteLine("Source path does not exist!");
-            }
-
-            ProcessStartInfo processStartInfo = new ProcessStartInfo();
-            Process exeProcess;
-            processStartInfo.FileName = @"P:\_DEMO\Eclipse Scripting API\Plugins\main.exe";
-            processStartInfo.CreateNoWindow = false;
-            processStartInfo.UseShellExecute = true;
-            exeProcess = Process.Start(processStartInfo);
-            Thread.Sleep(30000);
-
-            string exeSourcePath = @"P:\_DEMO\" + _patID;
-            string exeTargetPath = @"P:\_DEMO\Eclipse Scripting API\Plugins\InputData\" + _patID;
-            if (!Directory.Exists(exeTargetPath))
-            {
-                Directory.CreateDirectory(exeTargetPath);
-            }
-            string exeFileName;
-            string exeDestFile;
-            if (Directory.Exists(exeSourcePath))
-            {
-                string[] exeFiles = Directory.GetFiles(exeSourcePath);
-                // Copy the files and overwrite destination files if they already exist.
-                foreach (string s in exeFiles)
-                {
-                    // Use static Path methods to extract only the file name from the path.
-                    exeFileName = Path.GetFileName(s);
-                    exeDestFile = Path.Combine(exeTargetPath, exeFileName);
-                    File.Copy(s, exeDestFile, true);
-                }
-            }
-            else
-            {
-                Console.WriteLine("Source path does not exist!");
-            }
-
-            //// IMPORT SECTION
-            //while (true)
-            //{
-            //    if (File.Exists(@"P:\_DEMO\Eclipse Scripting API\Plugins\OutputData\ContouredByAI.dcm"))
-            //    {
-            //        var daemon = new Entity("VMSDBD", "10.151.176.60", 51402);
-            //        var local = Entity.CreateLocal("DCMTK", 50400);
-            //        var client = new DICOMSCU(local);
-            //        var storer = client.GetCStorer(daemon);
-            //        var outputPath = @"P:\_DEMO\Eclipse Scripting API\Plugins\OutputData";
-            //        ushort msgId = 1;
-            //        var dcmFiles = Directory.GetFiles(outputPath);
-            //        foreach (var path in dcmFiles)
-            //        {
-            //            var dcm = DICOMObject.Read(path);
-            //            var response = storer.SendCStore(dcm, ref msgId);
-            //            /*
-            //            MessageBox.Show($"DICOM C-Store from {local.AeTitle} => " +
-            //                $"{daemon.AeTitle} @{daemon.IpAddress}:{daemon.Port}:" +
-            //                $"{(Status)response.Status}");
-            //            */
-            //        }
-            //        break;
-            //    }
-            //    Thread.Sleep(10000);
-            //}
-            return false;
+            //GenerateDicomMoveScript(filename);
+            return ExportCTDataAsDCM();
         }
 
         private void StdErrHandler(object sendingProcess, DataReceivedEventArgs outLine)
@@ -394,23 +260,113 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             }
             return s;
         }
-        private void GenerateDicomMoveScript(string filename)
+
+        public bool ExportCTData()
         {
-            string move = "movescu -v -aet " + _AET + " -aec " + _AEC + " -aem " + _AEM + " -S -k ";
-            StreamWriter sw = new StreamWriter(filename, false, Encoding.ASCII);
+            var daemon = new Entity("VMSDBD", "10.151.176.60", 51402);
+            var local = Entity.CreateLocal("DCMTK", 50400);
+            var client = new DICOMSCU(local);
 
-            sw.WriteLine(@"@set PATH=%PATH%;" + _DCMTK_BIN_PATH);
+            ProvideUIUpdate($"C Echo from {local.AeTitle} => {daemon.AeTitle} @ {daemon.IpAddress} : {daemon.Port}");
+            ProvideUIUpdate($"Success: {client.Ping(daemon)}");
+            return false;
+        }
 
-            // write the command to move the 3D image data set
-            if (_image != null)
+        public bool ExportCTDataAsDCM()
+        {
+            var AriaDBDaemon = new Entity("VMSDBD", "10.151.176.60", 51402);
+            var VMSFileDaemon = new Entity("VMSFD", "10.151.176.60", 51402);
+
+            //var daemon = new Entity("VMSFD", "10.151.176.60", 51402);
+            var local = Entity.CreateLocal("DCMTK", 50400);
+            var client = new DICOMSCU(local);
+
+            ProvideUIUpdate($"C Echo from {local.AeTitle} => {AriaDBDaemon.AeTitle} @ {AriaDBDaemon.IpAddress} : {AriaDBDaemon.Port}");
+            bool success = client.Ping(AriaDBDaemon, 2000);
+            ProvideUIUpdate($"Success: {success}", !success);
+            if(!success) return true;
+
+            var receiver = new DICOMSCP(local);
+            receiver.SupportedAbstractSyntaxes = AbstractSyntax.ALL_RADIOTHERAPY_STORAGE;
+            if(!Directory.Exists(_writeLocation))
             {
-                sw.WriteLine("rem move 3D image " + _image.Id);
-                string cmd = move + '"' + "0008,0052=SERIES" + '"' + " -k " + '"' + "0020,000E=" + _image.Series.UID + '"' + _IP_PORT;
-                sw.WriteLine(cmd);
+                ProvideUIUpdate($"Error! {_writeLocation} does not exist! Exiting!", true);
+                return true;
             }
 
-            sw.Flush();
-            sw.Close();
+            receiver.DIMSEService.CStoreService.CStorePayloadAction = (dcm, asc) =>
+            {
+                var path = Path.Combine(_writeLocation, dcm.GetSelector().SOPInstanceUID.Data + ".dcm");
+                ProvideUIUpdate($"Writing file {dcm.GetSelector().SOPInstanceUID.Data + ".dcm"}");
+                dcm.Write(path);
+                return true;
+            };
+            receiver.ListenForIncomingAssociations(true);
+
+            var finder = client.GetCFinder(AriaDBDaemon);
+            var studies = finder.FindStudies(_patID);
+            var series = finder.FindSeries(studies);
+            ProvideUIUpdate($"Found {series.Count()} series for {_patID}");
+            ProvideUIUpdate($"Found {series.Where(x => x.Modality == "CT").Count()} total CT images for {_patID}");
+
+            if(series.Any(x => string.Equals(x.SeriesInstanceUID,_image.Series.UID)))
+            {
+                ProvideUIUpdate($"Found matching series for {_image.Id} based on UID: {_image.Series.UID}");
+                var ctSeries = series.First(x => x.SeriesInstanceUID == _image.Series.UID);
+                var imageStack = finder.FindImages(ctSeries);
+                ProvideUIUpdate($"Total CT slices for export: {imageStack.Count()}");
+
+                var mover = client.GetCMover(AriaDBDaemon);
+                ushort msgId = 1;
+                int numImages = imageStack.Count();
+                int counter = 0;
+                foreach (var img in imageStack)
+                {
+                    ProvideUIUpdate((int)(100 * ++counter / numImages),$"Exporting image: {img.SOPInstanceUID}");
+                    var response = mover.SendCMove(img, "VMSFD", ref msgId);
+                    if(response.NumberOfCompletedOps != 1)
+                    {
+                        ProvideUIUpdate($"Error! C-Move operation failed!");
+                        ProvideUIUpdate("DICOM C-Move Results:");
+                        ProvideUIUpdate($"Completed moves: {response.NumberOfCompletedOps}");
+                        ProvideUIUpdate($"Failed moves: {response.NumberOfFailedOps}");
+                        ProvideUIUpdate($"Warning moves: {response.NumberOfWarningOps}");
+                        ProvideUIUpdate($"Remaining moves: {response.NumberOfRemainingOps}");
+                        ProvideUIUpdate("Exiting!",true);
+                        return true;
+                    }
+                }
+            }
+            else
+            {
+                ProvideUIUpdate($"Error! Matching image series not found for UID: {_image.Series.UID}! Exiting!", true);
+                return true;
+            }
+            return false;
+        }
+
+        public void GenerateDicomMoveScript3(string filename)
+        {
+            MessageBox.Show("1");
+            var daemon = new Entity("VMSDBD", "10.151.176.60", 51402);
+            MessageBox.Show("2");
+            var local = Entity.CreateLocal("DCMTK", 50400);
+            MessageBox.Show("3");
+            var client = new DICOMSCU(local);
+            MessageBox.Show("4");
+            var storer = client.GetCStorer(daemon);
+            MessageBox.Show("5");
+            var outputPath = @"\\shariatscap105\Dicom\RSDCM\Import";
+            ushort msgId = 1;
+            var dcmFiles = Directory.GetFiles(outputPath);
+            foreach (var path in dcmFiles)
+            {
+                var dcm = DICOMObject.Read(path);
+                var response = storer.SendCStore(dcm, ref msgId);
+                MessageBox.Show($"DICOM C-Store from {local.AeTitle} => " +
+                    $"{daemon.AeTitle} @{daemon.IpAddress}:{daemon.Port}:" +
+                    $"{(Status)response.Status}");
+            }
         }
     }
 }

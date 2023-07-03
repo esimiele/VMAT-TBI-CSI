@@ -103,9 +103,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 return true;
             }
 
-            (bool unionFail, StringBuilder unionMessage) = ContourHelper.ContourUnion(StructureTuningHelper.GetStructureFromId("TS_ArmsAvoid", selectedSS),
-                                                                                      body,
-                                                                                      0.0);
+            (bool unionFail, StringBuilder unionMessage) = ContourHelper.ContourUnion(StructureTuningHelper.GetStructureFromId("TS_ArmsAvoid", selectedSS), body, 0.0);
             if (unionFail)
             {
                 ProvideUIUpdate(unionMessage.ToString(), true);
@@ -134,8 +132,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             if(selectedSS.CanRemoveStructure(bodyCopy))
             {
-                selectedSS.RemoveStructure(bodyCopy);
                 ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Removed {bodyCopy.Id} from structure set");
+                selectedSS.RemoveStructure(bodyCopy);
             }
             else
             {
