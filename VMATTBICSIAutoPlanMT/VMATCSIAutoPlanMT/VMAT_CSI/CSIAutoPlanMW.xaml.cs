@@ -370,9 +370,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if(selectedImage != null)
             {
                 CTImageExport exporter = new CTImageExport(selectedImage, imgExportPath, pi.Id, imgExportFormat);
-                //don't care about bool result
-                exporter.Execute();
+                bool result = exporter.Execute();
                 log.AppendLogOutput("Export CT data:", exporter.GetLogOutput());
+                if (result) return;
+                exportCTTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             }
             else log.LogError("No image selected for export!");
         }

@@ -6,14 +6,11 @@ using System.Drawing.Imaging;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
 using System.Windows.Media.Imaging;
 using System.Collections.Generic;
 using System.Linq;
-using EvilDICOM;
 using EvilDICOM.Core;
 using EvilDICOM.Core.Helpers;
-using EvilDICOM.Core.Element;
 using EvilDICOM.Network;
 using EvilDICOM.Network.Enums;
 using SimpleProgressWindow;
@@ -22,14 +19,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public class CTImageExport : SimpleMTbase
     {
-        //overridden during construction of class
-        private string _DCMTK_BIN_PATH; // path to DCMTK binaries
-        private string _AET;                 // local AE title
-        private string _AEC;               // AE title of VMS DB Daemon
-        private string _AEM;                 // AE title of VMS File Daemon
-        private string _IP_PORT;// IP address of server hosting the DB Daemon, port daemon is listening to
-        private string _CMD_FILE_FMT;
-        private StringBuilder stdErr = new StringBuilder("");
+        //overridden during construction of classx
+        private string _LocalAET;                 // local AE title
+        private string _AriaDBAET;               // AE title of VMS DB Daemon
+        private string _VMSFileAET;                 // AE title of VMS File Daemon
+        private string _AriaDBIP;                  // IP address of server hosting the DB Daemon, port daemon is listening to
+        private int _AriaDBPort;
+        private int _LocalPort;
 
         private string _exportFormat;
         private VMS.TPS.Common.Model.API.Image _image;
@@ -40,19 +36,19 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                              string imgWriteLocation, 
                              string patientID, 
                              string exportFormat = "dcm", 
-                             string DCMTK_BIN_PATH = @"N:\RadiationTherapy\Public\CancerCTR\RSPD\v36\bin", 
                              string AET = @"DCMTK", 
                              string AEC = @"VMSDBD", 
                              string AEM = @"VMSFD", 
-                             string IP_PORT = @" 10.151.176.60 51402", 
-                             string CMD_FILE_FMT = @"move-{0}-{1}.cmd") 
+                             string IP = "10.151.176.60",
+                             int DBPort = 51402,
+                             int localPort = 50400) 
         {
-            _DCMTK_BIN_PATH = DCMTK_BIN_PATH;
-            _AET = AET;
-            _AEC = AEC;
-            _AEM = AEM;
-            _IP_PORT = IP_PORT;
-            _CMD_FILE_FMT = CMD_FILE_FMT;
+            _LocalAET = AET;
+            _AriaDBAET = AEC;
+            _VMSFileAET = AEM;
+            _AriaDBIP = IP;
+            _AriaDBPort = DBPort;
+            _LocalPort = localPort;
             _exportFormat = exportFormat;
             _image = img;
             _writeLocation = imgWriteLocation;
@@ -61,18 +57,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 
         public override bool Run()
         {
-            return ExportImage();
-        }
-
-        public bool ExportImage()
-        {
             bool result = false;
             if (_exportFormat == "png") result = ExportAsPNG();
             else if (_exportFormat == "dcm") result = ExportAsDCM();
-            if(!result) ProvideUIUpdate($"{_image.Id} has been exported successfully!");
+            if (!result) ProvideUIUpdate($"{_image.Id} has been exported successfully!");
             return result;
         }
 
+        #region PNG export
         private bool ExportAsPNG()
         {
             UpdateUILabel("Exporting as PNG:");
@@ -237,63 +229,21 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 
         //    return PixelFormats.Gray32Float;
         //}
+        #endregion
 
         private bool ExportAsDCM()
         {
-            //GenerateDicomMoveScript(filename);
-            return ExportCTDataAsDCM();
-        }
+            Entity ariaDBDaemon = new Entity(_AriaDBAET, _AriaDBIP, _AriaDBPort);
+            Entity VMSFileDaemon = new Entity(_VMSFileAET, _AriaDBIP, _AriaDBPort);
+            Entity localDaemon = Entity.CreateLocal(_LocalAET, _LocalPort);
+            if (PreliminaryChecks(ariaDBDaemon, localDaemon)) return true;
+            UpdateUILabel("Exporting Dicom Images:");
 
-        private void StdErrHandler(object sendingProcess, DataReceivedEventArgs outLine)
-        {
-            if (!String.IsNullOrEmpty(outLine.Data))
+            var client = new DICOMSCU(localDaemon);
+            var receiver = new DICOMSCP(localDaemon)
             {
-                stdErr.Append(Environment.NewLine + outLine.Data);
-            }
-        }
-        private string MakeFilenameValid(string s)
-        {
-            char[] invalidChars = System.IO.Path.GetInvalidFileNameChars();
-            foreach (char ch in invalidChars)
-            {
-                s = s.Replace(ch, '_');
-            }
-            return s;
-        }
-
-        public bool ExportCTData()
-        {
-            var daemon = new Entity("VMSDBD", "10.151.176.60", 51402);
-            var local = Entity.CreateLocal("DCMTK", 50400);
-            var client = new DICOMSCU(local);
-
-            ProvideUIUpdate($"C Echo from {local.AeTitle} => {daemon.AeTitle} @ {daemon.IpAddress} : {daemon.Port}");
-            ProvideUIUpdate($"Success: {client.Ping(daemon)}");
-            return false;
-        }
-
-        public bool ExportCTDataAsDCM()
-        {
-            var AriaDBDaemon = new Entity("VMSDBD", "10.151.176.60", 51402);
-            var VMSFileDaemon = new Entity("VMSFD", "10.151.176.60", 51402);
-
-            //var daemon = new Entity("VMSFD", "10.151.176.60", 51402);
-            var local = Entity.CreateLocal("DCMTK", 50400);
-            var client = new DICOMSCU(local);
-
-            ProvideUIUpdate($"C Echo from {local.AeTitle} => {AriaDBDaemon.AeTitle} @ {AriaDBDaemon.IpAddress} : {AriaDBDaemon.Port}");
-            bool success = client.Ping(AriaDBDaemon, 2000);
-            ProvideUIUpdate($"Success: {success}", !success);
-            if(!success) return true;
-
-            var receiver = new DICOMSCP(local);
-            receiver.SupportedAbstractSyntaxes = AbstractSyntax.ALL_RADIOTHERAPY_STORAGE;
-            if(!Directory.Exists(_writeLocation))
-            {
-                ProvideUIUpdate($"Error! {_writeLocation} does not exist! Exiting!", true);
-                return true;
-            }
-
+                SupportedAbstractSyntaxes = AbstractSyntax.ALL_RADIOTHERAPY_STORAGE,
+            };
             receiver.DIMSEService.CStoreService.CStorePayloadAction = (dcm, asc) =>
             {
                 var path = Path.Combine(_writeLocation, dcm.GetSelector().SOPInstanceUID.Data + ".dcm");
@@ -303,36 +253,30 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             };
             receiver.ListenForIncomingAssociations(true);
 
-            var finder = client.GetCFinder(AriaDBDaemon);
-            var studies = finder.FindStudies(_patID);
-            var series = finder.FindSeries(studies);
+            EvilDICOM.Network.SCUOps.CFinder finder = client.GetCFinder(ariaDBDaemon);
+            List<EvilDICOM.Network.DIMSE.IOD.CFindStudyIOD> studies = finder.FindStudies(_patID).ToList();
+            List<EvilDICOM.Network.DIMSE.IOD.CFindSeriesIOD> series = finder.FindSeries(studies).ToList();
             ProvideUIUpdate($"Found {series.Count()} series for {_patID}");
             ProvideUIUpdate($"Found {series.Where(x => x.Modality == "CT").Count()} total CT images for {_patID}");
 
-            if(series.Any(x => string.Equals(x.SeriesInstanceUID,_image.Series.UID)))
+            if (series.Any(x => string.Equals(x.SeriesInstanceUID, _image.Series.UID)))
             {
                 ProvideUIUpdate($"Found matching series for {_image.Id} based on UID: {_image.Series.UID}");
-                var ctSeries = series.First(x => x.SeriesInstanceUID == _image.Series.UID);
-                var imageStack = finder.FindImages(ctSeries);
+                EvilDICOM.Network.DIMSE.IOD.CFindSeriesIOD ctSeries = series.First(x => x.SeriesInstanceUID == _image.Series.UID);
+                List<EvilDICOM.Network.DIMSE.IOD.CFindInstanceIOD> imageStack = finder.FindImages(ctSeries).ToList();
                 ProvideUIUpdate($"Total CT slices for export: {imageStack.Count()}");
 
-                var mover = client.GetCMover(AriaDBDaemon);
+                var mover = client.GetCMover(ariaDBDaemon);
                 ushort msgId = 1;
                 int numImages = imageStack.Count();
                 int counter = 0;
                 foreach (var img in imageStack)
                 {
-                    ProvideUIUpdate((int)(100 * ++counter / numImages),$"Exporting image: {img.SOPInstanceUID}");
-                    var response = mover.SendCMove(img, "VMSFD", ref msgId);
-                    if(response.NumberOfCompletedOps != 1)
+                    ProvideUIUpdate((int)(100 * ++counter / numImages), $"Exporting image: {img.SOPInstanceUID}");
+                    EvilDICOM.Network.DIMSE.CMoveResponse response = mover.SendCMove(img, VMSFileDaemon.AeTitle, ref msgId);
+                    if ((Status)response.Status != Status.SUCCESS)
                     {
-                        ProvideUIUpdate($"Error! C-Move operation failed!");
-                        ProvideUIUpdate("DICOM C-Move Results:");
-                        ProvideUIUpdate($"Completed moves: {response.NumberOfCompletedOps}");
-                        ProvideUIUpdate($"Failed moves: {response.NumberOfFailedOps}");
-                        ProvideUIUpdate($"Warning moves: {response.NumberOfWarningOps}");
-                        ProvideUIUpdate($"Remaining moves: {response.NumberOfRemainingOps}");
-                        ProvideUIUpdate("Exiting!",true);
+                        CMoveFailed(response);
                         return true;
                     }
                 }
@@ -345,17 +289,49 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return false;
         }
 
-        public void GenerateDicomMoveScript3(string filename)
+        private void CMoveFailed(EvilDICOM.Network.DIMSE.CMoveResponse response)
         {
-            MessageBox.Show("1");
-            var daemon = new Entity("VMSDBD", "10.151.176.60", 51402);
-            MessageBox.Show("2");
-            var local = Entity.CreateLocal("DCMTK", 50400);
-            MessageBox.Show("3");
-            var client = new DICOMSCU(local);
-            MessageBox.Show("4");
-            var storer = client.GetCStorer(daemon);
-            MessageBox.Show("5");
+            ProvideUIUpdate($"Error! C-Move operation failed!");
+            ProvideUIUpdate("DICOM C-Move Results:");
+            ProvideUIUpdate($"Completed moves: {response.NumberOfCompletedOps}");
+            ProvideUIUpdate($"Failed moves: {response.NumberOfFailedOps}");
+            ProvideUIUpdate($"Warning moves: {response.NumberOfWarningOps}");
+            ProvideUIUpdate($"Remaining moves: {response.NumberOfRemainingOps}");
+            ProvideUIUpdate("Exiting!", true);
+        }
+
+        private bool PreliminaryChecks(Entity aria, Entity local)
+        {
+            UpdateUILabel("Preliminary Checks:");
+            if (PingDaemon(aria, local)) return true;
+            if (!Directory.Exists(_writeLocation))
+            {
+                ProvideUIUpdate($"Error! {_writeLocation} does not exist! Exiting!", true);
+                return true;
+            }
+            return false;
+        }
+
+        private bool PingDaemon(Entity daemon, Entity local)
+        {
+            ProvideUIUpdate($"C Echo from {local.AeTitle} => {daemon.AeTitle} @ {daemon.IpAddress} : {daemon.Port}");
+            DICOMSCU client = new DICOMSCU(local);
+            //5 sec timeout
+            bool success = client.Ping(daemon, 5000);
+            ProvideUIUpdate($"Success: {success}", !success);
+            return !success;
+        }
+
+        public bool GenerateDicomMoveScript3(string filename)
+        {
+            UpdateUILabel("Import RT Structure Set:");
+            Entity ariaDBDaemon = new Entity(_AriaDBAET, _AriaDBIP, _AriaDBPort);
+            Entity localDaemon = Entity.CreateLocal(_LocalAET, _LocalPort);
+
+            if (PreliminaryChecks(ariaDBDaemon, localDaemon)) return true;
+
+            var client = new DICOMSCU(localDaemon);
+            var storer = client.GetCStorer(ariaDBDaemon);
             var outputPath = @"\\shariatscap105\Dicom\RSDCM\Import";
             ushort msgId = 1;
             var dcmFiles = Directory.GetFiles(outputPath);
@@ -363,10 +339,16 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             {
                 var dcm = DICOMObject.Read(path);
                 var response = storer.SendCStore(dcm, ref msgId);
-                MessageBox.Show($"DICOM C-Store from {local.AeTitle} => " +
-                    $"{daemon.AeTitle} @{daemon.IpAddress}:{daemon.Port}:" +
-                    $"{(Status)response.Status}");
+                if((Status)response.Status != Status.SUCCESS)
+                {
+                    ProvideUIUpdate($"CStore failed");
+                }
+                else
+                {
+                    ProvideUIUpdate($"DICOM C-Store from {localDaemon.AeTitle} => {ariaDBDaemon.AeTitle} @{ariaDBDaemon.IpAddress}:{ariaDBDaemon.Port}: {(Status)response.Status}");
+                }
             }
+            return false;
         }
     }
 }

@@ -234,7 +234,7 @@
 
             <Grid Background="DarkGray"  HorizontalAlignment="Left" Height="480" VerticalAlignment="Bottom" Width="730" Margin="0,10,0,0">
                 <TabControl Background="DarkGray"  HorizontalAlignment="Left" Height="480" Margin="-2,0,0,0" VerticalAlignment="Bottom" Width="730" TabStripPlacement="Left" >
-                    <TabItem Header="Export CT" BorderThickness="0,1,1,0">
+                    <TabItem Header="Export CT" BorderThickness="0,1,1,0" x:Name="exportCTTabItem">
                         <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                             <StackPanel>
                                 <Grid>
