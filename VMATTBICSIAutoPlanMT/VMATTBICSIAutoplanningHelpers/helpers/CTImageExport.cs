@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Windows;
 using System.IO;
-using System.Diagnostics;
 using System.Drawing.Imaging;
 using System.Drawing;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Windows.Media.Imaging;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +11,8 @@ using EvilDICOM.Core.Helpers;
 using EvilDICOM.Network;
 using EvilDICOM.Network.Enums;
 using SimpleProgressWindow;
+using VMATTBICSIAutoPlanningHelpers.Enums;
+using VMATTBICSIAutoPlanningHelpers.Structs;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
@@ -23,44 +22,60 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         private string _LocalAET;                 // local AE title
         private string _AriaDBAET;               // AE title of VMS DB Daemon
         private string _VMSFileAET;                 // AE title of VMS File Daemon
-        private string _AriaDBIP;                  // IP address of server hosting the DB Daemon, port daemon is listening to
-        private int _AriaDBPort;
+        private string _AriaDBIP;                  // IP address of server hosting the DB Daemon
+        private int _AriaDBPort;                //port daemon is listening to
+        private string _VMSFileIP;                  // IP address of server hosting the DB Daemon
+        private int _VMSFIlePort;                //port daemon is listening to
         private int _LocalPort;
 
-        private string _exportFormat;
+        private ImgExportFormat _exportFormat;
         private VMS.TPS.Common.Model.API.Image _image;
         private string _writeLocation;
+        private string _importLocation;
         private string _patID;
 
+        private ImportExportStruct _data;
+
         public CTImageExport(VMS.TPS.Common.Model.API.Image img, 
-                             string imgWriteLocation, 
-                             string patientID, 
-                             string exportFormat = "dcm", 
-                             string AET = @"DCMTK", 
-                             string AEC = @"VMSDBD", 
-                             string AEM = @"VMSFD", 
-                             string IP = "10.151.176.60",
-                             int DBPort = 51402,
-                             int localPort = 50400) 
+                             string imgWriteLocation,
+                             string importPath,
+                             string patientID,
+                             ImgExportFormat exportFormat, 
+                             string AriaDBAETitle = @"VMSDBD", 
+                             string AriaDBIP = "10.151.176.60",
+                             int AriaDBPort = 51402,
+                             string VMSFileAETitle = @"VMSFD", 
+                             string VMSFileIP = "10.151.176.60",
+                             int VMSFilePort = 51402,
+                             string localAETitle = @"DCMTK",
+                             int localPort = 50400,
+                             ImgExportFormat theData) 
         {
-            _LocalAET = AET;
-            _AriaDBAET = AEC;
-            _VMSFileAET = AEM;
-            _AriaDBIP = IP;
-            _AriaDBPort = DBPort;
+            _AriaDBAET = AriaDBAETitle;
+            _AriaDBIP = AriaDBIP;
+            _AriaDBPort = AriaDBPort;
+            _VMSFileAET = VMSFileAETitle;
+            _VMSFileIP = VMSFileIP;
+            _VMSFIlePort = VMSFilePort;
+            _LocalAET = localAETitle;
             _LocalPort = localPort;
             _exportFormat = exportFormat;
             _image = img;
             _writeLocation = imgWriteLocation;
+            _importLocation = importPath;
             _patID = patientID;
         }
 
         public override bool Run()
         {
             bool result = false;
-            if (_exportFormat == "png") result = ExportAsPNG();
-            else if (_exportFormat == "dcm") result = ExportAsDCM();
-            if (!result) ProvideUIUpdate($"{_image.Id} has been exported successfully!");
+            if (_exportFormat == ImgExportFormat.PNG) result = ExportAsPNG();
+            else if (_exportFormat == ImgExportFormat.DICOM) result = ExportAsDCM();
+            if (!result)
+            {
+                UpdateUILabel("Finished:");
+                ProvideUIUpdate($"{_image.Id} has been exported successfully!");
+            }
             return result;
         }
 
@@ -231,10 +246,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         //}
         #endregion
 
+        #region DCM export
         private bool ExportAsDCM()
         {
             Entity ariaDBDaemon = new Entity(_AriaDBAET, _AriaDBIP, _AriaDBPort);
-            Entity VMSFileDaemon = new Entity(_VMSFileAET, _AriaDBIP, _AriaDBPort);
+            Entity VMSFileDaemon = new Entity(_VMSFileAET, _VMSFileIP, _VMSFIlePort);
             Entity localDaemon = Entity.CreateLocal(_LocalAET, _LocalPort);
             if (PreliminaryChecks(ariaDBDaemon, localDaemon)) return true;
             UpdateUILabel("Exporting Dicom Images:");
@@ -322,26 +338,24 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return !success;
         }
 
-        public bool GenerateDicomMoveScript3(string filename)
+        public bool ImportRTStructureSet()
         {
-            UpdateUILabel("Import RT Structure Set:");
             Entity ariaDBDaemon = new Entity(_AriaDBAET, _AriaDBIP, _AriaDBPort);
             Entity localDaemon = Entity.CreateLocal(_LocalAET, _LocalPort);
-
             if (PreliminaryChecks(ariaDBDaemon, localDaemon)) return true;
+            UpdateUILabel("Import RT Structure Set:");
 
             var client = new DICOMSCU(localDaemon);
             var storer = client.GetCStorer(ariaDBDaemon);
-            var outputPath = @"\\shariatscap105\Dicom\RSDCM\Import";
             ushort msgId = 1;
-            var dcmFiles = Directory.GetFiles(outputPath);
+            var dcmFiles = Directory.GetFiles(_importLocation);
             foreach (var path in dcmFiles)
             {
                 var dcm = DICOMObject.Read(path);
                 var response = storer.SendCStore(dcm, ref msgId);
                 if((Status)response.Status != Status.SUCCESS)
                 {
-                    ProvideUIUpdate($"CStore failed");
+                    ProvideUIUpdate($"CStore failed", true);
                 }
                 else
                 {
@@ -350,5 +364,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             }
             return false;
         }
+        #endregion
     }
 }

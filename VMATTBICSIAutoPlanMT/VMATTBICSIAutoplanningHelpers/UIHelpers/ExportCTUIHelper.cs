@@ -3,7 +3,6 @@ using System.Linq;
 using System.Windows.Controls;
 using System.Windows;
 using VMS.TPS.Common.Model.API;
-using VMATTBICSIAutoPlanningHelpers.Helpers;
 using System.Text;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers

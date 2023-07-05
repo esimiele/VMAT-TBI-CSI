@@ -122,6 +122,7 @@
     <Compile Include="Enums\AllEnums.cs" />
     <Compile Include="Helpers\AppClosingHelper.cs" />
     <Compile Include="Helpers\CalculationHelper.cs" />
+    <Compile Include="Helpers\ExportFormatTypeHelper.cs" />
     <Compile Include="Helpers\FlashTypeHelper.cs" />
     <Compile Include="PlanTemplateClasses\TBIAutoPlanTemplate.cs" />
     <Compile Include="UIHelpers\ConfigurationUIHelper.cs" />

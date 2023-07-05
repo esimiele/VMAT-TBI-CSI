@@ -17,6 +17,7 @@ using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using VMATTBICSIAutoPlanningHelpers.UIHelpers;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
+using VMATTBICSIAutoPlanningHelpers.Structs;
 using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
 
 namespace VMATCSIAutoPlanMT.VMAT_CSI
@@ -36,7 +37,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //location where CT images should be exported
         string imgExportPath = @"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\exportedImages\";
         //image export format
-        string imgExportFormat = "png";
+        ImgExportFormat imgExportFormat = ImgExportFormat.PNG;
+        //structure set import path (location where the AI autocontoured structure set lives). Only applicable for DICOM
+        string SSImportPath = @"\\shariatscap105\Dicom\RSDCM\Import";
+        //struct to hold all the import/export info
+        ImportExportStruct IEData = new ImportExportStruct();
         //treatment units and associated photon beam energies
         List<string> linacs = new List<string> { "LA16", "LA17" };
         List<string> beamEnergies = new List<string> { "6X"};
@@ -369,7 +374,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             VMS.TPS.Common.Model.API.Image selectedImage = ExportCTUIHelper.GetSelectedImageForExport(CTimageSP, pi.StructureSets.ToList());
             if(selectedImage != null)
             {
-                CTImageExport exporter = new CTImageExport(selectedImage, imgExportPath, pi.Id, imgExportFormat);
+                CTImageExport exporter = new CTImageExport(selectedImage, imgExportPath, SSImportPath, pi.Id, imgExportFormat);
                 bool result = exporter.Execute();
                 log.AppendLogOutput("Export CT data:", exporter.GetLogOutput());
                 if (result) return;
@@ -1955,7 +1960,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             configTB.Text += $"Documentation path: {documentationPath}" + Environment.NewLine + Environment.NewLine;
             configTB.Text += $"Image export path: {imgExportPath}" + Environment.NewLine + Environment.NewLine;
             configTB.Text += "Default parameters:" + Environment.NewLine;
-            configTB.Text += $"Image export format: {imgExportFormat}" + Environment.NewLine;
+            configTB.Text += $"Image export format: {imgExportFormat.ToString()}" + Environment.NewLine;
             configTB.Text += $"Contour field ovelap: {contourOverlap}" + Environment.NewLine;
             configTB.Text += $"Contour field overlap margin: {contourFieldOverlapMargin} cm" + Environment.NewLine;
             configTB.Text += "Available linacs:" + Environment.NewLine;
@@ -2063,28 +2068,32 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                 string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
                                 if (parameter == "documentation path")
                                 {
-                                    if (Directory.Exists(value))
-                                    {
-                                        documentationPath = value;
-                                        if (documentationPath.LastIndexOf("\\") != documentationPath.Length - 1) documentationPath += "\\";
-                                    }
+                                    string result = VerifyPathIntegrity(value);
+                                    if (!string.IsNullOrEmpty(result)) documentationPath = result;
                                 }
                                 else if (parameter == "log file path")
                                 {
-                                    if (Directory.Exists(value))
-                                    {
-                                        logPath = value;
-                                        if (logPath.LastIndexOf("\\") != logPath.Length - 1) logPath += "\\";
-                                    }
+                                    string result = VerifyPathIntegrity(value);
+                                    if (!string.IsNullOrEmpty(result)) logPath = result;
                                 }
                                 else if (parameter == "img export location")
                                 {
-                                    if (Directory.Exists(value))
-                                    {
-                                        imgExportPath = value;
-                                        if (imgExportPath.LastIndexOf("\\") != imgExportPath.Length - 1) imgExportPath += "\\";
-                                    }
-                                    else log.LogError(String.Format("Warning! {0} does NOT exist!", value));
+                                    string result = VerifyPathIntegrity(value);
+                                    if (!string.IsNullOrEmpty(result)) IEData.WriteLocation = result;
+                                }
+                                else if (parameter == "RTStruct import location")
+                                {
+                                    string result = VerifyPathIntegrity(value);
+                                    if (!string.IsNullOrEmpty(result)) IEData.ImportLocation = result;
+                                }
+                                else if (parameter == "img export format")
+                                {
+                                    if (string.Equals(value, "dcm") || string.Equals(value, "png")) IEData.ExportFormat = ExportFormatTypeHelper.GetExportFormatType(value);
+                                    else log.LogError("Only png and dcm image formats are supported for export!");
+                                }
+                                else if (parameter.Contains("daemon"))
+                                {
+                                    //CONTINUE HERE 070523!
                                 }
                                 else if (parameter == "beams per iso")
                                 {
@@ -2113,9 +2122,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                         line = ConfigurationHelper.CropLine(line, ",");
                                     }
                                     c.Add(double.Parse(line.Substring(0, line.IndexOf("}"))));
-                                    for (int i = 0; i < c.Count(); i++) { if (i < 5) collRot[i] = c.ElementAt(i); }
+                                    for (int i = 0; i < c.Count(); i++) 
+                                    { 
+                                        if (i < 5) collRot[i] = c.ElementAt(i); 
+                                    }
                                 }
-                                else if (parameter == "img export format") { if (value == "dcm" || value == "png") imgExportFormat = value; else log.LogError("Only png and dcm image formats are supported for export!"); }
                                 else if (parameter == "use GPU for dose calculation") useGPUdose = value;
                                 else if (parameter == "use GPU for optimization") useGPUoptimization = value;
                                 else if (parameter == "MR level restart") MRrestartLevel = value;
@@ -2164,6 +2175,18 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 log.LogError(e.StackTrace, true);
                 return true; 
             }
+        }
+
+        private string VerifyPathIntegrity(string value)
+        {
+            string result = "";
+            if (Directory.Exists(value))
+            {
+                result = value;
+                if (result.LastIndexOf("\\") != result.Length - 1) result += "\\";
+            }
+            else log.LogError($"Warning! {value} does NOT exist!");
+            return result;
         }
 
         private bool LoadPlanTemplates()
