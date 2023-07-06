@@ -221,6 +221,25 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         }
 
         /// <summary>
+        /// Helper function to parse requested Daemon settings
+        /// </summary>
+        /// <param name="line"></param>
+        /// <returns></returns>
+        public static Tuple<string,string,int> ParseDaemonSettings(string line)
+        {
+            string AETitle;
+            string IP;
+            int port = -1;
+            line = CropLine(line, "{");
+            AETitle = line.Substring(0, line.IndexOf(","));
+            line = CropLine(line, ",");
+            IP = line.Substring(0, line.IndexOf(","));
+            line = CropLine(line, ",");
+            int.TryParse(line.Substring(0, line.IndexOf("}")), out port);
+            return Tuple.Create(AETitle, IP, port);
+        }
+
+        /// <summary>
         /// Helper function to parse a requested ring structure from a template file
         /// </summary>
         /// <param name="line"></param>

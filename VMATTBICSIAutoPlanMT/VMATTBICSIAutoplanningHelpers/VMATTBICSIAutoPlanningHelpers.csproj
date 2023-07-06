@@ -125,7 +125,7 @@
     <Compile Include="Helpers\ExportFormatTypeHelper.cs" />
     <Compile Include="Helpers\FlashTypeHelper.cs" />
     <Compile Include="PlanTemplateClasses\TBIAutoPlanTemplate.cs" />
-    <Compile Include="Structs\ImportExportStruct.cs" />
+    <Compile Include="Structs\ImportExportDataStruct.cs" />
     <Compile Include="UIHelpers\ConfigurationUIHelper.cs" />
     <Compile Include="Helpers\ContourHelper.cs" />
     <Compile Include="Helpers\OptimizationLoopHelper.cs" />

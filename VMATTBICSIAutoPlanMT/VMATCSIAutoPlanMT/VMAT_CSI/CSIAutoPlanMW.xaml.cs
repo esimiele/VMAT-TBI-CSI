@@ -41,7 +41,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //structure set import path (location where the AI autocontoured structure set lives). Only applicable for DICOM
         string SSImportPath = @"\\shariatscap105\Dicom\RSDCM\Import";
         //struct to hold all the import/export info
-        ImportExportStruct IEData = new ImportExportStruct();
+        ImportExportDataStruct IEData;
         //treatment units and associated photon beam energies
         List<string> linacs = new List<string> { "LA16", "LA17" };
         List<string> beamEnergies = new List<string> { "6X"};
@@ -134,8 +134,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 ss = args.ElementAt(1);
             }
 
-            LoadDefaultConfigurationFiles();
+            IEData = new ImportExportDataStruct();
             log = new Logger(logPath, PlanType.VMAT_CSI, mrn);
+            LoadDefaultConfigurationFiles();
             if (app != null)
             {
                 if(OpenPatient(mrn)) return true;
@@ -372,9 +373,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (app == null || pi == null) return;
             //CT image stack panel, patient structure set list, patient id, image export path, image export format
             VMS.TPS.Common.Model.API.Image selectedImage = ExportCTUIHelper.GetSelectedImageForExport(CTimageSP, pi.StructureSets.ToList());
-            if(selectedImage != null)
+            if(selectedImage == null)
             {
-                CTImageExport exporter = new CTImageExport(selectedImage, imgExportPath, SSImportPath, pi.Id, imgExportFormat);
+                CTImageExport exporter = new CTImageExport(selectedImage, pi.Id, IEData);
                 bool result = exporter.Execute();
                 log.AppendLogOutput("Export CT data:", exporter.GetLogOutput());
                 if (result) return;
@@ -512,6 +513,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
         private void AddTarget_Click(object sender, RoutedEventArgs e)
         {
+            if (selectedSS == null)
+            {
+                log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
+                return;
+            }
             (ScrollViewer, StackPanel) SVSP = GetSVAndSPTargetsTab(sender);
             AddTargetVolumes(new List<Tuple<string, double, string>> { Tuple.Create("--select--", 0.0, "--select--") }, SVSP.Item2);
             SVSP.Item1.ScrollToBottom();
@@ -559,7 +565,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
         private void ClearAllTargetItems(Button btn = null)
         {
-            if(btn == null || btn.Name == "clear_target_list" || !btn.Name.Contains("template"))
+            if(btn == null || string.Equals(btn.Name,"clear_target_list") || !btn.Name.Contains("template"))
             {
                 targetsSP.Children.Clear();
                 clearTargetBtnCounter = 0;
@@ -1958,9 +1964,34 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (configFile != "") configTB.Text += $"Configuration file: {configFile}" + Environment.NewLine + Environment.NewLine;
             else configTB.Text += "Configuration file: none" + Environment.NewLine + Environment.NewLine;
             configTB.Text += $"Documentation path: {documentationPath}" + Environment.NewLine + Environment.NewLine;
-            configTB.Text += $"Image export path: {imgExportPath}" + Environment.NewLine + Environment.NewLine;
+            configTB.Text += $"Import/export settings:" + Environment.NewLine;
+            configTB.Text += $"Image export path: {IEData.WriteLocation}" + Environment.NewLine;
+            configTB.Text += $"RT structure set import path: {IEData.ImportLocation}" + Environment.NewLine;
+            configTB.Text += $"Image export format: {IEData.ExportFormat}" + Environment.NewLine;
+
+            if (!string.IsNullOrEmpty(IEData.AriaDBDaemon.Item1))
+            {
+                configTB.Text += "Aria database daemon:" + Environment.NewLine;
+                configTB.Text += $"AE Title: {IEData.AriaDBDaemon.Item1}" + Environment.NewLine;
+                configTB.Text += $"IP: {IEData.AriaDBDaemon.Item2}" + Environment.NewLine;
+                configTB.Text += $"Port: {IEData.AriaDBDaemon.Item3}" + Environment.NewLine;
+            }
+            if (!string.IsNullOrEmpty(IEData.VMSFileDaemon.Item1))
+            {
+                configTB.Text += "Aria VMS File daemon:" + Environment.NewLine;
+                configTB.Text += $"AE Title: {IEData.VMSFileDaemon.Item1}" + Environment.NewLine;
+                configTB.Text += $"IP: {IEData.VMSFileDaemon.Item2}" + Environment.NewLine;
+                configTB.Text += $"Port: {IEData.VMSFileDaemon.Item3}" + Environment.NewLine;
+            }
+            if (!string.IsNullOrEmpty(IEData.LocalDaemon.Item1))
+            {
+                configTB.Text += "Local daemon:" + Environment.NewLine;
+                configTB.Text += $"AE Title: {IEData.LocalDaemon.Item1}" + Environment.NewLine;
+                configTB.Text += $"Port: {IEData.LocalDaemon.Item3}" + Environment.NewLine;
+            }
+            configTB.Text += Environment.NewLine;
+
             configTB.Text += "Default parameters:" + Environment.NewLine;
-            configTB.Text += $"Image export format: {imgExportFormat.ToString()}" + Environment.NewLine;
             configTB.Text += $"Contour field ovelap: {contourOverlap}" + Environment.NewLine;
             configTB.Text += $"Contour field overlap margin: {contourFieldOverlapMargin} cm" + Environment.NewLine;
             configTB.Text += "Available linacs:" + Environment.NewLine;
@@ -2094,6 +2125,18 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                 else if (parameter.Contains("daemon"))
                                 {
                                     //CONTINUE HERE 070523!
+                                    Tuple<string, string, int> result = ConfigurationHelper.ParseDaemonSettings(line);
+                                    if (result.Item3 != -1)
+                                    {
+                                        if (parameter.ToLower().Contains("aria")) IEData.AriaDBDaemon = result;
+                                        else if (parameter.ToLower().Contains("vms file")) IEData.VMSFileDaemon = result;
+                                        else if (parameter.ToLower().Contains("local")) IEData.LocalDaemon = result;
+                                        else
+                                        {
+                                            log.LogError($"Error! Daemon type {parameter} not recognized! Skipping!");
+                                        }
+                                    }
+                                    else log.LogError($"Error! Daemon configuration settings for {line} not parsed successfully! Skipping!");
                                 }
                                 else if (parameter == "beams per iso")
                                 {
@@ -2212,7 +2255,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            AppClosingHelper.CloseApplication(app, pi != null, isModified, autoSave, log);
+            if(app != null) AppClosingHelper.CloseApplication(app, pi != null, isModified, autoSave, log);
         }
 
         private void MainWindow_SizeChanged(object sender, RoutedEventArgs e)

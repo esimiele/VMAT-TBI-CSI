@@ -18,59 +18,32 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public class CTImageExport : SimpleMTbase
     {
-        //overridden during construction of classx
-        private string _LocalAET;                 // local AE title
-        private string _AriaDBAET;               // AE title of VMS DB Daemon
-        private string _VMSFileAET;                 // AE title of VMS File Daemon
-        private string _AriaDBIP;                  // IP address of server hosting the DB Daemon
-        private int _AriaDBPort;                //port daemon is listening to
-        private string _VMSFileIP;                  // IP address of server hosting the DB Daemon
-        private int _VMSFIlePort;                //port daemon is listening to
-        private int _LocalPort;
-
-        private ImgExportFormat _exportFormat;
         private VMS.TPS.Common.Model.API.Image _image;
-        private string _writeLocation;
-        private string _importLocation;
         private string _patID;
-
-        private ImportExportStruct _data;
+        private ImportExportDataStruct _data;
 
         public CTImageExport(VMS.TPS.Common.Model.API.Image img, 
-                             string imgWriteLocation,
-                             string importPath,
                              string patientID,
-                             ImgExportFormat exportFormat, 
-                             string AriaDBAETitle = @"VMSDBD", 
-                             string AriaDBIP = "10.151.176.60",
-                             int AriaDBPort = 51402,
-                             string VMSFileAETitle = @"VMSFD", 
-                             string VMSFileIP = "10.151.176.60",
-                             int VMSFilePort = 51402,
-                             string localAETitle = @"DCMTK",
-                             int localPort = 50400,
-                             ImgExportFormat theData) 
+                             ImportExportDataStruct theData) 
         {
-            _AriaDBAET = AriaDBAETitle;
-            _AriaDBIP = AriaDBIP;
-            _AriaDBPort = AriaDBPort;
-            _VMSFileAET = VMSFileAETitle;
-            _VMSFileIP = VMSFileIP;
-            _VMSFIlePort = VMSFilePort;
-            _LocalAET = localAETitle;
-            _LocalPort = localPort;
-            _exportFormat = exportFormat;
             _image = img;
-            _writeLocation = imgWriteLocation;
-            _importLocation = importPath;
             _patID = patientID;
+            _data = theData;
         }
 
         public override bool Run()
         {
             bool result = false;
-            if (_exportFormat == ImgExportFormat.PNG) result = ExportAsPNG();
-            else if (_exportFormat == ImgExportFormat.DICOM) result = ExportAsDCM();
+            if (_data.ExportFormat == ImgExportFormat.PNG)
+            {
+                if (PreliminaryChecksPNG()) return true;
+                result = ExportAsPNG();
+            }
+            else if (_data.ExportFormat == ImgExportFormat.DICOM)
+            {
+                if (PreliminaryChecksDCM()) return true;
+                result = ExportAsDCM();
+            }
             if (!result)
             {
                 UpdateUILabel("Finished:");
@@ -79,7 +52,23 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return result;
         }
 
+        private bool VerifyPathIntegrity(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                ProvideUIUpdate($"PNG image write location {path} is empty! Exiting!", true);
+                return true;
+            }
+            return false;
+        }
+
         #region PNG export
+        private bool PreliminaryChecksPNG()
+        {
+            UpdateUILabel("Preliminary checks:");
+            return VerifyPathIntegrity(_data.WriteLocation);
+        }
+
         private bool ExportAsPNG()
         {
             UpdateUILabel("Exporting as PNG:");
@@ -104,7 +93,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             try
             {
                 string ct_ID = _image.Id;
-                string folderLoc = Path.Combine(_writeLocation, _patID);
+                string folderLoc = Path.Combine(_data.WriteLocation, _patID);
                 if (!Directory.Exists(folderLoc)) Directory.CreateDirectory(folderLoc);
                 ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), "Initializtion complete. Exporting");
                 for (int k = 0; k < _image.ZSize; k++)
@@ -247,12 +236,49 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         #endregion
 
         #region DCM export
+        private bool PreliminaryChecksDCM()
+        {
+            UpdateUILabel("Preliminary Checks:");
+            if (VerifyPathIntegrity(_data.WriteLocation)) return true;
+            if (VerifyPathIntegrity(_data.ImportLocation)) return true;
+
+            if (VerifyDaemonIntegrity(_data.AriaDBDaemon)) return true;
+            if (VerifyDaemonIntegrity(_data.VMSFileDaemon)) return true;
+            if (VerifyDaemonIntegrity(_data.LocalDaemon)) return true;
+
+            if (CheckDaemonConnection()) return true;
+            return false;
+        }
+
+        private bool VerifyDaemonIntegrity(Tuple<string,string,int> daemon)
+        {
+            if (daemon.Item3 == -1) return true;
+            return false;
+        }
+
+        private bool CheckDaemonConnection() 
+        {
+            Entity ariaDBDaemon = new Entity(_data.AriaDBDaemon.Item1, _data.AriaDBDaemon.Item2, _data.AriaDBDaemon.Item3);
+            Entity localDaemon = Entity.CreateLocal(_data.LocalDaemon.Item1, _data.LocalDaemon.Item3);
+            if (PingDaemon(ariaDBDaemon, localDaemon)) return true;
+            return false;
+        }
+
+        private bool PingDaemon(Entity daemon, Entity local)
+        {
+            ProvideUIUpdate($"C Echo from {local.AeTitle} => {daemon.AeTitle} @ {daemon.IpAddress} : {daemon.Port}");
+            DICOMSCU client = new DICOMSCU(local);
+            //5 sec timeout
+            bool success = client.Ping(daemon, 5000);
+            ProvideUIUpdate($"Success: {success}", !success);
+            return !success;
+        }
+
         private bool ExportAsDCM()
         {
-            Entity ariaDBDaemon = new Entity(_AriaDBAET, _AriaDBIP, _AriaDBPort);
-            Entity VMSFileDaemon = new Entity(_VMSFileAET, _VMSFileIP, _VMSFIlePort);
-            Entity localDaemon = Entity.CreateLocal(_LocalAET, _LocalPort);
-            if (PreliminaryChecks(ariaDBDaemon, localDaemon)) return true;
+            Entity ariaDBDaemon = new Entity(_data.AriaDBDaemon.Item1, _data.AriaDBDaemon.Item2, _data.AriaDBDaemon.Item3);
+            Entity VMSFileDaemon = new Entity(_data.VMSFileDaemon.Item1, _data.VMSFileDaemon.Item2, _data.VMSFileDaemon.Item3);
+            Entity localDaemon = Entity.CreateLocal(_data.LocalDaemon.Item1, _data.LocalDaemon.Item3);
             UpdateUILabel("Exporting Dicom Images:");
 
             var client = new DICOMSCU(localDaemon);
@@ -262,7 +288,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             };
             receiver.DIMSEService.CStoreService.CStorePayloadAction = (dcm, asc) =>
             {
-                var path = Path.Combine(_writeLocation, dcm.GetSelector().SOPInstanceUID.Data + ".dcm");
+                var path = Path.Combine(_data.WriteLocation, dcm.GetSelector().SOPInstanceUID.Data + ".dcm");
                 ProvideUIUpdate($"Writing file {dcm.GetSelector().SOPInstanceUID.Data + ".dcm"}");
                 dcm.Write(path);
                 return true;
@@ -316,39 +342,16 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             ProvideUIUpdate("Exiting!", true);
         }
 
-        private bool PreliminaryChecks(Entity aria, Entity local)
-        {
-            UpdateUILabel("Preliminary Checks:");
-            if (PingDaemon(aria, local)) return true;
-            if (!Directory.Exists(_writeLocation))
-            {
-                ProvideUIUpdate($"Error! {_writeLocation} does not exist! Exiting!", true);
-                return true;
-            }
-            return false;
-        }
-
-        private bool PingDaemon(Entity daemon, Entity local)
-        {
-            ProvideUIUpdate($"C Echo from {local.AeTitle} => {daemon.AeTitle} @ {daemon.IpAddress} : {daemon.Port}");
-            DICOMSCU client = new DICOMSCU(local);
-            //5 sec timeout
-            bool success = client.Ping(daemon, 5000);
-            ProvideUIUpdate($"Success: {success}", !success);
-            return !success;
-        }
-
         public bool ImportRTStructureSet()
         {
-            Entity ariaDBDaemon = new Entity(_AriaDBAET, _AriaDBIP, _AriaDBPort);
-            Entity localDaemon = Entity.CreateLocal(_LocalAET, _LocalPort);
-            if (PreliminaryChecks(ariaDBDaemon, localDaemon)) return true;
+            Entity ariaDBDaemon = new Entity(_data.AriaDBDaemon.Item1, _data.AriaDBDaemon.Item2, _data.AriaDBDaemon.Item3);
+            Entity localDaemon = Entity.CreateLocal(_data.LocalDaemon.Item1, _data.LocalDaemon.Item3);
             UpdateUILabel("Import RT Structure Set:");
 
             var client = new DICOMSCU(localDaemon);
             var storer = client.GetCStorer(ariaDBDaemon);
             ushort msgId = 1;
-            var dcmFiles = Directory.GetFiles(_importLocation);
+            var dcmFiles = Directory.GetFiles(_data.ImportLocation);
             foreach (var path in dcmFiles)
             {
                 var dcm = DICOMObject.Read(path);

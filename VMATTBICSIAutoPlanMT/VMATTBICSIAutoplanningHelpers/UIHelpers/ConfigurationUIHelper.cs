@@ -36,7 +36,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 {
                     sb.AppendLine(String.Format(" {0} ring structures:", itr.GetTemplateName()));
                     sb.AppendLine(String.Format("  {0, -15} | {1, -11} | {2, -14} | {3,-10} |", "target Id", "margin (cm)", "thickness (cm)", "dose (cGy)"));
-                    foreach (Tuple<string, double, double, double> ring in itr.GetCreateRings()) sb.AppendLine(String.Format("  {0, -15} | {1, -11} | {2, -14} | {3,-10} |" + Environment.NewLine, ring.Item1, ring.Item2, ring.Item3, ring.Item4));
+                    foreach (Tuple<string, double, double, double> ring in itr.GetCreateRings()) sb.AppendLine(String.Format("  {0, -15} | {1, -11} | {2, -14} | {3,-10} |", ring.Item1, ring.Item2, ring.Item3, ring.Item4));
                     sb.AppendLine(Environment.NewLine);
                 }
                 else sb.AppendLine(String.Format(" No requested ring structures for template: {0}", itr.GetTemplateName()));
@@ -45,7 +45,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 {
                     sb.AppendLine(String.Format(" {0} requested structures for crop/overlap with targets:", itr.GetTemplateName()));
                     sb.AppendLine(String.Format("  {0, -15}", "structure Id"));
-                    foreach (string cropOverlap in itr.GetCropAndOverlapStructures()) sb.AppendLine(String.Format("  {0}" + Environment.NewLine, cropOverlap));
+                    foreach (string cropOverlap in itr.GetCropAndOverlapStructures()) sb.AppendLine(String.Format("  {0}", cropOverlap));
                     sb.AppendLine(Environment.NewLine);
                 }
                 else sb.AppendLine(String.Format(" No structures requested for crop/overlap with targets for template: {0}", itr.GetTemplateName()));
@@ -106,7 +106,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             if (itr.GetTargets().Any())
             {
                 sb.AppendLine($" {itr.GetTemplateName()} targets:");
-                sb.AppendLine(String.Format("  {0, -15} | {1, -8} | {1, -8} | {3, -14} |", "structure Id", "Rx (cGy)", "Num Fx", "Plan Id"));
+                sb.AppendLine(String.Format("  {0, -15} | {1, -8} | {3, -14} |", "structure Id", "Rx (cGy)", "Num Fx", "Plan Id"));
                 foreach (Tuple<string, double, string> tgt in itr.GetTargets()) sb.AppendLine(String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |", tgt.Item1, tgt.Item2, tgt.Item3));
                 sb.AppendLine(Environment.NewLine);
             }
