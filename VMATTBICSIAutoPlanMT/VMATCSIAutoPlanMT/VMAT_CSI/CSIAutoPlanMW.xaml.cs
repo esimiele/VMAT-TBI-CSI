@@ -34,14 +34,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         string documentationPath = @"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\documentation\";
         //log file path
         string logPath = @"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\Research\VMAT-TBI-CSI\log_files\";
-        //location where CT images should be exported
-        string imgExportPath = @"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\exportedImages\";
-        //image export format
-        ImgExportFormat imgExportFormat = ImgExportFormat.PNG;
-        //structure set import path (location where the AI autocontoured structure set lives). Only applicable for DICOM
-        string SSImportPath = @"\\shariatscap105\Dicom\RSDCM\Import";
         //struct to hold all the import/export info
         ImportExportDataStruct IEData;
+        //flag to indicate whether a CT image has been exported (getting connection conflicts because the port is still being used from the first export)
+        bool imgExported = false;
         //treatment units and associated photon beam energies
         List<string> linacs = new List<string> { "LA16", "LA17" };
         List<string> beamEnergies = new List<string> { "6X"};
@@ -370,15 +366,16 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
         private void ExportImg_Click(object sender, RoutedEventArgs e)
         {
-            if (app == null || pi == null) return;
+            if (app == null || pi == null || imgExported) return;
             //CT image stack panel, patient structure set list, patient id, image export path, image export format
             VMS.TPS.Common.Model.API.Image selectedImage = ExportCTUIHelper.GetSelectedImageForExport(CTimageSP, pi.StructureSets.ToList());
-            if(selectedImage == null)
+            if(selectedImage != null)
             {
                 CTImageExport exporter = new CTImageExport(selectedImage, pi.Id, IEData);
                 bool result = exporter.Execute();
                 log.AppendLogOutput("Export CT data:", exporter.GetLogOutput());
                 if (result) return;
+                imgExported = true;
                 exportCTTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             }
             else log.LogError("No image selected for export!");

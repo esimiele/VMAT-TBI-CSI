@@ -13,6 +13,8 @@ using EvilDICOM.Network.Enums;
 using SimpleProgressWindow;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Structs;
+using System.Diagnostics;
+using System.Reflection;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
@@ -33,23 +35,30 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 
         public override bool Run()
         {
-            bool result = false;
-            if (_data.ExportFormat == ImgExportFormat.PNG)
+            try
             {
-                if (PreliminaryChecksPNG()) return true;
-                result = ExportAsPNG();
-            }
-            else if (_data.ExportFormat == ImgExportFormat.DICOM)
-            {
-                if (PreliminaryChecksDCM()) return true;
-                result = ExportAsDCM();
-            }
-            if (!result)
-            {
+                if (_data.ExportFormat == ImgExportFormat.PNG)
+                {
+                    if (PreliminaryChecksPNG()) return true;
+                    if (ExportAsPNG()) return true;
+                }
+                else if (_data.ExportFormat == ImgExportFormat.DICOM)
+                {
+                    if (PreliminaryChecksDCM()) return true;
+                    if (ExportAsDCM()) return true;
+                    if (LaunchListener()) return true;
+                }
                 UpdateUILabel("Finished:");
                 ProvideUIUpdate($"{_image.Id} has been exported successfully!");
+                ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             }
-            return result;
+            catch(Exception e)
+            {
+                ProvideUIUpdate($"Error! Exception: {e.Message}");
+                ProvideUIUpdate($"{e.StackTrace}", true);
+                return true;
+            }
+            return false;
         }
 
         private bool VerifyPathIntegrity(string path)
@@ -239,25 +248,36 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         private bool PreliminaryChecksDCM()
         {
             UpdateUILabel("Preliminary Checks:");
+            int percentComplete = 0;
+            int calcItems = 6;
+
             if (VerifyPathIntegrity(_data.WriteLocation)) return true;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Write location path {_data.WriteLocation} verified");
             if (VerifyPathIntegrity(_data.ImportLocation)) return true;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Import data path {_data.ImportLocation} verified");
 
             if (VerifyDaemonIntegrity(_data.AriaDBDaemon)) return true;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Aria DB Daemon integrity verified");
             if (VerifyDaemonIntegrity(_data.VMSFileDaemon)) return true;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"VMS File Daemon integrity verified");
             if (VerifyDaemonIntegrity(_data.LocalDaemon)) return true;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Local file Daemon integrity verified");
 
             if (CheckDaemonConnection()) return true;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Daemon connection verified");
             return false;
         }
 
         private bool VerifyDaemonIntegrity(Tuple<string,string,int> daemon)
         {
+            //check if anything was assigned to this daemon (the port, item3, is set to -1 by default)
             if (daemon.Item3 == -1) return true;
             return false;
         }
 
         private bool CheckDaemonConnection() 
         {
+            //check connection between local file daemon and aria database daemon
             Entity ariaDBDaemon = new Entity(_data.AriaDBDaemon.Item1, _data.AriaDBDaemon.Item2, _data.AriaDBDaemon.Item3);
             Entity localDaemon = Entity.CreateLocal(_data.LocalDaemon.Item1, _data.LocalDaemon.Item3);
             if (PingDaemon(ariaDBDaemon, localDaemon)) return true;
@@ -276,28 +296,34 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 
         private bool ExportAsDCM()
         {
+            UpdateUILabel("Exporting Dicom Images:");
+            int percentComplete = 0;
+            int calcItems = 3;
+
             Entity ariaDBDaemon = new Entity(_data.AriaDBDaemon.Item1, _data.AriaDBDaemon.Item2, _data.AriaDBDaemon.Item3);
             Entity VMSFileDaemon = new Entity(_data.VMSFileDaemon.Item1, _data.VMSFileDaemon.Item2, _data.VMSFileDaemon.Item3);
             Entity localDaemon = Entity.CreateLocal(_data.LocalDaemon.Item1, _data.LocalDaemon.Item3);
-            UpdateUILabel("Exporting Dicom Images:");
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Constructed Daemon entities");
 
-            var client = new DICOMSCU(localDaemon);
-            var receiver = new DICOMSCP(localDaemon)
+            DICOMSCU client = new DICOMSCU(localDaemon);
+            DICOMSCP receiver = new DICOMSCP(localDaemon)
             {
                 SupportedAbstractSyntaxes = AbstractSyntax.ALL_RADIOTHERAPY_STORAGE,
             };
             receiver.DIMSEService.CStoreService.CStorePayloadAction = (dcm, asc) =>
             {
-                var path = Path.Combine(_data.WriteLocation, dcm.GetSelector().SOPInstanceUID.Data + ".dcm");
+                string path = Path.Combine(_data.WriteLocation, dcm.GetSelector().SOPInstanceUID.Data + ".dcm");
                 ProvideUIUpdate($"Writing file {dcm.GetSelector().SOPInstanceUID.Data + ".dcm"}");
                 dcm.Write(path);
                 return true;
             };
             receiver.ListenForIncomingAssociations(true);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Configured client and receiver for C-move operations");
 
             EvilDICOM.Network.SCUOps.CFinder finder = client.GetCFinder(ariaDBDaemon);
             List<EvilDICOM.Network.DIMSE.IOD.CFindStudyIOD> studies = finder.FindStudies(_patID).ToList();
             List<EvilDICOM.Network.DIMSE.IOD.CFindSeriesIOD> series = finder.FindSeries(studies).ToList();
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));
             ProvideUIUpdate($"Found {series.Count()} series for {_patID}");
             ProvideUIUpdate($"Found {series.Where(x => x.Modality == "CT").Count()} total CT images for {_patID}");
 
@@ -308,7 +334,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 List<EvilDICOM.Network.DIMSE.IOD.CFindInstanceIOD> imageStack = finder.FindImages(ctSeries).ToList();
                 ProvideUIUpdate($"Total CT slices for export: {imageStack.Count()}");
 
-                var mover = client.GetCMover(ariaDBDaemon);
+                EvilDICOM.Network.SCUOps.CMover mover = client.GetCMover(ariaDBDaemon);
                 ushort msgId = 1;
                 int numImages = imageStack.Count();
                 int counter = 0;
@@ -322,6 +348,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                         return true;
                     }
                 }
+                
             }
             else
             {
@@ -342,29 +369,19 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             ProvideUIUpdate("Exiting!", true);
         }
 
-        public bool ImportRTStructureSet()
+        private bool LaunchListener()
         {
-            Entity ariaDBDaemon = new Entity(_data.AriaDBDaemon.Item1, _data.AriaDBDaemon.Item2, _data.AriaDBDaemon.Item3);
-            Entity localDaemon = Entity.CreateLocal(_data.LocalDaemon.Item1, _data.LocalDaemon.Item3);
-            UpdateUILabel("Import RT Structure Set:");
-
-            var client = new DICOMSCU(localDaemon);
-            var storer = client.GetCStorer(ariaDBDaemon);
-            ushort msgId = 1;
-            var dcmFiles = Directory.GetFiles(_data.ImportLocation);
-            foreach (var path in dcmFiles)
+            string path = Assembly.GetExecutingAssembly().Location;
+            ProvideUIUpdate(path);
+            string listener = Directory.GetFiles(Path.GetDirectoryName(path), "*.exe").FirstOrDefault(x => x.Contains("ImportListener"));
+            if (!string.IsNullOrEmpty(listener))
             {
-                var dcm = DICOMObject.Read(path);
-                var response = storer.SendCStore(dcm, ref msgId);
-                if((Status)response.Status != Status.SUCCESS)
-                {
-                    ProvideUIUpdate($"CStore failed", true);
-                }
-                else
-                {
-                    ProvideUIUpdate($"DICOM C-Store from {localDaemon.AeTitle} => {ariaDBDaemon.AeTitle} @{ariaDBDaemon.IpAddress}:{ariaDBDaemon.Port}: {(Status)response.Status}");
-                }
+                ProvideUIUpdate(listener);
+                ProcessStartInfo p = new ProcessStartInfo(listener);
+                p.Arguments = $"{_data.ImportLocation} {_patID} {_data.AriaDBDaemon.Item1} {_data.AriaDBDaemon.Item2} {_data.AriaDBDaemon.Item3} {_data.LocalDaemon.Item1} {_data.LocalDaemon.Item3} {3600.0}";
+                Process.Start(p);
             }
+            else ProvideUIUpdate("Error! Could not find listener executable! Exiting!");
             return false;
         }
         #endregion
