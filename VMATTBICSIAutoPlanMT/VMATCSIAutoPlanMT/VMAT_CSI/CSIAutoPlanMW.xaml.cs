@@ -17,6 +17,7 @@ using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using VMATTBICSIAutoPlanningHelpers.UIHelpers;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
+using VMATTBICSIAutoPlanningHelpers.Structs;
 using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
 
 namespace VMATCSIAutoPlanMT.VMAT_CSI
@@ -33,10 +34,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         string documentationPath = @"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\documentation\";
         //log file path
         string logPath = @"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\Research\VMAT-TBI-CSI\log_files\";
-        //location where CT images should be exported
-        string imgExportPath = @"\\vfs0006\RadData\oncology\ESimiele\Research\VMAT_TBI_CSI\exportedImages\";
-        //image export format
-        string imgExportFormat = "png";
+        //struct to hold all the import/export info
+        ImportExportDataStruct IEData;
+        //flag to indicate whether a CT image has been exported (getting connection conflicts because the port is still being used from the first export)
+        bool imgExported = false;
         //treatment units and associated photon beam energies
         List<string> linacs = new List<string> { "LA16", "LA17" };
         List<string> beamEnergies = new List<string> { "6X"};
@@ -129,8 +130,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 ss = args.ElementAt(1);
             }
 
-            LoadDefaultConfigurationFiles();
+            IEData = new ImportExportDataStruct();
             log = new Logger(logPath, PlanType.VMAT_CSI, mrn);
+            LoadDefaultConfigurationFiles();
             if (app != null)
             {
                 if(OpenPatient(mrn)) return true;
@@ -364,15 +366,17 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
         private void ExportImg_Click(object sender, RoutedEventArgs e)
         {
-            if (app == null || pi == null) return;
+            if (app == null || pi == null || imgExported) return;
             //CT image stack panel, patient structure set list, patient id, image export path, image export format
             VMS.TPS.Common.Model.API.Image selectedImage = ExportCTUIHelper.GetSelectedImageForExport(CTimageSP, pi.StructureSets.ToList());
             if(selectedImage != null)
             {
-                CTImageExport exporter = new CTImageExport(selectedImage, imgExportPath, pi.Id, imgExportFormat);
-                //don't care about bool result
-                exporter.Execute();
+                CTImageExport exporter = new CTImageExport(selectedImage, pi.Id, IEData);
+                bool result = exporter.Execute();
                 log.AppendLogOutput("Export CT data:", exporter.GetLogOutput());
+                if (result) return;
+                imgExported = true;
+                exportCTTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             }
             else log.LogError("No image selected for export!");
         }
@@ -506,6 +510,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
         private void AddTarget_Click(object sender, RoutedEventArgs e)
         {
+            if (selectedSS == null)
+            {
+                log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
+                return;
+            }
             (ScrollViewer, StackPanel) SVSP = GetSVAndSPTargetsTab(sender);
             AddTargetVolumes(new List<Tuple<string, double, string>> { Tuple.Create("--select--", 0.0, "--select--") }, SVSP.Item2);
             SVSP.Item1.ScrollToBottom();
@@ -553,7 +562,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
         private void ClearAllTargetItems(Button btn = null)
         {
-            if(btn == null || btn.Name == "clear_target_list" || !btn.Name.Contains("template"))
+            if(btn == null || string.Equals(btn.Name,"clear_target_list") || !btn.Name.Contains("template"))
             {
                 targetsSP.Children.Clear();
                 clearTargetBtnCounter = 0;
@@ -1952,9 +1961,34 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (configFile != "") configTB.Text += $"Configuration file: {configFile}" + Environment.NewLine + Environment.NewLine;
             else configTB.Text += "Configuration file: none" + Environment.NewLine + Environment.NewLine;
             configTB.Text += $"Documentation path: {documentationPath}" + Environment.NewLine + Environment.NewLine;
-            configTB.Text += $"Image export path: {imgExportPath}" + Environment.NewLine + Environment.NewLine;
+            configTB.Text += $"Import/export settings:" + Environment.NewLine;
+            configTB.Text += $"Image export path: {IEData.WriteLocation}" + Environment.NewLine;
+            configTB.Text += $"RT structure set import path: {IEData.ImportLocation}" + Environment.NewLine;
+            configTB.Text += $"Image export format: {IEData.ExportFormat}" + Environment.NewLine;
+
+            if (!string.IsNullOrEmpty(IEData.AriaDBDaemon.Item1))
+            {
+                configTB.Text += "Aria database daemon:" + Environment.NewLine;
+                configTB.Text += $"AE Title: {IEData.AriaDBDaemon.Item1}" + Environment.NewLine;
+                configTB.Text += $"IP: {IEData.AriaDBDaemon.Item2}" + Environment.NewLine;
+                configTB.Text += $"Port: {IEData.AriaDBDaemon.Item3}" + Environment.NewLine;
+            }
+            if (!string.IsNullOrEmpty(IEData.VMSFileDaemon.Item1))
+            {
+                configTB.Text += "Aria VMS File daemon:" + Environment.NewLine;
+                configTB.Text += $"AE Title: {IEData.VMSFileDaemon.Item1}" + Environment.NewLine;
+                configTB.Text += $"IP: {IEData.VMSFileDaemon.Item2}" + Environment.NewLine;
+                configTB.Text += $"Port: {IEData.VMSFileDaemon.Item3}" + Environment.NewLine;
+            }
+            if (!string.IsNullOrEmpty(IEData.LocalDaemon.Item1))
+            {
+                configTB.Text += "Local daemon:" + Environment.NewLine;
+                configTB.Text += $"AE Title: {IEData.LocalDaemon.Item1}" + Environment.NewLine;
+                configTB.Text += $"Port: {IEData.LocalDaemon.Item3}" + Environment.NewLine;
+            }
+            configTB.Text += Environment.NewLine;
+
             configTB.Text += "Default parameters:" + Environment.NewLine;
-            configTB.Text += $"Image export format: {imgExportFormat}" + Environment.NewLine;
             configTB.Text += $"Contour field ovelap: {contourOverlap}" + Environment.NewLine;
             configTB.Text += $"Contour field overlap margin: {contourFieldOverlapMargin} cm" + Environment.NewLine;
             configTB.Text += "Available linacs:" + Environment.NewLine;
@@ -2062,28 +2096,44 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                 string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
                                 if (parameter == "documentation path")
                                 {
-                                    if (Directory.Exists(value))
-                                    {
-                                        documentationPath = value;
-                                        if (documentationPath.LastIndexOf("\\") != documentationPath.Length - 1) documentationPath += "\\";
-                                    }
+                                    string result = VerifyPathIntegrity(value);
+                                    if (!string.IsNullOrEmpty(result)) documentationPath = result;
                                 }
                                 else if (parameter == "log file path")
                                 {
-                                    if (Directory.Exists(value))
-                                    {
-                                        logPath = value;
-                                        if (logPath.LastIndexOf("\\") != logPath.Length - 1) logPath += "\\";
-                                    }
+                                    string result = VerifyPathIntegrity(value);
+                                    if (!string.IsNullOrEmpty(result)) logPath = result;
                                 }
                                 else if (parameter == "img export location")
                                 {
-                                    if (Directory.Exists(value))
+                                    string result = VerifyPathIntegrity(value);
+                                    if (!string.IsNullOrEmpty(result)) IEData.WriteLocation = result;
+                                }
+                                else if (parameter == "RTStruct import location")
+                                {
+                                    string result = VerifyPathIntegrity(value);
+                                    if (!string.IsNullOrEmpty(result)) IEData.ImportLocation = result;
+                                }
+                                else if (parameter == "img export format")
+                                {
+                                    if (string.Equals(value, "dcm") || string.Equals(value, "png")) IEData.ExportFormat = ExportFormatTypeHelper.GetExportFormatType(value);
+                                    else log.LogError("Only png and dcm image formats are supported for export!");
+                                }
+                                else if (parameter.Contains("daemon"))
+                                {
+                                    //CONTINUE HERE 070523!
+                                    Tuple<string, string, int> result = ConfigurationHelper.ParseDaemonSettings(line);
+                                    if (result.Item3 != -1)
                                     {
-                                        imgExportPath = value;
-                                        if (imgExportPath.LastIndexOf("\\") != imgExportPath.Length - 1) imgExportPath += "\\";
+                                        if (parameter.ToLower().Contains("aria")) IEData.AriaDBDaemon = result;
+                                        else if (parameter.ToLower().Contains("vms file")) IEData.VMSFileDaemon = result;
+                                        else if (parameter.ToLower().Contains("local")) IEData.LocalDaemon = result;
+                                        else
+                                        {
+                                            log.LogError($"Error! Daemon type {parameter} not recognized! Skipping!");
+                                        }
                                     }
-                                    else log.LogError(String.Format("Warning! {0} does NOT exist!", value));
+                                    else log.LogError($"Error! Daemon configuration settings for {line} not parsed successfully! Skipping!");
                                 }
                                 else if (parameter == "beams per iso")
                                 {
@@ -2112,9 +2162,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                         line = ConfigurationHelper.CropLine(line, ",");
                                     }
                                     c.Add(double.Parse(line.Substring(0, line.IndexOf("}"))));
-                                    for (int i = 0; i < c.Count(); i++) { if (i < 5) collRot[i] = c.ElementAt(i); }
+                                    for (int i = 0; i < c.Count(); i++) 
+                                    { 
+                                        if (i < 5) collRot[i] = c.ElementAt(i); 
+                                    }
                                 }
-                                else if (parameter == "img export format") { if (value == "dcm" || value == "png") imgExportFormat = value; else log.LogError("Only png and dcm image formats are supported for export!"); }
                                 else if (parameter == "use GPU for dose calculation") useGPUdose = value;
                                 else if (parameter == "use GPU for optimization") useGPUoptimization = value;
                                 else if (parameter == "MR level restart") MRrestartLevel = value;
@@ -2165,6 +2217,18 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
         }
 
+        private string VerifyPathIntegrity(string value)
+        {
+            string result = "";
+            if (Directory.Exists(value))
+            {
+                result = value;
+                if (result.LastIndexOf("\\") != result.Length - 1) result += "\\";
+            }
+            else log.LogError($"Warning! {value} does NOT exist!");
+            return result;
+        }
+
         private bool LoadPlanTemplates()
         {
             int count = 1;
@@ -2188,7 +2252,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            AppClosingHelper.CloseApplication(app, pi != null, isModified, autoSave, log);
+            if(app != null) AppClosingHelper.CloseApplication(app, pi != null, isModified, autoSave, log);
         }
 
         private void MainWindow_SizeChanged(object sender, RoutedEventArgs e)

@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Diagnostics;
 using VMS.TPS.Common.Model.API;
-using VMS.TPS.Common.Model.Types;
 
 [assembly: ESAPIScript(IsWriteable = true)]
 namespace ParallelTest

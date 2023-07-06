@@ -26,6 +26,15 @@
     };
 
     /// <summary>
+    /// CT image export format. Either dicom or png
+    /// </summary>
+    public enum ImgExportFormat
+    {
+        DICOM,
+        PNG
+    };
+
+    /// <summary>
     /// Plan type, either csi or tbi
     /// </summary>
     public enum PlanType
@@ -34,6 +43,9 @@
         VMAT_CSI
     };
 
+    /// <summary>
+    /// flash type for vmat tbi. Either global or locally on one structure
+    /// </summary>
     public enum FlashType
     {
         Global,

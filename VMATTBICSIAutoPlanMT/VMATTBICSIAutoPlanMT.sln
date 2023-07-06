@@ -25,8 +25,13 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Launcher", "Launcher\Launcher.csproj", "{CF625200-AECB-4F35-A3EC-34FE466966E6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VMATCSIAutoPlanMT", "VMATCSIAutoPlanMT\VMATCSIAutoPlanMT.csproj", "{D708CC35-888E-4FE5-B9C6-B858B9BA0015}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5042CFF4-08AF-4323-83E7-059FBEBE5B61} = {5042CFF4-08AF-4323-83E7-059FBEBE5B61}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VMATTBICSIOptLoopMT", "VMATTBICSIOptLoopMT\VMATTBICSIOptLoopMT.csproj", "{0D8218FD-0F0D-4370-8402-4A8730032EFF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImportListener", "ImportListener\ImportListener.csproj", "{5042CFF4-08AF-4323-83E7-059FBEBE5B61}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -92,6 +97,14 @@ Global
 		{0D8218FD-0F0D-4370-8402-4A8730032EFF}.Release|Any CPU.Build.0 = Release|Any CPU
 		{0D8218FD-0F0D-4370-8402-4A8730032EFF}.Release|x64.ActiveCfg = Release|x64
 		{0D8218FD-0F0D-4370-8402-4A8730032EFF}.Release|x64.Build.0 = Release|x64
+		{5042CFF4-08AF-4323-83E7-059FBEBE5B61}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5042CFF4-08AF-4323-83E7-059FBEBE5B61}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5042CFF4-08AF-4323-83E7-059FBEBE5B61}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{5042CFF4-08AF-4323-83E7-059FBEBE5B61}.Debug|x64.Build.0 = Debug|Any CPU
+		{5042CFF4-08AF-4323-83E7-059FBEBE5B61}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5042CFF4-08AF-4323-83E7-059FBEBE5B61}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5042CFF4-08AF-4323-83E7-059FBEBE5B61}.Release|x64.ActiveCfg = Release|Any CPU
+		{5042CFF4-08AF-4323-83E7-059FBEBE5B61}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

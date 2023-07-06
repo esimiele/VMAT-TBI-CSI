@@ -3,7 +3,6 @@ using System.Linq;
 using System.Windows.Controls;
 using System.Windows;
 using VMS.TPS.Common.Model.API;
-using VMATTBICSIAutoPlanningHelpers.Helpers;
 using System.Text;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
@@ -95,19 +94,22 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             string theImageId = "";
             foreach (object obj in theSP.Children)
             {
-                //skip over the header row
+                string tmpImageId = "";
                 foreach (object obj1 in ((StackPanel)obj).Children)
                 {
                     if (obj1.GetType() == typeof(TextBox))
                     {
                         if ((obj1 as TextBox).Name == "theTB")
                         {
-                            theImageId = (obj1 as TextBox).Text;
+                            tmpImageId = (obj1 as TextBox).Text;
                         }
                     }
                     else if (obj1.GetType() == typeof(CheckBox))
                     {
-                        if ((obj1 as CheckBox).IsChecked.Value) return theImageId;
+                        if ((obj1 as CheckBox).IsChecked.Value)
+                        {
+                            theImageId = tmpImageId;
+                        }
                     }
                 }
             }
