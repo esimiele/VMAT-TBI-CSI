@@ -1575,7 +1575,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 //this method assumes no prior knowledge, so it will have to retrive the number of isocenters (vmat and total) and isocenter names explicitly
                 Course c = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat tbi");
                 ExternalPlanSetup vmatPlan = null;
-                IEnumerable<ExternalPlanSetup> appaPlan = new List<ExternalPlanSetup> { };
                 if (c == null)
                 {
                     //vmat tbi course not found. Dealbreaker, exit method
@@ -1586,8 +1585,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 {
                     //always try and get the AP/PA plans (it's ok if it returns null). NOTE: Nataliya sometimes separates the _legs plan into two separate plans for planning PRIOR to running the optimization loop
                     //therefore, look for all external beam plans that contain the string 'legs'. If 3 plans are found, one of them is the original '_Legs' plan, so we can exculde that from the list
-                    appaPlan = c.ExternalPlanSetups.Where(x => x.Id.ToLower().Contains("legs"));
-                    if (appaPlan.Count() > 2) appaPlan = c.ExternalPlanSetups.Where(x => x.Id.ToLower().Contains("legs")).Where(x => x.Id.ToLower() != "_legs").OrderBy(o => int.Parse(o.Id.Substring(0, 2).ToString()));
                     //get all plans in the course that don't contain the string 'legs' in the plan ID. If more than 1 exists, prompt the user to select the plan they want to prep
                     IEnumerable<ExternalPlanSetup> plans = c.ExternalPlanSetups.Where(x => !x.Id.ToLower().Contains("legs"));
                     if (plans.Count() > 1)
@@ -1612,7 +1609,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 }
 
                 //create an instance of the planPep class and pass it the vmatPlan and appaPlan objects as arguments. Get the shift note for the plan of interest
-                prep = new PlanPrep_CSI(vmatPlan, appaPlan);
+                prep = new PlanPrep_CSI(vmatPlan);
             }
             if (prep.GetShiftNote()) return;
 
@@ -1638,12 +1635,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             separateTB.Background = System.Windows.Media.Brushes.ForestGreen;
             separateTB.Text = "YES";
 
-            //if flash was removed, display the calculate dose button (to remove flash, the script had to wipe the dose in the original plan)
-            if (prep.flashRemoved)
-            {
-                calcDose.Visibility = Visibility.Visible;
-                calcDoseTB.Visibility = Visibility.Visible;
-            }
             isModified = true;
             planPreparationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
         }
@@ -1671,11 +1662,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //let the user know this step has been completed
             calcDoseTB.Background = System.Windows.Media.Brushes.ForestGreen;
             calcDoseTB.Text = "YES";
-        }
-
-        private void GeneratePlanSum_Click(object sender, RoutedEventArgs e)
-        {
-            //do nothing. Eclipse v15.6 doesn't have this capability, but v16 and later does. This method is a placeholder (the planSum button exists in the UI.xaml file, but its visibility is set to 'hidden')
         }
         #endregion
 

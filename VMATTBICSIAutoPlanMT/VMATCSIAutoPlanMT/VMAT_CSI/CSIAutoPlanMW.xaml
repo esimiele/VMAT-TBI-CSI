@@ -407,10 +407,6 @@
                                     <Button x:Name="calcDose" Content="Calculate dose (optional)" Width="150" Height="25" HorizontalAlignment="Center" Margin="0,0,200,0" Visibility="Hidden" Click="CalculateDose_Click"></Button>
                                     <TextBox x:Name="calcDoseTB" Text="NO" IsReadOnly="True" FontWeight="Bold" TextAlignment="Center" Foreground="black" Background="Red" Width="70" Height="20" Margin="200,0,0,0" Visibility="Hidden"></TextBox>
                                 </Grid>
-                                <Grid Height="40" Width ="400" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0">
-                                    <Button x:Name="createPlanSum" Content="Create plan sum" Width="100" Height="25" HorizontalAlignment="Center" Margin="0,0,200,0" Click="GeneratePlanSum_Click" Visibility="Hidden"></Button>
-                                    <TextBox x:Name="createPlanSumTB" Text="N/A" IsReadOnly="True" FontWeight="Bold" TextAlignment="Center" Foreground="black" Width="70" Height="20" Margin="200,0,0,0" Visibility="Hidden"></TextBox>
-                                </Grid>
                                 <Label Content="More features coming in v16!" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center" Margin="0,75,0,0"></Label>
                             </StackPanel>
                         </Border>

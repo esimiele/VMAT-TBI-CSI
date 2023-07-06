@@ -18,7 +18,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         public List<string> names = new List<string> { };
         public List<List<Beam>> vmatBeamsPerIso = new List<List<Beam>> { };
         public List<ExternalPlanSetup> separatedPlans = new List<ExternalPlanSetup> { };
-        public bool flashRemoved = false;
 
         public PlanPrepBase()
         {
@@ -150,65 +149,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return count;
         }
 
-        public bool CheckForFlash()
-        {
-            //look in the structure set to see if any of the structures contain the string 'flash'. If so, return true indicating flash was included in this plan
-            IEnumerable<Structure> flashStr = vmatPlan.StructureSet.Structures.Where(x => x.Id.ToLower().Contains("flash"));
-            if (flashStr.Any()) foreach (Structure s in flashStr) if (!s.IsEmpty) return true;
-            return false;
-        }
-
-        public virtual bool RemoveFlash(List<ExternalPlanSetup> plans)
-        {
-            //remove the structures used to generate flash in the plan
-            StructureSet ss = vmatPlan.StructureSet;
-            //check to see if this structure set is used in any other calculated plans that are NOT the _VMAT TBI plan or any of the AP/PA legs plans
-            string message = "";
-            List<ExternalPlanSetup> otherPlans = new List<ExternalPlanSetup> { };
-            foreach (Course c in vmatPlan.Course.Patient.Courses)
-            {
-                foreach (ExternalPlanSetup p in c.ExternalPlanSetups)
-                {
-                    if ((!plans.Where(x => x == p).Any()) && p.IsDoseValid && p.StructureSet == ss)
-                    {
-                        message += String.Format("Course: {0}, Plan: {1}", c.Id, p.Id) + Environment.NewLine;
-                        otherPlans.Add(p);
-                    }
-                }
-            }
-            //photon dose calculation model type
-            if (otherPlans.Count > 0)
-            {
-                //if some plans were found that use this structure set and have dose calculated, inform the user and ask if they want to continue WITHOUT removing flash.
-                message = "The following plans have dose calculated and use the same structure set:" + System.Environment.NewLine + message + System.Environment.NewLine;
-                message += "I need to remove the calculated dose from these plans before removing the flash structures." + System.Environment.NewLine;
-                message += "Continue?";
-                ConfirmPrompt CP = new ConfirmPrompt(message);
-                CP.ShowDialog();
-                //need to return from this function regardless of what the user decides
-                if (!CP.GetSelection()) return true;
-                foreach (ExternalPlanSetup p in otherPlans)
-                {
-                    string calcModel = p.GetCalculationModel(CalculationType.PhotonVolumeDose);
-                    p.ClearCalculationModel(CalculationType.PhotonVolumeDose);
-                    p.SetCalculationModel(CalculationType.PhotonVolumeDose, calcModel);
-                }
-            }
-            //dumbass way around the issue of modifying structures in a plan that already has dose calculated... reset the calculation model, make the changes you need, then reset the calculation model
-            foreach(ExternalPlanSetup p in plans)
-            {
-                string calcModel = p.GetCalculationModel(CalculationType.PhotonVolumeDose);
-                p.ClearCalculationModel(CalculationType.PhotonVolumeDose);
-                p.SetCalculationModel(CalculationType.PhotonVolumeDose, calcModel);
-            }
-
-            IEnumerable<Structure> flashStr = ss.Structures.Where(x => x.Id.ToLower().Contains("flash"));
-            List<Structure> removeMe = new List<Structure> { };
-            //can't remove directly from flashStr because the vector size would change on each loop iteration
-            foreach (Structure s in flashStr) if (!s.IsEmpty) if (ss.CanRemoveStructure(s)) removeMe.Add(s);
-            foreach (Structure s in removeMe) ss.RemoveStructure(s);
-            return false;
-        }
+        
 
         public void CalculateDose()
         {
