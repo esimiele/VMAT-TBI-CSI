@@ -19,11 +19,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         public List<List<Beam>> vmatBeamsPerIso = new List<List<Beam>> { };
         public List<ExternalPlanSetup> separatedPlans = new List<ExternalPlanSetup> { };
 
-        public PlanPrepBase()
-        {
-
-        }
-
         public virtual bool GetShiftNote()
         {
             return false;
@@ -37,7 +32,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             {
                 foreach (Beam b in p.Beams.Where(x => !x.IsSetupField))
                 {
-                    if (!int.TryParse(b.Id.Substring(0, 2).ToString(), out int dummy))
+                    if (b.Id.Length < 2 || !int.TryParse(b.Id.Substring(0, 2).ToString(), out int dummy))
                     {
                         beamFormatMessage += b.Id + Environment.NewLine;
                         if (!beamFormatError) beamFormatError = true;
@@ -53,19 +48,17 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
-        public Tuple<List<List<Beam>>,int> ExtractNumIsoAndBeams(ExternalPlanSetup plan, int numIsosTmp)
+        public Tuple<List<List<Beam>>,int> ExtractNumIsoAndBeams(ExternalPlanSetup plan)
         {
             List<List<Beam>> beamsPerIso = new List<List<Beam>> { };
             List<Beam> beams = new List<Beam> { };
-            foreach (Beam b in plan.Beams.Where(x => !x.IsSetupField).OrderBy(o => int.Parse(o.Id.Substring(0, 2).ToString())))
+            foreach (Beam b in plan.Beams.Where(x => !x.IsSetupField).OrderByDescending(o => o.IsocenterPosition.z))
             {
                 VVector v = b.IsocenterPosition;
                 v = plan.StructureSet.Image.DicomToUser(v, plan);
-                IEnumerable<Tuple<double, double, double>> d = isoPositions.Where(k => k.Item3 == v.z);
-                if (!d.Any())
+                if (!isoPositions.Any(k => k.Item3 == v.z))
                 {
                     isoPositions.Add(Tuple.Create(v.x, v.y, v.z));
-                    numIsosTmp++;
                     //do NOT add the first detected isocenter to the number of beams per isocenter list. Start with the second isocenter 
                     //(otherwise there will be no beams in the first isocenter, the beams in the first isocenter will be attached to the second isocenter, etc.)
                     if (numIsos > 1)
@@ -81,39 +74,37 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             }
             //add the beams from the last isocenter to the vmat beams per iso list
             beamsPerIso.Add(new List<Beam>(beams));
-            return new Tuple<List<List<Beam>>,int>(beamsPerIso, numIsosTmp);
+            return new Tuple<List<List<Beam>>,int>(beamsPerIso, isoPositions.Count());
         }
 
-        public List<Tuple<string, Tuple<double, double, double>, Tuple<double, double, double>>> ExtractIsoPositions()
+        public (List<Tuple<double, double, double>>, List<Tuple<double, double, double>>) ExtractIsoPositions()
         {
-            List<Tuple<string, Tuple<double, double, double>, Tuple<double, double, double>>> shifts = new List<Tuple<string, Tuple<double, double, double>, Tuple<double, double, double>>> { };
+            List<Tuple<double, double, double>> shiftsFromBBs = new List<Tuple<double, double, double>> { };
+            List<Tuple<double, double, double>> shiftsBetweenIsos = new List<Tuple<double, double, double>> { };
+            
             double SupInfShifts;
             double AntPostShifts;
             double LRShifts;
+            double priorSupInfPos = 0.0;
+            double priorAntPostPos = 0.0;
+            double priorLRPos = 0.0;
             int count = 0;
             foreach (Tuple<double, double, double> pos in isoPositions)
             {
-                //each zPosition inherently represents the shift from CT ref in User coordinates
-                Tuple<double, double, double> CTrefShifts = Tuple.Create(pos.Item1 / 10, pos.Item2 / 10, pos.Item3 / 10);
                 //copy shift from CT ref to sup-inf shifts for first element, otherwise calculate the separation between the current and previous iso (from sup to inf direction)
                 //calculate the relative shifts between isocenters (the first isocenter is the CTrefShift)
-                if (count == 0)
-                {
-                    SupInfShifts = (isoPositions.ElementAt(count).Item3 / 10);
-                    AntPostShifts = (isoPositions.ElementAt(count).Item2 / 10);
-                    LRShifts = (isoPositions.ElementAt(count).Item1 / 10);
-                }
-                else
-                {
-                    SupInfShifts = (isoPositions.ElementAt(count).Item3 - isoPositions.ElementAt(count - 1).Item3) / 10;
-                    AntPostShifts = (isoPositions.ElementAt(count).Item2 - isoPositions.ElementAt(count - 1).Item2) / 10;
-                    LRShifts = (isoPositions.ElementAt(count).Item1 - isoPositions.ElementAt(count - 1).Item1) / 10;
-                }
-                //add the iso name, CT ref shift, and sup-inf shift to the vector
-                shifts.Add(Tuple.Create(names.ElementAt(count), CTrefShifts, Tuple.Create(LRShifts, AntPostShifts, SupInfShifts)));
+                SupInfShifts = (pos.Item3 - priorSupInfPos) / 10;
+                AntPostShifts = (pos.Item2 - priorAntPostPos) / 10;
+                LRShifts = (pos.Item1 - priorLRPos) / 10;
+                priorSupInfPos = pos.Item3;
+                priorAntPostPos = pos.Item2;
+                priorLRPos = pos.Item1;
+
+                shiftsFromBBs.Add(Tuple.Create(pos.Item1 / 10, pos.Item2 / 10, pos.Item3 / 10));
+                shiftsBetweenIsos.Add(Tuple.Create(LRShifts, AntPostShifts, SupInfShifts));
                 count++;
             }
-            return shifts;
+            return (shiftsFromBBs,shiftsBetweenIsos);
         }
 
         public int SeparatePlan(ExternalPlanSetup plan, int count)

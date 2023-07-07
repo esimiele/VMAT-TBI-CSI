@@ -37,7 +37,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             plans.Add(vmatPlan);
             if (CheckBeamNameFormatting(plans)) return true;
 
-            Tuple<List<List<Beam>>, int> result = ExtractNumIsoAndBeams(vmatPlan, numVMATIsos);
+            Tuple<List<List<Beam>>, int> result = ExtractNumIsoAndBeams(vmatPlan);
             vmatBeamsPerIso = new List<List<Beam>>(result.Item1);
             numVMATIsos = result.Item2;
 
@@ -46,7 +46,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //if the ap/pa plan is NOT null, then get the isocenter position(s) of those beams as well. Do the same thing as above
             foreach (ExternalPlanSetup p in appaPlan)
             {
-                result = ExtractNumIsoAndBeams(p, numIsos);
+                result = ExtractNumIsoAndBeams(p);
                 List<List<Beam>> tmp = new List<List<Beam>>(result.Item1);
                 foreach (List<Beam> itr in tmp) appaBeamsPerIso.Add(new List<Beam>(itr));
                 numIsos += result.Item2;
@@ -60,7 +60,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             VVector uOrigin = vmatPlan.StructureSet.Image.UserOrigin;
             uOrigin = vmatPlan.StructureSet.Image.DicomToUser(uOrigin, vmatPlan);
             //vector to hold the isocenter name, the x,y,z shifts from CT ref, and the shifts between each adjacent iso for each axis (LR, AntPost, SupInf)
-            List<Tuple<string, Tuple<double, double, double>, Tuple<double, double, double>>> shifts = new List<Tuple<string, Tuple<double, double, double>, Tuple<double, double, double>>>(ExtractIsoPositions());
+            (List<Tuple<double, double, double>> shiftsFromBBs, List<Tuple<double, double, double>> shiftsBetweenIsos) = ExtractIsoPositions();
 
             //convert the user origin back to dicom coordinates
             uOrigin = vmatPlan.StructureSet.Image.UserToDicom(uOrigin, vmatPlan);
@@ -89,14 +89,14 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             message += "Dosimetric shifts SUP to INF:\r\n";
 
             //write the first set of shifts from CT ref before the loop. 12-23-2020 support added for the case where the lat/vert shifts are non-zero
-            if (Math.Abs(shifts.ElementAt(0).Item3.Item1) >= 0.1 || Math.Abs(shifts.ElementAt(0).Item3.Item2) >= 0.1)
+            if (Math.Abs(shiftsBetweenIsos.ElementAt(0).Item1) >= 0.1 || Math.Abs(shiftsBetweenIsos.ElementAt(0).Item2) >= 0.1)
             {
-                message += String.Format("{0} iso shift from CT REF:", shifts.ElementAt(0).Item1) + System.Environment.NewLine;
-                if (Math.Abs(shifts.ElementAt(0).Item3.Item1) >= 0.1) message += String.Format("X = {0:0.0} cm {1}", Math.Abs(shifts.ElementAt(0).Item3.Item1), (shifts.ElementAt(0).Item3.Item1) > 0 ? "LEFT" : "RIGHT") + System.Environment.NewLine;
-                if (Math.Abs(shifts.ElementAt(0).Item3.Item2) >= 0.1) message += String.Format("Y = {0:0.0} cm {1}", Math.Abs(shifts.ElementAt(0).Item3.Item2), (shifts.ElementAt(0).Item3.Item2) > 0 ? "POST" : "ANT") + System.Environment.NewLine;
-                message += String.Format("Z = {0:0.0} cm {1}", shifts.ElementAt(0).Item3.Item3, Math.Abs(shifts.ElementAt(0).Item3.Item3) > 0 ? "SUP" : "INF") + System.Environment.NewLine;
+                message += String.Format("{0} iso shift from CT REF:", names.ElementAt(0)) + Environment.NewLine;
+                if (Math.Abs(shiftsBetweenIsos.ElementAt(0).Item1) >= 0.1) message += String.Format("X = {0:0.0} cm {1}", Math.Abs(shiftsBetweenIsos.ElementAt(0).Item1), (shiftsBetweenIsos.ElementAt(0).Item1) > 0 ? "LEFT" : "RIGHT") + Environment.NewLine;
+                if (Math.Abs(shiftsBetweenIsos.ElementAt(0).Item2) >= 0.1) message += String.Format("Y = {0:0.0} cm {1}", Math.Abs(shiftsBetweenIsos.ElementAt(0).Item2), (shiftsBetweenIsos.ElementAt(0).Item2) > 0 ? "POST" : "ANT") + Environment.NewLine;
+                message += String.Format("Z = {0:0.0} cm {1}", shiftsBetweenIsos.ElementAt(0).Item3, Math.Abs(shiftsBetweenIsos.ElementAt(0).Item3) > 0 ? "SUP" : "INF") + Environment.NewLine;
             }
-            else message += String.Format("{0} iso shift from CT ref = {1:0.0} cm {2} ({3:0.0} cm {4} from CT ref)\r\n", shifts.ElementAt(0).Item1, Math.Abs(shifts.ElementAt(0).Item3.Item3), shifts.ElementAt(0).Item3.Item3 > 0 ? "SUP" : "INF", Math.Abs(shifts.ElementAt(0).Item2.Item3), shifts.ElementAt(0).Item2.Item3 > 0 ? "SUP" : "INF");
+            else message += String.Format("{0} iso shift from CT ref = {1:0.0} cm {2} ({3:0.0} cm {4} from CT ref)\r\n", names.ElementAt(0), Math.Abs(shiftsBetweenIsos.ElementAt(0).Item3), shiftsBetweenIsos.ElementAt(0).Item3 > 0 ? "SUP" : "INF", Math.Abs(shiftsFromBBs.ElementAt(0).Item3), shiftsFromBBs.ElementAt(0).Item3 > 0 ? "SUP" : "INF");
 
             for (int i = 1; i < numIsos; i++)
             {
@@ -106,11 +106,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     message += "Rotate Spinning Manny, shift to opposite Couch Lat\r\n";
                     message += "Upper Leg iso - same Couch Lng as Pelvis iso\r\n";
                     //let the therapists know that they need to shift couch lateral to the opposite side if the initial lat shift was non-zero
-                    if (Math.Abs(shifts.ElementAt(0).Item3.Item1) >= 0.1) message += "Shift couch lateral to opposite side!\r\n";
+                    if (Math.Abs(shiftsBetweenIsos.ElementAt(0).Item1) >= 0.1) message += "Shift couch lateral to opposite side!\r\n";
                 }
                 //shift messages when the current isocenter is NOT the number of vmat isocenters (i.e., the first ap/pa isocenter). First case is for the vmat isocenters, the second case is when the isocenters are ap/pa (but not the first ap/pa isocenter)
-                else if (i < numVMATIsos) message += String.Format("{0} iso shift from {1} iso = {2:0.0} cm {3} ({4:0.0} cm {5} from CT ref)\r\n", shifts.ElementAt(i).Item1, shifts.ElementAt(i - 1).Item1, Math.Abs(shifts.ElementAt(i).Item3.Item3), shifts.ElementAt(i).Item3.Item3 > 0 ? "SUP" : "INF", Math.Abs(shifts.ElementAt(i).Item2.Item3), shifts.ElementAt(i).Item2.Item3 > 0 ? "SUP" : "INF");
-                else message += String.Format("{0} iso shift from {1} iso = {2:0.0} cm {3} ({4:0.0} cm {5} from CT ref)\r\n", shifts.ElementAt(i).Item1, shifts.ElementAt(i - 1).Item1, Math.Abs(shifts.ElementAt(i).Item3.Item3), shifts.ElementAt(i).Item3.Item3 > 0 ? "INF" : "SUP", Math.Abs(shifts.ElementAt(i).Item2.Item3), shifts.ElementAt(i).Item2.Item3 > 0 ? "INF" : "SUP");
+                else if (i < numVMATIsos) message += String.Format("{0} iso shift from {1} iso = {2:0.0} cm {3} ({4:0.0} cm {5} from CT ref)\r\n", names.ElementAt(i), names.ElementAt(i - 1), Math.Abs(shiftsBetweenIsos.ElementAt(i).Item3), shiftsBetweenIsos.ElementAt(i).Item3 > 0 ? "SUP" : "INF", Math.Abs(shiftsFromBBs.ElementAt(i).Item3), shiftsFromBBs.ElementAt(i).Item3 > 0 ? "SUP" : "INF");
+                else message += String.Format("{0} iso shift from {1} iso = {2:0.0} cm {3} ({4:0.0} cm {5} from CT ref)\r\n", names.ElementAt(i), names.ElementAt(i - 1), Math.Abs(shiftsBetweenIsos.ElementAt(i).Item3), shiftsBetweenIsos.ElementAt(i).Item3 > 0 ? "INF" : "SUP", Math.Abs(shiftsFromBBs.ElementAt(i).Item3), shiftsFromBBs.ElementAt(i).Item3 > 0 ? "INF" : "SUP");
             }
 
             //copy to clipboard and inform the user it's done
