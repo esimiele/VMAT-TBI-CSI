@@ -1570,11 +1570,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //methods related to plan preparation
         private void GenerateShiftNote_Click(object sender, RoutedEventArgs e)
         {
+            ExternalPlanSetup vmatPlan = null;
             if (prep == null)
             {
                 //this method assumes no prior knowledge, so it will have to retrive the number of isocenters (vmat and total) and isocenter names explicitly
                 Course c = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat tbi");
-                ExternalPlanSetup vmatPlan = null;
                 if (c == null)
                 {
                     //vmat tbi course not found. Dealbreaker, exit method
@@ -1598,7 +1598,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     else
                     {
                         //course found and only one or fewer plans inside course with Id != "_Legs", get vmat and ap/pa plans
-                        vmatPlan = c.ExternalPlanSetups.FirstOrDefault(x => x.Id.ToLower() == "_vmat tbi");
+                        vmatPlan = c.ExternalPlanSetups.FirstOrDefault(x => x.Id.ToLower() == "CSI-init");
                     }
                     if (vmatPlan == null)
                     {
@@ -1611,7 +1611,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 //create an instance of the planPep class and pass it the vmatPlan and appaPlan objects as arguments. Get the shift note for the plan of interest
                 prep = new PlanPrep_CSI(vmatPlan);
             }
-            if (prep.GetShiftNote()) return;
+            (List<List<Beam>> beamsPerIso, List<Tuple<double,double,double>> isoPositions) = PlanPrepHelper.ExtractBeamsPerIsoAndIsoPositions(vmatPlan);
+            Clipboard.SetText(PlanPrepHelper.GetShiftNote(vmatPlan.StructureSet, IsoNameHelper.GetCSIIsoNames(isoPositions.Count), isoPositions).ToString());
+            MessageBox.Show("Shifts have been copied to the clipboard! \r\nPaste them into the journal note!");
 
             //let the user know this step has been completed (they can now do the other steps like separate plans and calculate dose)
             shiftTB.Background = System.Windows.Media.Brushes.ForestGreen;

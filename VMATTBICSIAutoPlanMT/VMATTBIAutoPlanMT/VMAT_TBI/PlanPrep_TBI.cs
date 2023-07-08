@@ -28,96 +28,96 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (appa.Count() > 1) legsSeparated = true;
         }
 
-        public override bool GetShiftNote()
-        {
-            //loop through each beam in the vmat plan, grab the isocenter position of the beam. Compare the z position of each isocenter to the list of z positions in the vector. 
-            //If no match is found, this is a new isocenter. Add it to the stack. If it is not unique, this beam belongs to an existing isocenter group --> ignore it
-            //also grab instances of each beam in each isocenter and save them (used for separating the plans later)
-            List<ExternalPlanSetup> plans = new List<ExternalPlanSetup> (appaPlan);
-            plans.Add(vmatPlan);
-            if (CheckBeamNameFormatting(plans)) return true;
+        //public override bool GetShiftNote()
+        //{
+        //    //loop through each beam in the vmat plan, grab the isocenter position of the beam. Compare the z position of each isocenter to the list of z positions in the vector. 
+        //    //If no match is found, this is a new isocenter. Add it to the stack. If it is not unique, this beam belongs to an existing isocenter group --> ignore it
+        //    //also grab instances of each beam in each isocenter and save them (used for separating the plans later)
+        //    List<ExternalPlanSetup> plans = new List<ExternalPlanSetup> (appaPlan);
+        //    plans.Add(vmatPlan);
+        //    if (CheckBeamNameFormatting(plans)) return true;
 
-            Tuple<List<List<Beam>>, int> result = ExtractNumIsoAndBeams(vmatPlan);
-            vmatBeamsPerIso = new List<List<Beam>>(result.Item1);
-            numVMATIsos = result.Item2;
+        //    Tuple<List<List<Beam>>, int> result = ExtractNumIsoAndBeams(vmatPlan);
+        //    vmatBeamsPerIso = new List<List<Beam>>(result.Item1);
+        //    numVMATIsos = result.Item2;
 
-            //copy number of vmat isocenters determined above onto the total number of isos
-            numIsos = numVMATIsos;
-            //if the ap/pa plan is NOT null, then get the isocenter position(s) of those beams as well. Do the same thing as above
-            foreach (ExternalPlanSetup p in appaPlan)
-            {
-                result = ExtractNumIsoAndBeams(p);
-                List<List<Beam>> tmp = new List<List<Beam>>(result.Item1);
-                foreach (List<Beam> itr in tmp) appaBeamsPerIso.Add(new List<Beam>(itr));
-                numIsos += result.Item2;
-            }
+        //    //copy number of vmat isocenters determined above onto the total number of isos
+        //    numIsos = numVMATIsos;
+        //    //if the ap/pa plan is NOT null, then get the isocenter position(s) of those beams as well. Do the same thing as above
+        //    foreach (ExternalPlanSetup p in appaPlan)
+        //    {
+        //        result = ExtractNumIsoAndBeams(p);
+        //        List<List<Beam>> tmp = new List<List<Beam>>(result.Item1);
+        //        foreach (List<Beam> itr in tmp) appaBeamsPerIso.Add(new List<Beam>(itr));
+        //        numIsos += result.Item2;
+        //    }
 
-            //get the isocenter names using the isoNameHelper class
-            names = new List<string>(IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos));
-            if (appaPlan.Any()) names.AddRange(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos));
+        //    //get the isocenter names using the isoNameHelper class
+        //    names = new List<string>(IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos));
+        //    if (appaPlan.Any()) names.AddRange(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos));
 
-            //get the user origin in user coordinates
-            VVector uOrigin = vmatPlan.StructureSet.Image.UserOrigin;
-            uOrigin = vmatPlan.StructureSet.Image.DicomToUser(uOrigin, vmatPlan);
-            //vector to hold the isocenter name, the x,y,z shifts from CT ref, and the shifts between each adjacent iso for each axis (LR, AntPost, SupInf)
-            (List<Tuple<double, double, double>> shiftsFromBBs, List<Tuple<double, double, double>> shiftsBetweenIsos) = ExtractIsoPositions();
+        //    //get the user origin in user coordinates
+        //    VVector uOrigin = vmatPlan.StructureSet.Image.UserOrigin;
+        //    uOrigin = vmatPlan.StructureSet.Image.DicomToUser(uOrigin, vmatPlan);
+        //    //vector to hold the isocenter name, the x,y,z shifts from CT ref, and the shifts between each adjacent iso for each axis (LR, AntPost, SupInf)
+        //    (List<Tuple<double, double, double>> shiftsFromBBs, List<Tuple<double, double, double>> shiftsBetweenIsos) = ExtractIsoPositions();
 
-            //convert the user origin back to dicom coordinates
-            uOrigin = vmatPlan.StructureSet.Image.UserToDicom(uOrigin, vmatPlan);
+        //    //convert the user origin back to dicom coordinates
+        //    uOrigin = vmatPlan.StructureSet.Image.UserToDicom(uOrigin, vmatPlan);
 
-            //grab the couch surface
-            Structure couchSurface = vmatPlan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == "couchsurface");
-            double TT = 0;
-            //check if couch is present. Warn if not found, otherwise it is the separation between the the beam isocenter position and the minimum y-position of the couch surface (in dicom coordinates)
-            if (couchSurface == null) MessageBox.Show("Warning! No couch surface structure found!");
-            else TT = (vmatPlan.Beams.First(x => !x.IsSetupField).IsocenterPosition.y - couchSurface.MeshGeometry.Positions.Min(p => p.Y)) / 10;
+        //    //grab the couch surface
+        //    Structure couchSurface = vmatPlan.StructureSet.Structures.FirstOrDefault(x => x.Id.ToLower() == "couchsurface");
+        //    double TT = 0;
+        //    //check if couch is present. Warn if not found, otherwise it is the separation between the the beam isocenter position and the minimum y-position of the couch surface (in dicom coordinates)
+        //    if (couchSurface == null) MessageBox.Show("Warning! No couch surface structure found!");
+        //    else TT = (vmatPlan.Beams.First(x => !x.IsSetupField).IsocenterPosition.y - couchSurface.MeshGeometry.Positions.Min(p => p.Y)) / 10;
 
-            //create the message
-            string message = "";
-            if (couchSurface != null) message += "***Bars out***\r\n";
-            else message += "No couch surface structure found in plan!\r\n";
-            //check if AP/PA plans are in FFS orientation
-            if (appaPlan.Any() && appaPlan.Where(x => x.TreatmentOrientation != PatientOrientation.FeetFirstSupine).Any())
-            {
-                message += "The following AP/PA plans are NOT in the FFS orientation:\r\n";
-                foreach (ExternalPlanSetup p in appaPlan) if (p.TreatmentOrientation != PatientOrientation.FeetFirstSupine) message += p.Id + "\r\n";
-                message += "WARNING! THE COUCH SHIFTS FOR THESE PLANS WILL NOT BE ACCURATE!\r\n";
-            }
-            if (numIsos > numVMATIsos) message += "VMAT TBI setup per procedure. Please ensure the matchline on Spinning Manny and the bag matches\r\n";
-            else message += "VMAT TBI setup per procedure. No Spinning Manny.\r\r\n";
-            message += String.Format("TT = {0:0.0} cm for all plans\r\n", TT);
-            message += "Dosimetric shifts SUP to INF:\r\n";
+        //    //create the message
+        //    string message = "";
+        //    if (couchSurface != null) message += "***Bars out***\r\n";
+        //    else message += "No couch surface structure found in plan!\r\n";
+        //    //check if AP/PA plans are in FFS orientation
+        //    if (appaPlan.Any() && appaPlan.Where(x => x.TreatmentOrientation != PatientOrientation.FeetFirstSupine).Any())
+        //    {
+        //        message += "The following AP/PA plans are NOT in the FFS orientation:\r\n";
+        //        foreach (ExternalPlanSetup p in appaPlan) if (p.TreatmentOrientation != PatientOrientation.FeetFirstSupine) message += p.Id + "\r\n";
+        //        message += "WARNING! THE COUCH SHIFTS FOR THESE PLANS WILL NOT BE ACCURATE!\r\n";
+        //    }
+        //    if (numIsos > numVMATIsos) message += "VMAT TBI setup per procedure. Please ensure the matchline on Spinning Manny and the bag matches\r\n";
+        //    else message += "VMAT TBI setup per procedure. No Spinning Manny.\r\r\n";
+        //    message += String.Format("TT = {0:0.0} cm for all plans\r\n", TT);
+        //    message += "Dosimetric shifts SUP to INF:\r\n";
 
-            //write the first set of shifts from CT ref before the loop. 12-23-2020 support added for the case where the lat/vert shifts are non-zero
-            if (Math.Abs(shiftsBetweenIsos.ElementAt(0).Item1) >= 0.1 || Math.Abs(shiftsBetweenIsos.ElementAt(0).Item2) >= 0.1)
-            {
-                message += String.Format("{0} iso shift from CT REF:", names.ElementAt(0)) + Environment.NewLine;
-                if (Math.Abs(shiftsBetweenIsos.ElementAt(0).Item1) >= 0.1) message += String.Format("X = {0:0.0} cm {1}", Math.Abs(shiftsBetweenIsos.ElementAt(0).Item1), (shiftsBetweenIsos.ElementAt(0).Item1) > 0 ? "LEFT" : "RIGHT") + Environment.NewLine;
-                if (Math.Abs(shiftsBetweenIsos.ElementAt(0).Item2) >= 0.1) message += String.Format("Y = {0:0.0} cm {1}", Math.Abs(shiftsBetweenIsos.ElementAt(0).Item2), (shiftsBetweenIsos.ElementAt(0).Item2) > 0 ? "POST" : "ANT") + Environment.NewLine;
-                message += String.Format("Z = {0:0.0} cm {1}", shiftsBetweenIsos.ElementAt(0).Item3, Math.Abs(shiftsBetweenIsos.ElementAt(0).Item3) > 0 ? "SUP" : "INF") + Environment.NewLine;
-            }
-            else message += String.Format("{0} iso shift from CT ref = {1:0.0} cm {2} ({3:0.0} cm {4} from CT ref)\r\n", names.ElementAt(0), Math.Abs(shiftsBetweenIsos.ElementAt(0).Item3), shiftsBetweenIsos.ElementAt(0).Item3 > 0 ? "SUP" : "INF", Math.Abs(shiftsFromBBs.ElementAt(0).Item3), shiftsFromBBs.ElementAt(0).Item3 > 0 ? "SUP" : "INF");
+        //    //write the first set of shifts from CT ref before the loop. 12-23-2020 support added for the case where the lat/vert shifts are non-zero
+        //    if (Math.Abs(shiftsBetweenIsos.ElementAt(0).Item1) >= 0.1 || Math.Abs(shiftsBetweenIsos.ElementAt(0).Item2) >= 0.1)
+        //    {
+        //        message += String.Format("{0} iso shift from CT REF:", names.ElementAt(0)) + Environment.NewLine;
+        //        if (Math.Abs(shiftsBetweenIsos.ElementAt(0).Item1) >= 0.1) message += String.Format("X = {0:0.0} cm {1}", Math.Abs(shiftsBetweenIsos.ElementAt(0).Item1), (shiftsBetweenIsos.ElementAt(0).Item1) > 0 ? "LEFT" : "RIGHT") + Environment.NewLine;
+        //        if (Math.Abs(shiftsBetweenIsos.ElementAt(0).Item2) >= 0.1) message += String.Format("Y = {0:0.0} cm {1}", Math.Abs(shiftsBetweenIsos.ElementAt(0).Item2), (shiftsBetweenIsos.ElementAt(0).Item2) > 0 ? "POST" : "ANT") + Environment.NewLine;
+        //        message += String.Format("Z = {0:0.0} cm {1}", shiftsBetweenIsos.ElementAt(0).Item3, Math.Abs(shiftsBetweenIsos.ElementAt(0).Item3) > 0 ? "SUP" : "INF") + Environment.NewLine;
+        //    }
+        //    else message += String.Format("{0} iso shift from CT ref = {1:0.0} cm {2} ({3:0.0} cm {4} from CT ref)\r\n", names.ElementAt(0), Math.Abs(shiftsBetweenIsos.ElementAt(0).Item3), shiftsBetweenIsos.ElementAt(0).Item3 > 0 ? "SUP" : "INF", Math.Abs(shiftsFromBBs.ElementAt(0).Item3), shiftsFromBBs.ElementAt(0).Item3 > 0 ? "SUP" : "INF");
 
-            for (int i = 1; i < numIsos; i++)
-            {
-                if (i == numVMATIsos)
-                {
-                    //if numVMATisos == numIsos this message won't be displayed. Otherwise, we have exhausted the vmat isos and need to add these lines to the shift note
-                    message += "Rotate Spinning Manny, shift to opposite Couch Lat\r\n";
-                    message += "Upper Leg iso - same Couch Lng as Pelvis iso\r\n";
-                    //let the therapists know that they need to shift couch lateral to the opposite side if the initial lat shift was non-zero
-                    if (Math.Abs(shiftsBetweenIsos.ElementAt(0).Item1) >= 0.1) message += "Shift couch lateral to opposite side!\r\n";
-                }
-                //shift messages when the current isocenter is NOT the number of vmat isocenters (i.e., the first ap/pa isocenter). First case is for the vmat isocenters, the second case is when the isocenters are ap/pa (but not the first ap/pa isocenter)
-                else if (i < numVMATIsos) message += String.Format("{0} iso shift from {1} iso = {2:0.0} cm {3} ({4:0.0} cm {5} from CT ref)\r\n", names.ElementAt(i), names.ElementAt(i - 1), Math.Abs(shiftsBetweenIsos.ElementAt(i).Item3), shiftsBetweenIsos.ElementAt(i).Item3 > 0 ? "SUP" : "INF", Math.Abs(shiftsFromBBs.ElementAt(i).Item3), shiftsFromBBs.ElementAt(i).Item3 > 0 ? "SUP" : "INF");
-                else message += String.Format("{0} iso shift from {1} iso = {2:0.0} cm {3} ({4:0.0} cm {5} from CT ref)\r\n", names.ElementAt(i), names.ElementAt(i - 1), Math.Abs(shiftsBetweenIsos.ElementAt(i).Item3), shiftsBetweenIsos.ElementAt(i).Item3 > 0 ? "INF" : "SUP", Math.Abs(shiftsFromBBs.ElementAt(i).Item3), shiftsFromBBs.ElementAt(i).Item3 > 0 ? "INF" : "SUP");
-            }
+        //    for (int i = 1; i < numIsos; i++)
+        //    {
+        //        if (i == numVMATIsos)
+        //        {
+        //            //if numVMATisos == numIsos this message won't be displayed. Otherwise, we have exhausted the vmat isos and need to add these lines to the shift note
+        //            message += "Rotate Spinning Manny, shift to opposite Couch Lat\r\n";
+        //            message += "Upper Leg iso - same Couch Lng as Pelvis iso\r\n";
+        //            //let the therapists know that they need to shift couch lateral to the opposite side if the initial lat shift was non-zero
+        //            if (Math.Abs(shiftsBetweenIsos.ElementAt(0).Item1) >= 0.1) message += "Shift couch lateral to opposite side!\r\n";
+        //        }
+        //        //shift messages when the current isocenter is NOT the number of vmat isocenters (i.e., the first ap/pa isocenter). First case is for the vmat isocenters, the second case is when the isocenters are ap/pa (but not the first ap/pa isocenter)
+        //        else if (i < numVMATIsos) message += String.Format("{0} iso shift from {1} iso = {2:0.0} cm {3} ({4:0.0} cm {5} from CT ref)\r\n", names.ElementAt(i), names.ElementAt(i - 1), Math.Abs(shiftsBetweenIsos.ElementAt(i).Item3), shiftsBetweenIsos.ElementAt(i).Item3 > 0 ? "SUP" : "INF", Math.Abs(shiftsFromBBs.ElementAt(i).Item3), shiftsFromBBs.ElementAt(i).Item3 > 0 ? "SUP" : "INF");
+        //        else message += String.Format("{0} iso shift from {1} iso = {2:0.0} cm {3} ({4:0.0} cm {5} from CT ref)\r\n", names.ElementAt(i), names.ElementAt(i - 1), Math.Abs(shiftsBetweenIsos.ElementAt(i).Item3), shiftsBetweenIsos.ElementAt(i).Item3 > 0 ? "INF" : "SUP", Math.Abs(shiftsFromBBs.ElementAt(i).Item3), shiftsFromBBs.ElementAt(i).Item3 > 0 ? "INF" : "SUP");
+        //    }
 
-            //copy to clipboard and inform the user it's done
-            Clipboard.SetText(message);
-            MessageBox.Show("Shifts have been copied to the clipboard! \r\nPaste them into the journal note!");
-            return false;
-        }
+        //    //copy to clipboard and inform the user it's done
+        //    Clipboard.SetText(message);
+        //    MessageBox.Show("Shifts have been copied to the clipboard! \r\nPaste them into the journal note!");
+        //    return false;
+        //}
 
         public bool SeparatePlans()
         {

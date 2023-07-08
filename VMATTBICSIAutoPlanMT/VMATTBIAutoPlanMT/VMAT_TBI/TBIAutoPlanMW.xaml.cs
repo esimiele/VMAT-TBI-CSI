@@ -1483,7 +1483,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //create an instance of the planPep class and pass it the vmatPlan and appaPlan objects as arguments. Get the shift note for the plan of interest
                 prep = new PlanPrep_TBI(vmatPlan, appaPlan);
             }
-            if (prep.GetShiftNote()) return;
+            //if (prep.GetShiftNote()) return;
 
             //let the user know this step has been completed (they can now do the other steps like separate plans and calculate dose)
             shiftTB.Background = System.Windows.Media.Brushes.ForestGreen;

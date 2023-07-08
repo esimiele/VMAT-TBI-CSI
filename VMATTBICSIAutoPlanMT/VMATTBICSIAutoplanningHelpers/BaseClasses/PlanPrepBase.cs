@@ -6,10 +6,12 @@ using VMS.TPS.Common.Model.Types;
 using System.Windows.Forms;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
 using SimpleProgressWindow;
+using System.Text;
+using VMATTBICSIAutoPlanningHelpers.Helpers;
 
 namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 {
-    public class PlanPrepBase
+    public class PlanPrepBase : SimpleMTbase
     {
         public ExternalPlanSetup vmatPlan = null;
         public int numVMATIsos = 0;
@@ -19,97 +21,31 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         public List<List<Beam>> vmatBeamsPerIso = new List<List<Beam>> { };
         public List<ExternalPlanSetup> separatedPlans = new List<ExternalPlanSetup> { };
 
-        public virtual bool GetShiftNote()
+        protected bool CheckBeamNameFormatting(ExternalPlanSetup plan)
         {
-            return false;
-        }
-
-        public bool CheckBeamNameFormatting(List<ExternalPlanSetup> plans)
-        {
-            string beamFormatMessage = "The following beams are not in the correct format:" + Environment.NewLine;
+            StringBuilder sb = new StringBuilder();
             bool beamFormatError = false;
-            foreach (ExternalPlanSetup p in plans)
+            foreach (Beam b in plan.Beams.Where(x => !x.IsSetupField))
             {
-                foreach (Beam b in p.Beams.Where(x => !x.IsSetupField))
+                if (b.Id.Length < 2 || !int.TryParse(b.Id.Substring(0, 2).ToString(), out int dummy))
                 {
-                    if (b.Id.Length < 2 || !int.TryParse(b.Id.Substring(0, 2).ToString(), out int dummy))
-                    {
-                        beamFormatMessage += b.Id + Environment.NewLine;
-                        if (!beamFormatError) beamFormatError = true;
-                    }
+                    sb.AppendLine(b.Id);
+                    beamFormatError = true;
                 }
             }
             if (beamFormatError)
             {
-                beamFormatMessage += Environment.NewLine + "Make sure there is a space after the beam number! Please fix and try again!";
-                MessageBox.Show(beamFormatMessage);
-                return true;
+                ProvideUIUpdate("The following beams are not in the correct format:");
+                ProvideUIUpdate(sb.ToString());
+                ProvideUIUpdate(Environment.NewLine + "Make sure there is a space after the beam number! Please fix and try again!", true);
             }
-            return false;
+            return beamFormatError;
         }
 
-        public Tuple<List<List<Beam>>,int> ExtractNumIsoAndBeams(ExternalPlanSetup plan)
+        protected int SeparatePlan(ExternalPlanSetup plan, int count)
         {
-            List<List<Beam>> beamsPerIso = new List<List<Beam>> { };
-            List<Beam> beams = new List<Beam> { };
-            foreach (Beam b in plan.Beams.Where(x => !x.IsSetupField).OrderByDescending(o => o.IsocenterPosition.z))
-            {
-                VVector v = b.IsocenterPosition;
-                v = plan.StructureSet.Image.DicomToUser(v, plan);
-                if (!isoPositions.Any(k => k.Item3 == v.z))
-                {
-                    isoPositions.Add(Tuple.Create(v.x, v.y, v.z));
-                    //do NOT add the first detected isocenter to the number of beams per isocenter list. Start with the second isocenter 
-                    //(otherwise there will be no beams in the first isocenter, the beams in the first isocenter will be attached to the second isocenter, etc.)
-                    if (numIsos > 1)
-                    {
-                        //NOTE: it is important to have 'new List<Beam>(beams)' as the argument rather than 'beams'. A list of a list is essentially a pointer to a list, so if you delete the sublists,
-                        //the list of lists will have the correct number of elements, but they will all be empty
-                        beamsPerIso.Add(new List<Beam>(beams));
-                        beams.Clear();
-                    }
-                }
-                //add the current beam to the sublist
-                beams.Add(b);
-            }
-            //add the beams from the last isocenter to the vmat beams per iso list
-            beamsPerIso.Add(new List<Beam>(beams));
-            return new Tuple<List<List<Beam>>,int>(beamsPerIso, isoPositions.Count());
-        }
-
-        public (List<Tuple<double, double, double>>, List<Tuple<double, double, double>>) ExtractIsoPositions()
-        {
-            List<Tuple<double, double, double>> shiftsFromBBs = new List<Tuple<double, double, double>> { };
-            List<Tuple<double, double, double>> shiftsBetweenIsos = new List<Tuple<double, double, double>> { };
-            
-            double SupInfShifts;
-            double AntPostShifts;
-            double LRShifts;
-            double priorSupInfPos = 0.0;
-            double priorAntPostPos = 0.0;
-            double priorLRPos = 0.0;
-            int count = 0;
-            foreach (Tuple<double, double, double> pos in isoPositions)
-            {
-                //copy shift from CT ref to sup-inf shifts for first element, otherwise calculate the separation between the current and previous iso (from sup to inf direction)
-                //calculate the relative shifts between isocenters (the first isocenter is the CTrefShift)
-                SupInfShifts = (pos.Item3 - priorSupInfPos) / 10;
-                AntPostShifts = (pos.Item2 - priorAntPostPos) / 10;
-                LRShifts = (pos.Item1 - priorLRPos) / 10;
-                priorSupInfPos = pos.Item3;
-                priorAntPostPos = pos.Item2;
-                priorLRPos = pos.Item1;
-
-                shiftsFromBBs.Add(Tuple.Create(pos.Item1 / 10, pos.Item2 / 10, pos.Item3 / 10));
-                shiftsBetweenIsos.Add(Tuple.Create(LRShifts, AntPostShifts, SupInfShifts));
-                count++;
-            }
-            return (shiftsFromBBs,shiftsBetweenIsos);
-        }
-
-        public int SeparatePlan(ExternalPlanSetup plan, int count)
-        {
-            foreach (List<Beam> beams in vmatBeamsPerIso)
+            (List<List<Beam>> beamsPerIso, List<Tuple<double, double, double>> isoPositions) = PlanPrepHelper.ExtractBeamsPerIsoAndIsoPositions(vmatPlan);
+            foreach (List<Beam> beams in beamsPerIso)
             {
                 //string message = "";
                 //foreach (Beam b in beams) message += b.Id + "\n";
@@ -139,8 +75,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             }
             return count;
         }
-
-        
 
         public void CalculateDose()
         {
