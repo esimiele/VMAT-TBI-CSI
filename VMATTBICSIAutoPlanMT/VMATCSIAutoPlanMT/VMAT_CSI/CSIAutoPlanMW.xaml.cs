@@ -1611,8 +1611,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 //create an instance of the planPep class and pass it the vmatPlan and appaPlan objects as arguments. Get the shift note for the plan of interest
                 prep = new PlanPrep_CSI(vmatPlan);
             }
-            (List<List<Beam>> beamsPerIso, List<Tuple<double,double,double>> isoPositions) = PlanPrepHelper.ExtractBeamsPerIsoAndIsoPositions(vmatPlan);
-            Clipboard.SetText(PlanPrepHelper.GetShiftNote(vmatPlan.StructureSet, IsoNameHelper.GetCSIIsoNames(isoPositions.Count), isoPositions).ToString());
+            Clipboard.SetText(PlanPrepHelper.GetShiftNote(vmatPlan).ToString());
             MessageBox.Show("Shifts have been copied to the clipboard! \r\nPaste them into the journal note!");
 
             //let the user know this step has been completed (they can now do the other steps like separate plans and calculate dose)

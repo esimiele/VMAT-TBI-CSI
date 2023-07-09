@@ -44,7 +44,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 
         protected int SeparatePlan(ExternalPlanSetup plan, int count)
         {
-            (List<List<Beam>> beamsPerIso, List<Tuple<double, double, double>> isoPositions) = PlanPrepHelper.ExtractBeamsPerIsoAndIsoPositions(vmatPlan);
+            List<List<Beam>> beamsPerIso = PlanPrepHelper.ExtractBeamsPerIso(vmatPlan);
             foreach (List<Beam> beams in beamsPerIso)
             {
                 //string message = "";
