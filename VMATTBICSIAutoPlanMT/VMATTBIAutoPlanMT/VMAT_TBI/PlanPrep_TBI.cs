@@ -18,6 +18,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         List<List<Beam>> appaBeamsPerIso = new List<List<Beam>> { };
         bool legsSeparated = false;
         public bool flashRemoved = false;
+        private ExternalPlanSetup vmatPlan;
 
         public PlanPrep_TBI(ExternalPlanSetup vmat, IEnumerable<ExternalPlanSetup> appa)
         {
@@ -121,56 +122,56 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         public bool SeparatePlans()
         {
-            //check for setup fields in the vmat and AP/PA plans
-            if (!vmatPlan.Beams.Where(x => x.IsSetupField).Any() || (appaPlan.Count() > 0 && !legsSeparated && !appaPlan.First().Beams.Where(x => x.IsSetupField).Any()))
-            {
-                string problemPlan = "";
-                if (!vmatPlan.Beams.Where(x => x.IsSetupField).Any()) problemPlan = "VMAT plan";
-                else problemPlan = "AP/PA plan(s)";
-                ConfirmPrompt CP = new ConfirmPrompt(String.Format("I didn't find any setup fields in the {0}.", problemPlan) + Environment.NewLine + Environment.NewLine + "Are you sure you want to continue?!");
-                CP.ShowDialog();
-                if (!CP.GetSelection()) return true;
-            }
+            ////check for setup fields in the vmat and AP/PA plans
+            //if (!vmatPlan.Beams.Where(x => x.IsSetupField).Any() || (appaPlan.Count() > 0 && !legsSeparated && !appaPlan.First().Beams.Where(x => x.IsSetupField).Any()))
+            //{
+            //    string problemPlan = "";
+            //    if (!vmatPlan.Beams.Where(x => x.IsSetupField).Any()) problemPlan = "VMAT plan";
+            //    else problemPlan = "AP/PA plan(s)";
+            //    ConfirmPrompt CP = new ConfirmPrompt(String.Format("I didn't find any setup fields in the {0}.", problemPlan) + Environment.NewLine + Environment.NewLine + "Are you sure you want to continue?!");
+            //    CP.ShowDialog();
+            //    if (!CP.GetSelection()) return true;
+            //}
 
-            //check if flash was used in the plan. If so, ask the user if they want to remove these structures as part of cleanup
-            if (CheckForFlash())
-            {
-                ConfirmPrompt CP = new ConfirmPrompt("I found some structures in the structure set for generating flash." + Environment.NewLine + Environment.NewLine + "Should I remove them?!");
-                CP.ShowDialog();
-                if (CP.GetSelection()) if (RemoveFlashStructures()) return true;
-            }
-            //counter for indexing names
-            int count = 0;
-            //loop through the list of beams in each isocenter
-            count = SeparatePlan(vmatPlan, count);
+            ////check if flash was used in the plan. If so, ask the user if they want to remove these structures as part of cleanup
+            //if (CheckForFlash())
+            //{
+            //    ConfirmPrompt CP = new ConfirmPrompt("I found some structures in the structure set for generating flash." + Environment.NewLine + Environment.NewLine + "Should I remove them?!");
+            //    CP.ShowDialog();
+            //    if (CP.GetSelection()) if (RemoveFlashStructures()) return true;
+            //}
+            ////counter for indexing names
+            //int count = 0;
+            ////loop through the list of beams in each isocenter
+            //count = SeparatePlan(vmatPlan, count);
 
-            //do the same as above, but for the AP/PA legs plan
-            if (!legsSeparated)
-            {
-                foreach (List<Beam> beams in appaBeamsPerIso)
-                {
-                    //string message = "";
-                    //foreach (Beam b in beams) message += b.Id + "\n";
-                    //MessageBox.Show(message);
-                    ExternalPlanSetup newplan = (ExternalPlanSetup)appaPlan.First().Course.CopyPlanSetup(appaPlan.First());
-                    List<Beam> removeMe = new List<Beam> { };
-                    newplan.Id = String.Format("{0} {1}", count + 1, (names.ElementAt(count).Contains("upper") ? "Upper Legs" : "Lower Legs"));
-                    //newplan.AddReferencePoint(newplan.StructureSet.Structures.First(x => x.Id.ToLower() == "ptv_body"), null, newplan.Id, newplan.Id);
-                    separatedPlans.Add(newplan);
-                    foreach (Beam b in newplan.Beams)
-                    {
-                        //if the current beam in newPlan is NOT found in the beams list, then remove it from the current new plan
-                        if (!beams.Where(x => x.Id == b.Id).Any() && !b.IsSetupField) removeMe.Add(b);
-                    }
-                    foreach (Beam b in removeMe) newplan.RemoveBeam(b);
-                    count++;
-                }
-            }
-            //inform the user it's done
-            string message = "Original plan(s) have been separated! \r\nBe sure to set the target volume and primary reference point!\r\n";
-            if (vmatPlan.Beams.Where(x => x.IsSetupField).Any() || (appaPlan.Count() > 0 && !legsSeparated && appaPlan.First().Beams.Where(x => x.IsSetupField).Any()))
-                message += "Also reset the isocenter position of the setup fields!";
-            MessageBox.Show(message);
+            ////do the same as above, but for the AP/PA legs plan
+            //if (!legsSeparated)
+            //{
+            //    foreach (List<Beam> beams in appaBeamsPerIso)
+            //    {
+            //        //string message = "";
+            //        //foreach (Beam b in beams) message += b.Id + "\n";
+            //        //MessageBox.Show(message);
+            //        ExternalPlanSetup newplan = (ExternalPlanSetup)appaPlan.First().Course.CopyPlanSetup(appaPlan.First());
+            //        List<Beam> removeMe = new List<Beam> { };
+            //        newplan.Id = String.Format("{0} {1}", count + 1, (names.ElementAt(count).Contains("upper") ? "Upper Legs" : "Lower Legs"));
+            //        //newplan.AddReferencePoint(newplan.StructureSet.Structures.First(x => x.Id.ToLower() == "ptv_body"), null, newplan.Id, newplan.Id);
+            //        separatedPlans.Add(newplan);
+            //        foreach (Beam b in newplan.Beams)
+            //        {
+            //            //if the current beam in newPlan is NOT found in the beams list, then remove it from the current new plan
+            //            if (!beams.Where(x => x.Id == b.Id).Any() && !b.IsSetupField) removeMe.Add(b);
+            //        }
+            //        foreach (Beam b in removeMe) newplan.RemoveBeam(b);
+            //        count++;
+            //    }
+            //}
+            ////inform the user it's done
+            //string message = "Original plan(s) have been separated! \r\nBe sure to set the target volume and primary reference point!\r\n";
+            //if (vmatPlan.Beams.Where(x => x.IsSetupField).Any() || (appaPlan.Count() > 0 && !legsSeparated && appaPlan.First().Beams.Where(x => x.IsSetupField).Any()))
+            //    message += "Also reset the isocenter position of the setup fields!";
+            //MessageBox.Show(message);
             return false;
         }
 

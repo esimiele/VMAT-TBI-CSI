@@ -51,4 +51,12 @@
         Global,
         Local
     };
+
+    public enum ScriptOperationType
+    {
+        General,
+        ExportCT,
+        GeneratePrelimTargets,
+        PlanPrep
+    };
 }

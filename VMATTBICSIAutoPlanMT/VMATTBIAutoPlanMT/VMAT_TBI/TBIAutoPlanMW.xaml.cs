@@ -1534,7 +1534,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             calcDoseTB.Background = System.Windows.Media.Brushes.Yellow;
             calcDoseTB.Text = "WORKING";
 
-            prep.CalculateDose();
+            //prep.CalculateDose();
 
             //let the user know this step has been completed
             calcDoseTB.Background = System.Windows.Media.Brushes.ForestGreen;

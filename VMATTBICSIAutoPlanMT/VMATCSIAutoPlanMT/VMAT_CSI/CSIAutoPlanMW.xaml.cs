@@ -91,7 +91,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         List<Tuple<string, string, int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
         //list of junction structures (i.e., overlap regions between adjacent isocenters)
         List<Tuple<ExternalPlanSetup, List<Structure>>> jnxs = new List<Tuple<ExternalPlanSetup, List<Structure>>> { };
-        PlanPrep_CSI prep = null;
         private VMS.TPS.Common.Model.API.Application app = null;
         bool isModified = false;
         bool autoSave = false;
@@ -1570,67 +1569,100 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //methods related to plan preparation
         private void GenerateShiftNote_Click(object sender, RoutedEventArgs e)
         {
-            ExternalPlanSetup vmatPlan = null;
-            if (prep == null)
+            string fullLogName = LogHelper.GetFullLogFileFromExistingMRN(pi.Id, logPath);
+            if (!string.IsNullOrEmpty(fullLogName))
             {
-                //this method assumes no prior knowledge, so it will have to retrive the number of isocenters (vmat and total) and isocenter names explicitly
-                Course c = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat tbi");
-                if (c == null)
+                (string initPlanUID, StringBuilder errorMessage) = LogHelper.LoadCSIInitPlanUIDFromLogFile(fullLogName);
+                if(string.IsNullOrEmpty(initPlanUID))
                 {
-                    //vmat tbi course not found. Dealbreaker, exit method
-                    log.LogError("VMAT TBI course not found! Exiting!");
+                    log.LogError(errorMessage);
                     return;
+                }
+                ExternalPlanSetup tmp = pi.Courses.SelectMany(x => x.ExternalPlanSetups).FirstOrDefault(x => string.Equals(x.UID, initPlanUID));
+                if (tmp != null)
+                {
+                    Course theCourse = tmp.Course;
+                    if(theCourse.ExternalPlanSetups.Count() > 1)
+                    {
+                        ExternalPlanSetup thePlan = PromptForUserToSelectPlan(theCourse);
+                        if (thePlan != null) VMATplans.Add(thePlan);
+                    }
+                    else VMATplans.Add(tmp);
+                }
+            }
+            if(!VMATplans.Any())
+            {
+                if (pi.Courses.Any(x => string.Equals(x.Id.ToLower(), "vmat csi")))
+                {
+                    Course theCourse = pi.Courses.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "vmat csi"));
+                    if (theCourse.ExternalPlanSetups.Count() > 1)
+                    {
+                        ExternalPlanSetup thePlan = PromptForUserToSelectPlan(theCourse);
+                        if (thePlan != null) VMATplans.Add(thePlan);
+                    }
+                    else VMATplans.Add(theCourse.ExternalPlanSetups.First());
                 }
                 else
                 {
-                    //always try and get the AP/PA plans (it's ok if it returns null). NOTE: Nataliya sometimes separates the _legs plan into two separate plans for planning PRIOR to running the optimization loop
-                    //therefore, look for all external beam plans that contain the string 'legs'. If 3 plans are found, one of them is the original '_Legs' plan, so we can exculde that from the list
-                    //get all plans in the course that don't contain the string 'legs' in the plan ID. If more than 1 exists, prompt the user to select the plan they want to prep
-                    IEnumerable<ExternalPlanSetup> plans = c.ExternalPlanSetups.Where(x => !x.Id.ToLower().Contains("legs"));
-                    if (plans.Count() > 1)
-                    {
-                        SelectItemPrompt SIP = new SelectItemPrompt("Multiple plans found in VMAT TBI course!" + Environment.NewLine + "Please select a plan to prep!", plans.Select(x => x.Id).ToList());
-                        SIP.ShowDialog();
-                        if (!SIP.GetSelection()) return;
-                        //get the plan the user chose from the combobox
-                        vmatPlan = c.ExternalPlanSetups.FirstOrDefault(x => string.Equals(x.Id, SIP.GetSelectedItem()));
-                    }
-                    else
-                    {
-                        //course found and only one or fewer plans inside course with Id != "_Legs", get vmat and ap/pa plans
-                        vmatPlan = c.ExternalPlanSetups.FirstOrDefault(x => x.Id.ToLower() == "CSI-init");
-                    }
-                    if (vmatPlan == null)
-                    {
-                        //vmat plan not found. Dealbreaker, exit method
-                        log.LogError("VMAT plan not found! Exiting!");
-                        return;
-                    }
+                    log.LogError($"Error! No log file found and no course named VMAT CSI found! Nothing to prep! Exiting!");
+                    return;
                 }
-
-                //create an instance of the planPep class and pass it the vmatPlan and appaPlan objects as arguments. Get the shift note for the plan of interest
-                prep = new PlanPrep_CSI(vmatPlan);
             }
-            Clipboard.SetText(PlanPrepHelper.GetShiftNote(vmatPlan).ToString());
-            MessageBox.Show("Shifts have been copied to the clipboard! \r\nPaste them into the journal note!");
 
-            //let the user know this step has been completed (they can now do the other steps like separate plans and calculate dose)
-            shiftTB.Background = System.Windows.Media.Brushes.ForestGreen;
-            shiftTB.Text = "YES";
+            if(VMATplans.Any())
+            {
+                Clipboard.SetText(PlanPrepHelper.GetShiftNote(VMATplans.First()).ToString());
+                MessageBox.Show("Shifts have been copied to the clipboard! \r\nPaste them into the journal note!");
+
+                //let the user know this step has been completed (they can now do the other steps like separate plans and calculate dose)
+                shiftTB.Background = System.Windows.Media.Brushes.ForestGreen;
+                shiftTB.Text = "YES";
+                log.OpType = ScriptOperationType.PlanPrep;
+            }
+        }
+
+        private ExternalPlanSetup PromptForUserToSelectPlan(Course theCourse)
+        {
+            SelectItemPrompt SIP = new SelectItemPrompt($"Multiple plans found in {theCourse.Id} course!" + Environment.NewLine + "Please select a plan to prep!", theCourse.ExternalPlanSetups.Select(x => x.Id).ToList());
+            SIP.ShowDialog();
+            if (!SIP.GetSelection()) return null;
+            //get the plan the user chose from the combobox
+            return theCourse.ExternalPlanSetups.FirstOrDefault(x => string.Equals(x.Id, SIP.GetSelectedItem()));
         }
 
         private void SeparatePlans_Click(object sender, RoutedEventArgs e)
         {
             //The shift note has to be retrieved first! Otherwise, we don't have instances of the plan objects
-            if (shiftTB.Text != "YES")
+            if (!VMATplans.Any())
             {
                 log.LogError("Please generate the shift note before separating the plans!");
                 return;
             }
 
+            ExternalPlanSetup vmatPlan = VMATplans.First();
+            if (!vmatPlan.Beams.Any(x => x.IsSetupField))
+            {
+                ConfirmPrompt CUI = new ConfirmPrompt($"I didn't find any setup fields in the {vmatPlan.Id}." + Environment.NewLine + Environment.NewLine + "Are you sure you want to continue?!");
+                CUI.ShowDialog();
+                if (!CUI.GetSelection()) return;
+            }
+
             //separate the plans
             pi.BeginModifications();
-            if (prep.SeparatePlans()) return;
+            PlanPrep_CSI planPrep = new PlanPrep_CSI(vmatPlan);
+            bool result = planPrep.Execute();
+            log.AppendLogOutput("Plan preparation:", planPrep.GetLogOutput());
+            if (result) return;
+
+            //inform the user it's done
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("Original plan(s) have been separated!");
+            sb.AppendLine("Be sure to set the target volume and primary reference point!");
+            if (vmatPlan.Beams.Any(x => x.IsSetupField))
+            {
+                sb.AppendLine("Also reset the isocenter position of the setup fields!");
+            }
+            MessageBox.Show(sb.ToString());
 
             //let the user know this step has been completed
             separateTB.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -1642,27 +1674,27 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
         private void CalculateDose_Click(object sender, RoutedEventArgs e)
         {
-            //the shift note must be retireved and the plans must be separated before calculating dose
-            if (shiftTB.Text == "NO" || separateTB.Text == "NO")
-            {
-                log.LogError("Error! \nYou must generate the shift note AND separate the plan before calculating dose to each plan!");
-                return;
-            }
+            ////the shift note must be retireved and the plans must be separated before calculating dose
+            //if (shiftTB.Text == "NO" || separateTB.Text == "NO")
+            //{
+            //    log.LogError("Error! \nYou must generate the shift note AND separate the plan before calculating dose to each plan!");
+            //    return;
+            //}
 
-            //ask the user if they are sure they want to do this. Each plan will calculate dose sequentially, which will take time
-            ConfirmPrompt CUI = new ConfirmPrompt("Warning!" + Environment.NewLine + "This will take some time as each plan needs to be calculated sequentionally!" + Environment.NewLine + "Continue?!");
-            CUI.ShowDialog();
-            if (!CUI.GetSelection()) return;
+            ////ask the user if they are sure they want to do this. Each plan will calculate dose sequentially, which will take time
+            //ConfirmPrompt CUI = new ConfirmPrompt("Warning!" + Environment.NewLine + "This will take some time as each plan needs to be calculated sequentionally!" + Environment.NewLine + "Continue?!");
+            //CUI.ShowDialog();
+            //if (!CUI.GetSelection()) return;
 
-            //let the user know the script is working
-            calcDoseTB.Background = System.Windows.Media.Brushes.Yellow;
-            calcDoseTB.Text = "WORKING";
+            ////let the user know the script is working
+            //calcDoseTB.Background = System.Windows.Media.Brushes.Yellow;
+            //calcDoseTB.Text = "WORKING";
 
-            prep.CalculateDose();
+            //prep.CalculateDose();
 
-            //let the user know this step has been completed
-            calcDoseTB.Background = System.Windows.Media.Brushes.ForestGreen;
-            calcDoseTB.Text = "YES";
+            ////let the user know this step has been completed
+            //calcDoseTB.Background = System.Windows.Media.Brushes.ForestGreen;
+            //calcDoseTB.Text = "YES";
         }
         #endregion
 

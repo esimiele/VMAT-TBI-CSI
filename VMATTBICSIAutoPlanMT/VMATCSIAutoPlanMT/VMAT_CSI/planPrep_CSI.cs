@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Windows;
+﻿using System.Collections.Generic;
 using VMS.TPS.Common.Model.API;
-using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.BaseClasses;
-using VMATTBICSIAutoPlanningHelpers.Prompts;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 
 namespace VMATCSIAutoPlanMT.VMAT_CSI
@@ -14,45 +9,43 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
     {
         public PlanPrep_CSI(ExternalPlanSetup vmat)
         {
-            //copy arguments into local variables
-            vmatPlan = vmat;
+            VMATPlan = vmat;
         }
 
+        #region Run Control
         public override bool Run()
         {
+            UpdateUILabel("Running:");
             if (PreliminaryChecks()) return true;
             if (SeparatePlans()) return true;
+            if (recalcNeeded && ReCalculateDose()) return true;
+            UpdateUILabel("Finished!");
+            ProvideUIUpdate(100, "Finished separating plans!");
+            ProvideUIUpdate($"Run time: {GetElapsedTime()} (mm:ss)");
             return false;
         }
+        #endregion
 
+        #region Preliminary Checks
         private bool PreliminaryChecks()
         {
-            if (CheckBeamNameFormatting(vmatPlan)) return true;
+            UpdateUILabel("Preliminary Checks:");
+            ProvideUIUpdate($"Checking {VMATPlan.Id} ({VMATPlan.UID}) is valid for preparation");
+            if (CheckBeamNameFormatting(VMATPlan)) return true;
+            if (CheckIfDoseRecalcNeeded(VMATPlan)) recalcNeeded = true;
+            ProvideUIUpdate(100, "Preliminary checks complete");
             return false;
         }
+        #endregion
 
+        #region Separate the vmat plan
         public bool SeparatePlans()
         {
-            //check for setup fields in the vmat and AP/PA plans
-            if (!vmatPlan.Beams.Where(x => x.IsSetupField).Any())
-            {
-                string problemPlan = "";
-                if (!vmatPlan.Beams.Where(x => x.IsSetupField).Any()) problemPlan = "VMAT plan";
-                ConfirmPrompt CUI = new ConfirmPrompt(String.Format("I didn't find any setup fields in the {0}.", problemPlan) + Environment.NewLine + Environment.NewLine + "Are you sure you want to continue?!");
-                CUI.ShowDialog();
-                if (!CUI.GetSelection()) return true;
-            }
-
-            //counter for indexing names
-            int count = 0;
-            //loop through the list of beams in each isocenter
-            count = SeparatePlan(vmatPlan, count);
-            //inform the user it's done
-            string message = "Original plan(s) have been separated! \r\nBe sure to set the target volume and primary reference point!\r\n";
-            if (vmatPlan.Beams.Where(x => x.IsSetupField).Any())
-                message += "Also reset the isocenter position of the setup fields!";
-            MessageBox.Show(message);
+            List<List<Beam>> beamsPerIso = PlanPrepHelper.ExtractBeamsPerIso(VMATPlan);
+            List<string> isoNames = IsoNameHelper.GetCSIIsoNames(beamsPerIso.Count);
+            if (SeparateVMATPlan(VMATPlan, beamsPerIso, isoNames)) return true;
             return false;
         }
+        #endregion
     }
 }

@@ -43,6 +43,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         //plan ID, <structure, constraint type, dose cGy, volume %, priority>
         public List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> OptimizationConstraints { set { optimizationConstraints = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>(value); } }
 
+        public ScriptOperationType OpType { set { opType = value; } }
+
         //path to location to write log file
         private string logPath = "";
         //stringbuilder object to log output from ts generation/manipulation and beam placement
@@ -64,6 +66,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         private List<Tuple<string, List<string>>> isoNames;
         private List<string> planUIDs;
         private List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> optimizationConstraints;
+        private ScriptOperationType opType = ScriptOperationType.General;
 
         public Logger(string path, PlanType theType, string patient)
         {
@@ -141,6 +144,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
                 logPath += "unsaved" + "\\";
                 fileName = logPath + DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss") + ".txt";
             }
+            else if(opType != ScriptOperationType.General)
+            {
+                logPath += "MISC" + "\\";
+                fileName = logPath + opType.ToString() + ".txt";
+            }
 
             if (!Directory.Exists(logPath))
             {
@@ -152,21 +160,38 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             sb.AppendLine(String.Format("User={0}", userId));
             sb.AppendLine(String.Format("Patient={0}", mrn));
             sb.AppendLine(String.Format("Plan type={0}", planType));
+            if (opType == ScriptOperationType.General) sb.Append(BuildGeneralOpLog());
+            else if (opType == ScriptOperationType.GeneratePrelimTargets) sb.Append(BuildPrelimTargetOpLog());
+            else sb.AppendLine("");
+
+            sb.AppendLine("Errors and warnings:");
+            sb.Append(_logFromErrors);
+            sb.AppendLine(String.Format(""));
+
+            sb.AppendLine("Detailed log output:");
+            sb.Append(_logFromOperations);
+            sb.AppendLine(String.Format(""));
+            try
+            {
+                File.WriteAllText(fileName, sb.ToString());
+            }
+            catch (Exception e) 
+            { 
+                throw new Exception(e.Message); 
+            }
+            return false;
+        }
+
+        private StringBuilder BuildGeneralOpLog()
+        {
+            StringBuilder sb = new StringBuilder();
             sb.AppendLine(String.Format("Structure set={0}", selectedSS));
             sb.AppendLine(String.Format("Template={0}", template));
             sb.AppendLine(String.Format(""));
             sb.AppendLine(String.Format("Prescriptions:"));
-
-            foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions) sb.AppendLine(String.Format("    {{{0},{1},{2},{3},{4}}}",itr.Item1,itr.Item2,itr.Item3,itr.Item4.Dose,itr.Item5));
+            foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions) sb.AppendLine(String.Format("    {{{0},{1},{2},{3},{4}}}", itr.Item1, itr.Item2, itr.Item3, itr.Item4.Dose, itr.Item5));
             sb.AppendLine(String.Format(""));
 
-            if(planType == PlanType.VMAT_CSI)
-            {
-                sb.AppendLine(String.Format("Added preliminary targets:"));
-                foreach (string itr in addedPrelimTargets) sb.AppendLine("    " + itr);
-                sb.AppendLine(String.Format(""));
-            }
-            
             sb.AppendLine(String.Format("Added TS structures:"));
             foreach (string itr in addedStructures) sb.AppendLine("    " + itr);
             sb.AppendLine(String.Format(""));
@@ -179,7 +204,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             foreach (Tuple<string, List<string>> itr in isoNames)
             {
                 sb.AppendLine(String.Format("    {0}", itr.Item1));
-                foreach(string s in itr.Item2)
+                foreach (string s in itr.Item2)
                 {
                     sb.AppendLine(String.Format("        {0}", s));
                 }
@@ -201,7 +226,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             sb.AppendLine(String.Format(""));
 
             sb.AppendLine("Normalization volumes:");
-            foreach(Tuple<string,string> itr in normVolumes)
+            foreach (Tuple<string, string> itr in normVolumes)
             {
                 sb.AppendLine(String.Format("    {{{0},{1}}}", itr.Item1, itr.Item2));
             }
@@ -211,29 +236,22 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in optimizationConstraints)
             {
                 sb.AppendLine(String.Format("    {0}", itr.Item1));
-                foreach(Tuple<string, OptimizationObjectiveType, double, double, int> itr1 in itr.Item2)
+                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> itr1 in itr.Item2)
                 {
                     sb.AppendLine(String.Format("        {{{0},{1},{2},{3},{4}}}", itr1.Item1, itr1.Item2.ToString(), itr1.Item3, itr1.Item4, itr1.Item5));
                 }
             }
             sb.AppendLine(String.Format(""));
+            return sb;
+        }
 
-            sb.AppendLine("Errors and warnings:");
-            sb.Append(_logFromErrors);
+        private StringBuilder BuildPrelimTargetOpLog()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine(String.Format("Added preliminary targets:"));
+            foreach (string itr in addedPrelimTargets) sb.AppendLine("    " + itr);
             sb.AppendLine(String.Format(""));
-
-            sb.AppendLine("Detailed log output:");
-            sb.Append(_logFromOperations);
-            sb.AppendLine(String.Format(""));
-            try
-            {
-                File.WriteAllText(fileName, sb.ToString());
-            }
-            catch (Exception e) 
-            { 
-                throw new Exception(e.Message); 
-            }
-            return false;
+            return sb;
         }
     }
 }
