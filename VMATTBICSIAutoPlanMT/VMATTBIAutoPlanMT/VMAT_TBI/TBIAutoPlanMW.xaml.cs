@@ -101,7 +101,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         bool useFlash = false;
         FlashType flashType = FlashType.Global;
         Structure flashStructure = null;
-        PlanPrep_TBI prep = null;
         public VMS.TPS.Common.Model.API.Application app = null;
         bool isModified = false;
         bool autoSave = false;
@@ -1439,50 +1438,77 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         #region plan preparation
         private void GenerateShiftNote_Click(object sender, RoutedEventArgs e)
         {
-            if (prep == null)
+            (ExternalPlanSetup VMATPlan, StringBuilder errorMessage) = PlanPrepUIHelper.RetrieveVMATPlan(pi, logPath, "VMAT TBI");
+            if (VMATPlan == null)
             {
-                //this method assumes no prior knowledge, so it will have to retrive the number of isocenters (vmat and total) and isocenter names explicitly
-                Course c = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat tbi");
-                ExternalPlanSetup vmatPlan = null;
-                IEnumerable<ExternalPlanSetup> appaPlan = new List<ExternalPlanSetup> { };
-                if (c == null)
+                log.LogError(errorMessage);
+                return;
+            }
+
+            ExternalPlanSetup appaPlan = null;
+            if (VMATplan.Course.ExternalPlanSetups.Any(x => x.Id.ToLower().Contains("legs")))
+            {
+                appaPlan = VMATplan.Course.ExternalPlanSetups.First(x => x.Id.ToLower().Contains("legs"));
+                if (appaPlan.TreatmentOrientation != PatientOrientation.FeetFirstSupine)
                 {
-                    //vmat tbi course not found. Dealbreaker, exit method
-                    log.LogError("VMAT TBI course not found! Exiting!");
+                    log.LogError($"The AP/PA plan {appaPlan.Id} is NOT in the FFS orientation!");
+                    log.LogError("THE COUCH SHIFTS FOR THESE PLANS WILL NOT BE ACCURATE! Please fix and try again!");
                     return;
                 }
-                else
-                {
-                    //always try and get the AP/PA plans (it's ok if it returns null). NOTE: Nataliya sometimes separates the _legs plan into two separate plans for planning PRIOR to running the optimization loop
-                    //therefore, look for all external beam plans that contain the string 'legs'. If 3 plans are found, one of them is the original '_Legs' plan, so we can exculde that from the list
-                    appaPlan = c.ExternalPlanSetups.Where(x => x.Id.ToLower().Contains("legs"));
-                    if (appaPlan.Count() > 2) appaPlan = c.ExternalPlanSetups.Where(x => x.Id.ToLower().Contains("legs")).Where(x => x.Id.ToLower() != "_legs").OrderBy(o => int.Parse(o.Id.Substring(0, 2).ToString()));
-                    //get all plans in the course that don't contain the string 'legs' in the plan ID. If more than 1 exists, prompt the user to select the plan they want to prep
-                    IEnumerable<ExternalPlanSetup> plans = c.ExternalPlanSetups.Where(x => !x.Id.ToLower().Contains("legs"));
-                    if (plans.Count() > 1)
-                    {
-                        SelectItemPrompt SIP = new SelectItemPrompt("Multiple plans found in VMAT TBI course!" + Environment.NewLine + "Please select a plan to prep!", plans.Select(x => x.Id).ToList());
-                        SIP.ShowDialog();
-                        if (!SIP.GetSelection()) return;
-                        //get the plan the user chose from the combobox
-                        vmatPlan = c.ExternalPlanSetups.FirstOrDefault(x => string.Equals(x.Id, SIP.GetSelectedItem()));
-                    }
-                    else
-                    {
-                        //course found and only one or fewer plans inside course with Id != "_Legs", get vmat and ap/pa plans
-                        vmatPlan = c.ExternalPlanSetups.FirstOrDefault(x => x.Id.ToLower() == "vmat tbi");
-                    }
-                    if (vmatPlan == null)
-                    {
-                        //vmat plan not found. Dealbreaker, exit method
-                        log.LogError("VMAT plan not found! Exiting!");
-                        return;
-                    }
-                }
-
-                //create an instance of the planPep class and pass it the vmatPlan and appaPlan objects as arguments. Get the shift note for the plan of interest
-                prep = new PlanPrep_TBI(vmatPlan, appaPlan);
             }
+
+            Clipboard.SetText(PlanPrepHelper.GetTBIShiftNote(VMATplan, appaPlan).ToString());
+            MessageBox.Show("Shifts have been copied to the clipboard! \r\nPaste them into the journal note!");
+
+            //let the user know this step has been completed (they can now do the other steps like separate plans and calculate dose)
+            shiftTB.Background = System.Windows.Media.Brushes.ForestGreen;
+            shiftTB.Text = "YES";
+            log.OpType = ScriptOperationType.PlanPrep;
+
+            //if (prep == null)
+            //{
+            //    //this method assumes no prior knowledge, so it will have to retrive the number of isocenters (vmat and total) and isocenter names explicitly
+            //    Course c = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat tbi");
+            //    ExternalPlanSetup vmatPlan = null;
+            //    IEnumerable<ExternalPlanSetup> appaPlan = new List<ExternalPlanSetup> { };
+            //    if (c == null)
+            //    {
+            //        //vmat tbi course not found. Dealbreaker, exit method
+            //        log.LogError("VMAT TBI course not found! Exiting!");
+            //        return;
+            //    }
+            //    else
+            //    {
+            //        //always try and get the AP/PA plans (it's ok if it returns null). NOTE: Nataliya sometimes separates the _legs plan into two separate plans for planning PRIOR to running the optimization loop
+            //        //therefore, look for all external beam plans that contain the string 'legs'. If 3 plans are found, one of them is the original '_Legs' plan, so we can exculde that from the list
+            //        appaPlan = c.ExternalPlanSetups.Where(x => x.Id.ToLower().Contains("legs"));
+            //        if (appaPlan.Count() > 2) appaPlan = c.ExternalPlanSetups.Where(x => x.Id.ToLower().Contains("legs")).Where(x => x.Id.ToLower() != "_legs").OrderBy(o => int.Parse(o.Id.Substring(0, 2).ToString()));
+            //        //get all plans in the course that don't contain the string 'legs' in the plan ID. If more than 1 exists, prompt the user to select the plan they want to prep
+            //        IEnumerable<ExternalPlanSetup> plans = c.ExternalPlanSetups.Where(x => !x.Id.ToLower().Contains("legs"));
+            //        if (plans.Count() > 1)
+            //        {
+            //            SelectItemPrompt SIP = new SelectItemPrompt("Multiple plans found in VMAT TBI course!" + Environment.NewLine + "Please select a plan to prep!", plans.Select(x => x.Id).ToList());
+            //            SIP.ShowDialog();
+            //            if (!SIP.GetSelection()) return;
+            //            //get the plan the user chose from the combobox
+            //            vmatPlan = c.ExternalPlanSetups.FirstOrDefault(x => string.Equals(x.Id, SIP.GetSelectedItem()));
+            //        }
+            //        else
+            //        {
+            //            //course found and only one or fewer plans inside course with Id != "_Legs", get vmat and ap/pa plans
+            //            vmatPlan = c.ExternalPlanSetups.FirstOrDefault(x => x.Id.ToLower() == "vmat tbi");
+            //        }
+            //        if (vmatPlan == null)
+            //        {
+            //            //vmat plan not found. Dealbreaker, exit method
+            //            log.LogError("VMAT plan not found! Exiting!");
+            //            return;
+            //        }
+            //    }
+
+            //    //create an instance of the planPep class and pass it the vmatPlan and appaPlan objects as arguments. Get the shift note for the plan of interest
+            //    prep = new PlanPrep_TBI(vmatPlan, appaPlan);
+            //}
             //if (prep.GetShiftNote()) return;
 
             //let the user know this step has been completed (they can now do the other steps like separate plans and calculate dose)
@@ -1493,27 +1519,61 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private void SeparatePlans_Click(object sender, RoutedEventArgs e)
         {
             //The shift note has to be retrieved first! Otherwise, we don't have instances of the plan objects
-            if (shiftTB.Text != "YES")
+            if (VMATplan != null)
             {
                 log.LogError("Please generate the shift note before separating the plans!");
                 return;
             }
 
+            if (!VMATplan.Beams.Any(x => x.IsSetupField))
+            {
+                ConfirmPrompt CUI = new ConfirmPrompt($"I didn't find any setup fields in the {VMATplan.Id}." + Environment.NewLine + Environment.NewLine + "Are you sure you want to continue?!");
+                CUI.ShowDialog();
+                if (!CUI.GetSelection()) return;
+            }
+
+            ExternalPlanSetup appaPlan = null;
+            if (VMATplan.Course.ExternalPlanSetups.Any(x => x.Id.ToLower().Contains("legs")))
+            {
+                appaPlan = VMATplan.Course.ExternalPlanSetups.First(x => x.Id.ToLower().Contains("legs"));
+            }
+
+            bool removeFlash = false;
+            StringBuilder sb = new StringBuilder();
+            //check if flash was used in the plan. If so, ask the user if they want to remove these structures as part of cleanup
+            if (PlanPrepUIHelper.CheckForFlash(VMATplan.StructureSet))
+            {
+                sb.AppendLine("I found some structures in the structure set for generating flash.");
+                sb.AppendLine("Should I remove them?");
+                sb.AppendLine("(NOTE: this will require dose recalculation for all plans using this structure set!)");
+                ConfirmPrompt CP = new ConfirmPrompt(sb.ToString(), "YES", "NO");
+                CP.ShowDialog();
+                if (CP.GetSelection()) removeFlash = true;
+            }
+
             //separate the plans
             pi.BeginModifications();
-            if (prep.SeparatePlans()) return;
+            PlanPrep_TBI planPrep = new PlanPrep_TBI(VMATplan, appaPlan, removeFlash);
+            bool result = planPrep.Execute();
+            log.AppendLogOutput("Plan preparation:", planPrep.GetLogOutput());
+            if (result) return;
+
+            //inform the user it's done
+            sb.Clear();
+            sb.AppendLine("Original plan(s) have been separated!");
+            sb.AppendLine("Be sure to set the target volume and primary reference point!");
+            if (VMATplan.Beams.Any(x => x.IsSetupField))
+            {
+                sb.AppendLine("Also reset the isocenter position of the setup fields!");
+            }
+            MessageBox.Show(sb.ToString());
 
             //let the user know this step has been completed
             separateTB.Background = System.Windows.Media.Brushes.ForestGreen;
             separateTB.Text = "YES";
 
-            //if flash was removed, display the calculate dose button (to remove flash, the script had to wipe the dose in the original plan)
-            if (prep.flashRemoved)
-            {
-                calcDose.Visibility = Visibility.Visible;
-                calcDoseTB.Visibility = Visibility.Visible;
-            }
             isModified = true;
+            planPreparationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
         }
 
         private void CalcDose_Click(object sender, RoutedEventArgs e)

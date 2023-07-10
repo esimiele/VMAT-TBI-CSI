@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMS.TPS.Common.Model.API;
 
@@ -8,6 +9,24 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public static class OptimizationLoopHelper
     {
+        public static (List<ExternalPlanSetup>, StringBuilder) GetOtherPlansWithSameSSWithCalculatedDose(List<Course> courses, StructureSet ss)
+        {
+            List<ExternalPlanSetup> otherPlans = new List<ExternalPlanSetup> { };
+            StringBuilder sb = new StringBuilder();
+            foreach (Course c in courses)
+            {
+                foreach (ExternalPlanSetup p in c.ExternalPlanSetups)
+                {
+                    if (p.IsDoseValid && p.StructureSet == ss)
+                    {
+                        sb.AppendLine($"Course: {c.Id}, Plan: {p.Id}");
+                        otherPlans.Add(p);
+                    }
+                }
+            }
+            return (otherPlans, sb);
+        }
+
         public static (bool, double) CheckPlanHotspot(ExternalPlanSetup plan, double threshold)
         {
             double dmax = plan.Dose.DoseMax3D.Dose / plan.TotalDose.Dose;

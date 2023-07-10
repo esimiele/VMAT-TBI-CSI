@@ -162,6 +162,7 @@
     <Compile Include="Helpers\IsoNameHelper.cs" />
     <Compile Include="UIHelpers\OptimizationLoopUIHelper.cs" />
     <Compile Include="UIHelpers\OptimizationSetupUIHelper.cs" />
+    <Compile Include="UIHelpers\PlanPrepUIHelper.cs" />
     <Compile Include="UIHelpers\RingUIHelper.cs" />
     <Compile Include="UIHelpers\StructureTuningUIHelper.cs" />
     <Compile Include="UIHelpers\TargetsUIHelper.cs" />

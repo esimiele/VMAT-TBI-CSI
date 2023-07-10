@@ -13,8 +13,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         protected ExternalPlanSetup VMATPlan = null;
         public int numVMATIsos = 0;
         public int numIsos;
-        public List<Tuple<double, double, double>> isoPositions = new List<Tuple<double, double, double>> { };
-        public List<List<Beam>> vmatBeamsPerIso = new List<List<Beam>> { };
         public List<ExternalPlanSetup> separatedPlans = new List<ExternalPlanSetup> { };
         protected bool recalcNeeded = false;
 
@@ -58,7 +56,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 
         protected bool SeparateVMATPlan(ExternalPlanSetup plan, List<List<Beam>> beamsPerIso, List<string> names)
         {
-            UpdateUILabel("Separating plans:");
+            UpdateUILabel("Separating VMAT plan:");
             int count = 0;
             foreach (List<Beam> beams in beamsPerIso)
             {
@@ -66,7 +64,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 ExternalPlanSetup newplan = (ExternalPlanSetup)plan.Course.CopyPlanSetup(plan);
                 newplan.Id = $"{count + 1} {names.ElementAt(count)}";
                 ProvideUIUpdate($"Created new plan: {newplan.Id}");
-                List<Beam> removeMe = new List<Beam> { };
+                List<Beam> beamsToRemove = new List<Beam> { };
                 //can't add reference point to plan because it must be open in Eclipse for ESAPI to perform this function. Need to fix in v16
                 //newplan.AddReferencePoint(newplan.StructureSet.Structures.First(x => x.Id.ToLower() == "ptv_body"), null, newplan.Id, newplan.Id);
                 //add the current plan copy to the separatedPlans list
@@ -82,27 +80,34 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                     if (!beams.Any(x => string.Equals(x.Id, b.Id)) && !b.IsSetupField)
                     {
                         ProvideUIUpdate($"Added {b.Id} to list of beams to remove from {newplan.Id}");
-                        removeMe.Add(b);
+                        beamsToRemove.Add(b);
                     }
                 }
                 ProvideUIUpdate($"Removing excess beams from {newplan.Id}");
-                //now remove the beams for the current plan copy
-                try 
-                {
-                    foreach (Beam b in removeMe)
-                    {
-                        ProvideUIUpdate($"Removing beam {b.Id} from {newplan.Id}");
-                        newplan.RemoveBeam(b);
-                    }
-                }
-                catch (Exception e) 
-                { 
-                    ProvideUIUpdate($"Failed to remove beams in plan {newplan.Id}");
-                    ProvideUIUpdate($"{e.Message}");
-                    ProvideUIUpdate(e.StackTrace, true);
-                    return true;
-                }
+                if (RemoveExtraBeams(newplan, beamsToRemove)) return true;
+
                 count++;
+            }
+            return false;
+        }
+
+        protected bool RemoveExtraBeams(ExternalPlanSetup newPlan, List<Beam> removeMe)
+        {
+            //now remove the beams for the current plan copy
+            try
+            {
+                foreach (Beam b in removeMe)
+                {
+                    ProvideUIUpdate($"Removing beam {b.Id} from {newPlan.Id}");
+                    newPlan.RemoveBeam(b);
+                }
+            }
+            catch (Exception e)
+            {
+                ProvideUIUpdate($"Failed to remove beams in plan {newPlan.Id}");
+                ProvideUIUpdate($"{e.Message}");
+                ProvideUIUpdate(e.StackTrace, true);
+                return true;
             }
             return false;
         }

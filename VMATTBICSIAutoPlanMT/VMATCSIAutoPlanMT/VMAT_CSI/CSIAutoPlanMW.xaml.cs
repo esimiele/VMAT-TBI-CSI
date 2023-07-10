@@ -1569,65 +1569,21 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //methods related to plan preparation
         private void GenerateShiftNote_Click(object sender, RoutedEventArgs e)
         {
-            string fullLogName = LogHelper.GetFullLogFileFromExistingMRN(pi.Id, logPath);
-            if (!string.IsNullOrEmpty(fullLogName))
+            (ExternalPlanSetup VMATPlan, StringBuilder errorMessage) = PlanPrepUIHelper.RetrieveVMATPlan(pi, logPath, "VMAT CSI");
+            if (VMATPlan == null)
             {
-                (string initPlanUID, StringBuilder errorMessage) = LogHelper.LoadCSIInitPlanUIDFromLogFile(fullLogName);
-                if(string.IsNullOrEmpty(initPlanUID))
-                {
-                    log.LogError(errorMessage);
-                    return;
-                }
-                ExternalPlanSetup tmp = pi.Courses.SelectMany(x => x.ExternalPlanSetups).FirstOrDefault(x => string.Equals(x.UID, initPlanUID));
-                if (tmp != null)
-                {
-                    Course theCourse = tmp.Course;
-                    if(theCourse.ExternalPlanSetups.Count() > 1)
-                    {
-                        ExternalPlanSetup thePlan = PromptForUserToSelectPlan(theCourse);
-                        if (thePlan != null) VMATplans.Add(thePlan);
-                    }
-                    else VMATplans.Add(tmp);
-                }
-            }
-            if(!VMATplans.Any())
-            {
-                if (pi.Courses.Any(x => string.Equals(x.Id.ToLower(), "vmat csi")))
-                {
-                    Course theCourse = pi.Courses.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "vmat csi"));
-                    if (theCourse.ExternalPlanSetups.Count() > 1)
-                    {
-                        ExternalPlanSetup thePlan = PromptForUserToSelectPlan(theCourse);
-                        if (thePlan != null) VMATplans.Add(thePlan);
-                    }
-                    else VMATplans.Add(theCourse.ExternalPlanSetups.First());
-                }
-                else
-                {
-                    log.LogError($"Error! No log file found and no course named VMAT CSI found! Nothing to prep! Exiting!");
-                    return;
-                }
+                log.LogError(errorMessage);
+                return;
             }
 
-            if(VMATplans.Any())
-            {
-                Clipboard.SetText(PlanPrepHelper.GetShiftNote(VMATplans.First()).ToString());
-                MessageBox.Show("Shifts have been copied to the clipboard! \r\nPaste them into the journal note!");
+            VMATplans.Add(VMATPlan);
+            Clipboard.SetText(PlanPrepHelper.GetCSIShiftNote(VMATPlan).ToString());
+            MessageBox.Show("Shifts have been copied to the clipboard! \r\nPaste them into the journal note!");
 
-                //let the user know this step has been completed (they can now do the other steps like separate plans and calculate dose)
-                shiftTB.Background = System.Windows.Media.Brushes.ForestGreen;
-                shiftTB.Text = "YES";
-                log.OpType = ScriptOperationType.PlanPrep;
-            }
-        }
-
-        private ExternalPlanSetup PromptForUserToSelectPlan(Course theCourse)
-        {
-            SelectItemPrompt SIP = new SelectItemPrompt($"Multiple plans found in {theCourse.Id} course!" + Environment.NewLine + "Please select a plan to prep!", theCourse.ExternalPlanSetups.Select(x => x.Id).ToList());
-            SIP.ShowDialog();
-            if (!SIP.GetSelection()) return null;
-            //get the plan the user chose from the combobox
-            return theCourse.ExternalPlanSetups.FirstOrDefault(x => string.Equals(x.Id, SIP.GetSelectedItem()));
+            //let the user know this step has been completed (they can now do the other steps like separate plans and calculate dose)
+            shiftTB.Background = System.Windows.Media.Brushes.ForestGreen;
+            shiftTB.Text = "YES";
+            log.OpType = ScriptOperationType.PlanPrep;
         }
 
         private void SeparatePlans_Click(object sender, RoutedEventArgs e)

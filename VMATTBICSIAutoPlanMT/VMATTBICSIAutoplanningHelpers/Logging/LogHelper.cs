@@ -70,7 +70,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             return Tuple.Create(planId, volumeId);
         }
 
-        public static (string, StringBuilder) LoadCSIInitPlanUIDFromLogFile(string file)
+        public static (string, StringBuilder) LoadVMATPlanUIDFromLogFile(string file)
         {
             StringBuilder sb = new StringBuilder();
             string initPlanUID = "";
@@ -86,6 +86,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
                             //useful info on this line
                             if (line.Contains("Plan UIDs:"))
                             {
+                                //only ready the first plan UID --> CSI-init or vmat plan for TBI
                                 if (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {
                                     initPlanUID = line;

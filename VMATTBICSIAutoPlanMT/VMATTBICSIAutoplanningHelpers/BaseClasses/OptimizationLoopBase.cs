@@ -10,6 +10,7 @@ using VMATTBICSIAutoPlanningHelpers.Helpers;
 using VMATTBICSIAutoPlanningHelpers.UIHelpers;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
 using OptimizationProgressWindow;
+using System.Text;
 
 namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 {
@@ -151,11 +152,11 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Retrieved all plans that use this structure set that have dose calculated"));
 
-                (List<ExternalPlanSetup> otherPlans, string planIdList) = GetPlansWithCalculatedDose(courses, ss);
+                (List<ExternalPlanSetup> otherPlans, StringBuilder planIdList) = OptimizationLoopHelper.GetOtherPlansWithSameSSWithCalculatedDose(courses, ss);
                 if (otherPlans.Any())
                 {
                     string message = "The following plans have dose calculated and use the same structure set:" + Environment.NewLine;
-                    message += planIdList;
+                    message += planIdList.ToString();
                     message += Environment.NewLine + "I need to reset the dose matrix, crop the structures, then re-calculate the dose." + Environment.NewLine + "Continue?!";
                     //8-15-2020 dumbass way around the whole "dose has been calculated, you can't change anything!" issue.
                     CP = new ConfirmPrompt(message);
@@ -187,24 +188,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             ProvideUIUpdate(100);
             UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
             return false;
-        }
-
-        protected (List<ExternalPlanSetup>, string) GetPlansWithCalculatedDose(List<Course> courses, StructureSet ss)
-        {
-            List<ExternalPlanSetup> otherPlans = new List<ExternalPlanSetup> { };
-            string planIdList = "";
-            foreach (Course c in courses)
-            {
-                foreach (ExternalPlanSetup p in c.ExternalPlanSetups)
-                {
-                    if (p.IsDoseValid && p.StructureSet == ss)
-                    {
-                        planIdList += String.Format("Course: {0}, Plan: {1}", c.Id, p.Id) + Environment.NewLine;
-                        otherPlans.Add(p);
-                    }
-                }
-            }
-            return (otherPlans, planIdList);
         }
 
         protected void ResetDoseMatrix(List<ExternalPlanSetup> plans, int percentComplete, int calcItems)

@@ -9,7 +9,7 @@ using VMATTBICSIAutoPlanningHelpers.UIHelpers;
 using VMATTBICSIAutoPlanningHelpers.Structs;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
-
+using System.Text;
 
 namespace VMATTBICSIOptLoopMT.VMAT_TBI
 {
@@ -127,7 +127,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                     ProvideUIUpdate($"Error! Could not retrieve bolus structure! Exiting!", true);
                     return true;
                 }
-                (List<ExternalPlanSetup> otherPlans, string planIdList) = GetPlansWithCalculatedDose(_data.plans.First().Course.Patient.Courses.ToList(), _data.selectedSS);
+                (List<ExternalPlanSetup> otherPlans, StringBuilder planIdList) = OptimizationLoopHelper.GetOtherPlansWithSameSSWithCalculatedDose(_data.plans.First().Course.Patient.Courses.ToList(), _data.selectedSS);
                 calcItems += otherPlans.Count;
                 ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), $"Retrieved list of plans that use structure set: {_data.selectedSS.Id} and have dose calculated");
 
@@ -135,7 +135,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                 if (otherPlans.Any())
                 {
                     ProvideUIUpdate("The following plans have dose calculated and use the same structure set:");
-                    ProvideUIUpdate(planIdList);
+                    ProvideUIUpdate(planIdList.ToString());
 
                     foreach (ExternalPlanSetup itr in otherPlans) if (!_data.plans.Where(x => x == itr).Any()) planRecalcList.Add(itr);
                     ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), "Revised plan list to exclude plans that will be optimized");
