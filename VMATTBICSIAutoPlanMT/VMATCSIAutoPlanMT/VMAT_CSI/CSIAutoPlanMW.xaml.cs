@@ -373,6 +373,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 CTImageExport exporter = new CTImageExport(selectedImage, pi.Id, IEData);
                 bool result = exporter.Execute();
                 log.AppendLogOutput("Export CT data:", exporter.GetLogOutput());
+                log.OpType = ScriptOperationType.ExportCT;
                 if (result) return;
                 imgExported = true;
                 exportCTTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -479,6 +480,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             bool result = generateTargets.Execute();
             //grab the log output regardless if it passes or fails
             log.AppendLogOutput("TS Generation and manipulation output:", generateTargets.GetLogOutput());
+            log.OpType = ScriptOperationType.GeneratePrelimTargets;
             if (result) return;
             log.AddedPrelimTargetsStructures = generateTargets.GetAddedTargetStructures();
             PrelimTargetsTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -1583,7 +1585,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //let the user know this step has been completed (they can now do the other steps like separate plans and calculate dose)
             shiftTB.Background = System.Windows.Media.Brushes.ForestGreen;
             shiftTB.Text = "YES";
-            log.OpType = ScriptOperationType.PlanPrep;
         }
 
         private void SeparatePlans_Click(object sender, RoutedEventArgs e)
@@ -1608,6 +1609,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             PlanPrep_CSI planPrep = new PlanPrep_CSI(vmatPlan);
             bool result = planPrep.Execute();
             log.AppendLogOutput("Plan preparation:", planPrep.GetLogOutput());
+            log.OpType = ScriptOperationType.PlanPrep;
             if (result) return;
 
             //inform the user it's done

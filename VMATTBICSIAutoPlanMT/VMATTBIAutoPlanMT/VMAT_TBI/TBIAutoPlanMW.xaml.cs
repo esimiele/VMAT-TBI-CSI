@@ -1438,12 +1438,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         #region plan preparation
         private void GenerateShiftNote_Click(object sender, RoutedEventArgs e)
         {
-            (ExternalPlanSetup VMATPlan, StringBuilder errorMessage) = PlanPrepUIHelper.RetrieveVMATPlan(pi, logPath, "VMAT TBI");
-            if (VMATPlan == null)
+            (ExternalPlanSetup thePlan, StringBuilder errorMessage) = PlanPrepUIHelper.RetrieveVMATPlan(pi, logPath, "VMAT TBI");
+            if (thePlan == null)
             {
                 log.LogError(errorMessage);
                 return;
             }
+            VMATplan = thePlan;
 
             ExternalPlanSetup appaPlan = null;
             if (VMATplan.Course.ExternalPlanSetups.Any(x => x.Id.ToLower().Contains("legs")))
@@ -1451,8 +1452,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 appaPlan = VMATplan.Course.ExternalPlanSetups.First(x => x.Id.ToLower().Contains("legs"));
                 if (appaPlan.TreatmentOrientation != PatientOrientation.FeetFirstSupine)
                 {
-                    log.LogError($"The AP/PA plan {appaPlan.Id} is NOT in the FFS orientation!");
-                    log.LogError("THE COUCH SHIFTS FOR THESE PLANS WILL NOT BE ACCURATE! Please fix and try again!");
+                    StringBuilder sb = new StringBuilder();
+                    sb.AppendLine($"The AP/PA plan {appaPlan.Id} is NOT in the FFS orientation!");
+                    sb.AppendLine("THE COUCH SHIFTS FOR THESE PLANS WILL NOT BE ACCURATE! Please fix and try again!");
+                    log.LogError(sb.ToString());
                     return;
                 }
             }
@@ -1519,7 +1522,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private void SeparatePlans_Click(object sender, RoutedEventArgs e)
         {
             //The shift note has to be retrieved first! Otherwise, we don't have instances of the plan objects
-            if (VMATplan != null)
+            if (VMATplan == null)
             {
                 log.LogError("Please generate the shift note before separating the plans!");
                 return;
@@ -1556,6 +1559,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             PlanPrep_TBI planPrep = new PlanPrep_TBI(VMATplan, appaPlan, removeFlash);
             bool result = planPrep.Execute();
             log.AppendLogOutput("Plan preparation:", planPrep.GetLogOutput());
+            log.OpType = ScriptOperationType.PlanPrep;
             if (result) return;
 
             //inform the user it's done

@@ -113,6 +113,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         #region Remove Flash Structure Operation
         private bool RemoveFlashRunSequence()
         {
+            UpdateUILabel("Removing Flash:");
             List<ExternalPlanSetup> plans = new List<ExternalPlanSetup> { VMATPlan };
             if (appaPlan != null) plans.Add(appaPlan);
             (bool isError, List<ExternalPlanSetup> otherPlans) = CheckExistingPlansUsingSameSSWIthDoseCalculated(VMATPlan.Course.Patient.Courses.ToList(), VMATPlan.StructureSet);

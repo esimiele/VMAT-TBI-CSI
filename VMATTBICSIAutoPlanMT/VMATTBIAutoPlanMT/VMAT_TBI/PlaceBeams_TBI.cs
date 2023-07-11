@@ -31,6 +31,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private double targetMargin;
         private int numVMATIsos;
         private int totalNumIsos;
+        private int totalNumVMATBeams;
         protected double checkIsoPlacementLimit = 5.0;
         protected bool checkIsoPlacement = false;
 
@@ -321,6 +322,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     count++;
                 }
             }
+            totalNumVMATBeams = count - 1;
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
@@ -342,7 +344,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             ProvideUIUpdate("Preparation complete!");
 
             //place the beams for the VMAT plan
-            int count = 0;
+            int count = totalNumVMATBeams;
             ProvideUIUpdate($"Assigning isocenter: {1}");
 
             double x1, y1, x2, y2;

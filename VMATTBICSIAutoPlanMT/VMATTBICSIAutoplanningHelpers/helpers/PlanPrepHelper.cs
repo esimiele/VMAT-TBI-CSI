@@ -15,14 +15,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             List<Tuple<double, double, double>> isoPositions = ExtractIsoPositions(vmatPlan);
             int numVMATIsos = isoPositions.Count;
             int numIsos = numVMATIsos;
-            List<string> isoNames = new List<string>(IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos));
 
             if (appaPlan != null)
             {
                 isoPositions.AddRange(ExtractIsoPositions(appaPlan));
                 numIsos = isoPositions.Count;
-                isoNames.AddRange(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos));
             }
+            List<string> isoNames = new List<string>(IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos));
+            if (appaPlan != null) isoNames.AddRange(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos));
 
             //vector to hold the isocenter name, the x,y,z shifts from CT ref, and the shifts between each adjacent iso for each axis (LR, AntPost, SupInf)
             (List<Tuple<double, double, double>> shiftsfromBBs, List<Tuple<double, double, double>> shiftsBetweenIsos) = CalculateShifts(isoPositions);
