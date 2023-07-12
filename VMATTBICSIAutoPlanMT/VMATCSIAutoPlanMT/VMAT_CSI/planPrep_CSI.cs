@@ -39,11 +39,19 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         #endregion
 
         #region Separate the vmat plan
-        public bool SeparatePlans()
+        private bool SeparatePlans()
         {
+            UpdateUILabel("Separating VMAT plan:");
+            int percentComplete = 0;
+            int calcItems = 2;
+            ProvideUIUpdate(0, "Initializing...");
             List<List<Beam>> beamsPerIso = PlanPrepHelper.ExtractBeamsPerIso(VMATPlan);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved list of beams for each isocenter for plan: {VMATPlan.Id}");
             List<string> isoNames = IsoNameHelper.GetCSIIsoNames(beamsPerIso.Count);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved isocenter names for plan: {VMATPlan.Id}");
+            ProvideUIUpdate($"Separating isocenters in plan {VMATPlan.Id} into separate plans");
             if (SeparateVMATPlan(VMATPlan, beamsPerIso, isoNames)) return true;
+            ProvideUIUpdate(100, $"Successfully separated isocenters in plan {VMATPlan.Id}");
             return false;
         }
         #endregion

@@ -56,20 +56,21 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 
         protected bool SeparateVMATPlan(ExternalPlanSetup plan, List<List<Beam>> beamsPerIso, List<string> names)
         {
-            UpdateUILabel("Separating VMAT plan:");
+            int percentComplete = 0;
+            int calcItems = 4 * beamsPerIso.Count;
             int count = 0;
             foreach (List<Beam> beams in beamsPerIso)
             {
                 //copy the plan, set the plan id based on the counter, and make a empty list to hold the beams that need to be removed
                 ExternalPlanSetup newplan = (ExternalPlanSetup)plan.Course.CopyPlanSetup(plan);
                 newplan.Id = $"{count + 1} {names.ElementAt(count)}";
-                ProvideUIUpdate($"Created new plan: {newplan.Id}");
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Created new plan {newplan.Id} as copy of {plan.Id}");
                 List<Beam> beamsToRemove = new List<Beam> { };
                 //can't add reference point to plan because it must be open in Eclipse for ESAPI to perform this function. Need to fix in v16
                 //newplan.AddReferencePoint(newplan.StructureSet.Structures.First(x => x.Id.ToLower() == "ptv_body"), null, newplan.Id, newplan.Id);
                 //add the current plan copy to the separatedPlans list
                 separatedPlans.Add(newplan);
-                ProvideUIUpdate($"Added {newplan.Id} to list of plans requiring dose recalculation");
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Added {newplan.Id} to list of separated plans");
                 //loop through each beam in the plan copy and compare it to the list of beams in the current isocenter
                 foreach (Beam b in newplan.Beams)
                 {
@@ -83,8 +84,10 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                         beamsToRemove.Add(b);
                     }
                 }
-                ProvideUIUpdate($"Removing excess beams from {newplan.Id}");
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Finished identifying beams that need to be removed from {newplan.Id}");
+
                 if (RemoveExtraBeams(newplan, beamsToRemove)) return true;
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Removed excess beams from {newplan.Id}");
 
                 count++;
             }
@@ -114,8 +117,15 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 
         public bool ReCalculateDose()
         {
+            int percentComplete = 0;
+            int calcItems = 4 * separatedPlans.Count;
             //loop through each plan in the separatedPlans list (generated in the separate method above) and calculate dose for each plan
-            foreach (ExternalPlanSetup p in separatedPlans) p.CalculateDose();
+            foreach (ExternalPlanSetup p in separatedPlans)
+            {
+                ProvideUIUpdate($"Recalculating dose for plan: {p.Id}");
+                p.CalculateDose();
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Dose recalculated for plan: {p.Id}");
+            }
             return false;
         }
     }

@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.BaseClasses;
-using VMATTBICSIAutoPlanningHelpers.Prompts;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using System.Text;
 
@@ -13,8 +11,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
     public class PlanPrep_TBI : PlanPrepBase
     {
-        //common variables
-        //empty vectors to hold the isocenter position of one beam from each isocenter and the names of each isocenter
         private ExternalPlanSetup appaPlan;
         private bool removeFlash;
 
@@ -24,8 +20,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             VMATPlan = vmat;
             appaPlan = appa;
             removeFlash = flash;
-            //if there is more than one AP/PA legs plan in the list, this indicates that the user already separated these plans. Don't separate them in this script
-            //if (appa.Count() > 1) legsSeparated = true;
         }
 
         #region Run Control
@@ -64,31 +58,53 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         }
         #endregion
 
-        #region Separate the vmat plan
-        public bool SeparatePlans()
+        #region Separate the plans
+        private bool SeparatePlans()
         {
+            UpdateUILabel("Separating plans:");
+            int percentComplete = 0;
+            int calcItems = 2;
+            ProvideUIUpdate(0, "Initializing...");
             List<List<Beam>> vmatBeamsPerIso = PlanPrepHelper.ExtractBeamsPerIso(VMATPlan);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved list of beams for each isocenter for plan: {VMATPlan.Id}");
+
             numVMATIsos = vmatBeamsPerIso.Count;
             List<List<Beam>> appaBeamsPerIso = new List<List<Beam>> { };
             if (appaPlan != null)
             {
                 appaBeamsPerIso = PlanPrepHelper.ExtractBeamsPerIso(appaPlan);
                 numIsos = appaBeamsPerIso.Count + numVMATIsos;
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved list of beams for each isocenter for plan: {appaPlan.Id}");
             }
 
             //get the isocenter names using the isoNameHelper class
             List<string> isoNames = new List<string>(IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos));
-            if (appaPlan != null) isoNames.AddRange(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos));
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved isocenter names for plan: {VMATPlan.Id}");
 
+            if (appaPlan != null)
+            {
+                isoNames.AddRange(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos));
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved isocenter names for plan: {appaPlan.Id}");
+            }
+
+            ProvideUIUpdate($"Separating isocenters in plan {VMATPlan.Id} into separate plans");
             if (SeparateVMATPlan(VMATPlan, vmatBeamsPerIso, isoNames)) return true;
-            if (appaPlan != null && SeparateAPPAPlan(appaPlan, appaBeamsPerIso, isoNames)) return true;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Successfully separated isocenters in plan {VMATPlan.Id}");
+
+            if (appaPlan != null)
+            {
+                ProvideUIUpdate($"Separating isocenters in plan {appaPlan.Id} into separate plans");
+                if(SeparateAPPAPlan(appaPlan, appaBeamsPerIso, isoNames)) return true;
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Successfully separated isocenters in plan {appaPlan.Id}");
+            }
             return false;
         }
 
         private bool SeparateAPPAPlan(ExternalPlanSetup appaPlan, List<List<Beam>> appaBeamsPerIso, List<string> isoNames)
         {
+            int percentComplete = 0;
+            int calcItems = 4 * appaBeamsPerIso.Count;
             //counter for indexing names
-            //loop through the list of beams in each isocenter
             int count = numVMATIsos;
             //do the same as above, but for the AP/PA legs plan
             foreach (List<Beam> beams in appaBeamsPerIso)
@@ -96,14 +112,25 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 ExternalPlanSetup newplan = (ExternalPlanSetup)appaPlan.Course.CopyPlanSetup(appaPlan);
                 List<Beam> beamsToRemove = new List<Beam> { };
                 newplan.Id = String.Format("{0} {1}", count + 1, isoNames.ElementAt(count).Contains("upper") ? "Upper Legs" : "Lower Legs");
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Created new plan {newplan.Id} as copy of {appaPlan.Id}");
+                
                 //newplan.AddReferencePoint(newplan.StructureSet.Structures.First(x => x.Id.ToLower() == "ptv_body"), null, newplan.Id, newplan.Id);
                 separatedPlans.Add(newplan);
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Added {newplan.Id} to list of separated plans");
                 foreach (Beam b in newplan.Beams)
                 {
                     //if the current beam in newPlan is NOT found in the beams list, then remove it from the current new plan
-                    if (!beams.Where(x => x.Id == b.Id).Any() && !b.IsSetupField) beamsToRemove.Add(b);
+                    if (!beams.Where(x => x.Id == b.Id).Any() && !b.IsSetupField)
+                    {
+                        ProvideUIUpdate($"Added {b.Id} to list of beams to remove from {newplan.Id}");
+                        beamsToRemove.Add(b);
+                    }
                 }
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Finished identifying beams that need to be removed from {newplan.Id}");
+
                 if (RemoveExtraBeams(newplan, beamsToRemove)) return true;
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Removed excess beams from {newplan.Id}");
+
                 count++;
             }
             return false;
@@ -114,45 +141,98 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private bool RemoveFlashRunSequence()
         {
             UpdateUILabel("Removing Flash:");
+            int percentComplete = 0;
+            int calcItems = 6;
             List<ExternalPlanSetup> plans = new List<ExternalPlanSetup> { VMATPlan };
-            if (appaPlan != null) plans.Add(appaPlan);
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Added VMAT plan ({VMATPlan.Id}) to list of plans requiring dose recalculation");
+
+            if (appaPlan != null)
+            {
+                plans.Add(appaPlan);
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Added APPA plan ({appaPlan.Id}) to list of plans requiring dose recalculation");
+            }
+
             (bool isError, List<ExternalPlanSetup> otherPlans) = CheckExistingPlansUsingSameSSWIthDoseCalculated(VMATPlan.Course.Patient.Courses.ToList(), VMATPlan.StructureSet);
             if (isError) return true;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Finished checking for existing plans that have dose calculated and use the same structure set!");
+
             if (otherPlans.Any())
             {
                 plans.AddRange(otherPlans);
                 separatedPlans.AddRange(otherPlans);
+                ProvideUIUpdate("Added found existing plans to list of plans requiring dose recalculation");
             }
             if (ResetCalculationMatrix(plans)) return true;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Finished resetting the dose calculation matrix for all applicable plans");
+
             if (RemoveFlashStructures()) return true;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Finished removing all structures used to create flash");
+
             if (CopyHumanBodyOntoBody()) return true;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Finished copying human_body structure onto body");
+
             return false;
         }
 
         private bool RemoveFlashStructures()
         {
+            int percentComplete = 0;
+            int calcItems = 3;
+            ProvideUIUpdate("Removing flash structures");
+
             StructureSet ss = VMATPlan.StructureSet;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved structure set ({ss.Id}) used for plan: {VMATPlan.Id}");
+
             List<Structure> flashStr = ss.Structures.Where(x => x.Id.ToLower().Contains("flash") && !x.IsEmpty).ToList();
-            List<Structure> removeMe = new List<Structure>(flashStr);
+            calcItems += flashStr.Count;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved list of structures used to create flash");
+            //List<Structure> removeMe = new List<Structure>(flashStr);
+            //ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Copied list of flash structures to a dummy list that can be used for iteration");
+
             //can't remove directly from flashStr because the vector size would change on each loop iteration
-            foreach (Structure s in removeMe)
+            foreach (Structure itr in flashStr)
             {
-                if (ss.CanRemoveStructure(s)) ss.RemoveStructure(s);
-                else ProvideUIUpdate($"Warning! Could not remove structure: {s.Id}! Skipping!");
+                if (ss.CanRemoveStructure(itr))
+                {
+                    ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Removing structure {itr.Id} from structure set");
+                    ss.RemoveStructure(itr);
+                }
+                else ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Warning! Could not remove structure: {itr.Id}! Skipping!");
             }
             return false;
         }
 
         private bool CopyHumanBodyOntoBody()
         {
+            ProvideUIUpdate("Copying human_body structure onto body structure");
+            int percentComplete = 0;
+            int calcItems = 3;
             StructureSet ss = VMATPlan.StructureSet;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved structure set ({ss.Id}) used for plan: {VMATPlan.Id}");
+
             //from the generateTS class, the human_body structure was a copy of the body structure BEFORE flash was added. Therefore, if this structure still exists, we can just copy it back onto the body
             if (StructureTuningHelper.DoesStructureExistInSS("human_body", ss, true))
             {
+                ProvideUIUpdate($"Human_body structure exists in structure set");
                 Structure body = StructureTuningHelper.GetStructureFromId("body", ss);
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved body structure: {body.Id}");
+
                 Structure bodyCopy = StructureTuningHelper.GetStructureFromId("human_body", ss);
-                body.SegmentVolume = bodyCopy.Margin(0.0);
-                if (ss.CanRemoveStructure(bodyCopy)) ss.RemoveStructure(bodyCopy);
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved human_body structure: {bodyCopy.Id}");
+
+                (bool fail, StringBuilder message) = ContourHelper.CopyStructureOntoStructure(bodyCopy, body);
+                if(fail)
+                {
+                    ProvideUIUpdate(message.ToString(), true);
+                    return true;
+                }
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Copied {bodyCopy.Id} onto {body.Id}");
+
+                if (ss.CanRemoveStructure(bodyCopy))
+                {
+                    ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Removing {bodyCopy.Id} structure from structure set");
+                    ss.RemoveStructure(bodyCopy);
+                }
                 else
                 {
                     ProvideUIUpdate("Warning! Cannot remove HUMAN_BODY structure! Skipping!");
@@ -164,6 +244,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         private (bool, List<ExternalPlanSetup>) CheckExistingPlansUsingSameSSWIthDoseCalculated(List<Course> courses, StructureSet ss)
         {
+            ProvideUIUpdate("Checking for existing plans that have dose calculated and use the same structure set");
             bool isError = false;
             //remove the structures used to generate flash in the plan
             (List<ExternalPlanSetup> otherPlans, StringBuilder planIdList) = OptimizationLoopHelper.GetOtherPlansWithSameSSWithCalculatedDose(courses, ss);
@@ -181,78 +262,31 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 }
                 else
                 {
+                    ProvideUIUpdate($"The following plans have dose calculated and use the structure set: {ss.Id}");
                     ProvideUIUpdate(planIdList.ToString());
                 }
+            }
+            else
+            {
+                ProvideUIUpdate($"No other plans found that have dose calculated and use the structure set: {ss.Id}!");
             }
             return (isError, otherPlans);
         }
 
         private bool ResetCalculationMatrix(List<ExternalPlanSetup> plans)
         {
+            ProvideUIUpdate("Resetting dose calculation matrices");
+            int percentComplete = 0;
+            int calcItems = 4 * plans.Count;
             foreach (ExternalPlanSetup itr in plans)
             {
                 string calcModel = itr.GetCalculationModel(CalculationType.PhotonVolumeDose);
                 itr.ClearCalculationModel(CalculationType.PhotonVolumeDose);
                 itr.SetCalculationModel(CalculationType.PhotonVolumeDose, calcModel);
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Reset dose calculation matrix for plan: {itr.Id}");
             }
             return false;
         }
         #endregion
-
-        //public override bool GetShiftNote()
-        //{
-        //    //loop through each beam in the vmat plan, grab the isocenter position of the beam. Compare the z position of each isocenter to the list of z positions in the vector. 
-        //    //If no match is found, this is a new isocenter. Add it to the stack. If it is not unique, this beam belongs to an existing isocenter group --> ignore it
-        //    //also grab instances of each beam in each isocenter and save them (used for separating the plans later)
-        //    List<ExternalPlanSetup> plans = new List<ExternalPlanSetup> { appaPlan, vmatPlan };
-
-
-
-        //    //create the message
-        //    string message = "";
-        //    if (couchSurface != null) message += "***Bars out***\r\n";
-        //    else message += "No couch surface structure found in plan!\r\n";
-        //    //check if AP/PA plans are in FFS orientation
-        //    if (appaPlan.Any() && appaPlan.Where(x => x.TreatmentOrientation != PatientOrientation.FeetFirstSupine).Any())
-        //    {
-        //        message += "The following AP/PA plans are NOT in the FFS orientation:\r\n";
-        //        foreach (ExternalPlanSetup p in appaPlan) if (p.TreatmentOrientation != PatientOrientation.FeetFirstSupine) message += p.Id + "\r\n";
-        //        message += "WARNING! THE COUCH SHIFTS FOR THESE PLANS WILL NOT BE ACCURATE!\r\n";
-        //    }
-        //    if (numIsos > numVMATIsos) message += "VMAT TBI setup per procedure. Please ensure the matchline on Spinning Manny and the bag matches\r\n";
-        //    else message += "VMAT TBI setup per procedure. No Spinning Manny.\r\r\n";
-        //    message += String.Format("TT = {0:0.0} cm for all plans\r\n", TT);
-        //    message += "Dosimetric shifts SUP to INF:\r\n";
-
-        //    //write the first set of shifts from CT ref before the loop. 12-23-2020 support added for the case where the lat/vert shifts are non-zero
-        //    if (Math.Abs(shiftsBetweenIsos.ElementAt(0).Item1) >= 0.1 || Math.Abs(shiftsBetweenIsos.ElementAt(0).Item2) >= 0.1)
-        //    {
-        //        message += String.Format("{0} iso shift from CT REF:", names.ElementAt(0)) + Environment.NewLine;
-        //        if (Math.Abs(shiftsBetweenIsos.ElementAt(0).Item1) >= 0.1) message += String.Format("X = {0:0.0} cm {1}", Math.Abs(shiftsBetweenIsos.ElementAt(0).Item1), (shiftsBetweenIsos.ElementAt(0).Item1) > 0 ? "LEFT" : "RIGHT") + Environment.NewLine;
-        //        if (Math.Abs(shiftsBetweenIsos.ElementAt(0).Item2) >= 0.1) message += String.Format("Y = {0:0.0} cm {1}", Math.Abs(shiftsBetweenIsos.ElementAt(0).Item2), (shiftsBetweenIsos.ElementAt(0).Item2) > 0 ? "POST" : "ANT") + Environment.NewLine;
-        //        message += String.Format("Z = {0:0.0} cm {1}", shiftsBetweenIsos.ElementAt(0).Item3, Math.Abs(shiftsBetweenIsos.ElementAt(0).Item3) > 0 ? "SUP" : "INF") + Environment.NewLine;
-        //    }
-        //    else message += String.Format("{0} iso shift from CT ref = {1:0.0} cm {2} ({3:0.0} cm {4} from CT ref)\r\n", names.ElementAt(0), Math.Abs(shiftsBetweenIsos.ElementAt(0).Item3), shiftsBetweenIsos.ElementAt(0).Item3 > 0 ? "SUP" : "INF", Math.Abs(shiftsFromBBs.ElementAt(0).Item3), shiftsFromBBs.ElementAt(0).Item3 > 0 ? "SUP" : "INF");
-
-        //    for (int i = 1; i < numIsos; i++)
-        //    {
-        //        if (i == numVMATIsos)
-        //        {
-        //            //if numVMATisos == numIsos this message won't be displayed. Otherwise, we have exhausted the vmat isos and need to add these lines to the shift note
-        //            message += "Rotate Spinning Manny, shift to opposite Couch Lat\r\n";
-        //            message += "Upper Leg iso - same Couch Lng as Pelvis iso\r\n";
-        //            //let the therapists know that they need to shift couch lateral to the opposite side if the initial lat shift was non-zero
-        //            if (Math.Abs(shiftsBetweenIsos.ElementAt(0).Item1) >= 0.1) message += "Shift couch lateral to opposite side!\r\n";
-        //        }
-        //        //shift messages when the current isocenter is NOT the number of vmat isocenters (i.e., the first ap/pa isocenter). First case is for the vmat isocenters, the second case is when the isocenters are ap/pa (but not the first ap/pa isocenter)
-        //        else if (i < numVMATIsos) message += String.Format("{0} iso shift from {1} iso = {2:0.0} cm {3} ({4:0.0} cm {5} from CT ref)\r\n", names.ElementAt(i), names.ElementAt(i - 1), Math.Abs(shiftsBetweenIsos.ElementAt(i).Item3), shiftsBetweenIsos.ElementAt(i).Item3 > 0 ? "SUP" : "INF", Math.Abs(shiftsFromBBs.ElementAt(i).Item3), shiftsFromBBs.ElementAt(i).Item3 > 0 ? "SUP" : "INF");
-        //        else message += String.Format("{0} iso shift from {1} iso = {2:0.0} cm {3} ({4:0.0} cm {5} from CT ref)\r\n", names.ElementAt(i), names.ElementAt(i - 1), Math.Abs(shiftsBetweenIsos.ElementAt(i).Item3), shiftsBetweenIsos.ElementAt(i).Item3 > 0 ? "INF" : "SUP", Math.Abs(shiftsFromBBs.ElementAt(i).Item3), shiftsFromBBs.ElementAt(i).Item3 > 0 ? "INF" : "SUP");
-        //    }
-
-        //    //copy to clipboard and inform the user it's done
-        //    Clipboard.SetText(message);
-        //    MessageBox.Show("Shifts have been copied to the clipboard! \r\nPaste them into the journal note!");
-        //    return false;
-        //}
     }
 }

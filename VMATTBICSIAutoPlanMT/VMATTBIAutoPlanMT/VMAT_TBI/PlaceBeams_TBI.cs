@@ -322,7 +322,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     count++;
                 }
             }
-            totalNumVMATBeams = count - 1;
+            totalNumVMATBeams = count;
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
