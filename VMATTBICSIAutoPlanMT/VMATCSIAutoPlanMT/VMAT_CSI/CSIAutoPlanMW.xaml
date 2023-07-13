@@ -301,7 +301,7 @@
                     </TabItem>
                     <TabItem Header="Structure Tuning" BorderThickness="0,1,1,0" x:Name="structureTuningTabItem" Margin="0,0,1,1">
                         <TabControl Background="DarkGray">
-                            <TabItem Header="Tuning Structure Generation" Width="196" BorderThickness="1,1,1,1">
+                            <TabItem Header="Structure Generation" Width="153" BorderThickness="1,1,1,1">
                                 <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                                     <StackPanel HorizontalAlignment="Center" Margin="0">
                                         <Grid Width="580" HorizontalAlignment="Center" Margin="0,0,0,0">
@@ -320,7 +320,7 @@
                                     </StackPanel>
                                 </Border>
                             </TabItem>
-                            <TabItem Header="Ring Generation" Width="196" BorderThickness="0,1,1,1">
+                            <TabItem Header="Ring Generation" Width="124" BorderThickness="0,1,1,1">
                                 <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                                     <StackPanel HorizontalAlignment="Center" Margin="0">
                                         <Label Content="Create Ring Structures" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
@@ -336,7 +336,26 @@
                                     </StackPanel>
                                 </Border>
                             </TabItem>
-                            <TabItem Header="Tuning Structure Manipulation" Width="196" BorderThickness="0,1,1,1" x:Name="TSManipulationTabItem">
+                            <TabItem Header="Crop/Contour Overlap" Width="150" BorderThickness="0,1,1,1">
+                                <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
+                                    <StackPanel HorizontalAlignment="Center" Margin="0">
+                                        <Grid Width="580" HorizontalAlignment="Center" Margin="0,0,0,0">
+                                            <Label Content="Crop/Contour Overlap With Targets" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
+                                            <Button Content="?" Width="20" Height="24" HorizontalAlignment="Right" Click="CropContourOverlapInfo_Click"/>
+                                        </Grid>
+                                        <Grid Height="25" Width ="560" HorizontalAlignment="Center" Margin="0,5,0,0">
+                                            <Button x:Name="addCropOverlapOAR" Content="Add OAR" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="AddCropOverlapOAR_Click"/>
+                                            <Button Content="Add Defaults" Width="100" HorizontalAlignment="Center" VerticalAlignment="Top" Click="AddDefaultCropOverlapOARs_Click"/>
+                                            <Button x:Name="clearCropOverlapOARsBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="ClearCropOverlapOARList_Click"/>
+                                        </Grid>
+                                        <ScrollViewer x:Name="cropOverlapOARsScroller" Height="360" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                            <StackPanel Name="cropOverlapOARsSP" Margin="5">
+                                            </StackPanel>
+                                        </ScrollViewer>
+                                    </StackPanel>
+                                </Border>
+                            </TabItem>
+                            <TabItem Header="Structure Manipulation" Width="160" BorderThickness="0,1,1,1" x:Name="TSManipulationTabItem">
                                 <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                                     <StackPanel HorizontalAlignment="Center" Margin="0">
                                         <Label Content="Structure Manipulation" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
@@ -449,8 +468,8 @@
                                             <Button x:Name="templateScanSSTargetBtn" Content="Scan SS and Add Targets" Width="180" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0" Click="ScanSSAndAddTargets_Click"/>
                                             <Button x:Name="templateClearTargetList" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="ClearTargetList_Click"/>
                                         </Grid>
-                                        <ScrollViewer x:Name="targetTemplateScroller" Height="365" Width="550" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
-                                            <StackPanel x:Name="targetTemplate_sp" Margin="5">
+                                        <ScrollViewer x:Name="templateTargetsScroller" Height="365" Width="550" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                            <StackPanel x:Name="templateTargetsSP" Margin="5">
                                             </StackPanel>
                                         </ScrollViewer>
                                     </StackPanel>
@@ -458,7 +477,7 @@
                             </TabItem>
                             <TabItem Header="Structure Tuning" BorderThickness="0,1,1,0">
                                 <TabControl Background="DarkGray">
-                                    <TabItem Header="TS Generation" Width="193" BorderThickness="1,1,1,0">
+                                    <TabItem Header="TS Generation" Width="140" BorderThickness="1,1,1,0">
                                         <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                                             <StackPanel HorizontalAlignment="Center" Margin="0">
                                                 <Grid Width="580" HorizontalAlignment="Center" Margin="0">
@@ -476,7 +495,7 @@
                                             </StackPanel>
                                         </Border>
                                     </TabItem>
-                                    <TabItem Header="Ring Generation" Width="193" BorderThickness="0,1,1,0">
+                                    <TabItem Header="Ring Generation" Width="140" BorderThickness="0,1,1,0">
                                         <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                                             <StackPanel HorizontalAlignment="Center" Margin="0">
                                                 <Label Content="Create Ring Structures" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
@@ -491,7 +510,22 @@
                                             </StackPanel>
                                         </Border>
                                     </TabItem>
-                                    <TabItem Header="TS Manipulation" Width="193" BorderThickness="0,1,1,0">
+                                    <TabItem Header="Crop/Contour Overlap" Width="150" BorderThickness="0,1,1,0">
+                                        <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
+                                            <StackPanel HorizontalAlignment="Center" Margin="0">
+                                                <Label Content="Crop/Contour Overlap With Targets" FontSize="20" FontStyle="Normal" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,0,0,0"></Label>
+                                                <Grid Height="25" Width ="560" HorizontalAlignment="Center" Margin="0,5,0,0">
+                                                    <Button x:Name="templateAddCropOverlapOAR" Content="Add OAR" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top" Click="AddCropOverlapOAR_Click"/>
+                                                    <Button x:Name="templateClearCropOverlapOARsBtn" Content="Clear List" Width="100" HorizontalAlignment="Right" VerticalAlignment="Top" Click="ClearCropOverlapOARList_Click"/>
+                                                </Grid>
+                                                <ScrollViewer x:Name="templateCropOverlapOARsScroller" Height="320" Width="585" Margin="0,5,0,0" HorizontalAlignment="Center" VerticalAlignment="Bottom" Style="{StaticResource ScrollViewerStyle}">
+                                                    <StackPanel Name="templateCropOverlapOARsSP" Margin="5">
+                                                    </StackPanel>
+                                                </ScrollViewer>
+                                            </StackPanel>
+                                        </Border>
+                                    </TabItem>
+                                    <TabItem Header="TS Manipulation" Width="150" BorderThickness="0,1,1,0">
                                         <Border Margin="0" BorderThickness="1,0,0,0" BorderBrush="Black">
                                             <StackPanel HorizontalAlignment="Center" Margin="0">
                                                 <Grid Width="580" HorizontalAlignment="Center" Margin="0">

@@ -490,5 +490,21 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             else dvp = DoseValuePresentation.Absolute;
             return Tuple.Create(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), doseVal, volumeVal, dvp);
         }
+
+        /// <summary>
+        /// Helper method to verify the integrity of a user supplied path. If the path exists, return the supplied path ensuring the last character in the path is '\'. If it does not, return an empty string
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static string VerifyPathIntegrity(string value)
+        {
+            string result = "";
+            if (Directory.Exists(value))
+            {
+                result = value;
+                if (result.LastIndexOf("\\") != result.Length - 1) result += "\\";
+            }
+            return result;
+        }
     }
 }

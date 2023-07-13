@@ -22,10 +22,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         protected List<string> addedTargetIds = new List<string> { };
         protected string stackTraceError;
 
-        public GenerateTargets_CSI(List<Tuple<string, string>> tgts, StructureSet ss)
+        public GenerateTargets_CSI(List<Tuple<string, string>> tgts, StructureSet ss, bool closePW)
         {
             createPrelimTargetList = new List<Tuple<string, string>>(tgts);
             selectedSS = ss;
+            SetCloseOnFinish(closePW,3000);
         }
 
         public override bool Run()

@@ -7,9 +7,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
     class PlanPrep_CSI : PlanPrepBase
     {
-        public PlanPrep_CSI(ExternalPlanSetup vmat)
+        public PlanPrep_CSI(ExternalPlanSetup vmat, bool closePW)
         {
             VMATPlan = vmat;
+            SetCloseOnFinish(closePW, 3000);
         }
 
         #region Run Control

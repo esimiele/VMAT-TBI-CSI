@@ -21,7 +21,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private double[] CCW = { 179.0, 181.0 };
         private ExternalBeamMachineParameters ebmpArc;
 
-        public PlaceBeams_CSI(StructureSet ss, List<Tuple<string, List<Tuple<string, int>>>> planInfo, double[] coll, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool overlap, double overlapMargin)
+        public PlaceBeams_CSI(StructureSet ss, List<Tuple<string, List<Tuple<string, int>>>> planInfo, double[] coll, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool overlap, double overlapMargin, bool closePW)
         {
             selectedSS = ss;
             planIsoBeamInfo = new List<Tuple<string, List<Tuple<string, int>>>>(planInfo);
@@ -36,7 +36,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //user wants to contour the overlap between fields in adjacent VMAT isocenters
             contourOverlap = overlap;
             contourOverlapMargin = overlapMargin;
-            SetCloseOnFinish(true, 1000);
+            SetCloseOnFinish(closePW, 3000);
         }
 
         //to handle system access exception violation

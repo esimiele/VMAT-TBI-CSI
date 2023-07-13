@@ -38,7 +38,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private List<string> cropAndOverlapStructures = new List<string> { };
         private int numVMATIsos;
 
-        public GenerateTS_CSI(List<Tuple<string, string>> ts, List<Tuple<string, TSManipulationType, double>> list, List<Tuple<string, double, double, double>> tgtRings, List<Tuple<string,string,int,DoseValue,double>> presc, StructureSet ss, List<string> cropStructs)
+        public GenerateTS_CSI(List<Tuple<string, string>> ts, List<Tuple<string, TSManipulationType, double>> list, List<Tuple<string, double, double, double>> tgtRings, List<Tuple<string,string,int,DoseValue,double>> presc, StructureSet ss, List<string> cropStructs, bool closePW)
         {
             createTSStructureList = new List<Tuple<string, string>>(ts);
             rings = new List<Tuple<string, double, double, double>>(tgtRings);
@@ -46,7 +46,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(presc);
             selectedSS = ss;
             cropAndOverlapStructures = new List<string>(cropStructs);
-            //SetCloseOnFinish(true, 1000);
+            SetCloseOnFinish(closePW, 3000);
         }
 
         #region Run Control
@@ -628,7 +628,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
                         foreach (string itr in cropAndOverlapStructures)
                         {
-                            Structure normal = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), itr.ToLower()));
+                            Structure normal = StructureTuningHelper.GetStructureFromId(itr, selectedSS);
+                            if(normal == null || normal.IsEmpty)
+                            {
+                                ProvideUIUpdate($"Error! Requested normal for crop/overlap structure ({itr}) is empty or missing from structure set! Please fix and try again!", true);
+                                return true;
+                            }
                             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieved normal structure: {normal.Id}");
 
                             ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Contouring overlap between structure ({itr}) and target ({target.Id})");

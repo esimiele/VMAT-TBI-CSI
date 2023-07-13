@@ -104,6 +104,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         public VMS.TPS.Common.Model.API.Application app = null;
         bool isModified = false;
         bool autoSave = false;
+        bool closePWOnFinish = false;
         bool checkStructuresToUnion = true;
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
         public ObservableCollection<TBIAutoPlanTemplate> PlanTemplates { get; set; }
@@ -409,8 +410,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             StackPanel theSP;
             if (btn.Name.Contains("template"))
             {
-                theScroller = targetTemplateScroller;
-                theSP = targetTemplate_sp;
+                theScroller = templateTargetsScroller;
+                theSP = templateTargetsSP;
             }
             else
             {
@@ -459,7 +460,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
             else
             {
-                targetTemplate_sp.Children.Clear();
+                templateTargetsSP.Children.Clear();
                 clearTargetTemplateBtnCounter = 0;
             }
         }
@@ -965,7 +966,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //The scleroderma trial contouring/margins are specific to the trial, so this trial needs to be handled separately from the generic VMAT treatment type
 
             //GenerateTS_TBI generate = new GenerateTS_TBI(TS_structures, scleroStructures, structureSpareList, selectedSS, targetMargin, sclero_chkbox.IsChecked.Value, useFlash, flashStructure, flashMargin);
-            GenerateTS_TBI generate = new GenerateTS_TBI(createTSStructureList, TSManipulationList, prescriptions, selectedSS, targetMargin, useFlash, flashStructure, flashMargin);
+            GenerateTS_TBI generate = new GenerateTS_TBI(createTSStructureList, TSManipulationList, prescriptions, selectedSS, targetMargin, useFlash, flashStructure, flashMargin, closePWOnFinish);
             //overloaded constructor depending on if the user requested to use flash or not. If so, pass the relevant flash parameters to the generateTS class
             pi.BeginModifications();
             bool result = generate.Execute();
@@ -1141,7 +1142,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                                                       MRrestartLevel, 
                                                       targetMargin, 
                                                       contourOverlap,
-                                                      contourOverlapMargin);
+                                                      contourOverlapMargin,
+                                                      closePWOnFinish);
 
             place.Initialize("VMAT TBI", prescriptions);
             bool result = place.Execute();
@@ -1510,7 +1512,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
             //separate the plans
             pi.BeginModifications();
-            PlanPrep_TBI planPrep = new PlanPrep_TBI(VMATplan, appaPlan, removeFlash);
+            PlanPrep_TBI planPrep = new PlanPrep_TBI(VMATplan, appaPlan, removeFlash, closePWOnFinish);
             bool result = planPrep.Execute();
             log.AppendLogOutput("Plan preparation:", planPrep.GetLogOutput());
             log.OpType = ScriptOperationType.PlanPrep;
@@ -1628,6 +1630,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 templateInitPlanDosePerFxTB.Text = theTemplate.GetInitialRxDosePerFx().ToString();
                 templateInitPlanNumFxTB.Text = theTemplate.GetInitialRxNumFx().ToString();
 
+                //add targets
+                List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>>(theTemplate.GetTargets());
+                ClearAllTargetItems(templateClearTargetList);
+                AddTargetVolumes(targetList, templateTargetsSP);
+
                 //add create TS structures
                 GeneralUIHelper.ClearList(templateTSSP);
                 if (theTemplate.GetCreateTSStructures().Any()) AddTuningStructureVolumes(theTemplate.GetCreateTSStructures(), templateTSSP);
@@ -1637,16 +1644,26 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (theTemplate.GetTSManipulations().Any()) AddStructureManipulationVolumes(theTemplate.GetTSManipulations(), templateStructuresSP);
 
                 //add optimization constraints
-                //(List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(theTemplate, targetList);
-                //if (!parsedConstraints.Item1.Any())
-                //{
-                //    log.LogError(parsedConstraints.Item2);
-                //    return;
-                //}
-                //PopulateOptimizationTab(templateOptParams_sp, parsedConstraints.Item1, false);
+                (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(theTemplate, targetList);
+                if (!parsedConstraints.Item1.Any())
+                {
+                    log.LogError(parsedConstraints.Item2);
+                    return;
+                }
+                PopulateOptimizationTab(templateOptParams_sp, parsedConstraints.Item1, false);
             }
             else if (templateBuildOptionCB.SelectedItem.ToString().ToLower() == "current parameters")
             {
+                //add targets (checked first to ensure the user has actually input some parameters into the UI before trying to make a template based on the current settings)
+                (List<Tuple<string, double, string>> targetList, StringBuilder) parsedTargetList = TargetsUIHelper.ParseTargets(targetsSP);
+                if (!parsedTargetList.targetList.Any())
+                {
+                    log.LogError("Error! Enter parameters into the UI before trying to use them to make a new plan template!");
+                    return;
+                }
+                ClearAllTargetItems(templateClearTargetList);
+                AddTargetVolumes(parsedTargetList.targetList.OrderBy(x => x.Item2).ToList(), templateTargetsSP);
+
                 //set name
                 templateNameTB.Text = "--new template--";
 
@@ -1716,6 +1733,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
 
             //sort targets by prescription dose (ascending order)
+            prospectiveTemplate.SetTargets(TargetsUIHelper.ParseTargets(templateTargetsSP).Item1.OrderBy(x => x.Item2).ToList());
             prospectiveTemplate.SetCreateTSStructures(StructureTuningUIHelper.ParseCreateTSStructureList(templateTSSP).Item1);
             prospectiveTemplate.SetTSManipulations(StructureTuningUIHelper.ParseTSManipulationList(templateStructuresSP).Item1);
             List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> templateOptParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(templateOptParams_sp).Item1;
@@ -1788,6 +1806,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (configFile != "") configTB.Text += $"Configuration file: {configFile}" + Environment.NewLine + Environment.NewLine;
             else configTB.Text += "Configuration file: none" + Environment.NewLine + Environment.NewLine;
             configTB.Text += $"Documentation path: {documentationPath}" + Environment.NewLine + Environment.NewLine;
+            configTB.Text += $"Close progress windows on finish: {closePWOnFinish}" + Environment.NewLine + Environment.NewLine;
             configTB.Text += "Default parameters:" + Environment.NewLine;
             configTB.Text += $"Contour field ovelap: {contourOverlap}" + Environment.NewLine;
             configTB.Text += $"Contour field overlap margin: {contourFieldOverlapMargin} cm" + Environment.NewLine;
@@ -1883,16 +1902,19 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                                 }
                                 else if (parameter == "documentation path")
                                 {
-                                    documentationPath = value;
-                                    if (documentationPath.LastIndexOf("\\") != documentationPath.Length - 1) documentationPath += "\\";
+                                    string path = ConfigurationHelper.VerifyPathIntegrity(value);
+                                    if (!string.IsNullOrEmpty(path)) documentationPath = path;
+                                    else log.LogError($"Warning! {value} does NOT exist!");
                                 }
                                 else if (parameter == "log file path")
                                 {
-                                    if (Directory.Exists(value))
-                                    {
-                                        logPath = value;
-                                        if (logPath.LastIndexOf("\\") != logPath.Length - 1) logPath += "\\";
-                                    }
+                                    string path = ConfigurationHelper.VerifyPathIntegrity(value);
+                                    if (!string.IsNullOrEmpty(path)) logPath = path;
+                                    else log.LogError($"Warning! {value} does NOT exist!");
+                                }
+                                else if (parameter == "close progress windows on finish")
+                                {
+                                    if (!string.IsNullOrEmpty(value)) closePWOnFinish = bool.Parse(value);
                                 }
                                 else if (parameter == "beams per iso")
                                 {

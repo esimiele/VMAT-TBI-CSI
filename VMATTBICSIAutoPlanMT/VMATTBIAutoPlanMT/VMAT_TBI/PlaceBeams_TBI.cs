@@ -35,7 +35,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         protected double checkIsoPlacementLimit = 5.0;
         protected bool checkIsoPlacement = false;
 
-        public PlaceBeams_TBI(StructureSet ss, List<Tuple<string, List<Tuple<string, int>>>> planInfo, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, double tgtMargin, bool overlap, double overlapMargin)
+        public PlaceBeams_TBI(StructureSet ss, List<Tuple<string, List<Tuple<string, int>>>> planInfo, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, double tgtMargin, bool overlap, double overlapMargin, bool closePW)
         {
             selectedSS = ss;
             planIsoBeamInfo = new List<Tuple<string, List<Tuple<string, int>>>>(planInfo);
@@ -58,7 +58,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //user wants to contour the overlap between fields in adjacent VMAT isocenters
             contourOverlap = overlap;
             contourOverlapMargin = overlapMargin;
-            SetCloseOnFinish(true, 1000);
+            SetCloseOnFinish(closePW, 3000);
         }
         
         [HandleProcessCorruptedStateExceptions]

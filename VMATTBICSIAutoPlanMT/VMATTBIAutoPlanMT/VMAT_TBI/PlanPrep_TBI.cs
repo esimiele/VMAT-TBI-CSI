@@ -14,12 +14,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private ExternalPlanSetup appaPlan;
         private bool removeFlash;
 
-        public PlanPrep_TBI(ExternalPlanSetup vmat, ExternalPlanSetup appa, bool flash)
+        public PlanPrep_TBI(ExternalPlanSetup vmat, ExternalPlanSetup appa, bool flash, bool closePW)
         {
             //copy arguments into local variables
             VMATPlan = vmat;
             appaPlan = appa;
             removeFlash = flash;
+            SetCloseOnFinish(closePW, 3000);
         }
 
         #region Run Control

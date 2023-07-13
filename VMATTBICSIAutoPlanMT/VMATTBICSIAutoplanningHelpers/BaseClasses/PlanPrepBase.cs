@@ -119,7 +119,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         {
             int percentComplete = 0;
             int calcItems = 4 * separatedPlans.Count;
-            //loop through each plan in the separatedPlans list (generated in the separate method above) and calculate dose for each plan
+            //loop through each plan in the separatedPlans list and calculate dose for each plan
             foreach (ExternalPlanSetup p in separatedPlans)
             {
                 ProvideUIUpdate($"Recalculating dose for plan: {p.Id}");
