@@ -31,10 +31,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private double targetMargin;
         private int numVMATIsos;
         private int totalNumIsos;
+        private int totalNumVMATBeams;
         protected double checkIsoPlacementLimit = 5.0;
         protected bool checkIsoPlacement = false;
 
-        public PlaceBeams_TBI(StructureSet ss, List<Tuple<string, List<Tuple<string, int>>>> planInfo, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, double tgtMargin, bool overlap, double overlapMargin)
+        public PlaceBeams_TBI(StructureSet ss, List<Tuple<string, List<Tuple<string, int>>>> planInfo, double[] coll, List<VRect<double>> jp, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, double tgtMargin, bool overlap, double overlapMargin, bool closePW)
         {
             selectedSS = ss;
             planIsoBeamInfo = new List<Tuple<string, List<Tuple<string, int>>>>(planInfo);
@@ -57,7 +58,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //user wants to contour the overlap between fields in adjacent VMAT isocenters
             contourOverlap = overlap;
             contourOverlapMargin = overlapMargin;
-            SetCloseOnFinish(true, 1000);
+            SetCloseOnFinish(closePW, 3000);
         }
         
         [HandleProcessCorruptedStateExceptions]
@@ -321,6 +322,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     count++;
                 }
             }
+            totalNumVMATBeams = count;
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
@@ -342,7 +344,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             ProvideUIUpdate("Preparation complete!");
 
             //place the beams for the VMAT plan
-            int count = 0;
+            int count = totalNumVMATBeams;
             ProvideUIUpdate($"Assigning isocenter: {1}");
 
             double x1, y1, x2, y2;

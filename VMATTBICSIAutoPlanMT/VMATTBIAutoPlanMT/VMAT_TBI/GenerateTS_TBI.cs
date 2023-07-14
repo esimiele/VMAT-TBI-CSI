@@ -38,7 +38,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private Structure flashStructure = null;
         private double flashMargin;
 
-        public GenerateTS_TBI(List<Tuple<string, string>> ts, List<Tuple<string, TSManipulationType, double>> list, List<Tuple<string, string, int, DoseValue, double>> presc, StructureSet ss, double tm, bool flash, Structure fSt, double fM)
+        public GenerateTS_TBI(List<Tuple<string, string>> ts, List<Tuple<string, TSManipulationType, double>> list, List<Tuple<string, string, int, DoseValue, double>> presc, StructureSet ss, double tm, bool flash, Structure fSt, double fM, bool closePW)
         {
             //overloaded constructor for the case where the user wants to include flash in the simulation
             TS_structures = new List<Tuple<string, string>>(ts);
@@ -49,7 +49,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             useFlash = flash;
             flashStructure = fSt;
             flashMargin = fM;
-           // SetCloseOnFinish(true, 1000);
+            SetCloseOnFinish(closePW, 3000);
         }
 
         [HandleProcessCorruptedStateExceptions]

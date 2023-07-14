@@ -14,10 +14,29 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             StringBuilder output = new StringBuilder();
             output.AppendLine(String.Format(" {0}", DateTime.Now.ToString()));
             output.AppendLine(String.Format(" Template ID: {0}", prospectiveTemplate.GetTemplateName()));
+            output.AppendLine(PrintRxDosePerFxAndNumFx(prospectiveTemplate));
+            output.AppendLine(PrintCommonTemplateSetupInfo(prospectiveTemplate));
             if (prospectiveTemplate is CSIAutoPlanTemplate) output.AppendLine(PrintCSIPlanSpecificInfo(prospectiveTemplate as CSIAutoPlanTemplate));
             else output.AppendLine(PrintTBIPlanSpecificInfo(prospectiveTemplate as TBIAutoPlanTemplate));
-            output.AppendLine(PrintCommonTemplateSetupInfo(prospectiveTemplate));
             output.AppendLine("-----------------------------------------------------------------------------");
+            return output;
+        }
+
+        private static string PrintRxDosePerFxAndNumFx(AutoPlanTemplateBase prospectiveTemplate)
+        {
+            string output = "";
+            if (prospectiveTemplate is CSIAutoPlanTemplate)
+            {
+                output += String.Format(" Initial Dose per fraction: {0} cGy", (prospectiveTemplate as CSIAutoPlanTemplate).GetInitialRxDosePerFx()) + Environment.NewLine;
+                output += String.Format(" Initial number of fractions: {0}", (prospectiveTemplate as CSIAutoPlanTemplate).GetInitialRxNumFx()) + Environment.NewLine;
+                output += String.Format(" Boost Dose per fraction: {0} cGy", (prospectiveTemplate as CSIAutoPlanTemplate).GetBoostRxDosePerFx()) + Environment.NewLine;
+                output += String.Format(" Boost number of fractions: {0}", (prospectiveTemplate as CSIAutoPlanTemplate).GetBoostRxNumFx()) + Environment.NewLine;
+            }
+            else
+            {
+                output += String.Format(" Initial Dose per fraction: {0} cGy", (prospectiveTemplate as TBIAutoPlanTemplate).GetInitialRxDosePerFx()) + Environment.NewLine;
+                output += String.Format(" Initial number of fractions: {0}", (prospectiveTemplate as TBIAutoPlanTemplate).GetInitialRxNumFx());
+            }
             return output;
         }
 
@@ -27,8 +46,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             if (prospectiveTemplate.GetTargets().Any())
             {
                 output += String.Format(" {0} targets:", prospectiveTemplate.GetTemplateName()) + Environment.NewLine;
-                output += String.Format(String.Format("  {0, -15} | {1, -8} | {2, -14} |", "structure Id", "Rx (cGy)", "Num Fx", "Plan Id"));
-                foreach (Tuple<string, double, string> tgt in prospectiveTemplate.GetTargets()) output += String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |", tgt.Item1, tgt.Item2, tgt.Item3);
+                output += String.Format(String.Format("  {0, -15} | {1, -8} | {2, -14} |" + Environment.NewLine, "structure Id", "Rx (cGy)", "Num Fx", "Plan Id"));
+                foreach (Tuple<string, double, string> tgt in prospectiveTemplate.GetTargets()) output += String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |" + Environment.NewLine, tgt.Item1, tgt.Item2, tgt.Item3);
                 output += Environment.NewLine;
             }
             else output += String.Format(" No targets set for template: {0}", prospectiveTemplate.GetTemplateName()) + Environment.NewLine + Environment.NewLine;
@@ -55,10 +74,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         private static string PrintCSIPlanSpecificInfo(CSIAutoPlanTemplate prospectiveTemplate)
         {
             string output = "";
-            output += String.Format(" Initial Dose per fraction: {0} cGy", prospectiveTemplate.GetInitialRxDosePerFx()) + Environment.NewLine;
-            output += String.Format(" Initial number of fractions: {0}", prospectiveTemplate.GetInitialRxNumFx()) + Environment.NewLine;
-            output += String.Format(" Boost Dose per fraction: {0} cGy", prospectiveTemplate.GetBoostRxDosePerFx()) + Environment.NewLine;
-            output += String.Format(" Boost number of fractions: {0}", prospectiveTemplate.GetBoostRxNumFx());
 
             if (prospectiveTemplate.GetCreateRings().Any())
             {
@@ -68,6 +83,15 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 output += Environment.NewLine;
             }
             else output += String.Format(" No requested ring structures for template: {0}", prospectiveTemplate.GetTemplateName()) + Environment.NewLine + Environment.NewLine;
+
+            if (prospectiveTemplate.GetCropAndOverlapStructures().Any())
+            {
+                output += String.Format(" {0} requested structures for crop/overlap with targets:" + Environment.NewLine, prospectiveTemplate.GetTemplateName());
+                output += String.Format("  {0, -15}" + Environment.NewLine, "structure Id");
+                foreach (string cropOverlap in prospectiveTemplate.GetCropAndOverlapStructures()) output += String.Format("  {0}" + Environment.NewLine, cropOverlap);
+                output += Environment.NewLine;
+            }
+            else output += String.Format(" No structures requested for crop/overlap with targets for template: {0}" + Environment.NewLine + Environment.NewLine, prospectiveTemplate.GetTemplateName());
 
             if (prospectiveTemplate.GetInitOptimizationConstraints().Any())
             {
@@ -91,8 +115,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         private static string PrintTBIPlanSpecificInfo(TBIAutoPlanTemplate prospectiveTemplate)
         {
             string output = "";
-            output += String.Format(" Initial Dose per fraction: {0} cGy", prospectiveTemplate.GetInitialRxDosePerFx()) + Environment.NewLine;
-            output += String.Format(" Initial number of fractions: {0}", prospectiveTemplate.GetInitialRxNumFx());
 
             if (prospectiveTemplate.GetInitOptimizationConstraints().Any())
             {
@@ -113,14 +135,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             output.AppendLine(":begin template case configuration:");
             output.AppendLine("%template name");
             output.AppendLine($"template name={prospectiveTemplate.GetTemplateName()}");
-            if (prospectiveTemplate is CSIAutoPlanTemplate) output.AppendLine(SerializeCSIRxTemplate(prospectiveTemplate as CSIAutoPlanTemplate));
-            else output.AppendLine(SerializeTBIRxTemplate(prospectiveTemplate as TBIAutoPlanTemplate));
-            output.AppendLine(SerializeCommonTemplateParameters(prospectiveTemplate));
-            if (prospectiveTemplate is CSIAutoPlanTemplate) output.AppendLine(SerializeCSITemplateParameters(prospectiveTemplate as CSIAutoPlanTemplate));
-            else output.AppendLine(SerializeTBIRxTemplate(prospectiveTemplate as TBIAutoPlanTemplate));
+            if (prospectiveTemplate is CSIAutoPlanTemplate) output.Append(SerializeCSIRxTemplate(prospectiveTemplate as CSIAutoPlanTemplate));
+            else output.Append(SerializeTBIRxTemplate(prospectiveTemplate as TBIAutoPlanTemplate));
+            output.Append(SerializeCommonTemplateParameters(prospectiveTemplate));
+            if (prospectiveTemplate is CSIAutoPlanTemplate) output.Append(SerializeCSITemplateParameters(prospectiveTemplate as CSIAutoPlanTemplate));
+            else output.Append(SerializeTBITemplateParameters(prospectiveTemplate as TBIAutoPlanTemplate));
             output.AppendLine("%");
             output.AppendLine("%");
-            output.AppendLine(":end template case configuration:");
+            output.Append(":end template case configuration:");
             return output;
         }
 
@@ -130,6 +152,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             if (prospectiveTemplate.GetCreateRings().Any())
             {
                 foreach (Tuple<string, double, double, double> itr in prospectiveTemplate.GetCreateRings()) output += $"create ring{{{itr.Item1},{itr.Item2},{itr.Item3},{itr.Item4}}}" + Environment.NewLine;
+                output += "%" + Environment.NewLine;
+                output += "%" + Environment.NewLine;
+            }
+            else output += "%" + Environment.NewLine;
+
+            if (prospectiveTemplate.GetCropAndOverlapStructures().Any())
+            {
+                foreach (string itr in prospectiveTemplate.GetCropAndOverlapStructures()) output += $"crop and contour overlap with targets{{{itr}}}" + Environment.NewLine;
                 output += "%" + Environment.NewLine;
                 output += "%" + Environment.NewLine;
             }

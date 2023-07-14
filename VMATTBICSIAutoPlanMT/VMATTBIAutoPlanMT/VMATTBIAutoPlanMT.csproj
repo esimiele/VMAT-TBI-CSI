@@ -35,8 +35,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="SimpleProgressWindow, Version=1.1.8563.29216, Culture=neutral, processorArchitecture=AMD64">
-      <HintPath>..\packages\SimpleProgressWindow.1.1.8563.29216\lib\net472\SimpleProgressWindow.dll</HintPath>
+    <Reference Include="SimpleProgressWindow, Version=1.2.8594.18064, Culture=neutral, processorArchitecture=AMD64">
+      <HintPath>..\packages\SimpleProgressWindow.1.2.8594.18064\lib\net472\SimpleProgressWindow.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />

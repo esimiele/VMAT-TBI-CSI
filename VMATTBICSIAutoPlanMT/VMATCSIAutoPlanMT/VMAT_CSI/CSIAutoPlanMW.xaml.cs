@@ -91,10 +91,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         List<Tuple<string, string, int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
         //list of junction structures (i.e., overlap regions between adjacent isocenters)
         List<Tuple<ExternalPlanSetup, List<Structure>>> jnxs = new List<Tuple<ExternalPlanSetup, List<Structure>>> { };
-        PlanPrep_CSI prep = null;
         private VMS.TPS.Common.Model.API.Application app = null;
         bool isModified = false;
         bool autoSave = false;
+        bool closePWOnFinish = false;
         bool checkStructuresToUnion = true;
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
         public ObservableCollection<CSIAutoPlanTemplate> PlanTemplates { get; set; }
@@ -137,7 +137,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 if(OpenPatient(mrn)) return true;
                 InitializeStructureSetSelection(ss);
-                CheckPreliminaryTargets();
 
                 //check the version information of Eclipse installed on this machine. If it is older than version 15.6, let the user know that this script may not work properly on their system
                 if (!double.TryParse(app.ScriptEnvironment.VersionInfo.Substring(0, app.ScriptEnvironment.VersionInfo.LastIndexOf(".")), out double vinfo)) log.LogError("Warning! Could not parse Eclise version number! Proceed with caution!");
@@ -223,8 +222,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //update selected structure set
             selectedSS = pi.StructureSets.FirstOrDefault(x => string.Equals(x.Id, SSID.SelectedItem.ToString()));
             log.StructureSet = selectedSS.Id;
-
-            CheckPreliminaryTargets();
         }
 
         private void ClearAllCurrentParameters()
@@ -240,8 +237,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private void LoadTemplateDefaults()
         {
             AddTargetDefaults_Click(null, null);
-            AddDefaultTuningStructures_Click(null, null);
-            AddDefaultStructureManipulations();
+            CheckPreliminaryTargets();
         }
 
         private void Templates_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -374,6 +370,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 CTImageExport exporter = new CTImageExport(selectedImage, pi.Id, IEData);
                 bool result = exporter.Execute();
                 log.AppendLogOutput("Export CT data:", exporter.GetLogOutput());
+                log.OpType = ScriptOperationType.ExportCT;
                 if (result) return;
                 imgExported = true;
                 exportCTTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -387,7 +384,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //stuff related to Set Targets tab
         private void CheckPreliminaryTargets()
         {
-            if (selectedSS == null) return;
+            if (selectedSS == null)
+            {
+                return;
+            }
             PrelimTargetGenerationSP.Children.Clear();
             List<string> missingPrelimTargets = new List<string> { };
             List<String> approvedTargets = new List<string> { };
@@ -475,11 +475,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 return;
             }
 
-            GenerateTargets_CSI generateTargets = new GenerateTargets_CSI(prelimTargets, selectedSS);
+            GenerateTargets_CSI generateTargets = new GenerateTargets_CSI(prelimTargets, selectedSS, closePWOnFinish);
             pi.BeginModifications();
             bool result = generateTargets.Execute();
             //grab the log output regardless if it passes or fails
             log.AppendLogOutput("TS Generation and manipulation output:", generateTargets.GetLogOutput());
+            log.OpType = ScriptOperationType.GeneratePrelimTargets;
             if (result) return;
             log.AddedPrelimTargetsStructures = generateTargets.GetAddedTargetStructures();
             PrelimTargetsTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -497,8 +498,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             StackPanel theSP;
             if (btn.Name.Contains("template"))
             {
-                theScroller = targetTemplateScroller;
-                theSP = targetTemplate_sp;
+                theScroller = templateTargetsScroller;
+                theSP = templateTargetsSP;
             }
             else
             {
@@ -569,7 +570,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             else
             {
-                targetTemplate_sp.Children.Clear();
+                templateTargetsSP.Children.Clear();
                 clearTargetTemplateBtnCounter = 0;
             }
         }
@@ -596,7 +597,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             planIDs.Add("--Add New--");
             foreach(Tuple<string,double,string> itr in defaultList)
             {
-                if(StructureTuningHelper.DoesStructureExistInSS(itr.Item1, selectedSS))
+                if(theSP.Name.Contains("template") || string.Equals(itr.Item1,"--select--") || StructureTuningHelper.DoesStructureExistInSS(itr.Item1, selectedSS, true))
                 {
                     counter++;
                     theSP.Children.Add(TargetsUIHelper.AddTargetVolumes(theSP.Width,
@@ -688,13 +689,20 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 return;
             }
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(parsedPrescriptions.Item1);
-            targetsTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
-            structureTuningTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
-            TSManipulationTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
-            //need targets to be assigned prior to populating the ring defaults
-            AddDefaultRings_Click(null, null);
+            
             log.targets = targets;
             log.Prescriptions = prescriptions;
+
+            //need targets to be assigned prior to populating the tuning structure tabs
+            AddDefaultRings_Click(null, null);
+            AddDefaultTuningStructures_Click(null, null);
+            AddDefaultCropOverlapOARs_Click(null, null);
+            AddDefaultStructureManipulations();
+
+            targetsTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+            setTargetsTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+            structureTuningTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
+            TSManipulationTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
         }
 
         private (bool, StringBuilder) VerifySelectedTargetsIntegrity(List<Tuple<string, double, string>> parsedTargets)
@@ -854,7 +862,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if (templateList.SelectedItem != null) 
             {
+                GeneralUIHelper.ClearList(createRingsSP);
                 AddRingStructures((templateList.SelectedItem as CSIAutoPlanTemplate).GetCreateRings(), createRingsSP);
+                createRingsScroller.ScrollToBottom();
             }
         }
 
@@ -874,7 +884,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             for (int i = 0; i < lists.Count; i++)
             {
-                if(StructureTuningHelper.DoesStructureExistInSS(lists.ElementAt(i).Item1, selectedSS, true))
+                if(theSP.Name.Contains("template") || StructureTuningHelper.DoesStructureExistInSS(lists.ElementAt(i).Item1, selectedSS, true))
                 {
                     counter++;
                     theSP.Children.Add(RingUIHelper.AddRing(theSP,
@@ -897,6 +907,86 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private void ClearRings_Click(object sender, RoutedEventArgs e)
         {
             GeneralUIHelper.ClearList(GetAppropriateRingSP(sender));
+        }
+
+        private void CropContourOverlapInfo_Click(object sender, RoutedEventArgs e)
+        {
+            string message = "What are create/contour overlap structures?" + Environment.NewLine;
+            message += String.Format("These structures are OARs which will be used in the TS generation operations to generate new tuning structures for the targets.") + Environment.NewLine;
+            message += String.Format("Generated tuning structures include 'crop' structures which are the original targets that have been cropped from all OARs.") + Environment.NewLine;
+            message += String.Format("In addition, 'overlap' structures will be created that are the overlapping portions of the original OARs and all targets.") + Environment.NewLine;
+            message += String.Format("These target tuning structures are used to carve dose away from high-risk senstive OARs (e.g., brainstem) for sequential boost CSI.") + Environment.NewLine;
+            message += String.Format("Once generated, the optimization constraints for the targets will be updated to reflect the generated tuning structures.") + Environment.NewLine;
+            message += String.Format("In addition, the normalization volumes for each plan will also be updated.") + Environment.NewLine;
+            MessageBox.Show(message);
+        }
+
+        private StackPanel GetAppropriateCropOverlapSP(object o)
+        {
+            Button theBtn = (Button)o;
+            StackPanel theSP;
+            if (theBtn.Name.Contains("template"))
+            {
+                theSP = templateCropOverlapOARsSP;
+            }
+            else
+            {
+                theSP = cropOverlapOARsSP;
+            }
+            return theSP;
+        }
+
+        private void AddCropOverlapOAR_Click(object sender, RoutedEventArgs e)
+        {
+            //populate the comboboxes
+            AddCropOverlapOARs(new List<string> { "--select--" }, GetAppropriateCropOverlapSP(sender));
+        }
+
+        private void AddDefaultCropOverlapOARs_Click(object sender, RoutedEventArgs e)
+        {
+            if (templateList.SelectedItem != null)
+            {
+                GeneralUIHelper.ClearList(cropOverlapOARsSP);
+                AddCropOverlapOARs((templateList.SelectedItem as CSIAutoPlanTemplate).GetCropAndOverlapStructures(), cropOverlapOARsSP);
+                cropOverlapOARsScroller.ScrollToBottom();
+            }
+        }
+
+        private void AddCropOverlapOARs(List<string> OARs, StackPanel theSP)
+        {
+            if (selectedSS == null)
+            {
+                log.LogError("Error! Please select a Structure Set before adding ring structures!");
+                return;
+            }
+            if (theSP.Children.Count == 0) theSP.Children.Add(CropOverlapOARUIHelper.GetCropOverlapHeader());
+            int counter = 0;
+            string clearBtnName = "ClearCropOverlapOARBtn";
+            if (theSP.Name.Contains("template"))
+            {
+                clearBtnName = "template" + clearBtnName;
+            }
+            for (int i = 0; i < OARs.Count; i++)
+            {
+                counter++;
+                theSP.Children.Add(CropOverlapOARUIHelper.AddCropOverlapOAR(selectedSS.Structures.Select(x => x.Id).ToList(),
+                                                                            OARs[i],
+                                                                            clearBtnName,
+                                                                            counter,
+                                                                            new RoutedEventHandler(this.ClearCropOverlapOARItem_Click),
+                                                                            true));
+            }
+        }
+
+        private void ClearCropOverlapOARItem_Click(object sender, RoutedEventArgs e)
+        {
+            StackPanel theSP = GetAppropriateCropOverlapSP(sender);
+            if (GeneralUIHelper.ClearRow(sender, theSP)) GeneralUIHelper.ClearList(theSP);
+        }
+
+        private void ClearCropOverlapOARList_Click(object sender, RoutedEventArgs e)
+        {
+            GeneralUIHelper.ClearList(GetAppropriateCropOverlapSP(sender));
         }
 
         private List<string> CheckLRStructures()
@@ -1078,10 +1168,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             List<Tuple<string, string>> createTSStructureList;
             List<Tuple<string, double, double, double>> createRingList;
+            List<string> cropOverlapOARList;
             List<Tuple<string, TSManipulationType, double>> TSManipulationList;
             //get sparing structure and tuning structure lists from the UI
             (List<Tuple<string, string>>, StringBuilder) parseCreateTSList = StructureTuningUIHelper.ParseCreateTSStructureList(TSGenerationSP);
             (List<Tuple<string, double, double, double>>, StringBuilder) parseCreateRingList = RingUIHelper.ParseCreateRingList(createRingsSP);
+            (List<string>, StringBuilder) parseCropOverlapOARList = CropOverlapOARUIHelper.ParseCropOverlapOARList(cropOverlapOARsSP);
             (List<Tuple<string, TSManipulationType, double>>, StringBuilder) parseTSManipulationList = StructureTuningUIHelper.ParseTSManipulationList(structureManipulationSP);
             if (!string.IsNullOrEmpty(parseCreateTSList.Item2.ToString()))
             {
@@ -1093,19 +1185,24 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 log.LogError(parseCreateRingList.Item2);
                 return;
             }
+            if (!string.IsNullOrEmpty(parseCropOverlapOARList.Item2.ToString()))
+            {
+                log.LogError(parseCropOverlapOARList.Item2);
+                return;
+            }
             if (!string.IsNullOrEmpty(parseTSManipulationList.Item2.ToString()))
             {
                 log.LogError(parseTSManipulationList.Item2);
                 return;
             }
-            
+
             createTSStructureList = new List<Tuple<string, string>>(parseCreateTSList.Item1);
             createRingList = new List<Tuple<string, double, double, double>>(parseCreateRingList.Item1);
+            cropOverlapOARList = new List<string>(parseCropOverlapOARList.Item1);
             TSManipulationList = new List<Tuple<string, TSManipulationType, double>>(parseTSManipulationList.Item1);
-            List<string> cropAndOverlapStructs = new List<string>((templateList.SelectedItem as CSIAutoPlanTemplate).GetCropAndOverlapStructures());
 
             //create an instance of the generateTS_CSI class, passing the tuning structure list, structure sparing list, targets, prescriptions, and the selected structure set
-            GenerateTS_CSI generate = new GenerateTS_CSI(createTSStructureList, parseTSManipulationList.Item1, createRingList, prescriptions, selectedSS, cropAndOverlapStructs);
+            GenerateTS_CSI generate = new GenerateTS_CSI(createTSStructureList, parseTSManipulationList.Item1, createRingList, prescriptions, selectedSS, cropOverlapOARList, closePWOnFinish);
             pi.BeginModifications();
             bool result = generate.Execute();
             //grab the log output regardless if it passes or fails
@@ -1240,7 +1337,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                                       useGPUoptimization, 
                                                       MRrestartLevel, 
                                                       contourOverlap,
-                                                      contourOverlapMargin);
+                                                      contourOverlapMargin,
+                                                      closePWOnFinish);
 
             place.Initialize("VMAT CSI", prescriptions);
             place.Execute();
@@ -1570,51 +1668,16 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //methods related to plan preparation
         private void GenerateShiftNote_Click(object sender, RoutedEventArgs e)
         {
-            if (prep == null)
+            (ExternalPlanSetup VMATPlan, StringBuilder errorMessage) = PlanPrepUIHelper.RetrieveVMATPlan(pi, logPath, "VMAT CSI");
+            if (VMATPlan == null)
             {
-                //this method assumes no prior knowledge, so it will have to retrive the number of isocenters (vmat and total) and isocenter names explicitly
-                Course c = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat tbi");
-                ExternalPlanSetup vmatPlan = null;
-                IEnumerable<ExternalPlanSetup> appaPlan = new List<ExternalPlanSetup> { };
-                if (c == null)
-                {
-                    //vmat tbi course not found. Dealbreaker, exit method
-                    log.LogError("VMAT TBI course not found! Exiting!");
-                    return;
-                }
-                else
-                {
-                    //always try and get the AP/PA plans (it's ok if it returns null). NOTE: Nataliya sometimes separates the _legs plan into two separate plans for planning PRIOR to running the optimization loop
-                    //therefore, look for all external beam plans that contain the string 'legs'. If 3 plans are found, one of them is the original '_Legs' plan, so we can exculde that from the list
-                    appaPlan = c.ExternalPlanSetups.Where(x => x.Id.ToLower().Contains("legs"));
-                    if (appaPlan.Count() > 2) appaPlan = c.ExternalPlanSetups.Where(x => x.Id.ToLower().Contains("legs")).Where(x => x.Id.ToLower() != "_legs").OrderBy(o => int.Parse(o.Id.Substring(0, 2).ToString()));
-                    //get all plans in the course that don't contain the string 'legs' in the plan ID. If more than 1 exists, prompt the user to select the plan they want to prep
-                    IEnumerable<ExternalPlanSetup> plans = c.ExternalPlanSetups.Where(x => !x.Id.ToLower().Contains("legs"));
-                    if (plans.Count() > 1)
-                    {
-                        SelectItemPrompt SIP = new SelectItemPrompt("Multiple plans found in VMAT TBI course!" + Environment.NewLine + "Please select a plan to prep!", plans.Select(x => x.Id).ToList());
-                        SIP.ShowDialog();
-                        if (!SIP.GetSelection()) return;
-                        //get the plan the user chose from the combobox
-                        vmatPlan = c.ExternalPlanSetups.FirstOrDefault(x => string.Equals(x.Id, SIP.GetSelectedItem()));
-                    }
-                    else
-                    {
-                        //course found and only one or fewer plans inside course with Id != "_Legs", get vmat and ap/pa plans
-                        vmatPlan = c.ExternalPlanSetups.FirstOrDefault(x => x.Id.ToLower() == "_vmat tbi");
-                    }
-                    if (vmatPlan == null)
-                    {
-                        //vmat plan not found. Dealbreaker, exit method
-                        log.LogError("VMAT plan not found! Exiting!");
-                        return;
-                    }
-                }
-
-                //create an instance of the planPep class and pass it the vmatPlan and appaPlan objects as arguments. Get the shift note for the plan of interest
-                prep = new PlanPrep_CSI(vmatPlan, appaPlan);
+                log.LogError(errorMessage);
+                return;
             }
-            if (prep.GetShiftNote()) return;
+
+            VMATplans.Add(VMATPlan);
+            Clipboard.SetText(PlanPrepHelper.GetCSIShiftNote(VMATPlan).ToString());
+            MessageBox.Show("Shifts have been copied to the clipboard! \r\nPaste them into the journal note!");
 
             //let the user know this step has been completed (they can now do the other steps like separate plans and calculate dose)
             shiftTB.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -1624,58 +1687,69 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private void SeparatePlans_Click(object sender, RoutedEventArgs e)
         {
             //The shift note has to be retrieved first! Otherwise, we don't have instances of the plan objects
-            if (shiftTB.Text != "YES")
+            if (!VMATplans.Any())
             {
                 log.LogError("Please generate the shift note before separating the plans!");
                 return;
             }
 
+            ExternalPlanSetup vmatPlan = VMATplans.First();
+            if (!vmatPlan.Beams.Any(x => x.IsSetupField))
+            {
+                ConfirmPrompt CUI = new ConfirmPrompt($"I didn't find any setup fields in the {vmatPlan.Id}." + Environment.NewLine + Environment.NewLine + "Are you sure you want to continue?!");
+                CUI.ShowDialog();
+                if (!CUI.GetSelection()) return;
+            }
+
             //separate the plans
             pi.BeginModifications();
-            if (prep.SeparatePlans()) return;
+            PlanPrep_CSI planPrep = new PlanPrep_CSI(vmatPlan, closePWOnFinish);
+            bool result = planPrep.Execute();
+            log.AppendLogOutput("Plan preparation:", planPrep.GetLogOutput());
+            log.OpType = ScriptOperationType.PlanPrep;
+            if (result) return;
+
+            //inform the user it's done
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("Original plan(s) have been separated!");
+            sb.AppendLine("Be sure to set the target volume and primary reference point!");
+            if (vmatPlan.Beams.Any(x => x.IsSetupField))
+            {
+                sb.AppendLine("Also reset the isocenter position of the setup fields!");
+            }
+            MessageBox.Show(sb.ToString());
 
             //let the user know this step has been completed
             separateTB.Background = System.Windows.Media.Brushes.ForestGreen;
             separateTB.Text = "YES";
 
-            //if flash was removed, display the calculate dose button (to remove flash, the script had to wipe the dose in the original plan)
-            if (prep.flashRemoved)
-            {
-                calcDose.Visibility = Visibility.Visible;
-                calcDoseTB.Visibility = Visibility.Visible;
-            }
             isModified = true;
             planPreparationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
         }
 
         private void CalculateDose_Click(object sender, RoutedEventArgs e)
         {
-            //the shift note must be retireved and the plans must be separated before calculating dose
-            if (shiftTB.Text == "NO" || separateTB.Text == "NO")
-            {
-                log.LogError("Error! \nYou must generate the shift note AND separate the plan before calculating dose to each plan!");
-                return;
-            }
+            ////the shift note must be retireved and the plans must be separated before calculating dose
+            //if (shiftTB.Text == "NO" || separateTB.Text == "NO")
+            //{
+            //    log.LogError("Error! \nYou must generate the shift note AND separate the plan before calculating dose to each plan!");
+            //    return;
+            //}
 
-            //ask the user if they are sure they want to do this. Each plan will calculate dose sequentially, which will take time
-            ConfirmPrompt CUI = new ConfirmPrompt("Warning!" + Environment.NewLine + "This will take some time as each plan needs to be calculated sequentionally!" + Environment.NewLine + "Continue?!");
-            CUI.ShowDialog();
-            if (!CUI.GetSelection()) return;
+            ////ask the user if they are sure they want to do this. Each plan will calculate dose sequentially, which will take time
+            //ConfirmPrompt CUI = new ConfirmPrompt("Warning!" + Environment.NewLine + "This will take some time as each plan needs to be calculated sequentionally!" + Environment.NewLine + "Continue?!");
+            //CUI.ShowDialog();
+            //if (!CUI.GetSelection()) return;
 
-            //let the user know the script is working
-            calcDoseTB.Background = System.Windows.Media.Brushes.Yellow;
-            calcDoseTB.Text = "WORKING";
+            ////let the user know the script is working
+            //calcDoseTB.Background = System.Windows.Media.Brushes.Yellow;
+            //calcDoseTB.Text = "WORKING";
 
-            prep.CalculateDose();
+            //prep.CalculateDose();
 
-            //let the user know this step has been completed
-            calcDoseTB.Background = System.Windows.Media.Brushes.ForestGreen;
-            calcDoseTB.Text = "YES";
-        }
-
-        private void GeneratePlanSum_Click(object sender, RoutedEventArgs e)
-        {
-            //do nothing. Eclipse v15.6 doesn't have this capability, but v16 and later does. This method is a placeholder (the planSum button exists in the UI.xaml file, but its visibility is set to 'hidden')
+            ////let the user know this step has been completed
+            //calcDoseTB.Background = System.Windows.Media.Brushes.ForestGreen;
+            //calcDoseTB.Text = "YES";
         }
         #endregion
 
@@ -1767,7 +1841,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 //add targets
                 List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>>(theTemplate.GetTargets());
                 ClearAllTargetItems(templateClearTargetList);
-                AddTargetVolumes(targetList, targetTemplate_sp);
+                AddTargetVolumes(targetList, templateTargetsSP);
 
                 //add create TS structures
                 GeneralUIHelper.ClearList(templateTSSP);
@@ -1775,6 +1849,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
                 GeneralUIHelper.ClearList(templateCreateRingsSP);
                 if (theTemplate.GetCreateRings().Any()) AddRingStructures(theTemplate.GetCreateRings(), templateCreateRingsSP);
+
+                GeneralUIHelper.ClearList(templateCropOverlapOARsSP);
+                if (theTemplate.GetCropAndOverlapStructures().Any()) AddCropOverlapOARs(theTemplate.GetCropAndOverlapStructures(), templateCropOverlapOARsSP);
 
                 //add tuning structure manipulations sparing structures
                 ClearStructureManipulationsList(templateClearSpareStructuresBtn);
@@ -1799,7 +1876,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     return;
                 }
                 ClearAllTargetItems(templateClearTargetList);
-                AddTargetVolumes(parsedTargetList.targetList.OrderBy(x => x.Item2).ToList(), targetTemplate_sp);
+                AddTargetVolumes(parsedTargetList.targetList.OrderBy(x => x.Item2).ToList(), templateTargetsSP);
 
                 //set name
                 templateNameTB.Text = "--new template--";
@@ -1832,6 +1909,14 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     return;
                 }
                 AddRingStructures(parsedCreateRingList.Item1, templateCreateRingsSP);
+
+                (List<string>, StringBuilder) parseCropOverlapOARList = CropOverlapOARUIHelper.ParseCropOverlapOARList(cropOverlapOARsSP);
+                if (!string.IsNullOrEmpty(parseCropOverlapOARList.Item2.ToString()))
+                {
+                    log.LogError(parseCropOverlapOARList.Item2);
+                    return;
+                }
+                AddCropOverlapOARs(parseCropOverlapOARList.Item1, templateCropOverlapOARsSP);
 
                 //add tuning structure manipulations
                 (List<Tuple<string, TSManipulationType, double>>, StringBuilder) parsedTSManipulationList = StructureTuningUIHelper.ParseTSManipulationList(structureManipulationSP);
@@ -1903,9 +1988,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
 
             //sort targets by prescription dose (ascending order)
-            prospectiveTemplate.SetTargets(TargetsUIHelper.ParseTargets(targetTemplate_sp).Item1.OrderBy(x => x.Item2).ToList());
+            prospectiveTemplate.SetTargets(TargetsUIHelper.ParseTargets(templateTargetsSP).Item1.OrderBy(x => x.Item2).ToList());
             prospectiveTemplate.SetCreateTSStructures(StructureTuningUIHelper.ParseCreateTSStructureList(templateTSSP).Item1);
             prospectiveTemplate.SetCreateRings(RingUIHelper.ParseCreateRingList(templateCreateRingsSP).Item1);
+            prospectiveTemplate.SetCropAndOverlapStructures(CropOverlapOARUIHelper.ParseCropOverlapOARList(templateCropOverlapOARsSP).Item1);
             prospectiveTemplate.SetTSManipulations(StructureTuningUIHelper.ParseTSManipulationList(templateStructuresSP).Item1);
             List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> templateOptParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(templateOptParams_sp).Item1;
             prospectiveTemplate.SetInitOptimizationConstraints(templateOptParametersListList.First().Item2);
@@ -1945,7 +2031,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             DisplayConfigurationParameters();
             templateList.ScrollIntoView(prospectiveTemplate);
 
-            templatePreviewTB.Text += String.Format("New template written to: {0}", fileName) + Environment.NewLine;
+            templatePreviewTB.Text += $"New template written to: {fileName}" + Environment.NewLine;
             templatePreviewScroller.ScrollToBottom();
         }
         #endregion
@@ -1961,6 +2047,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (configFile != "") configTB.Text += $"Configuration file: {configFile}" + Environment.NewLine + Environment.NewLine;
             else configTB.Text += "Configuration file: none" + Environment.NewLine + Environment.NewLine;
             configTB.Text += $"Documentation path: {documentationPath}" + Environment.NewLine + Environment.NewLine;
+            configTB.Text += $"Close progress windows on finish: {closePWOnFinish}" + Environment.NewLine + Environment.NewLine;
             configTB.Text += $"Import/export settings:" + Environment.NewLine;
             configTB.Text += $"Image export path: {IEData.WriteLocation}" + Environment.NewLine;
             configTB.Text += $"RT structure set import path: {IEData.ImportLocation}" + Environment.NewLine;
@@ -2096,23 +2183,31 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                 string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
                                 if (parameter == "documentation path")
                                 {
-                                    string result = VerifyPathIntegrity(value);
+                                    string result = ConfigurationHelper.VerifyPathIntegrity(value);
                                     if (!string.IsNullOrEmpty(result)) documentationPath = result;
+                                    else log.LogError($"Warning! {value} does NOT exist!");
                                 }
                                 else if (parameter == "log file path")
                                 {
-                                    string result = VerifyPathIntegrity(value);
+                                    string result = ConfigurationHelper.VerifyPathIntegrity(value);
                                     if (!string.IsNullOrEmpty(result)) logPath = result;
+                                    else log.LogError($"Warning! {value} does NOT exist!");
+                                }
+                                else if (parameter == "close progress windows on finish")
+                                {
+                                    if (!string.IsNullOrEmpty(value)) closePWOnFinish = bool.Parse(value);
                                 }
                                 else if (parameter == "img export location")
                                 {
-                                    string result = VerifyPathIntegrity(value);
+                                    string result = ConfigurationHelper.VerifyPathIntegrity(value);
                                     if (!string.IsNullOrEmpty(result)) IEData.WriteLocation = result;
+                                    else log.LogError($"Warning! {value} does NOT exist!");
                                 }
                                 else if (parameter == "RTStruct import location")
                                 {
-                                    string result = VerifyPathIntegrity(value);
+                                    string result = ConfigurationHelper.VerifyPathIntegrity(value);
                                     if (!string.IsNullOrEmpty(result)) IEData.ImportLocation = result;
+                                    else log.LogError($"Warning! {value} does NOT exist!");
                                 }
                                 else if (parameter == "img export format")
                                 {
@@ -2215,18 +2310,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 log.LogError(e.StackTrace, true);
                 return true; 
             }
-        }
-
-        private string VerifyPathIntegrity(string value)
-        {
-            string result = "";
-            if (Directory.Exists(value))
-            {
-                result = value;
-                if (result.LastIndexOf("\\") != result.Length - 1) result += "\\";
-            }
-            else log.LogError($"Warning! {value} does NOT exist!");
-            return result;
         }
 
         private bool LoadPlanTemplates()

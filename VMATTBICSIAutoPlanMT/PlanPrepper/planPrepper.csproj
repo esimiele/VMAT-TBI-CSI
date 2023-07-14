@@ -1,0 +1,118 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
+    <ProjectGuid>{21E00B29-0820-4B48-A99D-9D8D45EBC46B}</ProjectGuid>
+    <OutputType>library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>planPrepper</RootNamespace>
+    <AssemblyName>planPrepper_v0.6.esapi</AssemblyName>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <PlatformTarget>x64</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\..\plugins</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <PlatformTarget>x64</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\..\plugins</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Xaml">
+      <RequiredTargetFramework>4.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="WindowsBase" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="VMS.TPS.Common.Model.API">
+      <HintPath>..\..\VMS_TPS_resources\v15\VMS.TPS.Common.Model.API.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="VMS.TPS.Common.Model.Types">
+      <HintPath>..\..\VMS_TPS_resources\v15\VMS.TPS.Common.Model.Types.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="changeName.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="changeName.Designer.cs">
+      <DependentUpon>changeName.cs</DependentUpon>
+    </Compile>
+    <Compile Include="confirmUI.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="confirmUI.Designer.cs">
+      <DependentUpon>confirmUI.cs</DependentUpon>
+    </Compile>
+    <Compile Include="inputNames.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="inputNames.Designer.cs">
+      <DependentUpon>inputNames.cs</DependentUpon>
+    </Compile>
+    <Compile Include="planPrep.cs" />
+    <Compile Include="planPrepper.cs" />
+    <Compile Include="selectMultiItem.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="selectMultiItem.Designer.cs">
+      <DependentUpon>selectMultiItem.cs</DependentUpon>
+    </Compile>
+    <Compile Include="selectSingleItem.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="selectSingleItem.Designer.cs">
+      <DependentUpon>selectSingleItem.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI.xaml.cs">
+      <DependentUpon>UI.xaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="changeName.resx">
+      <DependentUpon>changeName.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="inputNames.resx">
+      <DependentUpon>inputNames.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="selectMultiItem.resx">
+      <DependentUpon>selectMultiItem.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="selectSingleItem.resx">
+      <DependentUpon>selectSingleItem.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="UI.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

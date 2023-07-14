@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:VMATTBICSIAutoPlanningHelpers.Prompts"
         mc:Ignorable="d"
-        Title="Select Item" WindowStartupLocation="CenterOwner" SizeToContent="WidthAndHeight" Background="DarkGray">
+        Title="Select Item" WindowStartupLocation="CenterScreen" SizeToContent="WidthAndHeight" Background="DarkGray">
     <Grid>
         <StackPanel>
             <Grid>

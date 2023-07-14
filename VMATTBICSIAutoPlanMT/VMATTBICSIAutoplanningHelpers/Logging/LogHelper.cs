@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using VMS.TPS.Common.Model.Types;
 
@@ -19,7 +20,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             string logName = "";
             if (Directory.Exists(logFilePath + "\\preparation\\"))
             {
-                logName = Directory.GetFiles(logFilePath + "\\preparation\\", ".", SearchOption.AllDirectories).FirstOrDefault(x => x.Contains(mrn));
+                if(Directory.GetFiles(logFilePath + "\\preparation\\", ".", SearchOption.AllDirectories).Any(x => x.Contains(mrn + ".txt")))
+                {
+                    logName = Directory.GetFiles(logFilePath + "\\preparation\\", ".", SearchOption.AllDirectories).First(x => x.Contains(mrn + ".txt"));
+                }
             }
             return logName;
         }
@@ -63,6 +67,40 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             line = ConfigurationHelper.CropLine(line, ",");
             volumeId = line.Substring(0, line.IndexOf("}"));
             return Tuple.Create(planId, volumeId);
+        }
+
+        public static (string, StringBuilder) LoadVMATPlanUIDFromLogFile(string file)
+        {
+            StringBuilder sb = new StringBuilder();
+            string initPlanUID = "";
+            try
+            {
+                using (StreamReader reader = new StreamReader(file))
+                {
+                    string line;
+                    while (!(line = reader.ReadLine()).Equals("Errors and warnings:"))
+                    {
+                        if (!string.IsNullOrEmpty(line))
+                        {
+                            //useful info on this line
+                            if (line.Contains("Plan UIDs:"))
+                            {
+                                //only ready the first plan UID --> CSI-init or vmat plan for TBI
+                                if (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
+                                {
+                                    initPlanUID = line;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                sb.AppendLine($"Could not retrieve plan UIDs from log file because: {e.Message}");
+                sb.AppendLine(e.StackTrace);
+            }
+            return (initPlanUID, sb);
         }
     }
 }
