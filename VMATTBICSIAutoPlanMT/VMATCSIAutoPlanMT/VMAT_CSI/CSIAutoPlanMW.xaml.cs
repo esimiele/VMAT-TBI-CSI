@@ -137,7 +137,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 if(OpenPatient(mrn)) return true;
                 InitializeStructureSetSelection(ss);
-                CheckPreliminaryTargets();
 
                 //check the version information of Eclipse installed on this machine. If it is older than version 15.6, let the user know that this script may not work properly on their system
                 if (!double.TryParse(app.ScriptEnvironment.VersionInfo.Substring(0, app.ScriptEnvironment.VersionInfo.LastIndexOf(".")), out double vinfo)) log.LogError("Warning! Could not parse Eclise version number! Proceed with caution!");
@@ -223,8 +222,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //update selected structure set
             selectedSS = pi.StructureSets.FirstOrDefault(x => string.Equals(x.Id, SSID.SelectedItem.ToString()));
             log.StructureSet = selectedSS.Id;
-
-            CheckPreliminaryTargets();
         }
 
         private void ClearAllCurrentParameters()
@@ -240,7 +237,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private void LoadTemplateDefaults()
         {
             AddTargetDefaults_Click(null, null);
-            
+            CheckPreliminaryTargets();
         }
 
         private void Templates_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -387,7 +384,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //stuff related to Set Targets tab
         private void CheckPreliminaryTargets()
         {
-            if (selectedSS == null) return;
+            if (selectedSS == null)
+            {
+                return;
+            }
             PrelimTargetGenerationSP.Children.Clear();
             List<string> missingPrelimTargets = new List<string> { };
             List<String> approvedTargets = new List<string> { };
@@ -700,6 +700,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             AddDefaultStructureManipulations();
 
             targetsTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+            setTargetsTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             structureTuningTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             TSManipulationTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
         }
@@ -973,7 +974,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                                                             clearBtnName,
                                                                             counter,
                                                                             new RoutedEventHandler(this.ClearCropOverlapOARItem_Click),
-                                                                            theSP.Name.Contains("template")));
+                                                                            true));
             }
         }
 
