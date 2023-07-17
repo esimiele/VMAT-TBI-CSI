@@ -144,18 +144,18 @@
     </Window.Resources>
 
     <Grid Width="730">
-        <!-- Grid.Background>
-            <ImageBrush ImageSource="/Images/Stanford.png" Stretch="Uniform" AlignmentY="Top" Opacity="0.20">
+        <Grid.Background>
+            <ImageBrush ImageSource="/Images/StanfordMedicine1.png" Stretch="Uniform" AlignmentY="Top" Opacity="0.20">
                 <ImageBrush.Transform>
                     <TransformGroup>
-                        <ScaleTransform ScaleX="0.53" ScaleY="0.53"/>
+                        <ScaleTransform ScaleX="0.33" ScaleY="0.33"/>
                         <SkewTransform/>
                         <RotateTransform/>
-                        <TranslateTransform Y="0" X="171"/>
+                        <TranslateTransform Y="-10" X="245"/>
                     </TransformGroup>
                 </ImageBrush.Transform>
             </ImageBrush>
-        <-->
+        </Grid.Background>
         <StackPanel>
             <Grid>
                 <Label Content="VMAT CSI auto planning" FontSize="20" HorizontalAlignment="Center" Margin="0,0,0,0" VerticalAlignment="Top"/>

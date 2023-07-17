@@ -146,7 +146,7 @@
         <StackPanel>
             <Grid Width="740" VerticalAlignment="Top" Margin="0">
                 <Grid.Background>
-                    <ImageBrush ImageSource="/Images/StanfordMedicine1.png"  Stretch="Uniform" AlignmentY="Top" Opacity="0.25">
+                    <ImageBrush ImageSource="Images\StanfordMedicine1.png"  Stretch="Uniform" AlignmentY="Top" Opacity="0.25">
                         <ImageBrush.Transform>
                             <TransformGroup>
                                 <ScaleTransform ScaleX="0.9" ScaleY="0.9"/>

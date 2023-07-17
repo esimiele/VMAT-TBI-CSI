@@ -132,8 +132,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 ss = args.ElementAt(1);
             }
 
-            LoadDefaultConfigurationFiles();
             log = new Logger(logPath, PlanType.VMAT_TBI, mrn);
+            LoadDefaultConfigurationFiles();
             if (app != null)
             {
                 if (OpenPatient(mrn)) return true;
@@ -2025,7 +2025,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            AppClosingHelper.CloseApplication(app, pi != null, isModified, autoSave, log);
+            if(app != null) AppClosingHelper.CloseApplication(app, pi != null, isModified, autoSave, log);
         }
 
         private void MainWindow_SizeChanged(object sender, RoutedEventArgs e)

@@ -177,13 +177,13 @@
     <Resource Include="AutoPlan.ico" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Images\Stanford.png" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\VMATTBICSIAutoplanningHelpers\VMATTBICSIAutoPlanningHelpers.csproj">
       <Project>{b3fbf7b5-9e18-43ba-b40f-144682a3956e}</Project>
       <Name>VMATTBICSIAutoPlanningHelpers</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\StanfordMedicine1.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

@@ -143,18 +143,18 @@
         </Style>
     </Window.Resources>
     <Grid Width="720">
-        <!--Grid.Background>
-            <ImageBrush ImageSource="/Images/Stanford.png" Stretch="Uniform" AlignmentY="Top" Opacity="0.20">
+        <Grid.Background>
+            <ImageBrush ImageSource="/Images/StanfordMedicine1.png" Stretch="Uniform" AlignmentY="Top" Opacity="0.20">
                 <ImageBrush.Transform>
                     <TransformGroup>
-                        <ScaleTransform ScaleX="0.65" ScaleY="0.65"/>
+                        <ScaleTransform ScaleX="0.3" ScaleY="0.3"/>
                         <SkewTransform/>
                         <RotateTransform/>
-                        <TranslateTransform Y="0" X="104"/>
+                        <TranslateTransform Y="0" X="255"/>
                     </TransformGroup>
                 </ImageBrush.Transform>
             </ImageBrush>
-        <-->
+        </Grid.Background>
         <StackPanel>
             <Grid>
                 <Label Content="VMAT TBI auto planning" FontSize="20" HorizontalAlignment="Center" Margin="0,0,0,0" VerticalAlignment="Top"/>
