@@ -161,7 +161,6 @@
     </EmbeddedResource>
     <None Include="Configuration\VMAT_CSI_config.ini" />
     <None Include="packages.config" />
-    <None Include="PlanTemplates\CSI_mediumRisk.ini" />
     <None Include="PlanTemplates\CSI_reduceDose.ini" />
     <None Include="PlanTemplates\CSI_regimen1.ini" />
     <None Include="PlanTemplates\CSI_regimen2.ini" />

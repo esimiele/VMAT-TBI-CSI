@@ -56,11 +56,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         public static (bool, StringBuilder) UnionLRStructures(Tuple<Structure, Structure, string> itr, StructureSet selectedSS)
         {
             StringBuilder sb = new StringBuilder();
-            Structure newStructure = null;
+            Structure newStructure;
             string newName = itr.Item3;
             try
             {
-                Structure existStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == newName);
+                Structure existStructure = GetStructureFromId(newName, selectedSS);
                 //a structure already exists in the structure set with the intended name
                 if (existStructure != null) newStructure = existStructure;
                 else newStructure = selectedSS.AddStructure("CONTROL", newName);
@@ -69,7 +69,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             }
             catch (Exception except) 
             { 
-                sb.Append(String.Format("Warning! Could not add structure: {0}\nBecause: {1}", newName, except.Message)); 
+                sb.Append($"Warning! Could not add structure: {newName}\nBecause: {except.Message}"); 
                 return (true, sb); 
             }
             return (false, sb);

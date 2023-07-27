@@ -189,7 +189,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             int counter = 0;
             int calcItems = 4;
             bool isGlobes = false;
-            if (addedStructure.Id.ToLower().Contains("globes")) isGlobes = true;
+            if (addedStructure.Id.ToLower().Contains("eyes")) isGlobes = true;
 
             //try to grab ptv_brain first
             //6/11/23 THIS CODE WILL NEED TO BE MODIFIED FOR SIB PLANS
@@ -212,7 +212,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Retrieved initial plan target: {targetStructure.Id}");
                 Structure normal;
-                if (isGlobes) normal = StructureTuningHelper.GetStructureFromId("globes", selectedSS);
+                if (isGlobes) normal = StructureTuningHelper.GetStructureFromId("eyes", selectedSS);
                 else normal = StructureTuningHelper.GetStructureFromId("lenses", selectedSS);
 
                 if (normal != null && !normal.IsEmpty)
@@ -240,7 +240,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     }
                     ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Finished contouring ring: {addedStructure.Id}");
 
-                    ProvideUIUpdate($"Contouring overlap between ring and {(isGlobes ? "Globes" : "Lenses")}");
+                    ProvideUIUpdate($"Contouring overlap between ring and {(isGlobes ? "Eyes" : "Lenses")}");
                     (bool overlapFail, StringBuilder overlapErrorMessage) = ContourHelper.ContourOverlap(normal, addedStructure, 0.0);
                     if (overlapFail)
                     {
@@ -293,7 +293,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 ProvideUIUpdate(0, $"Contouring TS: {itr}");
                 Structure addedStructure = StructureTuningHelper.GetStructureFromId(itr, selectedSS);
-                if (itr.ToLower().Contains("ts_globes") || itr.ToLower().Contains("ts_lenses"))
+                if (itr.ToLower().Contains("ts_eyes") || itr.ToLower().Contains("ts_lenses"))
                 {
                     if (GenerateTSGlobesLenses(addedStructure)) return true;
                 }
