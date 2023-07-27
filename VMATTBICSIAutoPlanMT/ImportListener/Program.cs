@@ -1,15 +1,13 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Linq;
-using System.Windows.Threading;
 using System.Threading;
 using System.Timers;
 using System.IO;
 using System.Collections.Generic;
 using EvilDICOM.Core;
-using EvilDICOM.Core.Helpers;
 using EvilDICOM.Network;
 using EvilDICOM.Network.Enums;
+using EvilDICOM.Core.Helpers;
 
 namespace ImportListener
 {
@@ -23,23 +21,23 @@ namespace ImportListener
         static string localAET;
         static int localPort;
         //timeout in seconds (30 mins by default)
-        static double timeout = 30 * 60.0;
+        static double timeoutSec = 30 * 60.0;
+        static int updateFrequencyMSec = 100;
 
         static bool filePresent = false;
         static bool fileReadyForImport = false;
         static string theFile;
-        static double elapsedMS = 0.0;
-        static int barCount = 0;
-        private static System.Timers.Timer aTimer;
-
-        private const string _back = "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b";
+        static double elapsedSec = 0.0;
+        static System.Timers.Timer aTimer;
+        const string _twirl = "-\\|/";
+        static private int index = 0;
 
         static void Main(string[] args)
         {
             try
             {
                 SetTimer();
-                if (!ParseInputArguments(args.ToList()))
+                if (ParseInputArguments(args.ToList()))
                 {
                     aTimer.Start();
                     PrintConfiguration();
@@ -48,7 +46,7 @@ namespace ImportListener
                     if (filePresent)
                     {
                         //wait one minute to ensure autocontouring model is done writing rt struct
-                        elapsedMS = 0.0;
+                        elapsedSec = 0.0;
                         aTimer.Start();
                         Console.WriteLine("Waiting for RT Struct file to be free for import...");
                         WaitForFile();
@@ -75,18 +73,19 @@ namespace ImportListener
 
         private static void WaitForFile()
         {
-            while (!fileReadyForImport && elapsedMS / 1000 < timeout)
+            while (!fileReadyForImport && elapsedSec < timeoutSec)
             {
                 if (!IsFileLocked(new FileInfo(theFile)))
                 {
                     fileReadyForImport = true;
                     aTimer.Stop();
-                    Console.WriteLine("");
+                    Console.Write("\b");
                     Console.WriteLine($"RT Struct file ({theFile}) is ready for import");
+                    Console.WriteLine("");
                 }
                 Wait(10000);
             }
-            Console.WriteLine($"Elapsed time: {elapsedMS}");
+            Console.WriteLine($"Elapsed time: {elapsedSec} sec");
         }
 
         private static bool IsFileLocked(FileInfo file)
@@ -122,7 +121,7 @@ namespace ImportListener
                 ariaDBPort = int.Parse(args.ElementAt(4));
                 localAET = args.ElementAt(5);
                 localPort = int.Parse(args.ElementAt(6));
-                if (args.Count() == 8) timeout = double.Parse(args.ElementAt(7));
+                if (args.Count() == 8) timeoutSec = double.Parse(args.ElementAt(7));
                 return false;
             }
             else return true;
@@ -139,14 +138,14 @@ namespace ImportListener
             Console.WriteLine($"Aria DB Daemon Port: {ariaDBPort}");
             Console.WriteLine($"Local Daemon AE Title: {localAET}");
             Console.WriteLine($"Local Daemon Port: {localPort}");
-            Console.WriteLine($"Requested timeout: {timeout} seconds");
+            Console.WriteLine($"Requested timeout: {timeoutSec} seconds");
             Console.WriteLine("");
         }
 
         private static void SetTimer()
         {
             // Create a timer with a 500 msec interval.
-            aTimer = new System.Timers.Timer(500);
+            aTimer = new System.Timers.Timer(updateFrequencyMSec);
             // Hook up the Elapsed event for the timer. 
             aTimer.Elapsed += OnTimedEvent;
             aTimer.AutoReset = true;
@@ -156,23 +155,13 @@ namespace ImportListener
         {
             //increment the time on the progress window for each "tick", which is set to intervals of 1 second
             UpdateProgress();
-            elapsedMS += 500;
+            elapsedSec += (double)(updateFrequencyMSec / 1000);
         }
 
         private static void UpdateProgress()
         {
-            if (barCount == 20)
-            {
-                ClearLine();
-                barCount = 0;
-            }
-            Console.Write("=");
-            barCount++;
-        }
-
-        private static void ClearLine()
-        {
-            Console.Write(_back);
+            Console.Write("\b");
+            Console.Write(_twirl[index++ % _twirl.Length]);
         }
 
         private static (Entity, Entity) ConstructDaemons()
@@ -184,19 +173,19 @@ namespace ImportListener
 
         private static void ListenForRTStruct()
         {
-            while(!filePresent && elapsedMS / 1000 < timeout)
+            while(!filePresent && elapsedSec < timeoutSec)
             {
                 if (CheckDirectoryForRTStruct())
                 {
                     filePresent = true;
                     aTimer.Stop();
-                    Console.WriteLine("");
+                    Console.Write("\b");
                     Console.WriteLine($"Auto contours for patient {mrn} found");
                     Console.WriteLine("");
                 }
                 Wait(10000);
             }
-            Console.WriteLine($"Elapsed time: {elapsedMS}");
+            Console.WriteLine($"Elapsed time: {elapsedSec} sec");
         }
 
         /// <summary>
