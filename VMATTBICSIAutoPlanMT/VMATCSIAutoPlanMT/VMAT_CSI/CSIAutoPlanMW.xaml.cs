@@ -1808,6 +1808,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
         private void TemplateBuildOptionCB_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (app == null)
+            {
+                log.LogError("Error! No connection to ESAPI! Exiting");
+                return;
+            }
             if (selectedSS == null) 
             { 
                 log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!"); 
