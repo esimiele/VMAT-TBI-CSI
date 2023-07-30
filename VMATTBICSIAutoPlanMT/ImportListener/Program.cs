@@ -34,10 +34,11 @@ namespace ImportListener
 
         static void Main(string[] args)
         {
+            //args = new string[] { "\\\\shariatscap105\\Dicom\\RSDCM\\Import\\", "$CSIDryRun_1", "VMSDBD" ,"10.151.176.60" ,"51402" ,"DCMTK" ,"50400" ,"3600" };
             try
             {
                 SetTimer();
-                if (ParseInputArguments(args.ToList()))
+                if (!ParseInputArguments(args.ToList()))
                 {
                     aTimer.Start();
                     PrintConfiguration();

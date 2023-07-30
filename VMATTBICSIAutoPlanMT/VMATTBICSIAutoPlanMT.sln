@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.4.33122.133
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.33529.622
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VMATTBICSIAutoPlanningHelpers", "VMATTBICSIAutoplanningHelpers\VMATTBICSIAutoPlanningHelpers.csproj", "{B3FBF7B5-9E18-43BA-B40F-144682A3956E}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -25,9 +25,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Launcher", "Launcher\Launcher.csproj", "{CF625200-AECB-4F35-A3EC-34FE466966E6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VMATCSIAutoPlanMT", "VMATCSIAutoPlanMT\VMATCSIAutoPlanMT.csproj", "{D708CC35-888E-4FE5-B9C6-B858B9BA0015}"
-	ProjectSection(ProjectDependencies) = postProject
-		{5042CFF4-08AF-4323-83E7-059FBEBE5B61} = {5042CFF4-08AF-4323-83E7-059FBEBE5B61}
-	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VMATTBICSIOptLoopMT", "VMATTBICSIOptLoopMT\VMATTBICSIOptLoopMT.csproj", "{0D8218FD-0F0D-4370-8402-4A8730032EFF}"
 EndProject

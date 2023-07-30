@@ -65,7 +65,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         {
             if (string.IsNullOrEmpty(path))
             {
-                ProvideUIUpdate($"PNG image write location {path} is empty! Exiting!", true);
+                ProvideUIUpdate($"File path {path} is empty! Exiting!", true);
                 return true;
             }
             return false;
@@ -338,9 +338,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 ushort msgId = 1;
                 int numImages = imageStack.Count();
                 int counter = 0;
+                ProvideUIUpdate("Exporting image:");
                 foreach (var img in imageStack)
                 {
-                    ProvideUIUpdate((int)(100 * ++counter / numImages), $"Exporting image: {img.SOPInstanceUID}");
+                    ProvideUIUpdate((int)(100 * ++counter / numImages), $"{img.SOPInstanceUID}");
                     EvilDICOM.Network.DIMSE.CMoveResponse response = mover.SendCMove(img, VMSFileDaemon.AeTitle, ref msgId);
                     if ((Status)response.Status != Status.SUCCESS)
                     {
