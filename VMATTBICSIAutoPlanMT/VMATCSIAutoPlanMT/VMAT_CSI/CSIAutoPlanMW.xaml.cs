@@ -367,7 +367,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             VMS.TPS.Common.Model.API.Image selectedImage = ExportCTUIHelper.GetSelectedImageForExport(CTimageSP, pi.StructureSets.ToList());
             if(selectedImage != null)
             {
-                CTImageExport exporter = new CTImageExport(selectedImage, pi.Id, IEData);
+                CTImageExport exporter = new CTImageExport(selectedImage, pi.Id, IEData, closePWOnFinish);
                 bool result = exporter.Execute();
                 log.AppendLogOutput("Export CT data:", exporter.GetLogOutput());
                 log.OpType = ScriptOperationType.ExportCT;

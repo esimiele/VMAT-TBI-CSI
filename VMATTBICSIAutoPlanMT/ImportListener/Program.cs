@@ -156,7 +156,7 @@ namespace ImportListener
         {
             //increment the time on the progress window for each "tick", which is set to intervals of 1 second
             UpdateProgress();
-            elapsedSec += (double)(updateFrequencyMSec / 1000);
+            elapsedSec += updateFrequencyMSec / 1000;
         }
 
         private static void UpdateProgress()

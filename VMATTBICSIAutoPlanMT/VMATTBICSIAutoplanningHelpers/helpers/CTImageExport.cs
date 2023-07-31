@@ -6,7 +6,6 @@ using System.Runtime.InteropServices;
 using System.Windows.Media.Imaging;
 using System.Collections.Generic;
 using System.Linq;
-using EvilDICOM.Core;
 using EvilDICOM.Core.Helpers;
 using EvilDICOM.Network;
 using EvilDICOM.Network.Enums;
@@ -26,11 +25,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 
         public CTImageExport(VMS.TPS.Common.Model.API.Image img, 
                              string patientID,
-                             ImportExportDataStruct theData) 
+                             ImportExportDataStruct theData,
+                             bool closePW) 
         {
             _image = img;
             _patID = patientID;
             _data = theData;
+            SetCloseOnFinish(closePW, 3000);
         }
 
         public override bool Run()
@@ -56,6 +57,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             {
                 ProvideUIUpdate($"Error! Exception: {e.Message}");
                 ProvideUIUpdate($"{e.StackTrace}", true);
+                CheckAndRemoveImagesIfPresent();
                 return true;
             }
             return false;
@@ -334,6 +336,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 List<EvilDICOM.Network.DIMSE.IOD.CFindInstanceIOD> imageStack = finder.FindImages(ctSeries).ToList();
                 ProvideUIUpdate($"Total CT slices for export: {imageStack.Count()}");
 
+                if (WriteNumImgsFile(imageStack.Count)) return true;
+                
                 EvilDICOM.Network.SCUOps.CMover mover = client.GetCMover(ariaDBDaemon);
                 ushort msgId = 1;
                 int numImages = imageStack.Count();
@@ -346,15 +350,46 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     if ((Status)response.Status != Status.SUCCESS)
                     {
                         CMoveFailed(response);
+                        CheckAndRemoveImagesIfPresent();
                         return true;
                     }
                 }
-                
             }
             else
             {
                 ProvideUIUpdate($"Error! Matching image series not found for UID: {_image.Series.UID}! Exiting!", true);
                 return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Write a simple file with the number of images in the file name (no contents). So Autoseg listener knows how many images to expect
+        /// </summary>
+        /// <param name="numImgs"></param>
+        /// <returns></returns>
+        private bool WriteNumImgsFile(int numImgs)
+        {
+            string folderLoc = Path.Combine(_data.WriteLocation, _patID);
+            if (!Directory.Exists(folderLoc)) Directory.CreateDirectory(folderLoc);
+            string fileName = folderLoc + $"\\{numImgs}";
+            try
+            {
+                File.WriteAllText(fileName, "");
+            }
+            catch (Exception e)
+            {
+                ProvideUIUpdate(e.Message, true);
+            }
+            return false;
+        }
+
+        private bool CheckAndRemoveImagesIfPresent()
+        {
+            string folderLoc = Path.Combine(_data.WriteLocation, _patID);
+            if (Directory.Exists(folderLoc))
+            {
+                Directory.Delete(folderLoc, true);
             }
             return false;
         }
