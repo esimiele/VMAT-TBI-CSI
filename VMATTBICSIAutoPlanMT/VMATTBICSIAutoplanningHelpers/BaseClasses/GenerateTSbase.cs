@@ -214,7 +214,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             int calcItems = 2;
             //all other sub structures
             ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Creating {(margin > 0 ? "outer" : "sub")} structure!");
-            (bool fail, Structure addedStructure) = CheckAndGenerateStructure($"{originalStructure}{margin:0.0}cm");
+            (bool fail, Structure addedStructure) = CheckAndGenerateStructure($"{originalStructure.Id}{margin:0.0}cm");
             if (fail) return true;
             //convert from cm to mm
             //lock(locker)

@@ -195,7 +195,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sp;
         }
 
-        public static StackPanel AddTSManipulation(StackPanel theSP, List<string> structureIds, Tuple<string, TSManipulationType, double> listItem, string clearBtnPrefix, int clearSpareBtnCounter, SelectionChangedEventHandler typeChngHndl, RoutedEventHandler clearEvtHndl)
+        public static StackPanel AddTSManipulation(StackPanel theSP, List<string> structureIds, Tuple<string, TSManipulationType, double> listItem, string clearBtnPrefix, int clearSpareBtnCounter, SelectionChangedEventHandler typeChngHndl, RoutedEventHandler clearEvtHndl, bool skipStructureIdCheck)
         {
             StackPanel sp = new StackPanel
             {
@@ -217,17 +217,29 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             };
 
             str_cb.Items.Add("--select--");
-            //this code is used to fix the issue where the structure exists in the structure set, but doesn't populate as the default option in the combo box.
-            int index = 0;
-            //j is initially 1 because we already added "--select--" to the combo box
-            int j = 1;
-            foreach (string itr in structureIds)
+            if(skipStructureIdCheck)
             {
-                str_cb.Items.Add(itr);
-                if (itr.ToLower() == listItem.Item1.ToLower()) index = j;
-                j++;
+                foreach (string itr in structureIds)
+                {
+                    str_cb.Items.Add(itr);
+                }
+                str_cb.Items.Add(listItem.Item1);
+                str_cb.SelectedIndex = str_cb.Items.Count - 1;
             }
-            str_cb.SelectedIndex = index;
+            else
+            {
+                //this code is used to fix the issue where the structure exists in the structure set, but doesn't populate as the default option in the combo box.
+                int index = 0;
+                //j is initially 1 because we already added "--select--" to the combo box
+                int j = 1;
+                foreach (string itr in structureIds)
+                {
+                    str_cb.Items.Add(itr);
+                    if (itr.ToLower() == listItem.Item1.ToLower()) index = j;
+                    j++;
+                }
+                str_cb.SelectedIndex = index;
+            }
             sp.Children.Add(str_cb);
 
             ComboBox type_cb = new ComboBox

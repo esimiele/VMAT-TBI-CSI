@@ -95,7 +95,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         bool isModified = false;
         bool autoSave = false;
         bool closePWOnFinish = false;
-        bool checkStructuresToUnion = true;
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
         public ObservableCollection<CSIAutoPlanTemplate> PlanTemplates { get; set; }
         //temporary variable to add new templates to the list
@@ -222,6 +221,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //update selected structure set
             selectedSS = pi.StructureSets.FirstOrDefault(x => string.Equals(x.Id, SSID.SelectedItem.ToString()));
             log.StructureSet = selectedSS.Id;
+            structureIdsPostUnion = CheckLRStructures();
         }
 
         private void ClearAllCurrentParameters()
@@ -995,7 +995,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             List<string> ids = selectedSS.Structures.Select(x => x.Id).ToList();
             List<Tuple<Structure, Structure, string>> structuresToUnion = new List<Tuple<Structure, Structure, string>>(StructureTuningHelper.CheckStructuresToUnion(selectedSS));
             foreach (Tuple<Structure, Structure, string> itr in structuresToUnion) ids.Add(itr.Item3);
-            checkStructuresToUnion = false;
             return ids;
         }
 
@@ -1012,7 +1011,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             else
             {
-                if (checkStructuresToUnion) structureIdsPostUnion = CheckLRStructures();
                 theScroller = spareStructScroller;
                 theSP = structureManipulationSP;
             }
@@ -1057,7 +1055,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                                                              clearBtnNamePrefix, 
                                                                              counter, 
                                                                              (delegate (object sender, SelectionChangedEventArgs e) { StructureManipulationType_SelectionChanged(theSP, sender, e); }), 
-                                                                             new RoutedEventHandler(this.ClearStructureManipulationItem_Click)));
+                                                                             new RoutedEventHandler(this.ClearStructureManipulationItem_Click),
+                                                                             theSP.Name.Contains("template")));
             }
         }
 
@@ -1107,7 +1106,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
                 return;
             }
-            if (checkStructuresToUnion) structureIdsPostUnion = CheckLRStructures();
             //copy the sparing structures in the defaultSpareStruct list to a temporary vector
             List<Tuple<string, TSManipulationType, double>> templateManipulationList = new List<Tuple<string, TSManipulationType, double>>(defaultTSStructureManipulations);
             //add the case-specific sparing structures to the temporary list

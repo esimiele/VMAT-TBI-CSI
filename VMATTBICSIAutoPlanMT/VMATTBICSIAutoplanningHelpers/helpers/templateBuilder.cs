@@ -246,8 +246,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         {
             string output = "";
             output += "%initial dose per fraction(cGy) and num fractions" + Environment.NewLine;
-            output += $"initial dose per fraction={prospectiveTemplate.GetInitialRxDosePerFx()}" + Environment.NewLine;
-            output += $"initial num fx={prospectiveTemplate.GetInitialRxDosePerFx()}" + Environment.NewLine;
+            output += $"dose per fraction={prospectiveTemplate.GetInitialRxDosePerFx()}" + Environment.NewLine;
+            output += $"num fx={prospectiveTemplate.GetInitialRxDosePerFx()}" + Environment.NewLine;
             output += "%" + Environment.NewLine;
             output += "%" + Environment.NewLine;
             return output;

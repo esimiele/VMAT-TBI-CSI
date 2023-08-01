@@ -105,7 +105,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         bool isModified = false;
         bool autoSave = false;
         bool closePWOnFinish = false;
-        bool checkStructuresToUnion = true;
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
         public ObservableCollection<TBIAutoPlanTemplate> PlanTemplates { get; set; }
         //temporary variable to add new templates to the list
@@ -253,6 +252,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //update volumes in flash volume combobox with the structures from the current structure set
             flashVolume.Items.Clear();
             foreach (Structure s in selectedSS.Structures) flashVolume.Items.Add(s.Id);
+            structureIdsPostUnion = CheckLRStructures();
         }
 
         private void ClearAllCurrentParameters()
@@ -603,7 +603,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             List<string> ids = selectedSS.Structures.Select(x => x.Id).ToList();
             List<Tuple<Structure, Structure, string>> structuresToUnion = new List<Tuple<Structure, Structure, string>>(StructureTuningHelper.CheckStructuresToUnion(selectedSS));
             foreach (Tuple<Structure, Structure, string> itr in structuresToUnion) ids.Add(itr.Item3);
-            checkStructuresToUnion = false;
             return ids;
         }
 
@@ -724,7 +723,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
             else
             {
-                if (checkStructuresToUnion) structureIdsPostUnion = CheckLRStructures();
                 theScroller = spareStructScroller;
                 theSP = structureManipulationSP;
             }
@@ -745,7 +743,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
                 return;
             }
-            if (checkStructuresToUnion) structureIdsPostUnion = CheckLRStructures();
             //copy the sparing structures in the defaultSpareStruct list to a temporary vector
             List<Tuple<string, TSManipulationType, double>> templateManipulationList = new List<Tuple<string, TSManipulationType, double>>(defaultTSStructureManipulations);
             //add the case-specific sparing structures to the temporary list
@@ -805,7 +802,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                                                                              clearBtnNamePrefix,
                                                                              counter,
                                                                              (delegate (object sender, SelectionChangedEventArgs e) { StructureManipulationType_SelectionChanged(theSP, sender, e); }),
-                                                                             new RoutedEventHandler(this.ClearStructureManipulationItem_Click)));
+                                                                             new RoutedEventHandler(this.ClearStructureManipulationItem_Click),
+                                                                             theSP.Name.Contains("template")));
             }
         }
 
@@ -1755,7 +1753,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 log.LogError("Error! Please preview the requested template before building!");
                 return;
             }
-            string fileName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\CSI\\CSI_" + prospectiveTemplate.GetTemplateName() + ".ini";
+            string fileName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\TBI\\TBI_" + prospectiveTemplate.GetTemplateName() + ".ini";
             if (File.Exists(fileName))
             {
                 ConfirmPrompt CUI = new ConfirmPrompt("Warning! The requested template file already exists! Overwrite?");
