@@ -37,28 +37,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return defaultList;
         }
 
-        public static List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> InsertTSJnxOptConstraints(List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> list, 
-                                                                                                                                   List<Tuple<ExternalPlanSetup,List<Structure>>> jnxs,
-                                                                                                                                   List<Tuple<string,string,int,DoseValue,double>> prescriptions)
-        {
-            //we want to insert the optimization constraints for these junction structure right after the ptv constraints, so find the last index of the target ptv structure and insert
-            //the junction structure constraints directly after the target structure constraints
-            foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in list)
-            {
-                if (jnxs.Any(x => string.Equals(x.Item1.Id.ToLower(), itr.Item1.ToLower())))
-                {
-                    int index = itr.Item2.FindLastIndex(x => x.Item1.ToLower().Contains("ptv") || x.Item1.ToLower().Contains("ts_overlap"));
-                    double rxDose = TargetsHelper.GetHighestRxForPlan(prescriptions, itr.Item1);
-                    foreach (Structure itr1 in jnxs.First(x => string.Equals(x.Item1.Id.ToLower(), itr.Item1.ToLower())).Item2)
-                    {
-                        //per Nataliya's instructions, add both a lower and upper constraint to the junction volumes. Make the constraints match those of the ptv target
-                        itr.Item2.Insert(++index, new Tuple<string, OptimizationObjectiveType, double, double, int>(itr1.Id, OptimizationObjectiveType.Lower, rxDose, 100.0, 100));
-                        itr.Item2.Insert(++index, new Tuple<string, OptimizationObjectiveType, double, double, int>(itr1.Id, OptimizationObjectiveType.Upper, rxDose * 1.01, 0.0, 100));
-                    }
-                }
-            }
-            return list;
-        }
+        
 
         public static List<Tuple<string, OptimizationObjectiveType, double, double, int>> RescalePlanObjectivesToNewRx(List<Tuple<string, OptimizationObjectiveType, double, double, int>> currentList,
                                                                                                                        double oldRx,
@@ -70,6 +49,35 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 tmpList.Add(new Tuple<string, OptimizationObjectiveType, double, double, int>(itr.Item1, itr.Item2, itr.Item3 * newRx / oldRx, itr.Item4, itr.Item5));
             }
             return tmpList;
+        }
+
+        public static List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> UpdateOptObjectivesWithTsStructuresAndJnxs(List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> defaultListList,
+                                                                                                                                                          List<Tuple<string, string, int, DoseValue, double>> prescriptions,
+                                                                                                                                                          object selectedTemplate,
+                                                                                                                                                          List<Tuple<string, List<Tuple<string, string>>>> tsTargets,
+                                                                                                                                                          List<Tuple<ExternalPlanSetup, List<Structure>>> jnxs,
+                                                                                                                                                          List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations = null,
+                                                                                                                                                          List<Tuple<string, string, double>> addedRings = null)
+        {
+            if (tsTargets.Any())
+            {
+                //handles if crop/overlap operations were performed for all targets and the optimization constraints need to be updated
+                defaultListList = OptimizationSetupHelper.UpdateOptimizationConstraints(tsTargets, prescriptions, selectedTemplate, defaultListList);
+            }
+            if (targetManipulations.Any())
+            {
+                //handles if crop/overlap operations were performed for all targets and the optimization constraints need to be updated
+                defaultListList = OptimizationSetupHelper.UpdateOptimizationConstraints(targetManipulations, prescriptions, selectedTemplate, defaultListList);
+            }
+            if (addedRings.Any())
+            {
+                defaultListList = OptimizationSetupHelper.UpdateOptimizationConstraints(addedRings, prescriptions, selectedTemplate, defaultListList);
+            }
+            if (jnxs.Any())
+            {
+                defaultListList = OptimizationSetupHelper.InsertTSJnxOptConstraints(defaultListList, jnxs, prescriptions);
+            }
+            return defaultListList;
         }
 
         public static bool RemoveOptimizationConstraintsFromPLan(ExternalPlanSetup plan)

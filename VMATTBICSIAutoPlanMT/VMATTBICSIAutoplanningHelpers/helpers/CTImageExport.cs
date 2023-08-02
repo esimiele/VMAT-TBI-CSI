@@ -372,7 +372,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         {
             string folderLoc = Path.Combine(_data.WriteLocation, _patID);
             if (!Directory.Exists(folderLoc)) Directory.CreateDirectory(folderLoc);
-            string fileName = folderLoc + $"\\{numImgs}";
+            string fileName = folderLoc + $"\\{numImgs}.txt";
             try
             {
                 File.WriteAllText(fileName, "");

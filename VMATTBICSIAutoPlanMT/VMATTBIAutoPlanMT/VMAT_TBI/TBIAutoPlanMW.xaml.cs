@@ -1169,13 +1169,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         #endregion
 
         #region optimization setup
-        private void PopulateOptimizationTab(StackPanel theSP, List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> tmpList = null, bool checkIfStructurePresentInSS = true, bool updateTsTargetJnxObjectives = false)
+        private void PopulateOptimizationTab(StackPanel theSP, List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> tmpList = null, bool checkIfStructurePresentInSS = true, bool updateTsStructureJnxObjectives = false)
         {
             List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> defaultListList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
             if (tmpList == null)
             {
                 //tmplist is empty indicating that no optimization constraints were present on the UI when this method was called
-                updateTsTargetJnxObjectives = true;
+                updateTsStructureJnxObjectives = true;
                 //retrieve constraints from template
                 (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(templateList.SelectedItem as TBIAutoPlanTemplate, prescriptions);
                 if (!parsedConstraints.constraints.Any())
@@ -1213,14 +1213,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 defaultListList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>(tmpList);
             }
 
-            if (updateTsTargetJnxObjectives && tsTargets.Any())
+            if (updateTsStructureJnxObjectives)
             {
-                //handles if crop/overlap operations were performed for all targets and the optimization constraints need to be updated
-                defaultListList = GeneralUIHelper.UpdateOptimizationObjectiveListWithTsTargets(tsTargets, prescriptions, templateList.SelectedItem as TBIAutoPlanTemplate, defaultListList);
-            }
-            if (updateTsTargetJnxObjectives && jnxs.Any())
-            {
-                defaultListList = OptimizationSetupUIHelper.InsertTSJnxOptConstraints(defaultListList, jnxs, prescriptions);
+                defaultListList = OptimizationSetupUIHelper.UpdateOptObjectivesWithTsStructuresAndJnxs(defaultListList,
+                                                                                                       prescriptions,
+                                                                                                       templateList.SelectedItem,
+                                                                                                       tsTargets,
+                                                                                                       jnxs);
             }
 
             foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in defaultListList) AddOptimizationConstraintItems(itr.Item2, itr.Item1, theSP);
@@ -1292,15 +1291,23 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             Button theBtn = sender as Button;
             StackPanel theSP;
+            string dosePerFxText = "";
+            string numFxText = "";
+            bool checkIfStructIsInSS = true;
             if (theBtn.Name.Contains("template"))
             {
                 theSP = templateOptParamsSP;
+                dosePerFxText = templateInitPlanDosePerFxTB.Text;
+                numFxText = templateInitPlanNumFxTB.Text;
+                checkIfStructIsInSS = false;
             }
             else
             {
                 theSP = optParametersSP;
+                dosePerFxText = dosePerFxTB.Text;
+                numFxText = numFxTB.Text;
             }
-            ClearOptimizationConstraintsList(optParametersSP);
+            ClearOptimizationConstraintsList(theSP);
             TBIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as TBIAutoPlanTemplate;
             if (selectedTemplate != null)
             {
@@ -1321,7 +1328,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //get prescription
                 double dosePerFx = 0.1;
                 int numFractions = 1;
-                if (double.TryParse(dosePerFxTB.Text, out dosePerFx) && int.TryParse(numFxTB.Text, out numFractions))
+                if (double.TryParse(dosePerFxText, out dosePerFx) && int.TryParse(numFxText, out numFractions))
                 {
                     (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(theTemplate, prescriptions);
                     if (!parsedConstraints.constraints.Any())
@@ -1333,7 +1340,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     if (CalculationHelper.AreEqual(theTemplate.GetInitialRxDosePerFx() * theTemplate.GetInitialRxNumFx(), dosePerFx * numFractions))
                     {
                         //currently entered prescription is equal to the prescription dose in the selected template. Simply populate the optimization objective list with the objectives from that template
-                        PopulateOptimizationTab(theSP, parsedConstraints.constraints, true, true);
+                        PopulateOptimizationTab(theSP, parsedConstraints.constraints, checkIfStructIsInSS, true);
                     }
                     else
                     {
@@ -1343,7 +1350,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                         {
                             Tuple.Create(planId, OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.First().Item2, theTemplate.GetInitialRxDosePerFx() * theTemplate.GetInitialRxNumFx(), dosePerFx * numFractions))
                         };
-                        PopulateOptimizationTab(theSP, scaledConstraints, true, true);
+                        PopulateOptimizationTab(theSP, scaledConstraints, checkIfStructIsInSS, true);
                     }
                 }
                 else

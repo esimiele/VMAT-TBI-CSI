@@ -75,6 +75,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         string contourFieldOverlapMargin = "1.0";
         //structure id, Rx dose, plan Id
         List<Tuple<string, double, string>> targets = new List<Tuple<string, double, string>> { };
+        //ts target list
+        //plan id, list<original target id, ts target id>
+        List<Tuple<string, List<Tuple<string, string>>>> tsTargets = new List<Tuple<string, List<Tuple<string, string>>>> { };
+        //planId, lower dose target id, list<manipulation target id, operation>
+        List<Tuple<string, string, List<Tuple<string, string>>>> targetCropOverlapManipulations = new List<Tuple<string, string, List<Tuple<string, string>>>> { };
+        //target id, ring id, dose (cGy)
+        List<Tuple<string, string, double>> addedRings = new List<Tuple<string, string, double>> { };
         //requested preliminary targets from configuration file (i.e., starting point for MD when contouring targets). Same structure as TSStructures below
         List<Tuple<string, string>> prelimTargets = new List<Tuple<string, string>> { };
         //list to hold the current structure ids in the structure set in addition to the prospective ids after unioning the left and right structures together
@@ -1223,6 +1230,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             //populate the beams and optimization tabs
             PopulateBeamsTab();
+            
             if (generate.GetTsTargets().Any() || generate.GetTargetCropOverlapManipulations().Any() || generate.GetAddedRings().Any())
             {
                 List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> tmpList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>{ };
@@ -1349,13 +1357,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (contourOverlap_chkbox.IsChecked.Value)
             {
                 jnxs = place.GetFieldJunctionStructures();
-                (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) parsedOptimizationConstraits = OptimizationSetupUIHelper.ParseOptConstraints(optParametersSP);
-                if (parsedOptimizationConstraits.Item1.Any())
-                {
-                    ClearOptimizationConstraintsList(optParametersSP);
-                    PopulateOptimizationTab(optParametersSP, parsedOptimizationConstraits.Item1);
-                }
-                else log.LogError(parsedOptimizationConstraits.Item2);
+                ClearOptimizationConstraintsList(optParametersSP);
+                PopulateOptimizationTab(optParametersSP);
             }
 
             beamPlacementTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -1413,9 +1416,15 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 defaultListList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> (tmpList);
             }
 
-            if(jnxs.Any())
+            if (updateTsStructureJnxObjectives)
             {
-                defaultListList = OptimizationSetupUIHelper.InsertTSJnxOptConstraints(defaultListList, jnxs, prescriptions);
+                defaultListList = OptimizationSetupUIHelper.UpdateOptObjectivesWithTsStructuresAndJnxs(defaultListList,
+                                                                                                       prescriptions,
+                                                                                                       templateList.SelectedItem,
+                                                                                                       tsTargets,
+                                                                                                       jnxs,
+                                                                                                       targetCropOverlapManipulations,
+                                                                                                       addedRings);
             }
 
             //12/27/2022 this line needs to be fixed as it assumes prescriptions is arranged such that each entry in the list contains a unique plan ID
@@ -1425,25 +1434,78 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in defaultListList) AddOptimizationConstraintItems(itr.Item2, itr.Item1, theSP);
         }
 
+        
+
         private void AddDefaultOptimizationConstraints_Click(object sender, RoutedEventArgs e)
         {
-            if (prescriptions.Any())
+            Button theBtn = sender as Button;
+            StackPanel theSP;
+            string initDosePerFxText = "";
+            string initNumFxText = "";
+            bool checkIfStructIsInSS = true;
+            if (theBtn.Name.Contains("template"))
             {
-                ClearOptimizationConstraintsList(optParametersSP);
-                PopulateOptimizationTab(optParametersSP);
+                theSP = templateOptParamsSP;
+                initDosePerFxText = templateInitPlanDosePerFxTB.Text;
+                initNumFxText = templateInitPlanNumFxTB.Text;
+                checkIfStructIsInSS = false;
             }
             else
             {
-                Course course = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat csi");
-                if (course == null)
+                theSP = optParametersSP;
+                initDosePerFxText = initDosePerFxTB.Text;
+                initNumFxText = initNumFxTB.Text;
+            }
+            ClearOptimizationConstraintsList(theSP);
+            CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
+            if (selectedTemplate != null)
+            {
+                //plan template selection is valid --> populate optimization list with optimization objectives from that template (handled in populate optimization tab if second argument is null)
+                PopulateOptimizationTab(theSP);
+            }
+            else
+            {
+                //no plan template selected --> copy and scale objectives from an existing template
+                CSIAutoPlanTemplate theTemplate = null;
+                string selectedTemplateId = GeneralUIHelper.PromptUserToSelectPlanTemplate(PlanTemplates.Select(x => x.TemplateName).ToList());
+                if (string.IsNullOrEmpty(selectedTemplateId))
                 {
-                    log.LogError("Error: No VMAT CSI course found! \nYou must create a plan before scanning the structure set to add optimization constraints!");
+                    log.LogError("Template not found! Exiting!");
                     return;
                 }
-                List<ExternalPlanSetup> thePlans = course.ExternalPlanSetups.OrderByDescending(x => x.TotalDose).ToList();
-                PopulateOptimizationTab(optParametersSP, null, true);
-                //list the plan UIDs in ascending order
-                log.PlanUIDs = thePlans.OrderBy(x => x.CreationDateTime).Select(y => y.UID).ToList();
+                theTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.GetTemplateName(), selectedTemplateId));
+                //get prescription
+                double dosePerFx = 0.1;
+                int numFractions = 1;
+                if (double.TryParse(initDosePerFxText, out dosePerFx) && int.TryParse(initNumFxText, out numFractions))
+                {
+                    (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(theTemplate, prescriptions);
+                    if (!parsedConstraints.constraints.Any())
+                    {
+                        log.LogError(parsedConstraints.errorMessage);
+                        return;
+                    }
+                    //assumes you set all targets and upstream items correctly (as you would have had to place beams prior to this point)
+                    if (CalculationHelper.AreEqual(theTemplate.GetInitialRxDosePerFx() * theTemplate.GetInitialRxNumFx(), dosePerFx * numFractions))
+                    {
+                        //currently entered prescription is equal to the prescription dose in the selected template. Simply populate the optimization objective list with the objectives from that template
+                        PopulateOptimizationTab(theSP, parsedConstraints.constraints, checkIfStructIsInSS, true);
+                    }
+                    else
+                    {
+                        //entered prescription differs from prescription in template --> need to rescale all objectives by ratio of prescriptions
+                        string planId = parsedConstraints.constraints.First().Item1;
+                        List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> scaledConstraints = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>
+                        {
+                            Tuple.Create(planId, OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.First().Item2, theTemplate.GetInitialRxDosePerFx() * theTemplate.GetInitialRxNumFx(), dosePerFx * numFractions))
+                        };
+                        PopulateOptimizationTab(theSP, scaledConstraints, checkIfStructIsInSS, true);
+                    }
+                }
+                else
+                {
+                    log.LogError("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
+                }
             }
         }
 
@@ -1519,7 +1581,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             Button theBtn = sender as Button;
             StackPanel theSP;
-            if (theBtn.Name.Contains("template")) theSP = templateOptParams_sp;
+            if (theBtn.Name.Contains("template")) theSP = templateOptParamsSP;
             else theSP = optParametersSP;
             if (!prescriptions.Any()) return;
             ExternalPlanSetup thePlan = null;
@@ -1641,7 +1703,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private void ClearOptimizationConstraintsList_Click(object sender, RoutedEventArgs e)
         {
             StackPanel theSP;
-            if ((sender as Button).Name.Contains("template")) theSP = templateOptParams_sp;
+            if ((sender as Button).Name.Contains("template")) theSP = templateOptParamsSP;
             else theSP = optParametersSP;
             ClearOptimizationConstraintsList(theSP);
         }
@@ -1649,7 +1711,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private void ClearOptimizationConstraint_Click(object sender, EventArgs e)
         {
             StackPanel theSP;
-            if ((sender as Button).Name.Contains("template")) theSP = templateOptParams_sp;
+            if ((sender as Button).Name.Contains("template")) theSP = templateOptParamsSP;
             else theSP = optParametersSP;
             if (GeneralUIHelper.ClearRow(sender, theSP)) ClearOptimizationConstraintsList(theSP);
         }
@@ -1868,7 +1930,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     log.LogError(parsedConstraints.Item2);
                     return;
                 }
-                PopulateOptimizationTab(templateOptParams_sp, parsedConstraints.Item1, false);
+                PopulateOptimizationTab(templateOptParamsSP, parsedConstraints.Item1, false);
             }
             else if(templateBuildOptionCB.SelectedItem.ToString().ToLower() == "current parameters")
             {
@@ -1939,8 +2001,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     log.LogError(parsedOptimizationConstraints.Item2);
                     return;
                 }
-                ClearOptimizationConstraintsList(templateOptParams_sp);
-                PopulateOptimizationTab(templateOptParams_sp, parsedOptimizationConstraints.Item1, false);
+                ClearOptimizationConstraintsList(templateOptParamsSP);
+                PopulateOptimizationTab(templateOptParamsSP, parsedOptimizationConstraints.Item1, false);
             }
         }
 
@@ -1997,7 +2059,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             prospectiveTemplate.SetCreateRings(RingUIHelper.ParseCreateRingList(templateCreateRingsSP).Item1);
             prospectiveTemplate.SetCropAndOverlapStructures(CropOverlapOARUIHelper.ParseCropOverlapOARList(templateCropOverlapOARsSP).Item1);
             prospectiveTemplate.SetTSManipulations(StructureTuningUIHelper.ParseTSManipulationList(templateStructuresSP).Item1);
-            List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> templateOptParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(templateOptParams_sp).Item1;
+            List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> templateOptParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(templateOptParamsSP).Item1;
             prospectiveTemplate.SetInitOptimizationConstraints(templateOptParametersListList.First().Item2);
             prospectiveTemplate.SetBoostOptimizationConstraints(templateOptParametersListList.Last().Item2);
 
