@@ -1369,12 +1369,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         #region OptimizationSetup
         //stuff related to optimization setup tab
-        private void PopulateOptimizationTab(StackPanel theSP, List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> tmpList = null, bool checkIfStructurePresentInSS = true)
+        private void PopulateOptimizationTab(StackPanel theSP, List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> tmpList = null, bool checkIfStructurePresentInSS = true, bool updateTsStructureJnxObjectives = false)
         {
             List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> defaultListList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
             if(tmpList == null)
             {
                 //tmplist is empty indicating that no optimization constraints were present on the UI when this method was called
+                updateTsStructureJnxObjectives = true;
                 //retrieve constraints from template
                 (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(templateList.SelectedItem as CSIAutoPlanTemplate, prescriptions);
                 if(!parsedConstraints.constraints.Any())
@@ -1424,7 +1425,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in defaultListList) AddOptimizationConstraintItems(itr.Item2, itr.Item1, theSP);
         }
 
-        private void ScanSSAndAddOptimizationConstraints_Click(object sender, RoutedEventArgs e)
+        private void AddDefaultOptimizationConstraints_Click(object sender, RoutedEventArgs e)
         {
             if (prescriptions.Any())
             {

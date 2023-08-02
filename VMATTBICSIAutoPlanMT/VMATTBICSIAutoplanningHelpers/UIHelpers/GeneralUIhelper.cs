@@ -1,4 +1,13 @@
-﻿using System.Windows.Controls;
+﻿using System;
+using System.Collections.Generic;
+using System.Windows.Controls;
+using VMATTBICSIAutoPlanningHelpers.Enums;
+using VMATTBICSIAutoPlanningHelpers.Helpers;
+using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
+using VMATTBICSIAutoPlanningHelpers.BaseClasses;
+using VMS.TPS.Common.Model.Types;
+using VMATTBICSIAutoPlanningHelpers.Prompts;
+using System.Linq;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
@@ -39,6 +48,40 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         public static void ClearList(StackPanel theSP)
         {
             theSP.Children.Clear();
+        }
+
+        /// <summary>
+        /// Helper method to populate an optimization objective list with default objectives supplied in the plan template and replace the target objectives with the generated TSTargets from
+        /// TS generation and manipulation
+        /// </summary>
+        /// <param name="tsTargets"></param>
+        /// <param name="prescriptions"></param>
+        /// <param name="template"></param>
+        /// <returns></returns>
+        public static List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> UpdateOptimizationObjectiveListWithTsTargets(List<Tuple<string, List<Tuple<string, string>>>> tsTargets,
+                                                                                                                                                    List<Tuple<string, string, int, DoseValue, double>> prescriptions,
+                                                                                                                                                    TBIAutoPlanTemplate template,
+                                                                                                                                                    List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> currentList = null)
+        {
+            return OptimizationSetupHelper.UpdateOptimizationConstraints(tsTargets, 
+                                                                         prescriptions, 
+                                                                         template, 
+                                                                         currentList);
+        }
+
+        /// <summary>
+        /// Helper method to prompt the user to select a plan template
+        /// </summary>
+        /// <param name="availableTemplateIds"></param>
+        /// <returns></returns>
+        public static string PromptUserToSelectPlanTemplate(List<string> availableTemplateIds)
+        {
+            string selectedTemplateId = "";
+            SelectItemPrompt SIP = new SelectItemPrompt("Please select an existing template!", availableTemplateIds);
+            SIP.ShowDialog();
+            // linq query used to check that the selected template id exists in the list of available template ids (returns null)
+            if (SIP.GetSelection()) selectedTemplateId = availableTemplateIds.FirstOrDefault(x => string.Equals(x, SIP.GetSelectedItem()));
+            return selectedTemplateId;
         }
     }
 }

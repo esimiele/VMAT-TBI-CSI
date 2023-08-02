@@ -60,6 +60,18 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return list;
         }
 
+        public static List<Tuple<string, OptimizationObjectiveType, double, double, int>> RescalePlanObjectivesToNewRx(List<Tuple<string, OptimizationObjectiveType, double, double, int>> currentList,
+                                                                                                                       double oldRx,
+                                                                                                                       double newRx)
+        {
+            List<Tuple<string, OptimizationObjectiveType, double, double, int>> tmpList = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+            foreach(Tuple<string, OptimizationObjectiveType, double, double, int> itr in currentList)
+            {
+                tmpList.Add(new Tuple<string, OptimizationObjectiveType, double, double, int>(itr.Item1, itr.Item2, itr.Item3 * newRx / oldRx, itr.Item4, itr.Item5));
+            }
+            return tmpList;
+        }
+
         public static bool RemoveOptimizationConstraintsFromPLan(ExternalPlanSetup plan)
         {
             if (plan.OptimizationSetup.Objectives.Count() > 0)

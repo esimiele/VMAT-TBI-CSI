@@ -82,6 +82,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         public int clearTemplateOptBtnCounter = 0;
         //structure id, Rx dose, plan Id
         List<Tuple<string, double, string>> targets = new List<Tuple<string, double, string>> { };
+        //ts target list
+        //plan id, list<original target id, ts target id>
+        List<Tuple<string, List<Tuple<string, string>>>> tsTargets = new List<Tuple<string, List<Tuple<string, string>>>> { };
         //general tuning structures to be added (if selected for sparing) to all case types
         //default general tuning structures to be added (specified in CSI_plugin_config.ini file)
         List<Tuple<string, string>> defaultTSStructures = new List<Tuple<string, string>> { };
@@ -988,14 +991,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             numVMATIsos = generate.GetNumberOfVMATIsocenters();
            
             PopulateBeamsTab();
-            if (generate.GetTsTargets().Any())
-            {
-                List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> tmpList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
-                if (generate.GetTsTargets().Any()) tmpList = OptimizationSetupHelper.UpdateOptimizationConstraints(generate.GetTsTargets(), prescriptions, templateList.SelectedItem, tmpList);
-                //handles if crop/overlap operations were performed for all targets and the optimization constraints need to be updated
-                PopulateOptimizationTab(optParametersSP, tmpList);
-            }
-            else PopulateOptimizationTab(optParametersSP);
+            if (generate.GetTsTargets().Any()) tsTargets = generate.GetTsTargets();
+            PopulateOptimizationTab(optParametersSP);
 
             isModified = true;
             structureTuningTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -1159,13 +1156,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (contourOverlap_chkbox.IsChecked.Value)
             {
                 jnxs = place.GetFieldJunctionStructures();
-                (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optParametersSP);
-                if (parsedOptimizationConstraints.Item1.Any())
-                {
-                    ClearOptimizationConstraintsList(optParametersSP);
-                    PopulateOptimizationTab(optParametersSP, parsedOptimizationConstraints.Item1);
-                }
-                else log.LogError(parsedOptimizationConstraints.Item2);
+                ClearOptimizationConstraintsList(optParametersSP);
+                PopulateOptimizationTab(optParametersSP);
             }
 
             beamPlacementTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -1177,12 +1169,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         #endregion
 
         #region optimization setup
-        private void PopulateOptimizationTab(StackPanel theSP, List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> tmpList = null, bool checkIfStructurePresentInSS = true)
+        private void PopulateOptimizationTab(StackPanel theSP, List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> tmpList = null, bool checkIfStructurePresentInSS = true, bool updateTsTargetJnxObjectives = false)
         {
             List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> defaultListList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
             if (tmpList == null)
             {
                 //tmplist is empty indicating that no optimization constraints were present on the UI when this method was called
+                updateTsTargetJnxObjectives = true;
                 //retrieve constraints from template
                 (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(templateList.SelectedItem as TBIAutoPlanTemplate, prescriptions);
                 if (!parsedConstraints.constraints.Any())
@@ -1220,7 +1213,12 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 defaultListList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>(tmpList);
             }
 
-            if (jnxs.Any())
+            if (updateTsTargetJnxObjectives && tsTargets.Any())
+            {
+                //handles if crop/overlap operations were performed for all targets and the optimization constraints need to be updated
+                defaultListList = GeneralUIHelper.UpdateOptimizationObjectiveListWithTsTargets(tsTargets, prescriptions, templateList.SelectedItem as TBIAutoPlanTemplate, defaultListList);
+            }
+            if (updateTsTargetJnxObjectives && jnxs.Any())
             {
                 defaultListList = OptimizationSetupUIHelper.InsertTSJnxOptConstraints(defaultListList, jnxs, prescriptions);
             }
@@ -1270,7 +1268,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private void ClearOptimizationConstraintsList_Click(object sender, RoutedEventArgs e)
         {
             StackPanel theSP;
-            if ((sender as Button).Name.Contains("template")) theSP = templateOptParams_sp;
+            if ((sender as Button).Name.Contains("template")) theSP = templateOptParamsSP;
             else theSP = optParametersSP;
             ClearOptimizationConstraintsList(theSP);
         }
@@ -1278,7 +1276,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private void ClearOptimizationConstraint_Click(object sender, EventArgs e)
         {
             StackPanel theSP;
-            if ((sender as Button).Name.Contains("template")) theSP = templateOptParams_sp;
+            if ((sender as Button).Name.Contains("template")) theSP = templateOptParamsSP;
             else theSP = optParametersSP;
             if (GeneralUIHelper.ClearRow(sender, theSP)) ClearOptimizationConstraintsList(theSP);
         }
@@ -1290,26 +1288,69 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             else clearOptBtnCounter = 0;
         }
 
-        private void ScanSS_Click(object sender, RoutedEventArgs e)
+        private void AddDefaultOptimizationConstraints_Click(object sender, RoutedEventArgs e)
         {
-            //get prescription
-            double dosePerFx = 0.1;
-            int numFractions = 1;
-            if (double.TryParse(dosePerFxTB.Text, out dosePerFx) && int.TryParse(numFxTB.Text, out numFractions))
+            Button theBtn = sender as Button;
+            StackPanel theSP;
+            if (theBtn.Name.Contains("template"))
             {
-                prescriptions.Add(Tuple.Create("PTV_Body", "_VMAT TBI", numFractions, new DoseValue(dosePerFx, DoseValue.DoseUnit.cGy), dosePerFx * numFractions));
+                theSP = templateOptParamsSP;
             }
             else
             {
-                log.LogError("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
+                theSP = optParametersSP;
             }
-            prescriptions.Add(Tuple.Create("PTV_Body", "_VMAT TBI", numFractions, new DoseValue(dosePerFx, DoseValue.DoseUnit.cGy), dosePerFx * numFractions));
-            if (selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ts_jnx")).Any())
+            ClearOptimizationConstraintsList(optParametersSP);
+            TBIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as TBIAutoPlanTemplate;
+            if (selectedTemplate != null)
             {
-                jnxs = new List<Tuple<ExternalPlanSetup, List<Structure>>> { new Tuple<ExternalPlanSetup, List<Structure>>(null, selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ts_jnx")).ToList()) };
+                //plan template selection is valid --> populate optimization list with optimization objectives from that template (handled in populate optimization tab if second argument is null)
+                PopulateOptimizationTab(theSP);
             }
-
-            //PopulateOptimizationTab();
+            else
+            {
+                //no plan template selected --> copy and scale objectives from an existing template
+                TBIAutoPlanTemplate theTemplate = null;
+                string selectedTemplateId = GeneralUIHelper.PromptUserToSelectPlanTemplate(PlanTemplates.Select(x => x.TemplateName).ToList());
+                if (string.IsNullOrEmpty(selectedTemplateId))
+                {
+                    log.LogError("Template not found! Exiting!");
+                    return;
+                }
+                theTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.GetTemplateName(), selectedTemplateId));
+                //get prescription
+                double dosePerFx = 0.1;
+                int numFractions = 1;
+                if (double.TryParse(dosePerFxTB.Text, out dosePerFx) && int.TryParse(numFxTB.Text, out numFractions))
+                {
+                    (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(theTemplate, prescriptions);
+                    if (!parsedConstraints.constraints.Any())
+                    {
+                        log.LogError(parsedConstraints.errorMessage);
+                        return;
+                    }
+                    //assumes you set all targets and upstream items correctly (as you would have had to place beams prior to this point)
+                    if (CalculationHelper.AreEqual(theTemplate.GetInitialRxDosePerFx() * theTemplate.GetInitialRxNumFx(), dosePerFx * numFractions))
+                    {
+                        //currently entered prescription is equal to the prescription dose in the selected template. Simply populate the optimization objective list with the objectives from that template
+                        PopulateOptimizationTab(theSP, parsedConstraints.constraints, true, true);
+                    }
+                    else
+                    {
+                        //entered prescription differs from prescription in template --> need to rescale all objectives by ratio of prescriptions
+                        string planId = parsedConstraints.constraints.First().Item1;
+                        List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> scaledConstraints = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>
+                        {
+                            Tuple.Create(planId, OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.First().Item2, theTemplate.GetInitialRxDosePerFx() * theTemplate.GetInitialRxNumFx(), dosePerFx * numFractions))
+                        };
+                        PopulateOptimizationTab(theSP, scaledConstraints, true, true);
+                    }
+                }
+                else
+                {
+                    log.LogError("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
+                }
+            }
         }
 
         private void SetOptConst_Click(object sender, RoutedEventArgs e)
@@ -1386,7 +1427,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             Button theBtn = sender as Button;
             StackPanel theSP;
-            if (theBtn.Name.Contains("template")) theSP = templateOptParams_sp;
+            if (theBtn.Name.Contains("template")) theSP = templateOptParamsSP;
             else theSP = optParametersSP;
             if (!prescriptions.Any()) return;
             List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> tmpListList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
@@ -1417,6 +1458,14 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     }
                     else tmp.Add(Tuple.Create("--select--", OptimizationObjectiveType.None, 0.0, 0.0, 0));
                     tmpListList.Add(Tuple.Create(prescriptions.First().Item1, tmp));
+                }
+                else
+                {
+                    if (VMATplan != null)
+                    {
+                        tmpListList.Add(Tuple.Create(VMATplan.Id, new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { Tuple.Create("--select--", OptimizationObjectiveType.None, 0.0, 0.0, 0) }));
+                    }
+                    else log.LogError("Error! Please generate a VMAT plan and place beams prior to adding optimization constraints!");
                 }
             }
             ClearOptimizationConstraintsList(theSP);
@@ -1611,16 +1660,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (templateBuildOptionCB.SelectedItem.ToString().ToLower() == "existing template")
             {
                 TBIAutoPlanTemplate theTemplate = null;
-                SelectItemPrompt SIP = new SelectItemPrompt("Please select an existing template!", PlanTemplates.Select(x => x.TemplateName).ToList());
-                SIP.ShowDialog();
-                if (SIP.GetSelection()) theTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.GetTemplateName(), SIP.GetSelectedItem()));
-                else return;
-                if (theTemplate == null)
+                string selectedTemplateId = GeneralUIHelper.PromptUserToSelectPlanTemplate(PlanTemplates.Select(x => x.TemplateName).ToList());
+                if (string.IsNullOrEmpty(selectedTemplateId))
                 {
                     log.LogError("Template not found! Exiting!");
                     return;
                 }
-
+                theTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.GetTemplateName(), selectedTemplateId));
                 //set name
                 templateNameTB.Text = theTemplate.GetTemplateName() + "_1";
 
@@ -1648,7 +1694,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     log.LogError(parsedConstraints.Item2);
                     return;
                 }
-                PopulateOptimizationTab(templateOptParams_sp, parsedConstraints.Item1, false);
+                PopulateOptimizationTab(templateOptParamsSP, parsedConstraints.Item1, false);
             }
             else if (templateBuildOptionCB.SelectedItem.ToString().ToLower() == "current parameters")
             {
@@ -1696,8 +1742,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     log.LogError(parsedOptimizationConstraints.Item2);
                     return;
                 }
-                ClearOptimizationConstraintsList(templateOptParams_sp);
-                PopulateOptimizationTab(templateOptParams_sp, parsedOptimizationConstraints.Item1, false);
+                ClearOptimizationConstraintsList(templateOptParamsSP);
+                PopulateOptimizationTab(templateOptParamsSP, parsedOptimizationConstraints.Item1, false);
             }
         }
 
@@ -1734,7 +1780,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             prospectiveTemplate.SetTargets(TargetsUIHelper.ParseTargets(templateTargetsSP).Item1.OrderBy(x => x.Item2).ToList());
             prospectiveTemplate.SetCreateTSStructures(StructureTuningUIHelper.ParseCreateTSStructureList(templateTSSP).Item1);
             prospectiveTemplate.SetTSManipulations(StructureTuningUIHelper.ParseTSManipulationList(templateStructuresSP).Item1);
-            List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> templateOptParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(templateOptParams_sp).Item1;
+            List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> templateOptParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(templateOptParamsSP).Item1;
             prospectiveTemplate.SetInitOptimizationConstraints(templateOptParametersListList.First().Item2);
 
             templatePreviewTB.Text = TemplateBuilder.GenerateTemplatePreviewText(prospectiveTemplate).ToString();
