@@ -51,25 +51,6 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         }
 
         /// <summary>
-        /// Helper method to populate an optimization objective list with default objectives supplied in the plan template and replace the target objectives with the generated TSTargets from
-        /// TS generation and manipulation
-        /// </summary>
-        /// <param name="tsTargets"></param>
-        /// <param name="prescriptions"></param>
-        /// <param name="template"></param>
-        /// <returns></returns>
-        public static List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> UpdateOptimizationObjectiveListWithTsTargets(List<Tuple<string, List<Tuple<string, string>>>> tsTargets,
-                                                                                                                                                    List<Tuple<string, string, int, DoseValue, double>> prescriptions,
-                                                                                                                                                    TBIAutoPlanTemplate template,
-                                                                                                                                                    List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> currentList = null)
-        {
-            return OptimizationSetupHelper.UpdateOptimizationConstraints(tsTargets, 
-                                                                         prescriptions, 
-                                                                         template, 
-                                                                         currentList);
-        }
-
-        /// <summary>
         /// Helper method to prompt the user to select a plan template
         /// </summary>
         /// <param name="availableTemplateIds"></param>

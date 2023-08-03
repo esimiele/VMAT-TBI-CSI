@@ -313,12 +313,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             else if (int.TryParse(initNumFxTB.Text, out int newNumFx) && double.TryParse(initDosePerFxTB.Text, out double newDoseFx))
             {
                 initRxTB.Text = (newNumFx * newDoseFx).ToString();
-                CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
-                if (selectedTemplate != null)
-                {
-                    //verify that the entered dose/fx and num fx agree with those stored in the template, otherwise unselect the template
-                    if (newNumFx != selectedTemplate.GetInitialRxNumFx() || newDoseFx != selectedTemplate.GetInitialRxDosePerFx()) templateList.UnselectAll();
-                }
+                //CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
+                //if (selectedTemplate != null)
+                //{
+                //    //verify that the entered dose/fx and num fx agree with those stored in the template, otherwise unselect the template
+                //    if (newNumFx != selectedTemplate.GetInitialRxNumFx() || newDoseFx != selectedTemplate.GetInitialRxDosePerFx()) templateList.UnselectAll();
+                //}
             }
         }
 
@@ -350,12 +350,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             else if (int.TryParse(boostNumFxTB.Text, out int newNumFx) && double.TryParse(boostDosePerFxTB.Text, out double newDoseFx))
             {
                 boostRxTB.Text = (newNumFx * newDoseFx).ToString();
-                CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
-                if (selectedTemplate != null)
-                {
-                    //verify that the entered dose/fx and num fx agree with those stored in the template, otherwise unselect the template
-                    if (newNumFx != selectedTemplate.GetBoostRxNumFx() || newDoseFx != selectedTemplate.GetBoostRxDosePerFx()) templateList.UnselectAll();
-                }
+                //CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
+                //if (selectedTemplate != null)
+                //{
+                //    //verify that the entered dose/fx and num fx agree with those stored in the template, otherwise unselect the template
+                //    if (newNumFx != selectedTemplate.GetBoostRxNumFx() || newDoseFx != selectedTemplate.GetBoostRxDosePerFx()) templateList.UnselectAll();
+                //}
             }
         }
 
@@ -397,7 +397,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             PrelimTargetGenerationSP.Children.Clear();
             List<string> missingPrelimTargets = new List<string> { };
-            List<String> approvedTargets = new List<string> { };
+            List<string> approvedTargets = new List<string> { };
             if (prelimTargets.Any())
             {
                 foreach (string itr in prelimTargets.Select(x => x.Item2))
@@ -966,6 +966,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 log.LogError("Error! Please select a Structure Set before adding ring structures!");
                 return;
             }
+            if (!OARs.Any()) return;
             if (theSP.Children.Count == 0) theSP.Children.Add(CropOverlapOARUIHelper.GetCropOverlapHeader());
             int counter = 0;
             string clearBtnName = "ClearCropOverlapOARBtn";
@@ -1230,17 +1231,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             //populate the beams and optimization tabs
             PopulateBeamsTab();
-            
-            if (generate.GetTsTargets().Any() || generate.GetTargetCropOverlapManipulations().Any() || generate.GetAddedRings().Any())
-            {
-                List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> tmpList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>{ };
-                if(generate.GetTsTargets().Any()) tmpList = OptimizationSetupHelper.UpdateOptimizationConstraints(generate.GetTsTargets(), prescriptions, templateList.SelectedItem, tmpList);
-                if(generate.GetTargetCropOverlapManipulations().Any()) tmpList = OptimizationSetupHelper.UpdateOptimizationConstraints(generate.GetTargetCropOverlapManipulations(), prescriptions, templateList.SelectedItem, tmpList);
-                if(generate.GetAddedRings().Any()) tmpList = OptimizationSetupHelper.UpdateOptimizationConstraints(generate.GetAddedRings(), prescriptions, templateList.SelectedItem, tmpList);
-                //handles if crop/overlap operations were performed for all targets and the optimization constraints need to be updated
-                PopulateOptimizationTab(optParametersSP, tmpList);
-            }
-            else PopulateOptimizationTab(optParametersSP);
+            if (generate.GetTsTargets().Any()) tsTargets = generate.GetTsTargets();
+            if (generate.GetTargetCropOverlapManipulations().Any()) targetCropOverlapManipulations = generate.GetTargetCropOverlapManipulations();
+            if (generate.GetAddedRings().Any()) addedRings = generate.GetAddedRings();
+            PopulateOptimizationTab(optParametersSP);
+
             isModified = true;
             structureTuningTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             TSManipulationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -1440,21 +1435,21 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             Button theBtn = sender as Button;
             StackPanel theSP;
-            string initDosePerFxText = "";
-            string initNumFxText = "";
+            string initRxText = "";
+            string bstRxText = "";
             bool checkIfStructIsInSS = true;
             if (theBtn.Name.Contains("template"))
             {
                 theSP = templateOptParamsSP;
-                initDosePerFxText = templateInitPlanDosePerFxTB.Text;
-                initNumFxText = templateInitPlanNumFxTB.Text;
+                initRxText = templateInitPlanRxTB.Text;
+                bstRxText = templateBstPlanRxTB.Text;
                 checkIfStructIsInSS = false;
             }
             else
             {
                 theSP = optParametersSP;
-                initDosePerFxText = initDosePerFxTB.Text;
-                initNumFxText = initNumFxTB.Text;
+                initRxText = initRxTB.Text;
+                bstRxText = boostRxTB.Text;
             }
             ClearOptimizationConstraintsList(theSP);
             CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
@@ -1475,36 +1470,43 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 }
                 theTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.GetTemplateName(), selectedTemplateId));
                 //get prescription
-                double dosePerFx = 0.1;
-                int numFractions = 1;
-                if (double.TryParse(initDosePerFxText, out dosePerFx) && int.TryParse(initNumFxText, out numFractions))
+                double initRx = 0.1;
+                double bstRx = 0.1;
+
+                if (!double.TryParse(initRxText, out initRx))
                 {
-                    (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(theTemplate, prescriptions);
-                    if (!parsedConstraints.constraints.Any())
-                    {
-                        log.LogError(parsedConstraints.errorMessage);
-                        return;
-                    }
-                    //assumes you set all targets and upstream items correctly (as you would have had to place beams prior to this point)
-                    if (CalculationHelper.AreEqual(theTemplate.GetInitialRxDosePerFx() * theTemplate.GetInitialRxNumFx(), dosePerFx * numFractions))
-                    {
-                        //currently entered prescription is equal to the prescription dose in the selected template. Simply populate the optimization objective list with the objectives from that template
-                        PopulateOptimizationTab(theSP, parsedConstraints.constraints, checkIfStructIsInSS, true);
-                    }
-                    else
-                    {
-                        //entered prescription differs from prescription in template --> need to rescale all objectives by ratio of prescriptions
-                        string planId = parsedConstraints.constraints.First().Item1;
-                        List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> scaledConstraints = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>
-                        {
-                            Tuple.Create(planId, OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.First().Item2, theTemplate.GetInitialRxDosePerFx() * theTemplate.GetInitialRxNumFx(), dosePerFx * numFractions))
-                        };
-                        PopulateOptimizationTab(theSP, scaledConstraints, checkIfStructIsInSS, true);
-                    }
+                    log.LogError("Warning! Entered initial plan prescription is not valid! \nCannot scale optimization objectives to requested Rx! Exiting!");
+                    return;
+                }
+                if (theTemplate.GetBoostRxDosePerFx() != 0.1 && !double.TryParse(bstRxText, out bstRx))
+                {
+                    log.LogError("Warning! Entered initial plan prescription is not valid! \nCannot scale optimization objectives to requested Rx! Exiting!");
+                    return;
+                }
+                (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(theTemplate, prescriptions);
+                if (!parsedConstraints.constraints.Any())
+                {
+                    log.LogError(parsedConstraints.errorMessage);
+                    return;
+                }
+                //assumes you set all targets and upstream items correctly (as you would have had to place beams prior to this point)
+                if (CalculationHelper.AreEqual(theTemplate.GetInitialRxDosePerFx() * theTemplate.GetInitialRxNumFx(), initRx) && (bstRx == 0.1 || CalculationHelper.AreEqual(theTemplate.GetBoostRxDosePerFx() * theTemplate.GetBoostRxNumFx(), bstRx)))
+                {
+                    //currently entered prescription is equal to the prescription dose in the selected template. Simply populate the optimization objective list with the objectives from that template
+                    PopulateOptimizationTab(theSP, parsedConstraints.constraints, checkIfStructIsInSS, true);
                 }
                 else
                 {
-                    log.LogError("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
+                    //entered prescription differs from prescription in template --> need to rescale all objectives by ratio of prescriptions
+                    List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> scaledConstraints = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>
+                    {
+                        Tuple.Create(parsedConstraints.constraints.First().Item1, OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.First().Item2, theTemplate.GetInitialRxDosePerFx() * theTemplate.GetInitialRxNumFx(), initRx))
+                    };
+                    if(bstRx != 0.1)
+                    {
+                        scaledConstraints.Add(Tuple.Create(parsedConstraints.constraints.Last().Item1, OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.Last().Item2, theTemplate.GetBoostRxDosePerFx() * theTemplate.GetBoostRxNumFx(), bstRx)));
+                    }
+                    PopulateOptimizationTab(theSP, scaledConstraints, checkIfStructIsInSS, true);
                 }
             }
         }

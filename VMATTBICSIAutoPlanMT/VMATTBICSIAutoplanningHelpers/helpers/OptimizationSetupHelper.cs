@@ -204,7 +204,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     if (isCSIplan)
                     {
                         if ((selectedTemplate as CSIAutoPlanTemplate).GetInitOptimizationConstraints().Any()) list.Add(Tuple.Create("CSI-init", (selectedTemplate as CSIAutoPlanTemplate).GetInitOptimizationConstraints()));
-                        if (planTargets.Count > 1 && (selectedTemplate as CSIAutoPlanTemplate).GetBoostOptimizationConstraints().Any()) list.Add(Tuple.Create("CSI-bst", (selectedTemplate as CSIAutoPlanTemplate).GetBoostOptimizationConstraints()));
+                        if ((selectedTemplate as CSIAutoPlanTemplate).GetBoostRxDosePerFx() != 0.1 && (selectedTemplate as CSIAutoPlanTemplate).GetBoostOptimizationConstraints().Any()) list.Add(Tuple.Create("CSI-bst", (selectedTemplate as CSIAutoPlanTemplate).GetBoostOptimizationConstraints()));
                     }
                     else if ((selectedTemplate as TBIAutoPlanTemplate).GetInitOptimizationConstraints().Any()) list.Add(Tuple.Create("VMAT-TBI", (selectedTemplate as TBIAutoPlanTemplate).GetInitOptimizationConstraints()));
                 }

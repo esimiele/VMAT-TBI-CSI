@@ -1291,21 +1291,18 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             Button theBtn = sender as Button;
             StackPanel theSP;
-            string dosePerFxText = "";
-            string numFxText = "";
+            string RxText = "";
             bool checkIfStructIsInSS = true;
             if (theBtn.Name.Contains("template"))
             {
                 theSP = templateOptParamsSP;
-                dosePerFxText = templateInitPlanDosePerFxTB.Text;
-                numFxText = templateInitPlanNumFxTB.Text;
+                RxText = templateInitPlanRxTB.Text;
                 checkIfStructIsInSS = false;
             }
             else
             {
                 theSP = optParametersSP;
-                dosePerFxText = dosePerFxTB.Text;
-                numFxText = numFxTB.Text;
+                RxText = RxTB.Text;
             }
             ClearOptimizationConstraintsList(theSP);
             TBIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as TBIAutoPlanTemplate;
@@ -1326,9 +1323,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 }
                 theTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.GetTemplateName(), selectedTemplateId));
                 //get prescription
-                double dosePerFx = 0.1;
-                int numFractions = 1;
-                if (double.TryParse(dosePerFxText, out dosePerFx) && int.TryParse(numFxText, out numFractions))
+                double Rx = 0.1;
+                if (double.TryParse(RxText, out Rx))
                 {
                     (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(theTemplate, prescriptions);
                     if (!parsedConstraints.constraints.Any())
@@ -1337,7 +1333,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                         return;
                     }
                     //assumes you set all targets and upstream items correctly (as you would have had to place beams prior to this point)
-                    if (CalculationHelper.AreEqual(theTemplate.GetInitialRxDosePerFx() * theTemplate.GetInitialRxNumFx(), dosePerFx * numFractions))
+                    if (CalculationHelper.AreEqual(theTemplate.GetInitialRxDosePerFx() * theTemplate.GetInitialRxNumFx(), Rx))
                     {
                         //currently entered prescription is equal to the prescription dose in the selected template. Simply populate the optimization objective list with the objectives from that template
                         PopulateOptimizationTab(theSP, parsedConstraints.constraints, checkIfStructIsInSS, true);
@@ -1348,14 +1344,14 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                         string planId = parsedConstraints.constraints.First().Item1;
                         List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> scaledConstraints = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>
                         {
-                            Tuple.Create(planId, OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.First().Item2, theTemplate.GetInitialRxDosePerFx() * theTemplate.GetInitialRxNumFx(), dosePerFx * numFractions))
+                            Tuple.Create(planId, OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.First().Item2, theTemplate.GetInitialRxDosePerFx() * theTemplate.GetInitialRxNumFx(), Rx))
                         };
                         PopulateOptimizationTab(theSP, scaledConstraints, checkIfStructIsInSS, true);
                     }
                 }
                 else
                 {
-                    log.LogError("Warning! Entered prescription is not valid! \nSetting number of fractions to 1 and dose per fraction to 0.1 cGy/fraction!");
+                    log.LogError("Warning! Entered initial plan prescription is not valid! \nCannot scale optimization objectives to requested Rx! Exiting!");
                 }
             }
         }
