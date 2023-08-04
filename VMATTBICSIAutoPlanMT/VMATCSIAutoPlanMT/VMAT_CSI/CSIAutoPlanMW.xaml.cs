@@ -313,12 +313,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             else if (int.TryParse(initNumFxTB.Text, out int newNumFx) && double.TryParse(initDosePerFxTB.Text, out double newDoseFx))
             {
                 initRxTB.Text = (newNumFx * newDoseFx).ToString();
-                //CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
-                //if (selectedTemplate != null)
-                //{
-                //    //verify that the entered dose/fx and num fx agree with those stored in the template, otherwise unselect the template
-                //    if (newNumFx != selectedTemplate.GetInitialRxNumFx() || newDoseFx != selectedTemplate.GetInitialRxDosePerFx()) templateList.UnselectAll();
-                //}
             }
         }
 
@@ -350,12 +344,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             else if (int.TryParse(boostNumFxTB.Text, out int newNumFx) && double.TryParse(boostDosePerFxTB.Text, out double newDoseFx))
             {
                 boostRxTB.Text = (newNumFx * newDoseFx).ToString();
-                //CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
-                //if (selectedTemplate != null)
-                //{
-                //    //verify that the entered dose/fx and num fx agree with those stored in the template, otherwise unselect the template
-                //    if (newNumFx != selectedTemplate.GetBoostRxNumFx() || newDoseFx != selectedTemplate.GetBoostRxDosePerFx()) templateList.UnselectAll();
-                //}
             }
         }
 
@@ -1453,61 +1441,56 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             ClearOptimizationConstraintsList(theSP);
             CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
-            if (selectedTemplate != null)
-            {
-                //plan template selection is valid --> populate optimization list with optimization objectives from that template (handled in populate optimization tab if second argument is null)
-                PopulateOptimizationTab(theSP);
-            }
-            else
+            if (selectedTemplate == null)
             {
                 //no plan template selected --> copy and scale objectives from an existing template
-                CSIAutoPlanTemplate theTemplate = null;
                 string selectedTemplateId = GeneralUIHelper.PromptUserToSelectPlanTemplate(PlanTemplates.Select(x => x.TemplateName).ToList());
                 if (string.IsNullOrEmpty(selectedTemplateId))
                 {
                     log.LogError("Template not found! Exiting!");
                     return;
                 }
-                theTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.GetTemplateName(), selectedTemplateId));
-                //get prescription
-                double initRx = 0.1;
-                double bstRx = 0.1;
+                selectedTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.GetTemplateName(), selectedTemplateId));
+            }
+            //selected plan is valid
+            //get prescription
+            double initRx = 0.1;
+            double bstRx = 0.1;
 
-                if (!double.TryParse(initRxText, out initRx))
+            if (!double.TryParse(initRxText, out initRx))
+            {
+                log.LogError("Warning! Entered initial plan prescription is not valid! \nCannot scale optimization objectives to requested Rx! Exiting!");
+                return;
+            }
+            if (selectedTemplate.GetBoostRxDosePerFx() != 0.1 && !double.TryParse(bstRxText, out bstRx))
+            {
+                log.LogError("Warning! Entered initial plan prescription is not valid! \nCannot verify template Rx vs entered Rx! Exiting!");
+                return;
+            }
+            (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(selectedTemplate, prescriptions);
+            if (!parsedConstraints.constraints.Any())
+            {
+                log.LogError(parsedConstraints.errorMessage);
+                return;
+            }
+            //assumes you set all targets and upstream items correctly (as you would have had to place beams prior to this point)
+            if (CalculationHelper.AreEqual(selectedTemplate.GetInitialRxDosePerFx() * selectedTemplate.GetInitialRxNumFx(), initRx) && (bstRx == 0.1 || CalculationHelper.AreEqual(selectedTemplate.GetBoostRxDosePerFx() * selectedTemplate.GetBoostRxNumFx(), bstRx)))
+            {
+                //currently entered prescription is equal to the prescription dose in the selected template. Simply populate the optimization objective list with the objectives from that template
+                PopulateOptimizationTab(theSP, parsedConstraints.constraints, checkIfStructIsInSS, true);
+            }
+            else
+            {
+                //entered prescription differs from prescription in template --> need to rescale all objectives by ratio of prescriptions
+                List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> scaledConstraints = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>
                 {
-                    log.LogError("Warning! Entered initial plan prescription is not valid! \nCannot scale optimization objectives to requested Rx! Exiting!");
-                    return;
-                }
-                if (theTemplate.GetBoostRxDosePerFx() != 0.1 && !double.TryParse(bstRxText, out bstRx))
+                    Tuple.Create(parsedConstraints.constraints.First().Item1, OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.First().Item2, selectedTemplate.GetInitialRxDosePerFx() * selectedTemplate.GetInitialRxNumFx(), initRx))
+                };
+                if(bstRx != 0.1)
                 {
-                    log.LogError("Warning! Entered initial plan prescription is not valid! \nCannot scale optimization objectives to requested Rx! Exiting!");
-                    return;
+                    scaledConstraints.Add(Tuple.Create(parsedConstraints.constraints.Last().Item1, OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.Last().Item2, selectedTemplate.GetBoostRxDosePerFx() * selectedTemplate.GetBoostRxNumFx(), bstRx)));
                 }
-                (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(theTemplate, prescriptions);
-                if (!parsedConstraints.constraints.Any())
-                {
-                    log.LogError(parsedConstraints.errorMessage);
-                    return;
-                }
-                //assumes you set all targets and upstream items correctly (as you would have had to place beams prior to this point)
-                if (CalculationHelper.AreEqual(theTemplate.GetInitialRxDosePerFx() * theTemplate.GetInitialRxNumFx(), initRx) && (bstRx == 0.1 || CalculationHelper.AreEqual(theTemplate.GetBoostRxDosePerFx() * theTemplate.GetBoostRxNumFx(), bstRx)))
-                {
-                    //currently entered prescription is equal to the prescription dose in the selected template. Simply populate the optimization objective list with the objectives from that template
-                    PopulateOptimizationTab(theSP, parsedConstraints.constraints, checkIfStructIsInSS, true);
-                }
-                else
-                {
-                    //entered prescription differs from prescription in template --> need to rescale all objectives by ratio of prescriptions
-                    List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> scaledConstraints = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>
-                    {
-                        Tuple.Create(parsedConstraints.constraints.First().Item1, OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.First().Item2, theTemplate.GetInitialRxDosePerFx() * theTemplate.GetInitialRxNumFx(), initRx))
-                    };
-                    if(bstRx != 0.1)
-                    {
-                        scaledConstraints.Add(Tuple.Create(parsedConstraints.constraints.Last().Item1, OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.Last().Item2, theTemplate.GetBoostRxDosePerFx() * theTemplate.GetBoostRxNumFx(), bstRx)));
-                    }
-                    PopulateOptimizationTab(theSP, scaledConstraints, checkIfStructIsInSS, true);
-                }
+                PopulateOptimizationTab(theSP, scaledConstraints, checkIfStructIsInSS, true);
             }
         }
 
