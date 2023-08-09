@@ -238,10 +238,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
             //evaluate the distance between the edge of the beam and the max/min of the PTV_body contour. If it is < checkIsoPlacementLimit, then warn the user that they might be fully covering the ptv_body structure.
             //7-17-2020, checkIsoPlacementLimit = 5 mm
-            VVector firstIso = tmp.First().Item1;
-            VVector lastIso = tmp.Last().Item1;
-            if (!((firstIso.z + 200.0) - targetSupExtent >= checkIsoPlacementLimit) ||
-                !(targetInfExtent - (lastIso.z - 200.0) >= checkIsoPlacementLimit)) checkIsoPlacement = true;
+            VVector firstIso = allIsocenters.First().Item2.First().Item1;
+            VVector lastIso = allIsocenters.Last().Item2.Last().Item1;
+            if ((firstIso.z + 200.0 - targetSupExtent < checkIsoPlacementLimit) || (targetInfExtent - (lastIso.z - 200.0) < checkIsoPlacementLimit)) checkIsoPlacement = true;
 
             return allIsocenters;
         }

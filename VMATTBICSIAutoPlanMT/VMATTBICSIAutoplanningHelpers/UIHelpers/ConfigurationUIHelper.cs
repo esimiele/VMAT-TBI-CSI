@@ -78,7 +78,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             StringBuilder sb = new StringBuilder();
             foreach (TBIAutoPlanTemplate itr in templates.Where(x => !string.Equals(x.GetTemplateName(), "--select--")))
             {
-                sb.AppendLine("-----------------------------------------------------------------------------");
+                sb.AppendLine("----------------------------------------------------------------------------");
 
                 sb.AppendLine($" Template ID: {itr.GetTemplateName()}");
                 sb.AppendLine($" Initial Dose per fraction: {itr.GetInitialRxDosePerFx()} cGy");

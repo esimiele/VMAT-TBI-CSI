@@ -27,7 +27,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 coolerStructure.ConvertDoseLevelToStructure(d, dv);
                 if (coolerStructure.IsEmpty)
                 {
-                    sb.AppendLine($"Generating cooler structure: {name} now");
+                    sb.AppendLine($"Cooler structure ({name}) is empty! Removing!");
                     if (ss.CanRemoveStructure(coolerStructure)) ss.RemoveStructure(coolerStructure);
                 }
                 else cooler = Tuple.Create(name, OptimizationObjectiveType.Upper, requestedDoseConstraint * plan.TotalDose.Dose, volume, priority);

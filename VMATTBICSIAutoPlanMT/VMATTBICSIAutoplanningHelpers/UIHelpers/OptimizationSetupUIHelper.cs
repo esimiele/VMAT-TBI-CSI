@@ -64,12 +64,12 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 //handles if crop/overlap operations were performed for all targets and the optimization constraints need to be updated
                 defaultListList = OptimizationSetupHelper.UpdateOptimizationConstraints(tsTargets, prescriptions, selectedTemplate, defaultListList);
             }
-            if (targetManipulations.Any())
+            if (targetManipulations != null && targetManipulations.Any())
             {
                 //handles if crop/overlap operations were performed for all targets and the optimization constraints need to be updated
                 defaultListList = OptimizationSetupHelper.UpdateOptimizationConstraints(targetManipulations, prescriptions, selectedTemplate, defaultListList);
             }
-            if (addedRings.Any())
+            if (addedRings != null && addedRings.Any())
             {
                 defaultListList = OptimizationSetupHelper.UpdateOptimizationConstraints(addedRings, prescriptions, selectedTemplate, defaultListList);
             }

@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Windows.Controls;
 using System.Windows;
+using VMS.TPS.Common.Model.Types;
+using VMATTBICSIAutoPlanningHelpers.Helpers;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {

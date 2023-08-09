@@ -329,5 +329,18 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             }
             return planId;
         }
+
+        //list<plan id, highest Rx dose>
+        public static List<Tuple<string,double>> GetPlanIdHighesRxDoseFromPrescriptions(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
+        {
+            List<Tuple<string, double>> planIdRx = new List<Tuple<string, double>> { };
+            List<Tuple<string, string, int, DoseValue, double>> tmpList = prescriptions.OrderBy(x => x.Item5).ToList();
+            planIdRx.Add(Tuple.Create(tmpList.First().Item1, GetHighestRxForPlan(prescriptions, tmpList.First().Item1)));
+            if(tmpList.Any(x => !string.Equals(x.Item1, planIdRx.First().Item1)))
+            {
+                planIdRx.Add(Tuple.Create(tmpList.Last().Item1, GetHighestRxForPlan(prescriptions, tmpList.Last().Item1)));
+            }
+            return planIdRx;
+        }
     }
 }

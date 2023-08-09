@@ -18,7 +18,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             output.AppendLine(PrintCommonTemplateSetupInfo(prospectiveTemplate));
             if (prospectiveTemplate is CSIAutoPlanTemplate) output.AppendLine(PrintCSIPlanSpecificInfo(prospectiveTemplate as CSIAutoPlanTemplate));
             else output.AppendLine(PrintTBIPlanSpecificInfo(prospectiveTemplate as TBIAutoPlanTemplate));
-            output.AppendLine("-----------------------------------------------------------------------------");
+            output.AppendLine("-------------------------------------------------------------------------");
             return output;
         }
 
@@ -63,8 +63,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             if (prospectiveTemplate.GetTSManipulations().Any())
             {
                 output += String.Format(" {0} additional tuning structure manipulations:", prospectiveTemplate.GetTemplateName()) + Environment.NewLine;
-                output += String.Format("  {0, -15} | {1, -19} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + Environment.NewLine;
-                foreach (Tuple<string, TSManipulationType, double> spare in prospectiveTemplate.GetTSManipulations()) output += String.Format("  {0, -15} | {1, -19} | {2,-11:N1} |" + Environment.NewLine, spare.Item1, spare.Item2.ToString(), spare.Item3);
+                output += String.Format("  {0, -15} | {1, -23} | {2, -11} |", "structure Id", "manipulation type", "margin (cm)") + Environment.NewLine;
+                foreach (Tuple<string, TSManipulationType, double> spare in prospectiveTemplate.GetTSManipulations()) output += String.Format("  {0, -15} | {1, -23} | {2,-11:N1} |" + Environment.NewLine, spare.Item1, spare.Item2.ToString(), spare.Item3);
                 output += Environment.NewLine;
             }
             else output += String.Format(" No additional sparing structures for template: {0}", prospectiveTemplate.GetTemplateName()) + Environment.NewLine + Environment.NewLine;
@@ -96,8 +96,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             if (prospectiveTemplate.GetInitOptimizationConstraints().Any())
             {
                 output += String.Format(" {0} template initial plan optimization parameters:", prospectiveTemplate.GetTemplateName()) + Environment.NewLine;
-                output += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + Environment.NewLine;
-                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in prospectiveTemplate.GetInitOptimizationConstraints()) output += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5);
+                output += String.Format("  {0, -14} | {1, -15} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + Environment.NewLine;
+                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in prospectiveTemplate.GetInitOptimizationConstraints()) output += String.Format("  {0, -14} | {1, -15} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5);
                 output += Environment.NewLine;
             }
             else output += String.Format(" No iniital plan optimization constraints for template: {0}", prospectiveTemplate.GetTemplateName()) + Environment.NewLine + Environment.NewLine;
@@ -105,8 +105,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             if (prospectiveTemplate.GetBoostOptimizationConstraints().Any())
             {
                 output += String.Format(" {0} template boost plan optimization parameters:", prospectiveTemplate.GetTemplateName()) + Environment.NewLine;
-                output += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + Environment.NewLine;
-                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in prospectiveTemplate.GetBoostOptimizationConstraints()) output += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5);
+                output += String.Format("  {0, -14} | {1, -15} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + Environment.NewLine;
+                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in prospectiveTemplate.GetBoostOptimizationConstraints()) output += String.Format("  {0, -14} | {1, -15} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5);
             }
             else output += String.Format(" No boost plan optimization constraints for template: {0}", prospectiveTemplate.GetTemplateName()) + Environment.NewLine + Environment.NewLine;
             return output;
@@ -119,8 +119,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             if (prospectiveTemplate.GetInitOptimizationConstraints().Any())
             {
                 output += String.Format(" {0} template initial plan optimization parameters:", prospectiveTemplate.GetTemplateName()) + Environment.NewLine;
-                output += String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + Environment.NewLine;
-                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in prospectiveTemplate.GetInitOptimizationConstraints()) output += String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5);
+                output += String.Format("  {0, -14} | {1, -15} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority") + Environment.NewLine;
+                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in prospectiveTemplate.GetInitOptimizationConstraints()) output += String.Format("  {0, -14} | {1, -15} | {2,-10:N1} | {3,-10:N1} | {4,-8} |" + Environment.NewLine, opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5);
                 output += Environment.NewLine;
             }
             else output += String.Format(" No iniital plan optimization constraints for template: {0}", prospectiveTemplate.GetTemplateName()) + Environment.NewLine + Environment.NewLine;

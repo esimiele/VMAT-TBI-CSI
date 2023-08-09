@@ -260,7 +260,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             VVector dicomOrigin = image.Origin;
             ProvideUIUpdate($"Retrived image: {image.Id}");
             ProvideUIUpdate($"Z resolution: {zResolution} mm");
-            ProvideUIUpdate($"DICOM origin: ({dicomOrigin.x}, {dicomOrigin.y}, {dicomOrigin.z}) mm");
+            ProvideUIUpdate($"DICOM origin: ({dicomOrigin.x:0.00}, {dicomOrigin.y:0.00}, {dicomOrigin.z:0.00}) mm");
 
             //center position between adjacent isocenters, number of image slices to contour on, start image slice location for contouring
             List<Tuple<double, int, int>> overlap = new List<Tuple<double, int, int>> { };

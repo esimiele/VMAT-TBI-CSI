@@ -855,11 +855,67 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
         private void AddDefaultRings_Click(object sender, RoutedEventArgs e)
         {
-            if (templateList.SelectedItem != null) 
+            if (selectedSS == null)
             {
-                GeneralUIHelper.ClearList(createRingsSP);
-                AddRingStructures((templateList.SelectedItem as CSIAutoPlanTemplate).GetCreateRings(), createRingsSP);
-                createRingsScroller.ScrollToBottom();
+                log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
+                return;
+            }
+            if (!prescriptions.Any())
+            {
+                log.LogError("Please set the targets first on the 'Set Targets' tab!");
+                return;
+            }
+            Button theBtn = sender as Button;
+            StackPanel theSP = createRingsSP;
+            string initRxText = initRxTB.Text;
+            string bstRxText = boostRxTB.Text;
+            GeneralUIHelper.ClearList(createRingsSP);
+
+            CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
+            if (selectedTemplate == null)
+            {
+                //no plan template selected --> copy and scale objectives from an existing template
+                string selectedTemplateId = GeneralUIHelper.PromptUserToSelectPlanTemplate(PlanTemplates.Select(x => x.TemplateName).ToList());
+                if (string.IsNullOrEmpty(selectedTemplateId))
+                {
+                    log.LogError("Template not found! Exiting!");
+                    return;
+                }
+                selectedTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.GetTemplateName(), selectedTemplateId));
+            }
+            //selected plan is valid
+            //get prescription
+            double initRx = 0.1;
+            double bstRx = 0.1;
+
+            if (!double.TryParse(initRxText, out initRx))
+            {
+                log.LogError("Warning! Entered initial plan prescription is not valid! \nCannot scale optimization objectives to requested Rx! Exiting!");
+                return;
+            }
+            if (selectedTemplate.GetBoostRxDosePerFx() != 0.1 && !double.TryParse(bstRxText, out bstRx))
+            {
+                log.LogError("Warning! Entered boost plan prescription is not valid! \nCannot verify template Rx vs entered Rx! Exiting!");
+                return;
+            }
+                
+            //assumes you set all targets and upstream items correctly (as you would have had to place beams prior to this point)
+            if (CalculationHelper.AreEqual(selectedTemplate.GetInitialRxDosePerFx() * selectedTemplate.GetInitialRxNumFx(), initRx) && (bstRx == 0.1 || CalculationHelper.AreEqual(selectedTemplate.GetBoostRxDosePerFx() * selectedTemplate.GetBoostRxNumFx(), bstRx)))
+            {
+                //currently entered prescription is equal to the prescription dose in the selected template. Simply populate the optimization objective list with the objectives from that template
+                AddRingStructures(selectedTemplate.GetCreateRings(), theSP);
+            }
+            else
+            {
+                //entered prescription differs from prescription in template --> need to rescale all objectives by ratio of prescriptions
+                AddRingStructures(RingHelper.RescaleRingDosesToNewRx(selectedTemplate.GetCreateRings(),
+                                                                     prescriptions,
+                                                                     selectedTemplate.GetInitialRxDosePerFx() * selectedTemplate.GetInitialRxNumFx(),
+                                                                     initRx,
+                                                                     selectedTemplate.GetBoostRxDosePerFx() * selectedTemplate.GetBoostRxNumFx(),
+                                                                     bstRx),
+                                                                     theSP);
+
             }
         }
 
@@ -870,12 +926,20 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 log.LogError("Error! Please select a Structure Set before adding ring structures!");
                 return;
             }
+            if (!lists.Any()) return;
+
             if (theSP.Children.Count == 0) theSP.Children.Add(RingUIHelper.GetRingHeader(theSP.Width));
             int counter = 0;
             string clearBtnName = "ClearRingBtn";
+            ScrollViewer theScroller;
             if (theSP.Name.Contains("template"))
             {
                 clearBtnName = "template" + clearBtnName;
+                theScroller = templateCreateRingsScroller;
+            }
+            else
+            {
+                theScroller = createRingsScroller;
             }
             for (int i = 0; i < lists.Count; i++)
             {
@@ -891,6 +955,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                                       theSP.Name.Contains("template")));
                 }
             }
+            theScroller.ScrollToBottom();
         }
 
         private void ClearRingItem_Click(object sender, RoutedEventArgs e)
@@ -1222,7 +1287,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (generate.GetTsTargets().Any()) tsTargets = generate.GetTsTargets();
             if (generate.GetTargetCropOverlapManipulations().Any()) targetCropOverlapManipulations = generate.GetTargetCropOverlapManipulations();
             if (generate.GetAddedRings().Any()) addedRings = generate.GetAddedRings();
-            PopulateOptimizationTab(optParametersSP);
 
             isModified = true;
             structureTuningTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -1341,7 +1405,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 jnxs = place.GetFieldJunctionStructures();
                 ClearOptimizationConstraintsList(optParametersSP);
-                PopulateOptimizationTab(optParametersSP);
+                AddDefaultOptimizationConstraints_Click(null, null);
             }
 
             beamPlacementTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -1426,7 +1490,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             string initRxText = "";
             string bstRxText = "";
             bool checkIfStructIsInSS = true;
-            if (theBtn.Name.Contains("template"))
+            if (theBtn != null && theBtn.Name.Contains("template"))
             {
                 theSP = templateOptParamsSP;
                 initRxText = templateInitPlanRxTB.Text;
@@ -1464,7 +1528,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             if (selectedTemplate.GetBoostRxDosePerFx() != 0.1 && !double.TryParse(bstRxText, out bstRx))
             {
-                log.LogError("Warning! Entered initial plan prescription is not valid! \nCannot verify template Rx vs entered Rx! Exiting!");
+                log.LogError("Warning! Entered boost plan prescription is not valid! \nCannot verify template Rx vs entered Rx! Exiting!");
                 return;
             }
             (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(selectedTemplate, prescriptions);
