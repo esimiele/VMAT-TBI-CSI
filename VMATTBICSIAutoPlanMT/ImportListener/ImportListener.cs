@@ -11,7 +11,7 @@ using EvilDICOM.Core.Helpers;
 
 namespace ImportListener
 {
-    class Program
+    class ImportListener
     {
         static string path;
         static string mrn;
@@ -34,7 +34,7 @@ namespace ImportListener
 
         static void Main(string[] args)
         {
-            //args = new string[] { "\\\\shariatscap105\\Dicom\\RSDCM\\Import\\", "$CSIDryRun_1", "VMSDBD" ,"10.151.176.60" ,"51402" ,"DCMTK" ,"50400" ,"3600" };
+            args = new string[] { "\\\\shariatscap105\\Dicom\\RSDCM\\Import\\", "$CSIDryRun_2", "VMSDBD" ,"10.151.176.60" ,"51402" ,"DCMTK" ,"50400" ,"3600" };
             try
             {
                 SetTimer();
@@ -233,6 +233,7 @@ namespace ImportListener
             else
             {
                 Console.WriteLine($"DICOM C-Store from {localDaemon.AeTitle} => {ariaDBDaemon.AeTitle} @{ariaDBDaemon.IpAddress}:{ariaDBDaemon.Port}: {(Status)response.Status}");
+                RemoveRTStructDcmFile(theFile);
             }
             return false;
         }
@@ -245,6 +246,24 @@ namespace ImportListener
             bool success = client.Ping(daemon, 5000);
             Console.WriteLine($"Success: {success}", !success);
             return !success;
+        }
+
+        private static bool RemoveRTStructDcmFile(string theFile)
+        {
+            Console.WriteLine($"Removing {theFile} now");
+            try
+            {
+                File.Delete(theFile);
+                Console.WriteLine($"{theFile} has been removed");
+                return false;
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine($"Could not remove {theFile}");
+                Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
+                return true;
+            }
         }
     }
 }

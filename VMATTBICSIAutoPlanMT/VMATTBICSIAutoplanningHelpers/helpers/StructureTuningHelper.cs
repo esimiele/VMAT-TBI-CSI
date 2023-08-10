@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using VMS.TPS.Common.Model.API;
+using VMS.TPS.Common.Model.Types;
 using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers

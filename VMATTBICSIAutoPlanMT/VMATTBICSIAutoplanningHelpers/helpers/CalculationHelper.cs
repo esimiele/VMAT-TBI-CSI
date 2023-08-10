@@ -39,7 +39,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <returns></returns>
         public static int ComputeSlice(double z, StructureSet ss)
         {
-            return (int)Math.Round(((z - ss.Image.Origin.z) / ss.Image.ZRes));
+            return (int)Math.Round((z - ss.Image.Origin.z) / ss.Image.ZRes);
         }
     }
 }

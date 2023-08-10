@@ -163,11 +163,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //get the start and stop image planes for this structure (+/- 5 slices)
             int startSlice = CalculationHelper.ComputeSlice(mesh.Bounds.Z, selectedSS) - 5;
             int stopSlice = CalculationHelper.ComputeSlice(mesh.Bounds.Z + mesh.Bounds.SizeZ, selectedSS) + 5;
-            calcItems += stopSlice - startSlice - 1;
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Number of slices to contour: {stopSlice - startSlice}");
+            calcItems += stopSlice - startSlice + 1;
+            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Number of slices to contour: {stopSlice - startSlice + 1}");
             if(addedStructure.CanEditSegmentVolume(out string error))
             {
-                for (int slice = startSlice; slice < stopSlice; slice++)
+                for (int slice = startSlice; slice <= stopSlice; slice++)
                 {
                     ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));
                     VVector[][] points = target.GetContoursOnImagePlane(slice);
@@ -366,10 +366,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             VVector[] ptsL = new[] { new VVector() };
             VVector[] ptsR = new[] { new VVector() };
 
-            ProvideUIUpdate($"Number of image slices to contour: {stopSlice - startSlice}");
+            ProvideUIUpdate($"Number of image slices to contour: {stopSlice - startSlice + 1}");
             ProvideUIUpdate("Preparation complete!");
             ProvideUIUpdate("Contouring TS_arms now...");
-            int calcItems = stopSlice - startSlice + 3;
+            int calcItems = stopSlice - startSlice + 4;
             int counter = 0;
 
             for (int slice = startSlice; slice <= stopSlice; slice++)
@@ -735,7 +735,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ProvideUIUpdate($"Start slice: {startSlice}");
             ProvideUIUpdate($"Stop slice: {stopSlice}");
             int percentComplete = 0;
-            int calcItems = stopSlice - startSlice;
+            int calcItems = stopSlice - startSlice + 1;
             for (int slice = startSlice; slice <= stopSlice; slice++)
             {
                 ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));
@@ -751,7 +751,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ProvideUIUpdate($"Start slice: {startSlice}");
             ProvideUIUpdate($"Stop slice: {stopSlice}");
             int percentComplete = 0;
-            int calcItems = stopSlice - startSlice;
+            int calcItems = stopSlice - startSlice + 1;
             for(int slice = startSlice; slice <= stopSlice; slice++)
             {
                 ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));

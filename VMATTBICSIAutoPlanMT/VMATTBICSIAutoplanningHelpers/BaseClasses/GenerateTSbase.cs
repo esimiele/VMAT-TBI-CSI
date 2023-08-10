@@ -168,32 +168,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return (fail, lowRes);
         }
 
-        private bool ContourLowResStructure(Structure highResStructure, Structure lowRes, int startSlice, int stopSlice)
-        {
-            ProvideUIUpdate($"Contouring {lowRes.Id} now");
-            int counter = 0;
-            int calcItems = startSlice - stopSlice - 1;
-            //foreach slice that contains contours, get the contours, and determine if you need to add or subtract the contours on the given image plane for the new low resolution structure. You need to subtract contours if the points lie INSIDE the current structure contour.
-            //We can sample three points (first, middle, and last points in array) to see if they are inside the current contour. If any of them are, subtract the set of contours from the image plane. Otherwise, add the contours to the image plane. NOTE: THIS LOGIC ASSUMES
-            //THAT YOU DO NOT OBTAIN THE CUTOUT CONTOUR POINTS BEFORE THE OUTER CONTOUR POINTS (it seems that ESAPI generally passes the main structure contours first before the cutout contours, but more testing is needed)
-            for (int slice = startSlice; slice < stopSlice; slice++)
-            {
-                ProvideUIUpdate((int)(100 * ++counter / calcItems));
-                VVector[][] points = highResStructure.GetContoursOnImagePlane(slice);
-                for (int i = 0; i < points.GetLength(0); i++)
-                {
-                    if (lowRes.IsPointInsideSegment(points[i][0]) ||
-                        lowRes.IsPointInsideSegment(points[i][points[i].GetLength(0) - 1]) ||
-                        lowRes.IsPointInsideSegment(points[i][(int)(points[i].GetLength(0) / 2)]))
-                    {
-                        lowRes.SubtractContourOnImagePlane(points[i], slice);
-                    }
-                    else lowRes.AddContourOnImagePlane(points[i], slice);
-                }
-            }
-            return false;
-        }
-
         private bool UpdateManipulationList(Tuple<string, TSManipulationType, double> highResManipulationItem, string lowResId)
         {
             bool fail = false;
@@ -281,7 +255,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
-        protected bool CheckHighResolution(bool autoConvertToLowRes = true)
+        protected bool CheckHighResolution()
         {
             UpdateUILabel("High-Res Structures: ");
             ProvideUIUpdate("Checking for high resolution structures in structure set: ");
@@ -334,14 +308,15 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 //get the high res structure mesh geometry
                 MeshGeometry3D mesh = highResStruct.MeshGeometry;
                 //get the start and stop image planes for this structure
-                int startSlice = (int)((mesh.Bounds.Z - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes);
-                int stopSlice = (int)(((mesh.Bounds.Z + mesh.Bounds.SizeZ) - selectedSS.Image.Origin.z) / selectedSS.Image.ZRes) + 1;
-                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Number of slices to contour: {stopSlice - startSlice}");
+                int startSlice = CalculationHelper.ComputeSlice(mesh.Positions.Min(p => p.Z), selectedSS);
+                int stopSlice = CalculationHelper.ComputeSlice(mesh.Positions.Max(p => p.Z), selectedSS);
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Number of slices to contour: {stopSlice - startSlice + 1}");
 
                 //create an Id for the low resolution struture that will be created. The name will be '_lowRes' appended to the current structure Id
                 (bool fail, Structure lowRes) = CreateLowResStructure(highResStruct);
                 if (fail) return true;
                 ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Added low-res structure: {lowRes.Id}");
+                ProvideUIUpdate($"Contouring {lowRes.Id} now");
                 ContourLowResStructure(highResStruct, lowRes, startSlice, stopSlice);
                 
                 ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), String.Format("Removing existing high-res structure from manipulation list and replacing with low-res"));
@@ -349,6 +324,31 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             }
             //inform the main UI class that the UI needs to be updated
             updateTSManipulationList = true;
+            return false;
+        }
+
+        private bool ContourLowResStructure(Structure highResStructure, Structure lowRes, int startSlice, int stopSlice)
+        {
+            int percentComplete = 0;
+            int calcItems = stopSlice - startSlice + 1;
+            //foreach slice that contains contours, get the contours, and determine if you need to add or subtract the contours on the given image plane for the new low resolution structure. You need to subtract contours if the points lie INSIDE the current structure contour.
+            //We can sample three points (first, middle, and last points in array) to see if they are inside the current contour. If any of them are, subtract the set of contours from the image plane. Otherwise, add the contours to the image plane. NOTE: THIS LOGIC ASSUMES
+            //THAT YOU DO NOT OBTAIN THE CUTOUT CONTOUR POINTS BEFORE THE OUTER CONTOUR POINTS (it seems that ESAPI generally passes the main structure contours first before the cutout contours, but more testing is needed)
+            for (int slice = startSlice; slice <= stopSlice; slice++)
+            {
+                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));
+                VVector[][] points = highResStructure.GetContoursOnImagePlane(slice);
+                for (int i = 0; i < points.GetLength(0); i++)
+                {
+                    if (lowRes.IsPointInsideSegment(points[i][0]) ||
+                        lowRes.IsPointInsideSegment(points[i][points[i].GetLength(0) - 1]) ||
+                        lowRes.IsPointInsideSegment(points[i][(int)(points[i].GetLength(0) / 2)]))
+                    {
+                        lowRes.SubtractContourOnImagePlane(points[i], slice);
+                    }
+                    else lowRes.AddContourOnImagePlane(points[i], slice);
+                }
+            }
             return false;
         }
 

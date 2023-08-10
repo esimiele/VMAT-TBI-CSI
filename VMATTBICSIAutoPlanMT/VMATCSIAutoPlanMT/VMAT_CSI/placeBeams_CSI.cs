@@ -490,7 +490,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //only go to the most superior part of the lungs for contouring the arms
             int stopSlice = CalculationHelper.ComputeSlice(zMax, selectedSS);
             int percentComplete = 0;
-            int calcItems = stopSlice - startSlice; 
+            int calcItems = stopSlice - startSlice + 1; 
             ProvideUIUpdate($"Start slice: {startSlice}");
             ProvideUIUpdate($"Stop slice: {stopSlice}");
             VVector[][] pts;
