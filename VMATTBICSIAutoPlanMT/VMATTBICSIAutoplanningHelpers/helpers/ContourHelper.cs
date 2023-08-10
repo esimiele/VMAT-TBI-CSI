@@ -16,24 +16,32 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="selectedSS"></param>
         /// <param name="marginInCm"></param>
         /// <returns></returns>
-        public static (bool, StringBuilder) CropStructureFromBody(Structure theStructure, StructureSet selectedSS, double marginInCm)
+        public static (bool, StringBuilder) CropStructureFromBody(Structure theStructure, StructureSet selectedSS, double marginInCm, string bodyId = "Body")
         {
             StringBuilder sb = new StringBuilder();
             bool fail = false;
             //margin is in cm
-            Structure body = StructureTuningHelper.GetStructureFromId("Body", selectedSS);
-            if (body != null)
+            if(!string.IsNullOrEmpty(bodyId))
             {
-                if (marginInCm >= -5.0 && marginInCm <= 5.0) theStructure.SegmentVolume = theStructure.SegmentVolume.And(body.SegmentVolume.Margin(marginInCm * 10));
-                else 
-                { 
-                    sb.AppendLine("Cropping margin from body MUST be within +/- 5.0 cm!"); 
-                    fail = true; 
+                Structure body = StructureTuningHelper.GetStructureFromId(bodyId, selectedSS);
+                if (body != null)
+                {
+                    if (marginInCm >= -5.0 && marginInCm <= 5.0) theStructure.SegmentVolume = theStructure.SegmentVolume.And(body.SegmentVolume.Margin(marginInCm * 10));
+                    else
+                    {
+                        sb.AppendLine("Cropping margin from body MUST be within +/- 5.0 cm!");
+                        fail = true;
+                    }
+                }
+                else
+                {
+                    sb.AppendLine("Could not find body structure! Can't crop target from body!");
+                    fail = true;
                 }
             }
             else
             {
-                sb.AppendLine("Could not find body structure! Can't crop target from body!");
+                sb.AppendLine("Requested body structure id is null or empty! Exiting!");
                 fail = true;
             }
             return (fail, sb);

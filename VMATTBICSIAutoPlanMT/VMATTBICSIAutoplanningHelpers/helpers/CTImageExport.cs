@@ -106,10 +106,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 string ct_ID = _image.Id;
                 string folderLoc = Path.Combine(_data.WriteLocation, _patID);
                 if (!Directory.Exists(folderLoc)) Directory.CreateDirectory(folderLoc);
-                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), "Initializtion complete. Exporting");
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, "Initializtion complete. Exporting");
                 for (int k = 0; k < _image.ZSize; k++)
                 {
-                    ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));
+                    ProvideUIUpdate(100 * ++percentComplete / calcItems);
                     Bitmap bmp = new Bitmap(_image.XSize, _image.YSize, PixelFormat.Format32bppRgb);
                     _image.GetVoxels(k, pixels);
                     int i, j;
@@ -254,19 +254,19 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             int calcItems = 6;
 
             if (VerifyPathIntegrity(_data.WriteLocation)) return true;
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Write location path {_data.WriteLocation} verified");
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Write location path {_data.WriteLocation} verified");
             if (VerifyPathIntegrity(_data.ImportLocation)) return true;
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Import data path {_data.ImportLocation} verified");
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Import data path {_data.ImportLocation} verified");
 
             if (VerifyDaemonIntegrity(_data.AriaDBDaemon)) return true;
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Aria DB Daemon integrity verified");
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Aria DB Daemon integrity verified");
             if (VerifyDaemonIntegrity(_data.VMSFileDaemon)) return true;
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"VMS File Daemon integrity verified");
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, $"VMS File Daemon integrity verified");
             if (VerifyDaemonIntegrity(_data.LocalDaemon)) return true;
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Local file Daemon integrity verified");
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Local file Daemon integrity verified");
 
             if (CheckDaemonConnection()) return true;
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Daemon connection verified");
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Daemon connection verified");
             return false;
         }
 
@@ -305,7 +305,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             Entity ariaDBDaemon = new Entity(_data.AriaDBDaemon.Item1, _data.AriaDBDaemon.Item2, _data.AriaDBDaemon.Item3);
             Entity VMSFileDaemon = new Entity(_data.VMSFileDaemon.Item1, _data.VMSFileDaemon.Item2, _data.VMSFileDaemon.Item3);
             Entity localDaemon = Entity.CreateLocal(_data.LocalDaemon.Item1, _data.LocalDaemon.Item3);
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Constructed Daemon entities");
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Constructed Daemon entities");
 
             DICOMSCU client = new DICOMSCU(localDaemon);
             DICOMSCP receiver = new DICOMSCP(localDaemon)
@@ -320,12 +320,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 return true;
             };
             receiver.ListenForIncomingAssociations(true);
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Configured client and receiver for C-move operations");
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Configured client and receiver for C-move operations");
 
             EvilDICOM.Network.SCUOps.CFinder finder = client.GetCFinder(ariaDBDaemon);
             List<EvilDICOM.Network.DIMSE.IOD.CFindStudyIOD> studies = finder.FindStudies(_patID).ToList();
             List<EvilDICOM.Network.DIMSE.IOD.CFindSeriesIOD> series = finder.FindSeries(studies).ToList();
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));
+            ProvideUIUpdate(100 * ++percentComplete / calcItems);
             ProvideUIUpdate($"Found {series.Count()} series for {_patID}");
             ProvideUIUpdate($"Found {series.Where(x => x.Modality == "CT").Count()} total CT images for {_patID}");
 
@@ -345,7 +345,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 ProvideUIUpdate("Exporting image:");
                 foreach (var img in imageStack)
                 {
-                    ProvideUIUpdate((int)(100 * ++counter / numImages), $"{img.SOPInstanceUID}");
+                    ProvideUIUpdate(100 * ++counter / numImages, $"{img.SOPInstanceUID}");
                     EvilDICOM.Network.DIMSE.CMoveResponse response = mover.SendCMove(img, VMSFileDaemon.AeTitle, ref msgId);
                     if ((Status)response.Status != Status.SUCCESS)
                     {

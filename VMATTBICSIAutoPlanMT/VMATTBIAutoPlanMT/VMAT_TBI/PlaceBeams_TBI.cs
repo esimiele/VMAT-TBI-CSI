@@ -114,17 +114,17 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             int percentComplete = 0;
             int calcItems = 4;
             legsPlan = theCourse.AddExternalPlanSetup(selectedSS);
-            ProvideUIUpdate((int)(100* ++percentComplete / calcItems), $"Creating AP/PA plan");
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Creating AP/PA plan");
 
             legsPlan.Id = String.Format("_Legs");
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Set plan Id for {legsPlan.Id}");
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Set plan Id for {legsPlan.Id}");
 
             //100% dose prescribed in plan
             //FIX FOR SIB PLANS
             legsPlan.SetPrescription(prescriptions.First().Item3, prescriptions.First().Item4, 1.0);
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Set prescription for plan {legsPlan.Id}");
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Set prescription for plan {legsPlan.Id}");
             legsPlan.SetCalculationModel(CalculationType.PhotonVolumeDose, calculationModel);
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Set calculation model to {calculationModel}");
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Set calculation model to {calculationModel}");
             return false;
         }
 
@@ -159,7 +159,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 v.z = Math.Round(v.z / 10.0f) * 10.0f;
                 v = _image.UserToDicom(v, vmatPlan);
                 //iso.Add(v);
-                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Calculated isocenter position {i + 1}");
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated isocenter position {i + 1}");
                 tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPositions(v, vmatPlan, ref percentComplete, ref calcItems),
                                                         planIsoBeamInfo.First().Item2.ElementAt(i).Item1,
                                                         planIsoBeamInfo.First().Item2.ElementAt(i).Item2));
@@ -258,7 +258,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 StructureOutlines = true
             };
             DRR.SetLayerParameters(1, 1.0, 100.0, 1000.0);
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), "Created default DRR parameters");
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, "Created default DRR parameters");
 
             //place the beams for the VMAT plan
             //unfortunately, all of Nataliya's requirements for beam placement meant that this process couldn't simply draw from beam placement templates. Some of the beam placements for specific isocenters
@@ -299,7 +299,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     if (count % 2 == 0)
                     {
                         b = vmatPlan.AddArcBeam(ebmpArc, jp, coll, CCW[0], CCW[1], GantryDirection.CounterClockwise, 0, iso.Item2.ElementAt(i).Item1);
-                        ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Added arc beam to iso: {i + 1}");
+                        ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added arc beam to iso: {i + 1}");
 
                         if (j >= 2) beamName += $"CCW {iso.Item2.ElementAt(i).Item2}{90}";
                         else beamName += $"CCW {iso.Item2.ElementAt(i).Item2}";
@@ -307,16 +307,16 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     else
                     {
                         b = vmatPlan.AddArcBeam(ebmpArc, jp, coll, CW[0], CW[1], GantryDirection.Clockwise, 0, iso.Item2.ElementAt(i).Item1);
-                        ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Added arc beam to iso: {i + 1}");
+                        ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added arc beam to iso: {i + 1}");
 
                         if (j >= 2) beamName += $"CW {iso.Item2.ElementAt(i).Item2}{90}";
                         else beamName += $"CW {iso.Item2.ElementAt(i).Item2}";
                     }
                     b.Id = beamName;
-                    ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Assigned beam id: {beamName}");
+                    ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Assigned beam id: {beamName}");
 
                     b.CreateOrReplaceDRR(DRR);
-                    ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Assigned DRR to beam: {beamName}");
+                    ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Assigned DRR to beam: {beamName}");
 
                     count++;
                 }
@@ -333,9 +333,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             int calcItems = 3 + iso.Item2.First().Item3 * 5;
 
             Structure target = StructureTuningHelper.GetStructureFromId("body", selectedSS);
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), "Retrieved body structure");
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, "Retrieved body structure");
             double targetInfExtent = target.MeshGeometry.Positions.Min(p => p.Z) + targetMargin;
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Calculated target inferior extent: {targetInfExtent}");
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated target inferior extent: {targetInfExtent}");
 
             //place the beams for the VMAT plan
             //unfortunately, all of Nataliya's requirements for beam placement meant that this process couldn't simply draw from beam placement templates. Some of the beam placements for specific isocenters
@@ -352,19 +352,19 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //adjust x2 jaw (furthest from matchline) so that it covers edge of target volume
             x2 = CalculateX2Jaws(iso.Item2.First().Item1.z, targetInfExtent, 20.0);
             VRect<double> jaws = GenerateJawsPositions(x1, y1, x2, y2, iso.Item2.First().Item2);
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));
+            ProvideUIUpdate(100 * ++percentComplete / calcItems);
 
             //AP field
             //set MLC positions. First row is bank number 0 (X1 leaves) and second row is bank number 1 (X2).
             float[,] MLCpos = BuildMLCArray(x1, x2);
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Generated MLC positions for iso: {iso.Item2.First().Item2}");
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Generated MLC positions for iso: {iso.Item2.First().Item2}");
             
             CreateAPBeam(++count, "Upper", MLCpos, jaws, iso.Item2.First().Item1);
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Added AP beam to iso: {iso.Item2.First().Item2}");
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added AP beam to iso: {iso.Item2.First().Item2}");
 
             //PA field
             CreatePABeam(++count, "Upper", MLCpos, jaws, iso.Item2.First().Item1);
-            ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Added PA beam to iso: {iso.Item2.First().Item2}");
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added PA beam to iso: {iso.Item2.First().Item2}");
 
             //lower legs field if applicable
             if (iso.Item2.Count > 1)
@@ -389,24 +389,24 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     x1 = 0.0;
                 }
                 else infIso.z = iso.Item2.First().Item1.z - 390.0;
-                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Calculated lower leg isocenter: ({infIso.x:0.0}, {infIso.y:0.0}, {infIso.z:0.0}) mm");
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated lower leg isocenter: ({infIso.x:0.0}, {infIso.y:0.0}, {infIso.z:0.0}) mm");
 
                 //fit x1 jaw to extent of patient
                 x2 = CalculateX2Jaws(infIso.z, targetInfExtent, 20.0);
                 jaws = GenerateJawsPositions(x1, y1, x2, y2, iso.Item2.Last().Item2);
-                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems);
 
                 //set MLC positions
                 MLCpos = BuildMLCArray(x1, x2);
-                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Generated MLC positions for iso: {iso.Item2.Last().Item2}");
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Generated MLC positions for iso: {iso.Item2.Last().Item2}");
                 
                 //AP field
                 CreateAPBeam(++count, "Lower", MLCpos, jaws, infIso);
-                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Added AP beam to iso: {iso.Item2.Last().Item2}");
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added AP beam to iso: {iso.Item2.Last().Item2}");
 
                 //PA field
                 CreatePABeam(++count, "Lower", MLCpos, jaws, infIso);
-                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Added PA beam to iso: {iso.Item2.Last().Item2}");
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added PA beam to iso: {iso.Item2.Last().Item2}");
             }
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;

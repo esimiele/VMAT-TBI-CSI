@@ -60,7 +60,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 ProvideUIUpdate("Missing body structure! Generating it now!");
                 if (GenerateBodyStructure()) return true;
             }
-            ProvideUIUpdate((int)(100 * ++counter / calcItems));
+            ProvideUIUpdate(100 * ++counter / calcItems);
 
             //verify brain and spine structures are present
             if (!StructureTuningHelper.DoesStructureExistInSS("brain", selectedSS, true) || !StructureTuningHelper.DoesStructureExistInSS(new List<string> { "spinal_cord", "spinalcord"}, selectedSS, true))
@@ -68,10 +68,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 ProvideUIUpdate("Missing brain and/or spine structures! Please add and try again!", true);
                 return true;
             }
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), "Brain and spinal cord structures exist");
+            ProvideUIUpdate(100 * ++counter / calcItems, "Brain and spinal cord structures exist");
 
             if (CheckHighResolutionAndConvert(new List<string> { "brain", "spinal_cord", "spinalcord" })) return true;
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), "Check and converted any high res base targets");
+            ProvideUIUpdate(100 * ++counter / calcItems, "Check and converted any high res base targets");
 
             ProvideUIUpdate(100, "Preliminary checks complete!");
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
@@ -151,7 +151,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             for (int slice = startSlice; slice <= stopSlice; slice++)
             {
                 structurePoints[percentComplete++] = theStructure.GetContoursOnImagePlane(slice);
-                ProvideUIUpdate((int)(100 * percentComplete / calcItems));
+                ProvideUIUpdate(100 * percentComplete / calcItems);
             }
             return structurePoints;
         }
@@ -203,7 +203,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     }
                     else lowResStructure.AddContourOnImagePlane(points[i], slice);
                 }
-                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems);
             }
             return false;
         }
@@ -230,7 +230,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     addedTargetIds.Add(tmp.Id);
                 }
                 else ProvideUIUpdate($"Target: {itr.Item2} is exists and is contoured");
-                ProvideUIUpdate((int)(100 * ++counter / calcItems));
+                ProvideUIUpdate(100 * ++counter / calcItems);
             }
             if (missingTargets.Any())
             {
@@ -261,7 +261,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 {
                     addedTargetIds.Add(itr.Item2);
                     selectedSS.AddStructure(itr.Item1, itr.Item2);
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Added target: {itr.Item2}");
+                    ProvideUIUpdate(100 * ++counter / calcItems, $"Added target: {itr.Item2}");
                 }
                 else
                 {
@@ -279,7 +279,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             int counter = 0;
             foreach (string itr in addedTargetIds.OrderBy(x => x.ElementAt(0)))
             {
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Contouring target: {itr}");
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Contouring target: {itr}");
                 Structure theTarget = StructureTuningHelper.GetStructureFromId(itr, selectedSS);
                 if (itr.ToLower().Contains("brain"))
                 {
@@ -342,27 +342,27 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             if (addedTargetIds.Any(x => string.Equals(x.ToLower(), "ptv_csi")))
             {
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), "Generating: PTV_CSI");
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), "Retrieving: PTV_CSI, PTV_Brain, and PTV_Spine");
+                ProvideUIUpdate(100 * ++counter / calcItems, "Generating: PTV_CSI");
+                ProvideUIUpdate(100 * ++counter / calcItems, "Retrieving: PTV_CSI, PTV_Brain, and PTV_Spine");
                 //used to create the ptv_csi structures
                 Structure combinedTarget = StructureTuningHelper.GetStructureFromId("PTV_CSI", selectedSS);
                 Structure brainTarget = StructureTuningHelper.GetStructureFromId("PTV_Brain", selectedSS);
                 Structure spineTarget = StructureTuningHelper.GetStructureFromId("PTV_Spine", selectedSS);
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), "Unioning PTV_Brain and PTV_Spine to make PTV_CSI");
+                ProvideUIUpdate(100 * ++counter / calcItems, "Unioning PTV_Brain and PTV_Spine to make PTV_CSI");
                 combinedTarget.SegmentVolume = brainTarget.Margin(0.0);
                 combinedTarget.SegmentVolume = combinedTarget.Or(spineTarget.Margin(0.0));
 
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), "Cropping PTV_CSI from body with 3 mm inner margin");
+                ProvideUIUpdate(100 * ++counter / calcItems, "Cropping PTV_CSI from body with 3 mm inner margin");
                 //1/3/2022, crop PTV structure from body by 3mm
-                (bool fail, StringBuilder errorMessage) = ContourHelper.CropStructureFromBody(combinedTarget, selectedSS, -0.3);
+                (bool fail, StringBuilder errorMessage) = ContourHelper.CropStructureFromBody(combinedTarget, selectedSS, -0.3, selectedSS.Structures.First(x => x.Id.ToLower().Contains("body")).Id);
                 if (fail)
                 {
                     ProvideUIUpdate(errorMessage.ToString());
                     return true;
                 }
             }
-            else ProvideUIUpdate((int)(100 * ++counter / calcItems), "PTV_CSI already exists in the structure set! Skipping!");
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), "Targets added and contoured!");
+            else ProvideUIUpdate(100 * ++counter / calcItems, "PTV_CSI already exists in the structure set! Skipping!");
+            ProvideUIUpdate(100 * ++counter / calcItems, "Targets added and contoured!");
             return false;
         }
         #endregion

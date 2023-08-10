@@ -72,7 +72,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 ProvideUIUpdate("Error! Did you forget to set the imaging device to 'Def_CTScanner'?", true);
                 return true;
             }
-            ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Imaging device Id: {0}", ss.Image.Series.ImagingDeviceId));
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("Imaging device Id: {0}", ss.Image.Series.ImagingDeviceId));
 
             //is the user origin inside the body?
             if (!ss.Image.HasUserOrigin || !(ss.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "body")).IsPointInsideSegment(ss.Image.UserOrigin)))
@@ -80,7 +80,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 ProvideUIUpdate(String.Format("Did you forget to set the user origin?" + Environment.NewLine + "User origin is NOT inside body contour!" + Environment.NewLine + "Please fix and try again!"), true);
                 return true;
             }
-            ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("User origin assigned and located within body structure"));
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("User origin assigned and located within body structure"));
 
 
             foreach (string itr in targetIDs)
@@ -90,10 +90,10 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                     ProvideUIUpdate(String.Format("Error! Target: {0} is missing from structure set or empty! Please fix and try again!", itr), true);
                     return true;
                 }
-                else ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Target: {0} is in structure set and is not null", itr));
+                else ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("Target: {0} is in structure set and is not null", itr));
             }
 
-            UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
+            UpdateOverallProgress(100 * ++overallPercentCompletion / overallCalcItems);
             return false;
         }
 
@@ -104,7 +104,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 
             //grab all couch structures including couch surface, rails, etc. Also grab the matchline and spinning manny couch (might not be present depending on the size of the patient)
             List<Structure> couchAndRails = ss.Structures.Where(x => x.Id.ToLower().Contains("couch") || x.Id.ToLower().Contains("rail")).ToList();
-            ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Retrieved list of couch structures ({0} structures found)", couchAndRails.Count));
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("Retrieved list of couch structures ({0} structures found)", couchAndRails.Count));
 
             //check to see if the couch and rail structures are present in the structure set. If not, let the user know as an FYI. At this point, the user can choose to stop the optimization loop and add the couch structures
             if (!couchAndRails.Any())
@@ -119,14 +119,14 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             }
 
             //now check if the couch and spinning manny structures are present on the first and last slices of the CT image
-            if ((couchAndRails.Any() && couchAndRails.Where(x => !x.IsEmpty).Any()))
+            if (couchAndRails.Any() && couchAndRails.Where(x => !x.IsEmpty).Any())
             {
                 if(couchAndRails.Where(x => x.GetContoursOnImagePlane(0).Any()).Any() || couchAndRails.Where(x => x.GetContoursOnImagePlane(ss.Image.ZSize - 1).Any()).Any()) _checkSupportStructures = true;
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Checking if couch structures are on first or last slices of image", _checkSupportStructures));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("Checking if couch structures are on first or last slices of image", _checkSupportStructures));
             }
-            else ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("No couch structures present --> nothing to check"));
+            else ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("No couch structures present --> nothing to check"));
 
-            UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
+            UpdateOverallProgress(100 * ++overallPercentCompletion / overallCalcItems);
             return false;
         }
 
@@ -143,14 +143,14 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             ConfirmPrompt CP = new ConfirmPrompt(String.Format("I found couch contours on the first or last slices of the CT image!") + Environment.NewLine + Environment.NewLine +
                                                 "Do you want to remove them?!" + Environment.NewLine + "(The script will be less likely to throw warnings)");
             CP.ShowDialog();
-            ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems));
+            ProvideUIUpdate(100 * ++percentComplete / calcItems);
             //remove all applicable contours on the first and last CT slices
             if (CP.GetSelection())
             {
                 //If dose has been calculated for this plan, need to clear the dose in this and any and all plans that reference this structure set
                 //check to see if this structure set is used in any other calculated plans
                 
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Retrieved all plans that use this structure set that have dose calculated"));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("Retrieved all plans that use this structure set that have dose calculated"));
 
                 (List<ExternalPlanSetup> otherPlans, StringBuilder planIdList) = OptimizationLoopHelper.GetOtherPlansWithSameSSWithCalculatedDose(courses, ss);
                 if (otherPlans.Any())
@@ -166,7 +166,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                     {
                         List<ExternalPlanSetup> planRecalcList = new List<ExternalPlanSetup> { };
                         foreach (ExternalPlanSetup itr in otherPlans) if (!_data.plans.Where(x => x == itr).Any()) planRecalcList.Add(itr);
-                        ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Revised plan list to exclude plans that will be optimized"));
+                        ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("Revised plan list to exclude plans that will be optimized"));
 
                         //reset dose matrix for ALL plans
                         ResetDoseMatrix(otherPlans, percentComplete, calcItems);
@@ -186,7 +186,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 else CropCouchStructures(ss, percentComplete, calcItems);
             }
             ProvideUIUpdate(100);
-            UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
+            UpdateOverallProgress(100 * ++overallPercentCompletion / overallCalcItems);
             return false;
         }
 
@@ -198,7 +198,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 string calcModel = itr.GetCalculationModel(CalculationType.PhotonVolumeDose);
                 itr.ClearCalculationModel(CalculationType.PhotonVolumeDose);
                 itr.SetCalculationModel(CalculationType.PhotonVolumeDose, calcModel);
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Reset dose matrix for plan: {0}", itr.Id));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("Reset dose matrix for plan: {0}", itr.Id));
             }
         }
 
@@ -213,9 +213,9 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 {
                     itr.ClearAllContoursOnImagePlane(0);
                     itr.ClearAllContoursOnImagePlane(ss.Image.ZSize - 1);
-                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Cropped structure: {0} from first and last slices of image", itr.Id));
+                    ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("Cropped structure: {0} from first and last slices of image", itr.Id));
                 }
-                else ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Structure: {0} is empty. Nothing to crop", itr.Id));
+                else ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("Structure: {0} is empty. Nothing to crop", itr.Id));
             }
             return false;
         }
@@ -226,7 +226,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             //recalculate dose for each plan that requires it
             foreach (ExternalPlanSetup itr in plans)
             {
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Re calculating dose for plan: {0}", itr.Id));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("Re calculating dose for plan: {0}", itr.Id));
                 itr.CalculateDose();
             }
         }
@@ -243,35 +243,35 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                     ProvideUIUpdate("No beams present in the VMAT TBI plan!", true);
                     return true;
                 }
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Beams present in plan: {0}", itr.Id));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("Beams present in plan: {0}", itr.Id));
 
                 //check each beam to ensure the isoposition is rounded-off to the nearest 5mm
                 calcItems += itr.Beams.Count();
                 foreach (Beam b in itr.Beams)
                 {
                     if (CheckIsocenterPositions(itr.StructureSet.Image.DicomToUser(b.IsocenterPosition, itr), b.Id)) return true;
-                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Beam: {0} isocenter ok", b.Id));
+                    ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("Beam: {0} isocenter ok", b.Id));
                 }
 
                 //turn on jaw tracking if available
                 try 
                 { 
                     itr.OptimizationSetup.UseJawTracking = true;
-                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Enabled jaw tracking for plan: {0}", itr.Id));
+                    ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("Enabled jaw tracking for plan: {0}", itr.Id));
                 }
                 catch (Exception e) 
                 { 
-                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), $"{e.Message}\nCannot set jaw tracking for this machine! Jaw tracking will not be enabled!"); 
+                    ProvideUIUpdate(100 * ++percentComplete / calcItems, $"{e.Message}\nCannot set jaw tracking for this machine! Jaw tracking will not be enabled!"); 
                 }
                 //set auto NTO priority to zero (i.e., shut it off)
                 itr.OptimizationSetup.AddAutomaticNormalTissueObjective(0.0);
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Set automatic NTO priority to 0 for plan: {0}", itr.Id));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("Set automatic NTO priority to 0 for plan: {0}", itr.Id));
 
                 //be sure to set the dose value presentation to absolute! This is important for plan evaluation in the evaluateAndUpdatePlan method below
                 itr.DoseValuePresentation = DoseValuePresentation.Absolute;
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Set dose value presentation to absolute for plan: {0}", itr.Id));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("Set dose value presentation to absolute for plan: {0}", itr.Id));
             }
-            UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
+            UpdateOverallProgress(100 * ++overallPercentCompletion / overallCalcItems);
             return false;
         }
 
@@ -328,25 +328,25 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 
             foreach (ExternalPlanSetup itr in plans)
             {
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Running one final optimization to try and reduce global plan hotspots for plan: {0}!", itr.Id));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("Running one final optimization to try and reduce global plan hotspots for plan: {0}!", itr.Id));
                 ProvideUIUpdate(String.Format("Elapsed time: {0}", GetElapsedTime()));
 
                 //one final push to lower the global plan hotspot if the user asked for it
                 if (OptimizePlan(_data.isDemo, new OptimizationOptionsVMAT(OptimizationOption.ContinueOptimizationWithPlanDoseAsIntermediateDose, ""), itr, _data.app)) return true;
-                UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
+                UpdateOverallProgress(100 * ++overallPercentCompletion / overallCalcItems);
 
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), "Optimization finished! Calculating dose!");
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, "Optimization finished! Calculating dose!");
                 ProvideUIUpdate(String.Format("Elapsed time: {0}", GetElapsedTime()));
 
                 if (CalculateDose(_data.isDemo, itr, _data.app)) return true;
-                UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
+                UpdateOverallProgress(100 * ++overallPercentCompletion / overallCalcItems);
 
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), "Dose calculated, normalizing plan!");
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, "Dose calculated, normalizing plan!");
                 ProvideUIUpdate(String.Format("Elapsed time: {0}", GetElapsedTime()));
 
                 //normalize
                 if(NormalizePlan(itr, TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, OptimizationLoopHelper.GetNormaliztionVolumeIdForPlan(itr.Id, _data.normalizationVolumes), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage)) return true;
-                UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
+                UpdateOverallProgress(100 * ++overallPercentCompletion / overallCalcItems);
                 ProvideUIUpdate(String.Format("{0} normalized!", itr.Id));
 
                 //print requested additional info about the plan
@@ -372,27 +372,27 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             while (count < _data.numOptimizations)
             {
                 bool isFinalOpt = (_data.oneMoreOpt && ((count + 1) == _data.numOptimizations));
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Iteration {0}:", count + 1));
+                ProvideUIUpdate(100 * (++percentComplete) / calcItems, String.Format("Iteration {0}:", count + 1));
                 ProvideUIUpdate(String.Format("Elapsed time: {0}", GetElapsedTime()));
                 if (OptimizePlan(_data.isDemo, new OptimizationOptionsVMAT(OptimizationIntermediateDoseOption.NoIntermediateDose, ""), plan, _data.app)) return true;
 
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), "Optimization finished! Calculating intermediate dose!");
+                ProvideUIUpdate(100 * (++percentComplete) / calcItems, "Optimization finished! Calculating intermediate dose!");
                 ProvideUIUpdate(String.Format("Elapsed time: {0}", GetElapsedTime()));
                 if (CalculateDose(_data.isDemo, plan, _data.app)) return true;
 
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), "Dose calculated! Continuing optimization!");
+                ProvideUIUpdate(100 * (++percentComplete) / calcItems, "Dose calculated! Continuing optimization!");
                 ProvideUIUpdate(String.Format("Elapsed time: {0}", GetElapsedTime()));
                 if (OptimizePlan(_data.isDemo, new OptimizationOptionsVMAT(OptimizationOption.ContinueOptimizationWithPlanDoseAsIntermediateDose, ""), plan, _data.app)) return true;
 
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), "Optimization finished! Calculating dose!");
+                ProvideUIUpdate(100 * (++percentComplete) / calcItems, "Optimization finished! Calculating dose!");
                 ProvideUIUpdate(String.Format("Elapsed time: {0}", GetElapsedTime()));
                 if (CalculateDose(_data.isDemo, plan, _data.app)) return true;
 
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), "Dose calculated, normalizing plan!");
+                ProvideUIUpdate(100 * (++percentComplete) / calcItems, "Dose calculated, normalizing plan!");
                 ProvideUIUpdate(String.Format("Elapsed time: {0}", GetElapsedTime()));
                 if (NormalizePlan(plan, TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, OptimizationLoopHelper.GetNormaliztionVolumeIdForPlan(plan.Id, _data.normalizationVolumes), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage)) return true;
 
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), "Plan normalized! Evaluating plan quality and updating constraints!"); ;
+                ProvideUIUpdate(100 * (++percentComplete) / calcItems, "Plan normalized! Evaluating plan quality and updating constraints!"); ;
                 //evaluate the new plan for quality and make any adjustments to the optimization parameters
                 EvalPlanStruct e = EvaluateAndUpdatePlan(plan, _data.planObj, isFinalOpt);
                 
@@ -420,7 +420,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 if (isFinalOpt) e.updatedObj = OptimizationLoopHelper.IncreaseOptConstraintPrioritiesForFinalOpt(e.updatedObj);
 
                 //print updated optimization constraints
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), OptimizationLoopUIHelper.PrintPlanOptimizationConstraints(plan.Id, e.updatedObj));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, OptimizationLoopUIHelper.PrintPlanOptimizationConstraints(plan.Id, e.updatedObj));
 
                 //update the optimization constraints in the plan
                 UpdateConstraints(e.updatedObj, plan);
@@ -460,7 +460,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 }
                 app.SaveModifications();
             }
-            UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
+            UpdateOverallProgress(100 * ++overallPercentCompletion / overallCalcItems);
             //check if user wants to stop
             if (GetAbortStatus())
             {
@@ -497,7 +497,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 app.SaveModifications();
                 cts.Cancel();
             }
-            UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
+            UpdateOverallProgress(100 * ++overallPercentCompletion / overallCalcItems);
             //check if user wants to stop
             if (GetAbortStatus())
             {
@@ -537,12 +537,12 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 //start OAR structure priorities at 2/3 of the values the user specified so there is some wiggle room for adjustment
                 else priority = (int)Math.Ceiling(((double)opt.Item5 * 2) / 3);
                 optObj.Add(Tuple.Create(opt.Item1, opt.Item2, opt.Item3, opt.Item4, priority));
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("{0, -16} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, priority));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("{0, -16} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, priority));
             }
             ProvideUIUpdate(" ");
             UpdateConstraints(optObj, plan);
 
-            UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
+            UpdateOverallProgress(100 * ++overallPercentCompletion / overallCalcItems);
             return false;
         }
 
@@ -555,7 +555,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             foreach (OptimizationObjective o in plan.OptimizationSetup.Objectives)
             {
                 plan.OptimizationSetup.RemoveObjective(o);
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems);
             }
 
             UpdateUILabel("Assign updated constraints:");
@@ -564,9 +564,9 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             {
                 if (opt.Item2 != OptimizationObjectiveType.Mean) plan.OptimizationSetup.AddPointObjective(plan.StructureSet.Structures.First(x => x.Id == opt.Item1), OptimizationTypeHelper.GetObjectiveOperator(opt.Item2), new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item4, opt.Item5);
                 else plan.OptimizationSetup.AddMeanDoseObjective(plan.StructureSet.Structures.First(x => x.Id == opt.Item1), new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item5);
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems);
             }
-            UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
+            UpdateOverallProgress(100 * ++overallPercentCompletion / overallCalcItems);
             return false;
         }
         #endregion
@@ -612,7 +612,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 plan.PlanNormalizationValue = normValue;
                 ProvideUIUpdate(String.Format("{0} normalized. Normalization value = {1:0.0}%", plan.Id, normValue));
             }
-            UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
+            UpdateOverallProgress(100 * ++overallPercentCompletion / overallCalcItems);
             return false;
         }
         #endregion
@@ -677,7 +677,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             }
             e.updatedObj.AddRange(result.Item2);
             
-            UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
+            UpdateOverallProgress(100 * ++overallPercentCompletion / overallCalcItems);
             return e;
         }
 
@@ -698,7 +698,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             //string message = "";
             foreach (Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation> itr in planObj)
             {
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems);
                 //used to account for the case where there is a template plan objective that is not included in the current case (e.g., testes are not always spared)
                 if (plan.StructureSet.Structures.Where(x => x.Id.ToLower() == itr.Item1.ToLower()).Any() && !plan.StructureSet.Structures.First(x => x.Id.ToLower() == itr.Item1.ToLower()).IsEmpty)
                 {
@@ -772,7 +772,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             int calcItems = 1 + optParams.Count();
             foreach (Tuple<string, OptimizationObjectiveType, double, double, int> itr in optParams)
             {
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems);
                 //get the structure for each optimization object in optParams and its associated DVH
                 Structure s = _data.selectedSS.Structures.First(x => x.Id.ToLower() == itr.Item1.ToLower());
                 //dose representation in optimization objectives is always absolute!
@@ -803,7 +803,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             int count = 0;
             foreach (Tuple<Structure, DVHData, double, double, double, int> itr in diffPlanOpt)
             {
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems);
                 double relative_cost = 0.0;
                 //assign new objective dose and priority to the current dose and priority
                 double newDose = itr.Item3;
@@ -885,7 +885,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 
             foreach (Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>> itr in requestedTSStructures)
             {
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems);
                 Tuple<string, OptimizationObjectiveType, double, double, int> TSstructure = null;
                 //does it have constraints that need to be met before adding the TS structure?
                 if (TSHeaterCoolerHelper.AllHeaterCoolerTSConstraintsMet(plan, target, itr.Item6, isFinalOptimization))
@@ -927,7 +927,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             int calcItems = coolerHeater.Count();
             foreach (Structure itr in coolerHeater)
             {
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Removing structure: {0}", itr.Id));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("Removing structure: {0}", itr.Id));
                 if (ss.CanRemoveStructure(itr)) ss.RemoveStructure(itr);
                 else ProvideUIUpdate(String.Format("Warning! Cannot remove {0} from the structure set! Skipping!", itr.Id));
             }

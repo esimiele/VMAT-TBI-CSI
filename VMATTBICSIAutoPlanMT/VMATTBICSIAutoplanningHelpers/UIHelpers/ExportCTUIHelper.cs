@@ -38,6 +38,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 VerticalAlignment = VerticalAlignment.Center,
                 Width = 80,
                 FontSize = 14,
+                HorizontalContentAlignment = HorizontalAlignment.Center,
                 Margin = new Thickness(0)
             };
 
@@ -49,6 +50,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 VerticalAlignment = VerticalAlignment.Center,
                 Width = 160,
                 FontSize = 14,
+                HorizontalContentAlignment = HorizontalAlignment.Center,
                 Margin = new Thickness(25, 0, 0, 0)
             };
 

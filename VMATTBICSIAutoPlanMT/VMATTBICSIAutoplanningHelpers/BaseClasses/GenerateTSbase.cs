@@ -67,7 +67,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 foreach (Tuple<Structure, Structure, string> itr in structuresToUnion)
                 {
                     (bool fail, StringBuilder output) = StructureTuningHelper.UnionLRStructures(itr, selectedSS);
-                    if (!fail) ProvideUIUpdate((int)(100 * ++numUnioned / calcItems), $"Unioned {itr.Item3}");
+                    if (!fail) ProvideUIUpdate(100 * ++numUnioned / calcItems, $"Unioned {itr.Item3}");
                     else
                     {
                         ProvideUIUpdate(output.ToString(), true);
@@ -105,7 +105,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             Structure theStructure = StructureTuningHelper.GetStructureFromId(manipulationItem.Item1, selectedSS);
             if (manipulationItem.Item2 == TSManipulationType.CropFromBody)
             {
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Cropping {manipulationItem.Item1} from Body with margin {manipulationItem.Item3} cm");
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Cropping {manipulationItem.Item1} from Body with margin {manipulationItem.Item3} cm");
                 //crop from body
                 (bool failOp, StringBuilder errorOpMessage) = ContourHelper.CropStructureFromBody(theStructure, selectedSS, manipulationItem.Item3);
                 if (failOp)
@@ -116,7 +116,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             }
             else if (manipulationItem.Item2 == TSManipulationType.CropTargetFromStructure)
             {
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Cropping target {target.Id} from {manipulationItem.Item1} with margin {manipulationItem.Item3} cm");
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Cropping target {target.Id} from {manipulationItem.Item1} with margin {manipulationItem.Item3} cm");
                 //crop target from structure
                 (bool failCrop, StringBuilder errorCropMessage) = ContourHelper.CropStructureFromStructure(target, theStructure, manipulationItem.Item3);
                 if (failCrop)
@@ -140,10 +140,10 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 }
                 if (addedTSNormal.IsEmpty)
                 {
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"{overlapName} was contoured, but it's empty! Removing!");
+                    ProvideUIUpdate(100 * ++counter / calcItems, $"{overlapName} was contoured, but it's empty! Removing!");
                     selectedSS.RemoveStructure(addedTSNormal);
                 }
-                else ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Finished contouring {overlapName}");
+                else ProvideUIUpdate(100 * ++counter / calcItems, $"Finished contouring {overlapName}");
             }
             else if (manipulationItem.Item2 == TSManipulationType.ContourSubStructure || manipulationItem.Item2 == TSManipulationType.ContourOuterStructure)
             {
@@ -187,7 +187,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             int counter = 0;
             int calcItems = 2;
             //all other sub structures
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Creating {(margin > 0 ? "outer" : "sub")} structure!");
+            ProvideUIUpdate(100 * ++counter / calcItems, $"Creating {(margin > 0 ? "outer" : "sub")} structure!");
             (bool fail, Structure addedStructure) = CheckAndGenerateStructure($"{originalStructure.Id}{margin:0.0}cm");
             if (fail) return true;
             //convert from cm to mm
@@ -197,7 +197,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
            //}
             if (addedStructure.IsEmpty)
             {
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"{addedStructure.Id} was contoured, but is empty! Removing!");
+                ProvideUIUpdate(100 * ++counter / calcItems, $"{addedStructure.Id} was contoured, but is empty! Removing!");
                 selectedSS.RemoveStructure(addedStructure);
             }
             else ProvideUIUpdate(100, $"Finished contouring {addedStructure.Id}");
@@ -217,7 +217,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             if (pos1 != -1 && pos2 != -1)
             {
                 string originalStructureId = addedStructure.Id.Substring(0, pos1);
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), "Grabbing margin value!");
+                ProvideUIUpdate(100 * ++counter / calcItems, "Grabbing margin value!");
                 if (!double.TryParse(addedStructure.Id.Substring(pos1, pos2 - pos1), out margin))
                 {
                     ProvideUIUpdate($"Margin parse failed for sub structure: {addedStructure.Id}!", true);
@@ -225,7 +225,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 }
                 ProvideUIUpdate(margin.ToString());
 
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Grabbing original structure {originalStructureId}");
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Grabbing original structure {originalStructureId}");
                 //logic to handle case where the original structure had to be converted to low resolution
                 originalStructure = StructureTuningHelper.GetStructureFromId(originalStructureId.ToLower(), selectedSS);
                 if (originalStructure == null) originalStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains(originalStructureId.ToLower()) && x.Id.ToLower().Contains("_low"));
@@ -237,7 +237,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                     return false;
                 }
 
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Creating {(margin > 0 ? "outer" : "sub")} structure!");
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Creating {(margin > 0 ? "outer" : "sub")} structure!");
                 //convert from cm to mm
                 addedStructure.SegmentVolume = originalStructure.Margin(margin * 10);
                 if (addedStructure.IsEmpty)
@@ -300,26 +300,26 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             int calcItems = highResManipulationList.Count * 5;
             foreach (Tuple<string, TSManipulationType, double> itr in highResManipulationList)
             {
-                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Retrieving high resolution structure: {itr.Item1}");
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieving high resolution structure: {itr.Item1}");
                 //this structure should be present and contoured in structure set (checked previously)
                 Structure highResStruct = StructureTuningHelper.GetStructureFromId(itr.Item1, selectedSS);
-                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Converting: {itr.Item1} to low resolution");
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Converting: {itr.Item1} to low resolution");
                 
                 //get the high res structure mesh geometry
                 MeshGeometry3D mesh = highResStruct.MeshGeometry;
                 //get the start and stop image planes for this structure
                 int startSlice = CalculationHelper.ComputeSlice(mesh.Positions.Min(p => p.Z), selectedSS);
                 int stopSlice = CalculationHelper.ComputeSlice(mesh.Positions.Max(p => p.Z), selectedSS);
-                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Number of slices to contour: {stopSlice - startSlice + 1}");
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Number of slices to contour: {stopSlice - startSlice + 1}");
 
                 //create an Id for the low resolution struture that will be created. The name will be '_lowRes' appended to the current structure Id
                 (bool fail, Structure lowRes) = CreateLowResStructure(highResStruct);
                 if (fail) return true;
-                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Added low-res structure: {lowRes.Id}");
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added low-res structure: {lowRes.Id}");
                 ProvideUIUpdate($"Contouring {lowRes.Id} now");
                 ContourLowResStructure(highResStruct, lowRes, startSlice, stopSlice);
                 
-                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), String.Format("Removing existing high-res structure from manipulation list and replacing with low-res"));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("Removing existing high-res structure from manipulation list and replacing with low-res"));
                 if(UpdateManipulationList(itr, lowRes.Id)) return true;
             }
             //inform the main UI class that the UI needs to be updated
@@ -336,7 +336,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             //THAT YOU DO NOT OBTAIN THE CUTOUT CONTOUR POINTS BEFORE THE OUTER CONTOUR POINTS (it seems that ESAPI generally passes the main structure contours first before the cutout contours, but more testing is needed)
             for (int slice = startSlice; slice <= stopSlice; slice++)
             {
-                ProvideUIUpdate((int)(100 * ++percentComplete / calcItems));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems);
                 VVector[][] points = highResStructure.GetContoursOnImagePlane(slice);
                 for (int i = 0; i < points.GetLength(0); i++)
                 {
@@ -369,7 +369,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                     {
                         if (selectedSS.CanRemoveStructure(tmp))
                         {
-                            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Adding: {itr.Item2} to the structure removal list");
+                            ProvideUIUpdate(100 * ++counter / calcItems, $"Adding: {itr.Item2} to the structure removal list");
                             removeList.Add(tmp);
                         }
                         else
@@ -402,7 +402,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                     ProvideUIUpdate($"Error! {itr.Item2} can't be added the structure set!", true);
                     fail = true;
                 }
-                ProvideUIUpdate((int)(100 * ++counter / calcItems));
+                ProvideUIUpdate(100 * ++counter / calcItems);
             }
             return fail;
         }
@@ -415,7 +415,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             {
                 if (selectedSS.CanRemoveStructure(itr))
                 {
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Removing: {itr.Id}");
+                    ProvideUIUpdate(100 * ++counter / calcItems, $"Removing: {itr.Id}");
                     selectedSS.RemoveStructure(itr);
                 }
                 else

@@ -37,9 +37,9 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 if (RunOptimizationLoop(_data.plans)) return true;
                 OptimizationLoopFinished();
             }
-            catch (Exception e) 
-            { 
-                ProvideUIUpdate($"{e.Message}", true); 
+            catch (Exception e)
+            {
+                ProvideUIUpdate($"{e.Message}", true);
                 return true; 
             }
             return false;
@@ -65,17 +65,17 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 evalPlan = initialPlan.Course.AddExternalPlanSetup(ss);
                 if(!initialPlan.Course.ExternalPlanSetups.Any(x => x.Id == "Eval Plan")) evalPlan.Id = "Eval Plan";
                 else evalPlan.Id = "Eval Plan1";
-                ProvideUIUpdate(String.Format("Successfully created evaluation plan (plan sum): {0}", evalPlan.Id));
-                ProvideUIUpdate(String.Format("Assigning prescription to plan sum: {0}", evalPlan.Id));
+                ProvideUIUpdate($"Successfully created evaluation plan (plan sum): {evalPlan.Id}");
+                ProvideUIUpdate($"Assigning prescription to plan sum: {evalPlan.Id}");
                 int totalFx = 0;
                 foreach (ExternalPlanSetup itr in thePlans) totalFx += (int)itr.NumberOfFractions;
                 //assumes dose per fraction is the same between the initial and boost plans
                 evalPlan.SetPrescription(totalFx, initialPlan.DosePerFraction, 1.0);
                 evalPlan.DoseValuePresentation = DoseValuePresentation.Absolute;
-                ProvideUIUpdate(String.Format("Prescription:"));
-                ProvideUIUpdate(String.Format("    Dose per fraction: {0} cGy/fx", evalPlan.DosePerFraction.Dose));
-                ProvideUIUpdate(String.Format("    Number of fractions: {0}", evalPlan.NumberOfFractions));
-                ProvideUIUpdate(String.Format("    Total dose: {0} cGy", evalPlan.TotalDose.Dose));
+                ProvideUIUpdate("Prescription:");
+                ProvideUIUpdate($"    Dose per fraction: {evalPlan.DosePerFraction.Dose} cGy/fx");
+                ProvideUIUpdate($"    Number of fractions: {evalPlan.NumberOfFractions}");
+                ProvideUIUpdate($"    Total dose: {evalPlan.TotalDose.Dose} cGy");
             }
             else
             {
@@ -90,7 +90,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             //grab the initial and boost plans
             ExternalPlanSetup initialPlan = thePlans.First();
             ExternalPlanSetup boostPlan = thePlans.Last();
-            ProvideUIUpdate(String.Format("Building plan sum from: {0} and {1}!", initialPlan.Id, boostPlan.Id));
+            ProvideUIUpdate($"Building plan sum from: {initialPlan.Id} and {boostPlan.Id}!");
             int zSize = initialPlan.Dose.ZSize;
             int[][,] summedDoses = CreateSummedDoseArray(zSize, evalPlan, initialPlan, boostPlan);
             AssignSummedDoseToEvalPlan(evalPlan, summedDoses, zSize);
@@ -107,8 +107,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             int[][,] sumArray = new int[totalSlices][,];
             for (int i = 0; i < totalSlices; i++)
             {
-                ProvideUIUpdate((int)(100 * (i + 1) / totalSlices));
-                //if((i + 1) % 10 == 0) ProvideUIUpdate(String.Format("Summing doses from slice: {0}", i + 1));
+                ProvideUIUpdate(100 * (i + 1) / totalSlices);
                 //need to initialize jagged array before using
                 sumArray[i] = new int[xSize, ySize];
                 //get dose arrays from initial and boost plans (better to use more memory and initialize two arrays rather than putting this in a loop to limit the
@@ -117,10 +116,6 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 int[,] array2 = GetDoseArray(sum.CopyEvaluationDose(boostPlan.Dose), i);
                 for (int j = 0; j < xSize; j++)
                 {
-                    //fancy linq methods to sum entire rows at once
-                    //int[] array1row = Enumerable.Range(0, array1.GetLength(1)).Select(x => array1[j, x]).ToArray();
-                    //int[] array2row = Enumerable.Range(0, array2.GetLength(1)).Select(x => array2[j, x]).ToArray();
-                    //int[] sum = array1row.Zip(array2row, (x, y) => x + y).ToArray();
                     for (int k = 0; k < ySize; k++)
                     {
                         sumArray[i][j, k] = (int)(array1[j, k] * initialScaleFactor) + (int)(array2[j, k] * boostScaleFactor);
@@ -143,7 +138,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             //testing 3/9/23
             //max dose and structure DVHs are within 0.1% between evaluation plan and true plan sum
             //this needs to be done outside the above loop because as soon as we call createevaluationdose, it will wipe anything we have assigned to the eval plan thus far
-            ProvideUIUpdate(String.Format("Assigning summed doses to eval plan: {0}", evalPlan.Id));
+            ProvideUIUpdate($"Assigning summed doses to eval plan: {evalPlan.Id}");
             EvaluationDose summed = evalPlan.CreateEvaluationDose();
             if (summed == null)
             {
@@ -162,7 +157,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 ProvideUIUpdate(e.Message, true); 
                 return true; 
             }
-            ProvideUIUpdate(String.Format("Finished assigning summed doses to eval plan: {0}", evalPlan.Id));
+            ProvideUIUpdate($"Finished assigning summed doses to eval plan: {evalPlan.Id}");
             return false;
         }
         #endregion
@@ -211,13 +206,13 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 KillOptimizationLoop();
                 return true;
             }
-            ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems));
+            ProvideUIUpdate(100 * ++percentComplete / calcItems);
             List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(initialPlan);
             optParams.AddRange(addedTSCoolerConstraint);
-            ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), OptimizationLoopUIHelper.PrintPlanOptimizationConstraints(initialPlan.Id, optParams));
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, OptimizationLoopUIHelper.PrintPlanOptimizationConstraints(initialPlan.Id, optParams));
 
             UpdateConstraints(optParams, initialPlan);
-            ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems));
+            ProvideUIUpdate(100 * ++percentComplete / calcItems);
 
             ////set MR restart level option for the photon optimization
             //string optimizationModel = initialPlan.GetCalculationModel(CalculationType.PhotonVMATOptimization);
@@ -253,9 +248,9 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             int count = 0;
             while(count < _data.numOptimizations)
             {
-                bool oneMoreOptNextItr = (_data.oneMoreOpt && ((count + 1) == _data.numOptimizations));
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Iteration {0}:", count + 1));
-                ProvideUIUpdate(String.Format("Elapsed time: {0}", GetElapsedTime()));
+                bool oneMoreOptNextItr = _data.oneMoreOpt && count + 1 == _data.numOptimizations;
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Iteration {count + 1}:");
+                ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
                 foreach (ExternalPlanSetup itr in plans)
                 {
                     //string exeName = "ParallelTest";
@@ -270,11 +265,11 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                     //Testing t = new Testing(_data.isDemo, itr);
                     //Thread worker = new Thread(t.Run);
                     //worker.Start(t);
-                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Optimizing plan: {0}!", itr.Id));
+                    ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Optimizing plan: {itr.Id}!");
                     if (OptimizePlan(_data.isDemo, new OptimizationOptionsVMAT(OptimizationIntermediateDoseOption.NoIntermediateDose, ""), itr, _data.app)) return true;
-                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), "Optimization finished! Calculating dose!");
+                    ProvideUIUpdate(100 * ++percentComplete / calcItems, "Optimization finished! Calculating dose!");
                     if (CalculateDose(_data.isDemo, itr, _data.app)) return true;
-                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), "Dose calculated, normalizing plan!");
+                    ProvideUIUpdate(100 * ++percentComplete / calcItems, "Dose calculated, normalizing plan!");
                     //normalize
                     if(NormalizePlan(itr, TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, OptimizationLoopHelper.GetNormaliztionVolumeIdForPlan(itr.Id, _data.normalizationVolumes), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage)) return true;
                     if (GetAbortStatus())
@@ -282,8 +277,8 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                         KillOptimizationLoop();
                         return true;
                     }
-                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Plan normalized!"));
-                    ProvideUIUpdate(String.Format("Elapsed time: {0}", GetElapsedTime()));
+                    ProvideUIUpdate(100 * ++percentComplete / calcItems, "Plan normalized!");
+                    ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
                 }
                 
                 if (BuildPlanSum(evalPlan, plans)) return true;
@@ -291,7 +286,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
 
                 if (EvaluatePlanSumQuality(evalPlan, _data.planObj))
                 {
-                    ProvideUIUpdate(String.Format("All plan objectives met for plan sum: {0}! Exiting!", evalPlan.Id));
+                    ProvideUIUpdate($"All plan objectives met for plan sum: {evalPlan.Id}! Exiting!");
                     return false;
                 }
                 else
@@ -307,21 +302,21 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                     }
                     foreach (ExternalPlanSetup itr in plans)
                     {
-                        ProvideUIUpdate(String.Format("Adjusting optimization parameters for plan: {0}!", itr.Id));
+                        ProvideUIUpdate($"Adjusting optimization parameters for plan: {itr.Id}!");
                         List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(itr);
-                        ProvideUIUpdate(String.Format("Evaluating quality of plan: {0}!", itr.Id));
+                        ProvideUIUpdate($"Evaluating quality of plan: {itr.Id}!");
                         EvalPlanStruct e = EvaluatePlanSumComponentPlans(itr, optParams);
                         if (e.wasKilled) return true;
 
                         ProvideUIUpdate(OptimizationLoopUIHelper.PrintPlanOptimizationResultVsConstraints(itr, optParams, e.diffPlanOpt, e.totalCostPlanOpt));
                         ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, itr, _data.normalizationVolumes));
 
-                        ProvideUIUpdate(String.Format("Scaling optimization parameters for heater cooler structures for plan: {0}!", itr.Id));
+                        ProvideUIUpdate($"Scaling optimization parameters for heater cooler structures for plan: {itr.Id}!");
                         e.updatedObj.AddRange(OptimizationLoopHelper.ScaleHeaterCoolerOptConstraints(itr.TotalDose.Dose, evalPlan.TotalDose.Dose, updatedHeaterCoolerConstraints));
 
                         if(oneMoreOptNextItr) e.updatedObj = OptimizationLoopHelper.IncreaseOptConstraintPrioritiesForFinalOpt(e.updatedObj);
 
-                        ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), OptimizationLoopUIHelper.PrintPlanOptimizationConstraints(itr.Id, e.updatedObj));
+                        ProvideUIUpdate(100 * ++percentComplete / calcItems, OptimizationLoopUIHelper.PrintPlanOptimizationConstraints(itr.Id, e.updatedObj));
                         UpdateConstraints(e.updatedObj, itr);
                     }
                 }
@@ -343,8 +338,8 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
 
         private bool EvaluatePlanSumQuality(ExternalPlanSetup plan, List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> planObj)
         {
-            UpdateUILabel(String.Format("Plan sum evaluation: {0}", plan.Id));
-            ProvideUIUpdate(String.Format("Parsing optimization objectives from plan: {0}", plan.Id));
+            UpdateUILabel($"Plan sum evaluation: {plan.Id}");
+            ProvideUIUpdate($"Parsing optimization objectives from plan: {plan.Id}");
             List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
             //get current optimization objectives from plan (we could use the optParams list, but we want the actual instances of the OptimizationObjective class so we can get the results from each objective)
             (int, int, double, List<Tuple<Structure, DVHData, double, double>>) planObjectiveEvaluation = EvaluateResultVsPlanObjectives(plan, planObj, optParams);

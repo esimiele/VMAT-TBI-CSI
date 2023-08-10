@@ -45,9 +45,9 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 if (theCourse.ExternalPlanSetups.Where(x => string.Equals(x.Id, itr.Item1)).Any())
                 {
                     numExistingPlans++;
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Plan {itr.Item1} EXISTS in course {courseId}");
+                    ProvideUIUpdate(100 * ++counter / calcItems, $"Plan {itr.Item1} EXISTS in course {courseId}");
                 }
-                else ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Plan {itr.Item1} does not exist in course {courseId}");
+                else ProvideUIUpdate(100 * ++counter / calcItems, $"Plan {itr.Item1} does not exist in course {courseId}");
             }
             if (numExistingPlans > 0)
             {
@@ -89,12 +89,12 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             //look for a course with id = courseId assigned at initialization. If it does not exit, create it, otherwise load it into memory
             if (selectedSS.Patient.Courses.Any(x => string.Equals(x.Id, courseId)))
             {
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Course {courseId} found!");
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Course {courseId} found!");
                 theCourse = selectedSS.Patient.Courses.FirstOrDefault(x => string.Equals(x.Id, courseId));
             }
             else
             {
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Course  {courseId} does not exist. Creating now!");
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Course  {courseId} does not exist. Creating now!");
                 theCourse = CreateCourse();
             }
             if (theCourse == null)
@@ -131,14 +131,14 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 int counter = 0;
                 ProvideUIUpdate(0, $"Creating plan {itr.Item1}");
                 ExternalPlanSetup thePlan = theCourse.AddExternalPlanSetup(selectedSS);
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Created plan {itr.Item1}");
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Created plan {itr.Item1}");
                 //100% dose prescribed in plan and plan ID is in the prescriptions
                 thePlan.SetPrescription(itr.Item3, itr.Item4, 1.0);
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Set prescription for plan {itr.Item1}");
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Set prescription for plan {itr.Item1}");
 
                 string planName = itr.Item1;
                 thePlan.Id = planName;
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Set plan Id for {itr.Item1}");
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Set plan Id for {itr.Item1}");
 
                 //ask the user to set the calculation model if not calculation model was set in UI.xaml.cs (up near the top with the global parameters)
                 if (calculationModel == "")
@@ -159,10 +159,10 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 }
 
                 thePlan.SetCalculationModel(CalculationType.PhotonVolumeDose, calculationModel);
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Set calculation model to {calculationModel}");
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Set calculation model to {calculationModel}");
 
                 thePlan.SetCalculationModel(CalculationType.PhotonVMATOptimization, optimizationModel);
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Set optimization model to {optimizationModel}");
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Set optimization model to {optimizationModel}");
 
                 Dictionary<string, string> d = thePlan.GetCalculationOptions(thePlan.GetCalculationModel(CalculationType.PhotonVMATOptimization));
                 ProvideUIUpdate($"Calculation options for {optimizationModel}:");
@@ -172,31 +172,31 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 if (useGPUdose == "Yes" && !calculationModel.Contains("AAA"))
                 {
                     thePlan.SetCalculationOption(calculationModel, "UseGPU", useGPUdose);
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Set GPU option for dose calc to {useGPUdose}");
+                    ProvideUIUpdate(100 * ++counter / calcItems, $"Set GPU option for dose calc to {useGPUdose}");
                 }
                 else
                 {
                     thePlan.SetCalculationOption(calculationModel, "UseGPU", "No");
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), "Set GPU option for dose calculation to No");
+                    ProvideUIUpdate(100 * ++counter / calcItems, "Set GPU option for dose calculation to No");
                 }
 
                 //set MR restart level option for the photon optimization
                 if(!thePlan.SetCalculationOption(optimizationModel, "MRLevelAtRestart", MRrestart))
                 {
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Warning! VMAT/MRLevelAtRestart option not found for {optimizationModel}");
+                    ProvideUIUpdate(100 * ++counter / calcItems, $"Warning! VMAT/MRLevelAtRestart option not found for {optimizationModel}");
                 }
-                else ProvideUIUpdate((int)(100 * ++counter / calcItems), $"MR restart level set to {MRrestart}");
+                else ProvideUIUpdate(100 * ++counter / calcItems, $"MR restart level set to {MRrestart}");
 
                 //set the GPU optimization option
                 if (useGPUoptimization == "Yes")
                 {
                     thePlan.SetCalculationOption(optimizationModel, "General/OptimizerSettings/UseGPU", useGPUoptimization);
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Set GPU option for optimization to {useGPUoptimization}");
+                    ProvideUIUpdate(100 * ++counter / calcItems, $"Set GPU option for optimization to {useGPUoptimization}");
                 }
                 else
                 {
                     thePlan.SetCalculationOption(optimizationModel, "General/OptimizerSettings/UseGPU", "No");
-                    ProvideUIUpdate((int)(100 * ++counter / calcItems), "Set GPU option for optimization to No");
+                    ProvideUIUpdate(100 * ++counter / calcItems, "Set GPU option for optimization to No");
                 }
 
                 //reference point can only be added for a plan that IS CURRENTLY OPEN
@@ -207,7 +207,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 //plan.TargetVolumeID = selectedSS.Structures.First(x => x.Id == "xx");
                 //plan.PrimaryReferencePoint = plan.ReferencePoints.Fisrt(x => x.Id == "xx");
                 vmatPlans.Add(thePlan);
-                ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Added plan {itr.Item1} to stack!");
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Added plan {itr.Item1} to stack!");
             }
             ProvideUIUpdate(100, "Finished creating and initializing plans!");
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
@@ -216,15 +216,15 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 
         protected VVector RoundIsocenterPositions(VVector v, ExternalPlanSetup plan, ref int counter, ref int calcItems)
         {
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), "Rounding Y- and Z-positions to nearest integer values");
+            ProvideUIUpdate(100 * ++counter / calcItems, "Rounding Y- and Z-positions to nearest integer values");
             //round z position to the nearest integer
             v = selectedSS.Image.DicomToUser(v, plan);
             v.x = Math.Round(v.x / 10.0f) * 10.0f;
             v.y = Math.Round(v.y / 10.0f) * 10.0f;
             v.z = Math.Round(v.z / 10.0f) * 10.0f;
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), $"Calculated isocenter position (user coordinates): ({v.x}, {v.y}, {v.z})");
+            ProvideUIUpdate(100 * ++counter / calcItems, $"Calculated isocenter position (user coordinates): ({v.x}, {v.y}, {v.z})");
             v = selectedSS.Image.UserToDicom(v, plan);
-            ProvideUIUpdate((int)(100 * ++counter / calcItems), "Adding calculated isocenter position to stack!");
+            ProvideUIUpdate(100 * ++counter / calcItems, "Adding calculated isocenter position to stack!");
             return v;
         }
 
@@ -253,7 +253,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 ProvideUIUpdate($"Error getting target structure ({targetId}) for plan: {prescriptions.FirstOrDefault(y => string.Equals(y.Item1, isoLocations.Item1.Id))}! Exiting!", true);
                 return true;
             }
-            ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), $"Retrieved target: {target_tmp.Id} for plan: {isoLocations.Item1.Id}");
+            ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Retrieved target: {target_tmp.Id} for plan: {isoLocations.Item1.Id}");
             //grab the image and get the z resolution and dicom origin (we only care about the z position of the dicom origin)
             Image image = selectedSS.Image;
             double zResolution = image.ZRes;
@@ -273,14 +273,14 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 //this is left as a double so I can cast it to an int in the second overlap item and use it in the calculation in the third overlap item
                 //logic to consider the situation where the y extent of the fields are NOT 40 cm!
                 Beam iso1Beam1 = isoLocations.Item1.Beams.First(x => CalculationHelper.AreEqual(x.IsocenterPosition.z, isoLocations.Item2.ElementAt(i - 1).Item1.z));
-                ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), $"First beam in isocenter {i - 1}: {iso1Beam1.Id}");
+                ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"First beam in isocenter {i - 1}: {iso1Beam1.Id}");
 
                 Beam iso2Beam1 = isoLocations.Item1.Beams.First(x => CalculationHelper.AreEqual(x.IsocenterPosition.z, isoLocations.Item2.ElementAt(i).Item1.z));
-                ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), $"First beam in isocenter {i}: {iso2Beam1.Id}");
+                ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"First beam in isocenter {i}: {iso2Beam1.Id}");
 
                 //assumes iso1beam1 y1 is oriented inferior on patient and iso2beam1 is oriented superior on patient
                 double fieldLength = Math.Abs(iso1Beam1.GetEditableParameters().ControlPoints.First().JawPositions.Y1) + Math.Abs(iso2Beam1.GetEditableParameters().ControlPoints.First().JawPositions.Y2);
-                ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), $"Field length ({iso1Beam1.Id} Y1 + {iso2Beam1.Id} Y2): {fieldLength} mm");
+                ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Field length ({iso1Beam1.Id} Y1 + {iso2Beam1.Id} Y2): {fieldLength} mm");
 
                 double numSlices = Math.Ceiling(fieldLength + contourOverlapMargin - Math.Abs(isoLocations.Item2.ElementAt(i).Item1.z - isoLocations.Item2.ElementAt(i - 1).Item1.z));
                 if(numSlices <= 0)
@@ -291,25 +291,25 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                     ProvideUIUpdate($"Isocenter separation: {Math.Abs(isoLocations.Item2.ElementAt(i).Item1.z - isoLocations.Item2.ElementAt(i - 1).Item1.z):0.00}!");
                     return true;
                 }
-                ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), $"Number of slices to contour: {(int)(numSlices / zResolution)}");
+                ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Number of slices to contour: {(int)(numSlices / zResolution)}");
 
                 //calculate the center position between adjacent isocenters. NOTE: this calculation works from superior to inferior!
                 double overlapCenter = isoLocations.Item2.ElementAt(i - 1).Item1.z + iso1Beam1.GetEditableParameters().ControlPoints.First().JawPositions.Y1  - contourOverlapMargin / 2 + numSlices / 2;
-                ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), $"Overlap center position: {overlapCenter:0.00} mm");
+                ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Overlap center position: {overlapCenter:0.00} mm");
 
                 overlap.Add(new Tuple<double, int, int>(overlapCenter, // the center location
                                                         (int)(numSlices / zResolution), //total number of slices to contour
                                                         (int)((overlapCenter - numSlices / 2 - dicomOrigin.z) / zResolution))); // starting slice to contour
-                ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), $"Starting slice to contour: {(int)((overlapCenter - numSlices / 2 - dicomOrigin.z) / zResolution)}");
+                ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Starting slice to contour: {(int)((overlapCenter - numSlices / 2 - dicomOrigin.z) / zResolution)}");
                 //add a new junction structure (named TS_jnx<i>) to the stack. Contours will be added to these structure later
                 tmpJnxList.Add(selectedSS.AddStructure("CONTROL", $"TS_jnx{isoCount + i}"));
-                ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), $"Added TS junction to stack: TS_jnx{isoCount + 1}");
+                ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Added TS junction to stack: TS_jnx{isoCount + 1}");
             }
             jnxs.Add(Tuple.Create(isoLocations.Item1, tmpJnxList));
 
             //make a box at the min/max x,y positions of the target structure with no margin
             VVector[] targetBoundingBox = CreateTargetBoundingBox(target_tmp, 0.0);
-            ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems), $"Created target bounding box for contouring overlap");
+            ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Created target bounding box for contouring overlap");
            
             //add the contours to each relevant plan for each structure in the jnxs stack
             int count = 0;
@@ -321,7 +321,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 for (int i = value.Item3; i < (value.Item3 + value.Item2); i++)
                 {
                     tmpJnxList.ElementAt(count).AddContourOnImagePlane(targetBoundingBox, i);
-                    ProvideUIUpdate((int)(100 * ++percentCompletion / calcItems));
+                    ProvideUIUpdate(100 * ++percentCompletion / calcItems);
                 }
                 //only keep the portion of the box contour that overlaps with the target
                 tmpJnxList.ElementAt(count).SegmentVolume = tmpJnxList.ElementAt(count).And(target_tmp.Margin(0));

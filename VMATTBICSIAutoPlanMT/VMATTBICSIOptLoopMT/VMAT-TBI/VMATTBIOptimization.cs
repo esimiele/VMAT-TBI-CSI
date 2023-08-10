@@ -73,12 +73,12 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             int calcItems = 3;
 
             Structure spinningManny = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinmannysurface" || x.Id.ToLower() == "couchmannysurfac");
-            if (spinningManny == null) ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Spinning Manny structure not found"));
-            else ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Retrieved Spinning Manny structure"));
+            if (spinningManny == null) ProvideUIUpdate(100 * ++percentComplete / calcItems, "Spinning Manny structure not found");
+            else ProvideUIUpdate(100 * ++percentComplete / calcItems, "Retrieved Spinning Manny structure");
 
             Structure matchline = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "matchline");
-            if (matchline == null) ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Matchline structure not found"));
-            else ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Retrieved Matchline structure"));
+            if (matchline == null) ProvideUIUpdate(100 * ++percentComplete / calcItems, "Matchline structure not found");
+            else ProvideUIUpdate(100 * ++percentComplete / calcItems, "Retrieved Matchline structure");
 
             //check if there is a matchline contour. If so, is it empty?
             if (matchline != null && !matchline.IsEmpty)
@@ -87,7 +87,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                 //If not, let the user know so they can decide if they want to continue of stop the optimization loop
                 if (spinningManny == null || spinningManny.IsEmpty)
                 {
-                    ConfirmPrompt CP = new ConfirmPrompt(String.Format("I found a matchline, but no spinning manny couch or it's empty!") + Environment.NewLine + Environment.NewLine + "Continue?!");
+                    ConfirmPrompt CP = new ConfirmPrompt("I found a matchline, but no spinning manny couch or it's empty!" + Environment.NewLine + Environment.NewLine + "Continue?!");
                     CP.ShowDialog();
                     if (!CP.GetSelection())
                     {
@@ -97,14 +97,14 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                 }
             }
 
-            if ((spinningManny != null && !spinningManny.IsEmpty))
+            if (spinningManny != null && !spinningManny.IsEmpty)
             {
                 if (spinningManny.GetContoursOnImagePlane(0).Any() || spinningManny.GetContoursOnImagePlane(ss.Image.ZSize - 1).Any()) _checkSupportStructures = true;
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("Checking if Spinningy Manny structure is on first or last slices of image", _checkSupportStructures));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, "Checking if Spinningy Manny structure is on first or last slices of image");
             }
-            else ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), String.Format("No Spinning Manny structure present --> nothing to check"));
+            else ProvideUIUpdate(100 * ++percentComplete / calcItems, "No Spinning Manny structure present --> nothing to check");
 
-            UpdateOverallProgress((int)(100 * (++overallPercentCompletion) / overallCalcItems));
+            UpdateOverallProgress(100 * ++overallPercentCompletion / overallCalcItems);
             return false;
         }
 
@@ -117,11 +117,11 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             List<Structure> supports = _data.selectedSS.Structures.Where(x => x.DicomType.ToLower().Contains("support")).ToList();
             calcItems += supports.Count;
 
-            ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), $"Retrieved list of support structures");
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved list of support structures");
             if (supports.Any())
             {
                 Structure bolus = StructureTuningHelper.GetStructureFromId("bolus_flash", _data.selectedSS);
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), $"Retrieved virtual bolus structure");
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved virtual bolus structure");
                 if (bolus == null || bolus.IsEmpty)
                 {
                     ProvideUIUpdate($"Error! Could not retrieve bolus structure! Exiting!", true);
@@ -129,7 +129,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                 }
                 (List<ExternalPlanSetup> otherPlans, StringBuilder planIdList) = OptimizationLoopHelper.GetOtherPlansWithSameSSWithCalculatedDose(_data.plans.First().Course.Patient.Courses.ToList(), _data.selectedSS);
                 calcItems += otherPlans.Count;
-                ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), $"Retrieved list of plans that use structure set: {_data.selectedSS.Id} and have dose calculated");
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved list of plans that use structure set: {_data.selectedSS.Id} and have dose calculated");
 
                 List<ExternalPlanSetup> planRecalcList = new List<ExternalPlanSetup> { };
                 if (otherPlans.Any())
@@ -138,7 +138,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                     ProvideUIUpdate(planIdList.ToString());
 
                     foreach (ExternalPlanSetup itr in otherPlans) if (!_data.plans.Where(x => x == itr).Any()) planRecalcList.Add(itr);
-                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), "Revised plan list to exclude plans that will be optimized");
+                    ProvideUIUpdate(100 * ++percentComplete / calcItems, "Revised plan list to exclude plans that will be optimized");
                     calcItems += planRecalcList.Count;
 
                     //reset dose matrix for ALL plans
@@ -147,7 +147,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                 foreach (Structure itr in supports)
                 {
                     //crop the couch structures
-                    ProvideUIUpdate((int)(100 * (++percentComplete) / calcItems), $"Cropping {bolus.Id} from support structure: {itr.Id}");
+                    ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Cropping {bolus.Id} from support structure: {itr.Id}");
                     ContourHelper.CropStructureFromStructure(bolus, itr, 0.0);
                 }
                 //only recalculate dose for all plans that are not currently up for optimization
@@ -183,18 +183,18 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             }
             //update the constraints and provide an update to the user
             UpdateConstraints(targetOnlyObj, plan);
-            ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems));
+            ProvideUIUpdate(100 * ++percentCompletion / calcItems);
 
             //run one optimization with NO intermediate dose.
             if (OptimizePlan(_data.isDemo, new OptimizationOptionsVMAT(OptimizationIntermediateDoseOption.NoIntermediateDose, ""), plan, _data.app)) return true;
 
-            ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), "Optimization finished on coverage check! Calculating dose!");
-            ProvideUIUpdate(String.Format("Elapsed time: {0}", GetElapsedTime()));
+            ProvideUIUpdate(100 * ++percentCompletion / calcItems, "Optimization finished on coverage check! Calculating dose!");
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
 
             //calculate dose (using AAA algorithm)
             if (CalculateDose(_data.isDemo, plan, _data.app)) return true;
 
-            ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), "Dose calculated for coverage check, normalizing plan!");
+            ProvideUIUpdate(100 * ++percentCompletion / calcItems, "Dose calculated for coverage check, normalizing plan!");
 
             //normalize plan
             NormalizePlan(plan, TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, OptimizationLoopHelper.GetNormaliztionVolumeIdForPlan(plan.Id, _data.normalizationVolumes), useFlash, _data.planType), relativeDose, targetVolCoverage);
@@ -204,7 +204,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                 return true;
             }
 
-            ProvideUIUpdate((int)(100 * (++percentCompletion) / calcItems), "Plan normalized!");
+            ProvideUIUpdate(100 * ++percentCompletion / calcItems, "Plan normalized!");
 
             //print useful info about target coverage and global dmax
             ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, plan, _data.normalizationVolumes));
@@ -213,7 +213,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             if (plan.IsDoseValid && ((plan.Dose.DoseMax3D.Dose / plan.TotalDose.Dose) > 1.40))
             {
                 ProvideUIUpdate(Environment.NewLine +
-                                String.Format("I'm having trouble covering the target with the Rx Dose! Hot spot = {0:0.0}%", 100 * (plan.Dose.DoseMax3D.Dose / plan.TotalDose.Dose)) +
+                                $"I'm having trouble covering the target with the Rx Dose! Hot spot = {100 * (plan.Dose.DoseMax3D.Dose / plan.TotalDose.Dose):0.0}%" +
                                 Environment.NewLine + "Consider stopping the optimization and checking the beam arrangement!");
             }
             return false;
@@ -236,8 +236,8 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
 
         private bool RemoveFlashAndRecalc(List<ExternalPlanSetup> plans)
         {
-            ProvideUIUpdate((int)(100 * (++overallPercentCompletion) / overallCalcItems), String.Format(Environment.NewLine + "Removing flash, recalculating dose, and renormalizing to TS_PTV_VMAT!"));
-            ProvideUIUpdate(String.Format("Elapsed time: {0}", GetElapsedTime()));
+            ProvideUIUpdate(100 * ++overallPercentCompletion / overallCalcItems, Environment.NewLine + "Removing flash, recalculating dose, and renormalizing to TS_PTV_VMAT!");
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
 
             Structure bolus = _data.selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "bolus_flash");
             if (bolus == null)
@@ -267,17 +267,17 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                 foreach (ExternalPlanSetup itr in plansWithCalcDose)
                 {
                     CalculateDose(_data.isDemo, itr, _data.app);
-                    ProvideUIUpdate((int)(100 * (++overallPercentCompletion) / overallCalcItems), "Dose calculated, normalizing plan!");
-                    ProvideUIUpdate(String.Format("Elapsed time: {0}", GetElapsedTime()));
+                    ProvideUIUpdate(100 * ++overallPercentCompletion / overallCalcItems, "Dose calculated, normalizing plan!");
+                    ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
                     if(plans.Any(x => x == itr))
                     {
                         //force the plan to normalize to TS_PTV_VMAT after removing flash
                         NormalizePlan(itr, TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, "", false, _data.planType), _data.relativeDose, _data.targetVolCoverage);
-                        ProvideUIUpdate((int)(100 * (++overallPercentCompletion) / overallCalcItems), "Plan normalized!");
+                        ProvideUIUpdate(100 * ++overallPercentCompletion / overallCalcItems, "Plan normalized!");
                     }
                     else
                     {
-                        ProvideUIUpdate((int)(100 * (++overallPercentCompletion) / overallCalcItems), $"Plan: {itr.Id} is not contained in the plan list! Skipping normalization!");
+                        ProvideUIUpdate(100 * ++overallPercentCompletion / overallCalcItems, $"Plan: {itr.Id} is not contained in the plan list! Skipping normalization!");
                     }
                 }
             }

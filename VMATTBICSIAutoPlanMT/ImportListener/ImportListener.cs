@@ -34,7 +34,7 @@ namespace ImportListener
 
         static void Main(string[] args)
         {
-            args = new string[] { "\\\\shariatscap105\\Dicom\\RSDCM\\Import\\", "$CSIDryRun_2", "VMSDBD" ,"10.151.176.60" ,"51402" ,"DCMTK" ,"50400" ,"3600" };
+            //args = new string[] { "\\\\shariatscap105\\Dicom\\RSDCM\\Import\\", "$CSIDryRun_2", "VMSDBD" ,"10.151.176.60" ,"51402" ,"DCMTK" ,"50400" ,"3600" };
             try
             {
                 SetTimer();
@@ -233,7 +233,7 @@ namespace ImportListener
             else
             {
                 Console.WriteLine($"DICOM C-Store from {localDaemon.AeTitle} => {ariaDBDaemon.AeTitle} @{ariaDBDaemon.IpAddress}:{ariaDBDaemon.Port}: {(Status)response.Status}");
-                RemoveRTStructDcmFile(theFile);
+                //RemoveRTStructDcmFile(theFile);
             }
             return false;
         }
