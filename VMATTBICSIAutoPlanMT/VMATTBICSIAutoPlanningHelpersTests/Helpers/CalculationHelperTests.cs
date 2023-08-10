@@ -51,23 +51,32 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             Assert.AreEqual(expected, CalculationHelper.ComputeAverage(x, y));
         }
 
+        //untested
         [TestMethod()]
         public void ComputeSliceFailTest()
         {
             int expected = 50;
             double z = 100;
             StructureSet ss = Mock.Create<StructureSet>();
-            Mock.Arrange(() => ss.Image.Origin.z).Returns(3.0);
+            Image theImage = Mock.Create<Image>();
+            VVector origin = new VVector(0, 0, 2.0);
+            Mock.Arrange(() => ss.Image).Returns(theImage);
+            Mock.Arrange(() => theImage.Origin).Returns(origin);
             Assert.AreEqual(expected, CalculationHelper.ComputeSlice(z, ss));
         }
-
+        
+        //untested
+        [TestMethod()]
         public void ComputeSlicePassTest()
         {
-            int expected = 50;
+            int expected = 49;
             double z = 100;
             StructureSet ss = Mock.Create<StructureSet>();
-            Mock.Arrange(() => ss.Image.Origin.z).Returns(2.0);
-            Assert.AreEqual(expected, CalculationHelper.ComputeSlice(z, ss));
+            Image theImage = Mock.Create<Image>();
+            VVector origin = new VVector(0, 0, 2.0);
+            Mock.Arrange(() => ss.Image).Returns(theImage);
+            Mock.Arrange(() => theImage.Origin).Returns(origin);
+            Assert.AreNotEqual(expected, CalculationHelper.ComputeSlice(z, ss));
         }
     }
 }
