@@ -152,22 +152,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
-        private (bool, Structure) CreateLowResStructure(Structure highResStructure)
-        {
-            Structure lowRes = null;
-            bool fail = false;
-            string newName = highResStructure.Id + "_lowRes";
-            if (newName.Length > 16) newName = newName.Substring(0, 16);
-            //add a new structure (default resolution by default)
-            if (selectedSS.CanAddStructure("CONTROL", newName)) lowRes = selectedSS.AddStructure("CONTROL", newName);
-            else
-            {
-                ProvideUIUpdate($"Error! Cannot add new structure: {newName}!\nCorrect this issue and try again!", true);
-                fail = true;
-            }
-            return (fail, lowRes);
-        }
-
         private bool UpdateManipulationList(Tuple<string, TSManipulationType, double> highResManipulationItem, string lowResId)
         {
             bool fail = false;
@@ -294,7 +278,23 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
-        protected bool ConvertHighToLowRes(List<Tuple<string, TSManipulationType, double>> highResManipulationList)
+        private (bool, Structure) CreateLowResStructure(Structure highResStructure)
+        {
+            Structure lowRes = null;
+            bool fail = false;
+            string newName = highResStructure.Id + "_lowRes";
+            if (newName.Length > 16) newName = newName.Substring(0, 16);
+            //add a new structure (default resolution by default)
+            if (selectedSS.CanAddStructure("CONTROL", newName)) lowRes = selectedSS.AddStructure("CONTROL", newName);
+            else
+            {
+                ProvideUIUpdate($"Error! Cannot add new structure: {newName}!\nCorrect this issue and try again!", true);
+                fail = true;
+            }
+            return (fail, lowRes);
+        }
+
+        private bool ConvertHighToLowRes(List<Tuple<string, TSManipulationType, double>> highResManipulationList)
         {
             int percentComplete = 0;
             int calcItems = highResManipulationList.Count * 5;

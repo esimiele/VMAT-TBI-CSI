@@ -288,8 +288,14 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                         else
                         {
                             v.z = spineZMin + (numIsos - i - 1) * isoSeparation + 180.0;
-                            if(i == 1)
+                            if(i == 1 && numIsos > 2)
                             {
+                                //inf field edge (ptv spine + 18 cm + 20 cm Y field extent)
+                                double infIsoFieldEdge = spineZMin + 180.0 + 200.0;
+                                Structure brainTarget = StructureTuningHelper.GetStructureFromId("PTV_Brain", selectedSS);
+                                double supFieldExtent = brainTarget.MeshGeometry.Positions.Min(p => p.Z) - 50.0;
+                                v.z = CalculationHelper.ComputeAverage(infIsoFieldEdge, supFieldExtent);
+                                // too close to brain iso, push it inf
                                 if (v.z + 200.0 > tmp.ElementAt(0).Item1.z) v.z = tmp.ElementAt(0).Item1.z - 200.0;
                             }
                         }
@@ -378,7 +384,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     //single beam in this isocenter has the same collimator rotation as the single beam in the previous isocenter
                     if (i > 0 && iso.Item2.ElementAt(i).Item3 == 1 && iso.Item2.ElementAt(i - 1).Item3 == 1) j++;
 
-                    (bool result, VRect<double> jaws) = GetXYJawPositionsForStructure(initCSIPlan, i == 0, iso.Item2.ElementAt(i).Item1, new FitToStructureMargins(30.0, 40.0, 30.0, 30.0), target);
+                    (bool result, VRect<double> jaws) = GetXYJawPositionsForStructure(initCSIPlan, i == 0, iso.Item2.ElementAt(i).Item1, new FitToStructureMargins(30.0, 30.0, 30.0, 30.0), target);
                     ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Jaw positions fit to target: {target.Id} (iso: {i + 1}, beam: {j + 1})");
                     if(!result)
                     {
@@ -438,7 +444,27 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     //first isocenter in brain
                     Structure brain = StructureTuningHelper.GetStructureFromId("PTV_Brain", selectedSS);
                     if (brain == null || brain.IsEmpty) return (true, new VRect<double>());
-                    y1 = brain.MeshGeometry.Positions.Min(p => p.Z) - iso.z - margins.Y1;
+                    double InfMargin = margins.Y1 + 20.0;
+                    ProvideUIUpdate($"Adjusting inf field margin to >= 5cm");
+
+                    if (StructureTuningHelper.DoesStructureExistInSS("larynx", selectedSS, true))
+                    {
+                        Structure larynx = StructureTuningHelper.GetStructureFromId("larynx", selectedSS);
+                        InfMargin = brain.MeshGeometry.Positions.Min(p => p.Z) - larynx.MeshGeometry.Positions.Min(p => p.Z);
+                        ProvideUIUpdate($"Retrieved Larynx structure");
+                        ProvideUIUpdate($"Larynx z min: {larynx.MeshGeometry.Positions.Min(p => p.Z):0.0} mm");
+                    }
+                    if (StructureTuningHelper.DoesStructureExistInSS("thyroid", selectedSS, true))
+                    {
+                        Structure thyroid = StructureTuningHelper.GetStructureFromId("thyroid", selectedSS);
+                        InfMargin = brain.MeshGeometry.Positions.Min(p => p.Z) - thyroid.CenterPoint.z;
+                        ProvideUIUpdate($"Retrieved Thyroid structure");
+                        ProvideUIUpdate($"Larynx z min: {thyroid.MeshGeometry.Positions.Min(p => p.Z):0.0} mm");
+                    }
+                    else ProvideUIUpdate($"Could not find/retrieve Larynx or Thyroid structures. Setting inf margin to: {InfMargin:0.0} mm");
+                    ProvideUIUpdate($"Updated brain field inf margin to: {InfMargin:0.0} mm");
+
+                    y1 = brain.MeshGeometry.Positions.Min(p => p.Z) - iso.z - InfMargin;
                     y2 = brain.MeshGeometry.Positions.Max(p => p.Z) - iso.z + margins.Y2;
                     startZ = brain.MeshGeometry.Positions.Min(p => p.Z);
                     stopZ = brain.MeshGeometry.Positions.Max(p => p.Z);
@@ -451,9 +477,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     Structure spine = StructureTuningHelper.GetStructureFromId("PTV_Spine", selectedSS);
                     if (spine == null || spine.IsEmpty) return (true, new VRect<double>());
                     y2 = spine.MeshGeometry.Positions.Max(p => p.Z) - iso.z + margins.Y2;
-                    if (y2 > 200.0) y2 = 200.0;
                     y1 = spine.MeshGeometry.Positions.Min(p => p.Z) - iso.z - margins.Y1;
-                    if (y1 < -200.0) y1 = -200.0;
                     startZ = iso.z - Math.Abs(y1);
                     //need this min comparison to ensure the max spine position isn't always used for stopZ
                     stopZ = Math.Min(iso.z + y2, spine.MeshGeometry.Positions.Max(p => p.Z));
@@ -466,6 +490,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 ProvideUIUpdate(message.ToString());
                 x2 = latProjection + margins.X2;
                 x1 = -x2;
+
             }
             else
             {
@@ -475,10 +500,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 x2 = latProjection + margins.X2;
                 x1 = -x2;
                 y2 = target.MeshGeometry.Positions.Max(p => p.Z) - iso.z + margins.Y2;
-                if (y2 > 200.0) y2 = 200.0;
                 y1 = target.MeshGeometry.Positions.Min(p => p.Z) - iso.z - margins.Y1;
-                if (y1 < -200.0) y1 = -200.0;
             }
+            if (y2 > 200.0) y2 = 200.0;
+            if (x2 > 200.0) x2 = 200.0;
+            if (y1 < -200.0) y1 = -200.0;
+            if (x1 < -200.0) x1 = -200.0;
             return (false, new VRect<double> (x1, y1, x2, y2));
         }
 

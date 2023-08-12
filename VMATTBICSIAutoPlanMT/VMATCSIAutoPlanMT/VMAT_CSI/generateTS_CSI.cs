@@ -89,8 +89,16 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         protected override bool PreliminaryChecks()
         {
             UpdateUILabel("Performing Preliminary Checks: ");
-            int calcItems = 2;
+            int calcItems = 3;
             int counter = 0;
+
+            if(!StructureTuningHelper.DoesStructureExistInSS("body",selectedSS,true))
+            {
+                ProvideUIUpdate("Error! Body structure not found or is empty! Exiting", true);
+                return true;
+            }
+            ProvideUIUpdate(100 * ++counter / calcItems, "Body structure found and is contoured");
+
             //check if user origin was set
             if (IsUOriginInside(selectedSS)) return true;
             ProvideUIUpdate(100 * ++counter / calcItems, "User origin is inside body");
@@ -194,80 +202,88 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //try to grab ptv_brain first
             //6/11/23 THIS CODE WILL NEED TO BE MODIFIED FOR SIB PLANS
             string initTargetId = TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, prescriptions.First().Item1);
-            Structure targetStructure = StructureTuningHelper.GetStructureFromId(initTargetId, selectedSS);
-            double margin = 0;
 
-            if (targetStructure == null || targetStructure.IsEmpty)
+            if (!StructureTuningHelper.DoesStructureExistInSS(initTargetId, selectedSS, true))
             {
                 ProvideUIUpdate(100 * ++counter / calcItems, $"Failed to retrieve {initTargetId} to generate partial ring! Exiting!", true);
                 return true;
-                ////could not retrieve ptv_brain
-                //calcItems += 1;
-                //ProvideUIUpdate((int)(100 * ++counter / calcItems), "Failed to retrieve PTV_Brain! Attempting to retrieve brain structure: Brain");
-                //targetStructure = selectedSS.Structures.FirstOrDefault(x => string.Equals(x.Id.ToLower(), "brain") && !x.IsEmpty);
-                ////additional 5 mm margin for ring creation to account for the missing 5 mm margin going from brain --> PTV_Vrain
-                //margin = 0.5;
             }
-            if (targetStructure != null)
-            {
-                ProvideUIUpdate(100 * ++counter / calcItems, $"Retrieved initial plan target: {targetStructure.Id}");
-                Structure normal;
-                if (isGlobes) normal = StructureTuningHelper.GetStructureFromId("eyes", selectedSS);
-                else normal = StructureTuningHelper.GetStructureFromId("lenses", selectedSS);
+            Structure targetStructure = StructureTuningHelper.GetStructureFromId(initTargetId, selectedSS);
+            ProvideUIUpdate(100 * ++counter / calcItems, $"Retrieved initial plan target: {targetStructure.Id}");
+            
+            Structure normal;
+            if (isGlobes) normal = StructureTuningHelper.GetStructureFromId("eyes", selectedSS);
+            else normal = StructureTuningHelper.GetStructureFromId("lenses", selectedSS);
 
-                if (normal != null && !normal.IsEmpty)
+            if (normal != null && !normal.IsEmpty)
+            {
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Retrieved structure: {normal.Id}");
+                ProvideUIUpdate($"Generating ring {addedStructure.Id} for target {targetStructure.Id}");
+
+                //margin in cm. 
+                double thickness;
+                double margin = 0;
+                if (isGlobes)
                 {
-                    ProvideUIUpdate(100 * ++counter / calcItems, $"Retrieved structure: {normal.Id}");
-                    ProvideUIUpdate($"Generating ring {addedStructure.Id} for target {targetStructure.Id}");
-                    //margin in cm. 
-                    double thickness;
-                    if (isGlobes)
+                    //need to add these margins to the existing margin distance to account for the situation where ptv_brain is not retrieved, but the brain structure is.
+                    margin += 1.0;
+                    thickness = 2.0;
+                }
+                else
+                {
+                    margin += 0.7;
+                    thickness = 2.0;
+                }
+
+                (bool partialRingFail, StringBuilder partialRingErrorMessage) = ContourPartialRing(targetStructure, normal, addedStructure, margin, thickness);
+                if (partialRingFail)
+                {
+                    stackTraceError = partialRingErrorMessage.ToString();
+                    return true;
+                }
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Finished contouring ring: {addedStructure.Id}");
+
+                if(normal.IsHighResolution)
+                {
+                    ProvideUIUpdate($"Normal structure ({normal.Id}) is high resolution. Attempting to convert {addedStructure.Id} to high resolution");
+                    if(addedStructure.CanConvertToHighResolution())
                     {
-                        //need to add these margins to the existing margin distance to account for the situation where ptv_brain is not retrieved, but the brain structure is.
-                        margin += 1.0;
-                        thickness = 2.0;
+                        addedStructure.ConvertToHighResolution();
+                        ProvideUIUpdate($"Converted {addedStructure.Id} to high resolution");
                     }
                     else
                     {
-                        margin += 0.7;
-                        thickness = 2.0;
-                    }
-                    (bool partialRingFail, StringBuilder partialRingErrorMessage) = ContourPartialRing(targetStructure, normal, addedStructure, margin, thickness);
-                    if (partialRingFail)
-                    {
-                        stackTraceError = partialRingErrorMessage.ToString();
+                        ProvideUIUpdate($"Error! Could not convert {addedStructure.Id} to high resolution! Exiting!", true);
                         return true;
                     }
-                    ProvideUIUpdate(100 * ++counter / calcItems, $"Finished contouring ring: {addedStructure.Id}");
-
-                    ProvideUIUpdate($"Contouring overlap between ring and {(isGlobes ? "Eyes" : "Lenses")}");
-                    (bool overlapFail, StringBuilder overlapErrorMessage) = ContourHelper.ContourOverlap(normal, addedStructure, 0.0);
-                    if (overlapFail)
-                    {
-                        ProvideUIUpdate(overlapErrorMessage.ToString());
-                        return true;
-                    }
-                    ProvideUIUpdate(100 * ++counter / calcItems, "Overlap Contoured!");
-
-                    if (addedStructure.IsEmpty)
-                    {
-                        ProvideUIUpdate($"{addedStructure.Id} is empty!");
-                        calcItems += 1;
-                        ProvideUIUpdate(100 * ++counter / calcItems, $"Removing structure: {addedStructure.Id}");
-                        selectedSS.RemoveStructure(addedStructure);
-                    }
-                    else if(addedStructure.Volume <= 0.1)
-                    {
-                        ProvideUIUpdate($"{addedStructure.Id} volume <= 0.1 cc!");
-                        calcItems += 1;
-                        ProvideUIUpdate(100 * ++counter / calcItems, $"Removing structure: {addedStructure.Id}");
-                        selectedSS.RemoveStructure(addedStructure);
-                    }
-                    else ProvideUIUpdate($"Finished contouring: {addedStructure.Id}");
                 }
-                else ProvideUIUpdate($"Warning! Could not retrieve normal structure! Skipping {addedStructure.Id}");
+
+                ProvideUIUpdate($"Contouring overlap between ring and {(isGlobes ? "Eyes" : "Lenses")}");
+                (bool overlapFail, StringBuilder overlapErrorMessage) = ContourHelper.ContourOverlap(normal, addedStructure, 0.0);
+                if (overlapFail)
+                {
+                    ProvideUIUpdate(overlapErrorMessage.ToString());
+                    return true;
+                }
+                ProvideUIUpdate(100 * ++counter / calcItems, "Overlap Contoured!");
+
+                if (addedStructure.IsEmpty)
+                {
+                    ProvideUIUpdate($"{addedStructure.Id} is empty!");
+                    calcItems += 1;
+                    ProvideUIUpdate(100 * ++counter / calcItems, $"Removing structure: {addedStructure.Id}");
+                    selectedSS.RemoveStructure(addedStructure);
+                }
+                else if(addedStructure.Volume <= 0.1)
+                {
+                    ProvideUIUpdate($"{addedStructure.Id} volume <= 0.1 cc!");
+                    calcItems += 1;
+                    ProvideUIUpdate(100 * ++counter / calcItems, $"Removing structure: {addedStructure.Id}");
+                    selectedSS.RemoveStructure(addedStructure);
+                }
+                else ProvideUIUpdate($"Finished contouring: {addedStructure.Id}");
             }
-            else ProvideUIUpdate($"Warning! Could not retrieve Brain structure! Skipping {addedStructure.Id}");
+            else ProvideUIUpdate($"Warning! Could not retrieve normal structure! Skipping {addedStructure.Id}");
             return false;
         }
 

@@ -257,12 +257,13 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 try 
                 { 
                     itr.OptimizationSetup.UseJawTracking = true;
-                    ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("Enabled jaw tracking for plan: {0}", itr.Id));
+                    ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Enabled jaw tracking for plan: {itr.Id}");
                 }
                 catch (Exception e) 
                 { 
                     ProvideUIUpdate(100 * ++percentComplete / calcItems, $"{e.Message}\nCannot set jaw tracking for this machine! Jaw tracking will not be enabled!"); 
                 }
+
                 //set auto NTO priority to zero (i.e., shut it off)
                 itr.OptimizationSetup.AddAutomaticNormalTissueObjective(0.0);
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("Set automatic NTO priority to 0 for plan: {0}", itr.Id));

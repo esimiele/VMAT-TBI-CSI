@@ -1293,6 +1293,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             TSManipulationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             beamPlacementTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             log.AddedStructures = generate.GetAddedStructures();
+            log.TSTargets = generate.GetTsTargets().SelectMany(x => x.Item2).ToList();
             log.StructureManipulations = TSManipulationList;
             log.NormalizationVolumes = generate.GetNormalizationVolumes();
             log.IsoNames = isoNames;
