@@ -813,6 +813,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
                 counter = 0;
                 calcItems = 3;
+                //Minimum requested field overlap.
+                double minFieldOverlap = 50.0;
+                double maxFieldExtent = 400.0;
                 //If the target ID is PTV_CSI, calculate the number of isocenters based on PTV_spine and add one iso for the brain
                 //planId, target list
                 if (string.Equals(longestTargetInPlan.Id, TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, prescriptions.First().Item1)))
@@ -824,27 +827,15 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     (bool isFail, double spineTargetExtent) = GetSpineTargetExtent(ref counter, ref calcItems, 2.0);
                     if (isFail) return true;
 
-                    //Grab the thyroid structure, if it does not exist, add a 50 mm buffer to the field extent (rough estimate of most inferior position of thyroid)
-                    //Structure thyroidStruct = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains("thyroid"));
-                    //if (thyroidStruct == null || thyroidStruct.IsEmpty) numVMATIsos = (int)Math.Ceiling((pts.Max(p => p.Z) - pts.Min(p => p.Z)) / (400.0 + 50.0));
-                    //else
-                    //{
-                    //    //If it exists, grab the minimum z position and subtract this from the ptv_spine extent (the brain fields extend down to the most inferior part of the thyroid)
-                    //    Point3DCollection thyroidPts = thyroidStruct.MeshGeometry.Positions;
-                    //    numVMATIsos = (int)Math.Ceiling((thyroidPts.Min(p => p.Z) - pts.Min(p => p.Z)) / 400.0);
-                    //}
-
-                    //subtract 40 mm from the numerator as the brain fields have a 40 mm inferior margin on the ptv_brain 
-                    //Overlap (2 cm) is accounted for in the denominator.
-                    double brainInfMargin = 40.0;
-                    double minFieldOverlap = 20.0;
-                    double maxFieldExtent = 400.0;
+                    //subtract 50 mm from the numerator as the brain fields have a 50 mm inferior margin on the ptv_brain 
+                    double brainInfMargin = 50.0;
+                    
                     double numVMATIsosAsDouble = (spineTargetExtent - brainInfMargin) / (maxFieldExtent - minFieldOverlap);
                     ProvideUIUpdate($"Spine target extent: {spineTargetExtent:0.00}");
-                    ProvideUIUpdate($"Num VMAT isos as double: {(spineTargetExtent - 40.0) / (400.0 - 20.0):0.00}");
+                    ProvideUIUpdate($"Num VMAT isos as double: {(spineTargetExtent - brainInfMargin) / (maxFieldExtent - minFieldOverlap):0.00}");
                     if (numVMATIsosAsDouble > 1 && numVMATIsosAsDouble % 1 < 0.1)
                     {
-                        ProvideUIUpdate($"Calculated number of vmat isos MOD 1 is < 0.1 (i.e. an extra {0.1 * 38.0:0.0} cm of field is required to cover the spine");
+                        ProvideUIUpdate($"Calculated number of vmat isos MOD 1 is < 0.1 (i.e. an extra {0.1 * (maxFieldExtent - minFieldOverlap):0.0} mm of field is required to cover the spine");
                         numVMATIsosAsDouble = Math.Floor(numVMATIsosAsDouble);
                         ProvideUIUpdate($"Truncating number of isos to {numVMATIsosAsDouble}");
                     }
@@ -858,7 +849,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 }
                 else
                 {
-                    numVMATIsos = (int)Math.Ceiling(maxTargetLength / (400.0 - 20.0));
+                    numVMATIsos = (int)Math.Ceiling(maxTargetLength / (maxFieldExtent - minFieldOverlap));
                     ProvideUIUpdate(100 * ++counter / calcItems, $"{numVMATIsos}");
                 }
                 if (numVMATIsos > 3) numVMATIsos = 3;

@@ -135,7 +135,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             int percentComplete = 0;
             int calcItems = 5;
 
-            ProvideUIUpdate(String.Format("Support structures found on first and last slices of image!"));
+            ProvideUIUpdate("Support structures found on first and last slices of image!");
             //couch structures found on first and last slices of CT image. Ask the user if they want to remove the contours for these structures on these image slices
             //We've found that eclipse will throw warning messages after each dose calculation if the couch structures are on the last slices of the CT image. The reason is because a beam could exit the support
             //structure (i.e., the couch) through the end of the couch thus exiting the CT image altogether. Eclipse warns that you are transporting radiation through a structure at the end of the CT image, which

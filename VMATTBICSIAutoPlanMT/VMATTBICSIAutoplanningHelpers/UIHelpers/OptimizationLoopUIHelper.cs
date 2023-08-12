@@ -18,7 +18,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             sb.AppendLine(Environment.NewLine + $"Updated optimization constraints for plan: {planId}");
             sb.AppendLine("-------------------------------------------------------------------------");
             sb.AppendLine(String.Format("{0, -16} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority"));
-            sb.AppendLine("-------------------------------------------------------------------------");
+            sb.Append("-------------------------------------------------------------------------");
             return sb.ToString();
         }
 
@@ -28,7 +28,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             sb.AppendLine($"Results of optimization for plan: {planId}");
             sb.AppendLine("---------------------------------------------------------------------------------------------------------");
             sb.AppendLine(String.Format("{0, -16} | {1, -16} | {2, -20} | {3, -16} | {4, -12} | {5, -9} |", "structure Id", "constraint type", "dose diff^2 (cGy^2)", "current priority", "cost", "cost (%)"));
-            sb.AppendLine("---------------------------------------------------------------------------------------------------------");
+            sb.Append("---------------------------------------------------------------------------------------------------------");
             return sb.ToString();
         }
 
@@ -38,7 +38,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             sb.AppendLine("Plan objectives:");
             sb.AppendLine("--------------------------------------------------------------------------");
             sb.AppendLine(String.Format("{0, -16} | {1, -16} | {2, -10} | {3, -10} | {4, -9} |", "structure Id", "constraint type", "dose", "volume (%)", "dose type"));
-            sb.AppendLine("--------------------------------------------------------------------------");
+            sb.Append("--------------------------------------------------------------------------");
             return sb.ToString();
         }
 
@@ -176,7 +176,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         public static string PrintPlanOptimizationConstraints(string planId, List<Tuple<string, OptimizationObjectiveType, double, double, int>> constraints)
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append(GetOptimizationObjectivesHeader(planId));
+            sb.AppendLine(GetOptimizationObjectivesHeader(planId));
             foreach (Tuple<string, OptimizationObjectiveType, double, double, int> itr in constraints)
             {
                 sb.AppendLine(String.Format("{0, -16} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", itr.Item1, itr.Item2.ToString(), itr.Item3, itr.Item4, itr.Item5));
@@ -188,7 +188,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         {
             StringBuilder sb = new StringBuilder();
             //print the results of the quality check for this optimization
-            sb.Append(GetOptimizationResultsHeader(plan.Id));
+            sb.AppendLine(GetOptimizationResultsHeader(plan.Id));
             int index = 0;
             //structure, dvh data, current dose obj, dose diff^2, cost, current priority, priority difference
             foreach (Tuple<Structure, DVHData, double, double, double, int> itr in diffPlanOpt)
