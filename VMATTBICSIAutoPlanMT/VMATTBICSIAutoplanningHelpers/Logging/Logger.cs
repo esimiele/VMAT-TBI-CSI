@@ -15,35 +15,31 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
     public class Logger
     {
         //general patient info
-        public string MRN { set { mrn = value; }  }
+        public string MRN { set { mrn = value; } }
         public void SetPlanType(PlanType type) { planType = type; }
-        public string Template { set { template = value; } }
-        public string StructureSet { set { selectedSS = value; } }
-        public bool ChangesSaved { set { changesSaved = value; } }
-        public string User { set { userId = value; } }
-        //targets and prescription
-        //structure ID, Rx dose, plan Id
-        public List<Tuple<string, double, string>> Targets { set { targets = new List<Tuple<string, double, string>>(value); } }
+        public string Template { set => template = value; }
+        public string StructureSet { set => selectedSS = value; }
+        public bool ChangesSaved { set => changesSaved = value; }
+        public string User { set => userId = value; }
         //plan ID, target Id, numFx, dosePerFx, cumulative dose
-        public List<Tuple<string, string, int, DoseValue, double>> Prescriptions { set { prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(value); } }
-        public List<string> AddedPrelimTargetsStructures { set { addedPrelimTargets = new List<string>(value); } }
+        public List<Tuple<string, string, int, DoseValue, double>> Prescriptions { set => prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(value); }
+        public List<string> AddedPrelimTargetsStructures { set => addedPrelimTargets = new List<string>(value); }
         //ts generation and manipulation
-        public List<string> AddedStructures { set { addedStructures = new List<string>(value); } }
+        public List<string> AddedStructures { set => addedStructures = new List<string>(value); }
         //structure ID, sparing type, margin
-        public List<Tuple<string, TSManipulationType, double>> StructureManipulations { set { structureManipulations = new List<Tuple<string, TSManipulationType, double>>(value); } }
+        public List<Tuple<string, TSManipulationType, double>> StructureManipulations { set => structureManipulations = new List<Tuple<string, TSManipulationType, double>>(value); }
         //plan id, list<original target id, ts target id>
-        public List<Tuple<string, string>> TSTargets { set { tsTargets = new List<Tuple<string, string>>(value); } }
+        public List<Tuple<string, string>> TSTargets { set => tsTargets = new List<Tuple<string, string>>(value); }
         //plan id, normalization volume for plan
-        public List<Tuple<string, string>> NormalizationVolumes { set { normVolumes = new List<Tuple<string, string>>(value); } }
+        public List<Tuple<string, string>> NormalizationVolumes { set => normVolumes = new List<Tuple<string, string>>(value); }
         //plan Id, list of isocenter names for this plan
-        public List<Tuple<string, List<string>>> IsoNames { set { isoNames = new List<Tuple<string, List<string>>>(value); } }
+        public List<Tuple<string, List<string>>> IsoNames { set => isoNames = new List<Tuple<string, List<string>>>(value); }
         //plan generation and beam placement
-        public List<string> PlanUIDs { set { planUIDs = new List<string>(value); } }
+        public List<string> PlanUIDs { set => planUIDs = new List<string>(value); }
         //optimization setup
         //plan ID, <structure, constraint type, dose cGy, volume %, priority>
-        public List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> OptimizationConstraints { set { optimizationConstraints = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>(value); } }
-
-        public ScriptOperationType OpType { set { opType = value; } }
+        public List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> OptimizationConstraints { set => optimizationConstraints = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>(value); }
+        public ScriptOperationType OpType { set => opType = value; }
 
         //path to location to write log file
         private string logPath = "";
@@ -56,7 +52,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         private string template;
         private string selectedSS;
         bool changesSaved = false;
-        public List<Tuple<string, double, string>> targets;
         List<Tuple<string, string, int, DoseValue, double>> prescriptions;
         private List<string> addedPrelimTargets;
         private List<string> addedStructures;
@@ -75,7 +70,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             mrn = patient;
 
             selectedSS = "";
-            targets = new List<Tuple<string, double, string>> { };
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
             addedPrelimTargets = new List<string> { };
             addedStructures = new List<string> { };

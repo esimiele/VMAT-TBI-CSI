@@ -7,12 +7,22 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public static class RingHelper
     {
+        /// <summary>
+        /// Helper method to take the existing list of rings and rescale the dose levels to the doses listed in the prescriptions
+        /// </summary>
+        /// <param name="existingRings"></param>
+        /// <param name="prescriptions"></param>
+        /// <param name="oldInitRx"></param>
+        /// <param name="newInitRx"></param>
+        /// <param name="oldBstRx"></param>
+        /// <param name="newBstRx"></param>
+        /// <returns></returns>
         public static List<Tuple<string, double, double, double>> RescaleRingDosesToNewRx(List<Tuple<string, double, double, double>> existingRings,
-                                                                                       List<Tuple<string, string, int, DoseValue, double>> prescriptions,
-                                                                                       double oldInitRx,
-                                                                                       double newInitRx,
-                                                                                       double oldBstRx,
-                                                                                       double newBstRx)
+                                                                                          List<Tuple<string, string, int, DoseValue, double>> prescriptions,
+                                                                                          double oldInitRx,
+                                                                                          double newInitRx,
+                                                                                          double oldBstRx,
+                                                                                          double newBstRx)
         {
             List<Tuple<string, double, double, double>> scaledRings = new List<Tuple<string, double, double, double>> { };
             List<Tuple<string, double>> planIdRx = TargetsHelper.GetPlanIdHighesRxDoseFromPrescriptions(prescriptions);

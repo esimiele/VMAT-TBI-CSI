@@ -17,11 +17,18 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //DICOM types
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
+        //Dicom type, structure Id
         private List<Tuple<string, string>> createPrelimTargetList;
-        StructureSet selectedSS;
+        private StructureSet selectedSS;
         protected List<string> addedTargetIds = new List<string> { };
         protected string stackTraceError;
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="tgts"></param>
+        /// <param name="ss"></param>
+        /// <param name="closePW"></param>
         public GenerateTargets_CSI(List<Tuple<string, string>> tgts, StructureSet ss, bool closePW)
         {
             createPrelimTargetList = new List<Tuple<string, string>>(tgts);

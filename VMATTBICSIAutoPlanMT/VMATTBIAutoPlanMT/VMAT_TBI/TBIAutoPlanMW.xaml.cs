@@ -574,7 +574,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             structureTuningTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             TSManipulationTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             //need targets to be assigned prior to populating the ring defaults
-            log.targets = targets;
             log.Prescriptions = prescriptions;
         }
 

@@ -6,8 +6,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
     {
         public static FlashType GetFlashType(string flashChoice)
         {
-            flashChoice = flashChoice.ToLower();
-            if (string.Equals(flashChoice, "global")) return FlashType.Global;
+            if (string.Equals(flashChoice.ToLower(), "global")) return FlashType.Global;
             else return FlashType.Local;
         }
     }

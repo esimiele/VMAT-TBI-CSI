@@ -52,6 +52,9 @@
         Local
     };
 
+    /// <summary>
+    /// Enum for the operation being performed by the script. Used to ensure log files are not overwritten for important info when different operations are performed with the script
+    /// </summary>
     public enum ScriptOperationType
     {
         General,

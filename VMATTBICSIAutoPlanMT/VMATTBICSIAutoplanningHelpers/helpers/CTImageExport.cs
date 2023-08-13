@@ -14,6 +14,7 @@ using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Structs;
 using System.Diagnostics;
 using System.Reflection;
+using System.Threading;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
@@ -46,7 +47,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 else if (_data.ExportFormat == ImgExportFormat.DICOM)
                 {
                     if (PreliminaryChecksDCM()) return true;
-                    if (ExportAsDCM()) return true;
+                    if (ExportAsDCM())
+                    {
+                        CheckAndRemoveImagesIfPresent();
+                        return true;
+                    }
                     if (LaunchListener()) return true;
                 }
                 UpdateUILabel("Finished:");
@@ -247,6 +252,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         #endregion
 
         #region DCM export
+        /// <summary>
+        /// Preliminary checks prior to exporting the CT series in dicom format. Need to verify the paths of the import/export locations, verify the integrity of the daemons, and check the connection between the local and database daemon
+        /// </summary>
+        /// <returns></returns>
         private bool PreliminaryChecksDCM()
         {
             UpdateUILabel("Preliminary Checks:");
@@ -270,6 +279,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return false;
         }
 
+        /// <summary>
+        /// Helper method to verify the integrity of the daemon parameters that were parsed from the configuration file
+        /// </summary>
+        /// <param name="daemon"></param>
+        /// <returns></returns>
         private bool VerifyDaemonIntegrity(Tuple<string,string,int> daemon)
         {
             //check if anything was assigned to this daemon (the port, item3, is set to -1 by default)
@@ -277,6 +291,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return false;
         }
 
+        /// <summary>
+        /// Helper method to construct the aria database and local daemons and ensure the two are talking to each other
+        /// </summary>
+        /// <returns></returns>
         private bool CheckDaemonConnection() 
         {
             //check connection between local file daemon and aria database daemon
@@ -286,6 +304,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return false;
         }
 
+        /// <summary>
+        /// Ping the aria database daemon to ensure the local daemon can talk to the database daemon
+        /// </summary>
+        /// <param name="daemon"></param>
+        /// <param name="local"></param>
+        /// <returns></returns>
         private bool PingDaemon(Entity daemon, Entity local)
         {
             ProvideUIUpdate($"C Echo from {local.AeTitle} => {daemon.AeTitle} @ {daemon.IpAddress} : {daemon.Port}");
@@ -296,6 +320,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return !success;
         }
 
+        /// <summary>
+        /// Export the CT series in dicom format using the construct daemons
+        /// </summary>
+        /// <returns></returns>
         private bool ExportAsDCM()
         {
             UpdateUILabel("Exporting Dicom Images:");
@@ -336,12 +364,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 List<EvilDICOM.Network.DIMSE.IOD.CFindInstanceIOD> imageStack = finder.FindImages(ctSeries).ToList();
                 ProvideUIUpdate($"Total CT slices for export: {imageStack.Count()}");
 
-                if (WriteNumImgsFile(imageStack.Count)) return true;
-                
+                if (PingAutoContouringProgram(imageStack.Count)) return true;
+
                 EvilDICOM.Network.SCUOps.CMover mover = client.GetCMover(ariaDBDaemon);
                 ushort msgId = 1;
                 int numImages = imageStack.Count();
                 int counter = 0;
+                ProvideUIUpdate("Exporting CT series now");
                 ProvideUIUpdate("Exporting image:");
                 foreach (var img in imageStack)
                 {
@@ -364,26 +393,81 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         }
 
         /// <summary>
-        /// Write a simple file with the number of images in the file name (no contents). So Autoseg listener knows how many images to expect
+        /// Write a simple file with the number of images in the file name (no contents) so Autoseg listener knows how many images to expect. Also returns the full file path of the written file
         /// </summary>
         /// <param name="numImgs"></param>
         /// <returns></returns>
-        private bool WriteNumImgsFile(int numImgs)
+        private (bool, string) WriteNumImgsFile(int numImgs)
         {
+            ProvideUIUpdate($"Writing number of images file for autocontouring program");
             string folderLoc = Path.Combine(_data.WriteLocation, _patID);
-            if (!Directory.Exists(folderLoc)) Directory.CreateDirectory(folderLoc);
+            if (!Directory.Exists(folderLoc))
+            {
+                ProvideUIUpdate($"Creating directory: {folderLoc}");
+                Directory.CreateDirectory(folderLoc);
+            }
             string fileName = folderLoc + $"\\{numImgs}.txt";
             try
             {
+                ProvideUIUpdate($"Writing num images file: {fileName}");
                 File.WriteAllText(fileName, "");
             }
             catch (Exception e)
             {
-                ProvideUIUpdate(e.Message, true);
+                ProvideUIUpdate($"Could not write num images file because: {e.Message}", true);
+                return (true, fileName);
             }
+            return (false, fileName);
+        }
+
+        /// <summary>
+        /// Method for pinging autocontouring program to ensure it is up and running. Specific to our implementation
+        /// </summary>
+        /// <param name="numImgs"></param>
+        /// <returns></returns>
+        private bool PingAutoContouringProgram(int numImgs)
+        {
+            (bool fail, string fileName) = WriteNumImgsFile(numImgs);
+            if (fail) return true;
+
+            if (WaitForAutocontouringProgramResponse(fileName)) return true;
             return false;
         }
 
+        /// <summary>
+        /// Method to wait for a 'response' from the autocontouring program. Here, response means the autocontouring program recieved and removed the number of images file that was previously written. 
+        /// </summary>
+        /// <param name="theFile"></param>
+        /// <returns></returns>
+        private bool WaitForAutocontouringProgramResponse(string theFile)
+        {
+            ProvideUIUpdate("Waiting for response from AI contouring program");
+            ProvideUIUpdate($"Approximate elapsed time:");
+            //10 sec timeout
+            int timeout = 10000;
+            int elapsedTime = 0;
+            while (elapsedTime <= timeout)
+            {
+                ProvideUIUpdate($"{elapsedTime} msec");
+                //if file does NOT exist --> was read by AI contouring program and removed --> AI contouring program is up and running
+                if (!File.Exists(theFile))
+                {
+                    ProvideUIUpdate($"Autocontouring program ping: SUCCESS");
+                    return false;
+                }
+                //wait 1 sec and check again. Super janky way to keep track of elapsed time, but it works
+                Thread.Sleep(1000);
+                elapsedTime += 1000;
+            }
+            ProvideUIUpdate($"Autocontouring program ping: FAILED", true);
+            //num images file still exists after 10 sec period --> something is wrong with autocontouring program, don't bother 
+            return true;
+        }
+
+        /// <summary>
+        /// Helper method to delete the export folder and all its contents if something went wrong with the CT export
+        /// </summary>
+        /// <returns></returns>
         private bool CheckAndRemoveImagesIfPresent()
         {
             string folderLoc = Path.Combine(_data.WriteLocation, _patID);
@@ -394,6 +478,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return false;
         }
 
+        /// <summary>
+        /// Helper method to report a failed C-move
+        /// </summary>
+        /// <param name="response"></param>
         private void CMoveFailed(EvilDICOM.Network.DIMSE.CMoveResponse response)
         {
             ProvideUIUpdate($"Error! C-Move operation failed!");
@@ -405,6 +493,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             ProvideUIUpdate("Exiting!", true);
         }
 
+        /// <summary>
+        /// Helper method to launch the import listener console application
+        /// </summary>
+        /// <returns></returns>
         private bool LaunchListener()
         {
             string path = Assembly.GetExecutingAssembly().Location;

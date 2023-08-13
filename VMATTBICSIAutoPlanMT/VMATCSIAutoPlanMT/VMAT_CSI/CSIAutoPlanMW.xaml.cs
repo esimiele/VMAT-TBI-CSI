@@ -684,8 +684,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 return;
             }
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(parsedPrescriptions.Item1);
-            
-            log.targets = targets;
             log.Prescriptions = prescriptions;
 
             //need targets to be assigned prior to populating the tuning structure tabs
@@ -971,14 +969,15 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
         private void CropContourOverlapInfo_Click(object sender, RoutedEventArgs e)
         {
-            string message = "What are create/contour overlap structures?" + Environment.NewLine;
-            message += String.Format("These structures are OARs which will be used in the TS generation operations to generate new tuning structures for the targets.") + Environment.NewLine;
-            message += String.Format("Generated tuning structures include 'crop' structures which are the original targets that have been cropped from all OARs.") + Environment.NewLine;
-            message += String.Format("In addition, 'overlap' structures will be created that are the overlapping portions of the original OARs and all targets.") + Environment.NewLine;
-            message += String.Format("These target tuning structures are used to carve dose away from high-risk senstive OARs (e.g., brainstem) for sequential boost CSI.") + Environment.NewLine;
-            message += String.Format("Once generated, the optimization constraints for the targets will be updated to reflect the generated tuning structures.") + Environment.NewLine;
-            message += String.Format("In addition, the normalization volumes for each plan will also be updated.") + Environment.NewLine;
-            MessageBox.Show(message);
+            StringBuilder message = new StringBuilder();
+            message.AppendLine("What are create/contour overlap structures?");
+            message.AppendLine("These structures are OARs which will be used in the TS generation operations to generate new tuning structures for the targets.");
+            message.AppendLine("Generated tuning structures include 'crop' structures which are the original targets that have been cropped from all OARs.");
+            message.AppendLine("In addition, 'overlap' structures will be created that are the overlapping portions of the original OARs and all targets.");
+            message.AppendLine("These target tuning structures are used to carve dose away from high-risk senstive OARs (e.g., brainstem) for sequential boost CSI.");
+            message.AppendLine("Once generated, the optimization constraints for the targets will be updated to reflect the generated tuning structures.");
+            message.AppendLine("In addition, the normalization volumes for each plan will also be updated.");
+            MessageBox.Show(message.ToString());
         }
 
         private StackPanel GetAppropriateCropOverlapSP(object o)
@@ -1475,14 +1474,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                                                                                        addedRings);
             }
 
-            //12/27/2022 this line needs to be fixed as it assumes prescriptions is arranged such that each entry in the list contains a unique plan ID
-            //1/18/2023 super ugly, but it works. A simple check is performed to ensure that we won't exceed the number of prescriptions in the loop
-            //an issue for the following line is that boost constraints might end up being added to the initial plan (if there are two prescriptions for the initial plan)
-            //need to implement function to get unique plan Id's sorted by Rx
             foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in defaultListList) AddOptimizationConstraintItems(itr.Item2, itr.Item1, theSP);
         }
-
-        
 
         private void AddDefaultOptimizationConstraints_Click(object sender, RoutedEventArgs e)
         {
