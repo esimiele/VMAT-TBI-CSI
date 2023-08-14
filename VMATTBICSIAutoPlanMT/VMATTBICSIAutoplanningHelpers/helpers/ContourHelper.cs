@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Windows.Media.Media3D;
@@ -130,6 +131,31 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             {
                 sb.AppendLine("Error either target or normal structures are missing! Can't union target and normal structure!");
                 fail = true;
+            }
+            return (fail, sb);
+        }
+
+        /// <summary>
+        /// Helper method to combine/union a list of structures onto structureToUnion
+        /// </summary>
+        /// <param name="structuresToCombine"></param>
+        /// <param name="structureToUnion"></param>
+        /// <returns></returns>
+        public static (bool, StringBuilder) ContourUnion(List<Structure> structuresToCombine, Structure structureToUnion)
+        {
+            StringBuilder sb = new StringBuilder();
+            bool fail = false;
+            foreach(Structure itr in structuresToCombine)
+            {
+                if (itr != null && structureToUnion != null)
+                {
+                    structureToUnion.SegmentVolume = itr.SegmentVolume.Or(structureToUnion.SegmentVolume.Margin(0.0));
+                }
+                else
+                {
+                    sb.AppendLine("Error either target or normal structures are missing! Can't union target and normal structure!");
+                    fail = true;
+                }
             }
             return (fail, sb);
         }
