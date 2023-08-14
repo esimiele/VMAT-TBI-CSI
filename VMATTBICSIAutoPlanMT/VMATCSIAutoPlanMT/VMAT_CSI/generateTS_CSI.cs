@@ -14,6 +14,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
     public class GenerateTS_CSI : GenerateTSbase
     {
+        //get methods
         public List<Tuple<string, string, List<Tuple<string, string>>>> GetTargetCropOverlapManipulations() { return targetManipulations; }
         public List<Tuple<string, List<Tuple<string, string>>>> GetTsTargets() { return tsTargets; }
         public List<Tuple<string, string>> GetNormalizationVolumes() { return normVolumes; }
@@ -22,6 +23,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //DICOM types
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
+        //dicom type, structure Id
         private List<Tuple<string, string>> createTSStructureList;
         //plan id, structure id, num fx, dose per fx, cumulative dose
         private List<Tuple<string, string, int, DoseValue, double>> prescriptions;
@@ -35,6 +37,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations = new List<Tuple<string, string, List<Tuple<string, string>>>> { };
         //plan id, normalization volume
         private List<Tuple<string, string>> normVolumes = new List<Tuple<string, string>> { };
+        //structure id of oars requested for crop/overlap eval with targets
         private List<string> cropAndOverlapStructures = new List<string> { };
         private int numVMATIsos;
 
@@ -50,6 +53,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         }
 
         #region Run Control
+        /// <summary>
+        /// Run control
+        /// </summary>
+        /// <returns></returns>
         //to handle system access exception violation
         [HandleProcessCorruptedStateExceptions]
         public override bool Run()
@@ -86,6 +93,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         #endregion
 
         #region Preliminary Checks and Structure Unioning
+        /// <summary>
+        /// Preliminary checks to ensure body exists and is contoured, user origin is inside body, and spinal cord structure exists
+        /// </summary>
+        /// <returns></returns>
         protected override bool PreliminaryChecks()
         {
             UpdateUILabel("Performing Preliminary Checks: ");
@@ -118,6 +129,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         #endregion
 
         #region TS Structure Creation and Manipulation
+        /// <summary>
+        /// Helper method to create and contour the requested ring structure (with user-supplied margin, thickness, and dose level)
+        /// </summary>
+        /// <returns></returns>
         private bool GenerateRings()
         {
             if (rings.Any())
@@ -138,16 +153,19 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                             //name is taken, append a '1' to it
                             ringName += "1";
                         }
+
                         Structure ring = AddTSStructures(new Tuple<string, string>("CONTROL", ringName));
                         if (ring == null) return true;
                         ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Created empty ring: {ring.Id}");
+
+                        ProvideUIUpdate($"Contouring ring: {ring.Id}");
                         (bool fail, StringBuilder errorMessage) = ContourHelper.CreateRing(target, ring, selectedSS, itr.Item2, itr.Item3);
                         if (fail)
                         {
                             ProvideUIUpdate(errorMessage.ToString());
                             return true;
                         }
-                        ProvideUIUpdate($"Contouring ring: {ring.Id}");
+
                         addedRings.Add(Tuple.Create(target.Id, ring.Id, itr.Item4));
                         ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Finished contouring ring: {itr}");
                     }
@@ -159,6 +177,16 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return false;
         }
 
+        /// <summary>
+        /// Custom method to create a ring structure on a give CT slice. This method is used in the generation of TS_Eyes and TS_Lenses to avoid
+        /// using the built-in methods of structure manipulation provided by the API (slow and prone to memory errors)
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="normal"></param>
+        /// <param name="addedStructure"></param>
+        /// <param name="margin"></param>
+        /// <param name="thickness"></param>
+        /// <returns></returns>
         private (bool, StringBuilder) ContourPartialRing(Structure target, Structure normal, Structure addedStructure, double margin, double thickness)
         {
             StringBuilder sb = new StringBuilder();
@@ -166,11 +194,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ProvideUIUpdate($"Contouring partial ring to generate {addedStructure.Id}");
             int percentComplete = 0;
             int calcItems = 1;
-            //get the high res structure mesh geometry
-            MeshGeometry3D mesh = normal.MeshGeometry;
             //get the start and stop image planes for this structure (+/- 5 slices)
-            int startSlice = CalculationHelper.ComputeSlice(mesh.Bounds.Z, selectedSS) - 5;
-            int stopSlice = CalculationHelper.ComputeSlice(mesh.Bounds.Z + mesh.Bounds.SizeZ, selectedSS) + 5;
+            int startSlice = CalculationHelper.ComputeSlice(normal.MeshGeometry.Positions.Min(p => p.Z), selectedSS) - 5;
+            int stopSlice = CalculationHelper.ComputeSlice(normal.MeshGeometry.Positions.Max(p => p.Z), selectedSS) + 5;
             calcItems += stopSlice - startSlice + 1;
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Number of slices to contour: {stopSlice - startSlice + 1}");
             if(addedStructure.CanEditSegmentVolume(out string error))
@@ -178,9 +204,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 for (int slice = startSlice; slice <= stopSlice; slice++)
                 {
                     ProvideUIUpdate(100 * ++percentComplete / calcItems);
+                    //get the target contour points on this CT slice
                     VVector[][] points = target.GetContoursOnImagePlane(slice);
-                    //we only want the outer contour points of the target
+                    //Generate contour points for partial ring from target points + supplied margin + thickness
                     addedStructure.AddContourOnImagePlane(ContourHelper.GenerateContourPoints(points[0], (margin + thickness) * 10), slice);
+                    //Subtract contour points for partial ring from target points + supplied margin
                     addedStructure.SubtractContourOnImagePlane(ContourHelper.GenerateContourPoints(points[0], margin * 10), slice);
                 }
             }
@@ -192,6 +220,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return (fail, sb);
         }
 
+        /// <summary>
+        /// Method to generate TS Eyes and TS Lenses per Nataliya's instructions
+        /// </summary>
+        /// <param name="addedStructure"></param>
+        /// <returns></returns>
         private bool GenerateTSGlobesLenses(Structure addedStructure)
         {
             int counter = 0;
@@ -199,7 +232,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             bool isGlobes = false;
             if (addedStructure.Id.ToLower().Contains("eyes")) isGlobes = true;
 
-            //try to grab ptv_brain first
+            //grab the highest Rx target for the initial CSI plan (should be PTV_CSI)
             //6/11/23 THIS CODE WILL NEED TO BE MODIFIED FOR SIB PLANS
             string initTargetId = TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, prescriptions.First().Item1);
 
@@ -210,13 +243,15 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             Structure targetStructure = StructureTuningHelper.GetStructureFromId(initTargetId, selectedSS);
             ProvideUIUpdate(100 * ++counter / calcItems, $"Retrieved initial plan target: {targetStructure.Id}");
-            
-            Structure normal;
-            if (isGlobes) normal = StructureTuningHelper.GetStructureFromId("eyes", selectedSS);
-            else normal = StructureTuningHelper.GetStructureFromId("lenses", selectedSS);
 
-            if (normal != null && !normal.IsEmpty)
+            //grab eyes or lenses structure
+            string normalId;
+            if (isGlobes) normalId = "eyes";
+            else normalId = "lenses";
+
+            if (StructureTuningHelper.DoesStructureExistInSS(normalId, selectedSS, true))
             {
+                Structure normal = StructureTuningHelper.GetStructureFromId(normalId, selectedSS);
                 ProvideUIUpdate(100 * ++counter / calcItems, $"Retrieved structure: {normal.Id}");
                 ProvideUIUpdate($"Generating ring {addedStructure.Id} for target {targetStructure.Id}");
 

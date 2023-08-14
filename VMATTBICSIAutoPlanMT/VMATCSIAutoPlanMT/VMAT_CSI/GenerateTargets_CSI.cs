@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using SimpleProgressWindow;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
@@ -11,6 +12,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
     public class GenerateTargets_CSI : SimpleMTbase
     {
+        // Get methods
         public List<string> GetAddedTargetStructures() { return addedTargetIds; }
         public string GetErrorStackTrace() { return stackTraceError; }
 
@@ -20,8 +22,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //Dicom type, structure Id
         private List<Tuple<string, string>> createPrelimTargetList;
         private StructureSet selectedSS;
-        protected List<string> addedTargetIds = new List<string> { };
-        protected string stackTraceError;
+        //Dicom type, structure Id
+        private List<Tuple<string, string>> missingTargets = new List<Tuple<string, string>> { };
+        private List<string> addedTargetIds = new List<string> { };
+        private string stackTraceError;
 
         /// <summary>
         /// Constructor
@@ -33,15 +37,30 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             createPrelimTargetList = new List<Tuple<string, string>>(tgts);
             selectedSS = ss;
-            SetCloseOnFinish(closePW,3000);
+            SetCloseOnFinish(closePW, 3000);
         }
 
+        /// <summary>
+        /// Run control
+        /// </summary>
+        /// <returns></returns>
         public override bool Run()
         {
             try
             {
                 if (PreliminaryChecks()) return true;
                 if (CheckForTargetStructures()) return true;
+                if (missingTargets.Any())
+                {
+                    ProvideUIUpdate("Targets missing from the structure set! Creating them now!");
+                    if (CreateMissingTargetStructures()) return true;
+                }
+                if (addedTargetIds.Any())
+                {
+                    ProvideUIUpdate("Contouring targets now");
+                    if (ContourTargetStructures()) return true;
+                }
+
                 UpdateUILabel("Finished!");
                 ProvideUIUpdate(100, "Finished Generating Preliminary Targets!");
                 ProvideUIUpdate($"Run time: {GetElapsedTime()} (mm:ss)");
@@ -55,6 +74,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
         }
 
+        #region preliminary checks and pre-processing
+        /// <summary>
+        /// Preliminary checks prior to generating prelim targets. Verify body, brain, and spinal cord structures exist and are contoured. Also
+        /// convert brain, spinal cord structures to default resolution if they are high resolution
+        /// </summary>
+        /// <returns></returns>
         private bool PreliminaryChecks()
         {
             UpdateUILabel("Performing Preliminary Checks: ");
@@ -70,7 +95,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ProvideUIUpdate(100 * ++counter / calcItems);
 
             //verify brain and spine structures are present
-            if (!StructureTuningHelper.DoesStructureExistInSS("brain", selectedSS, true) || !StructureTuningHelper.DoesStructureExistInSS(new List<string> { "spinal_cord", "spinalcord"}, selectedSS, true))
+            if (!StructureTuningHelper.DoesStructureExistInSS("brain", selectedSS, true) || !StructureTuningHelper.DoesStructureExistInSS(new List<string> { "spinal_cord", "spinalcord" }, selectedSS, true))
             {
                 ProvideUIUpdate("Missing brain and/or spine structures! Please add and try again!", true);
                 return true;
@@ -85,6 +110,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return false;
         }
 
+        /// <summary>
+        /// Generate the body structure if it is not present in the structure set. Set the structure id to 'body'
+        /// </summary>
+        /// <returns></returns>
         private bool GenerateBodyStructure()
         {
             UpdateUILabel("Generating Body structure:");
@@ -95,7 +124,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 {
                     body.Id = "Body";
                 }
-                catch(Exception e)
+                catch (Exception e)
                 {
                     ProvideUIUpdate($"Error. Could not change {body.Id} to 'Body' because {e.Message}", true);
                     return true;
@@ -105,20 +134,25 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return false;
         }
 
+        /// <summary>
+        /// Helper method to check if the supplied list of structures exist and are high resolution
+        /// </summary>
+        /// <param name="baseTargets"></param>
+        /// <returns></returns>
         private bool CheckHighResolutionAndConvert(List<string> baseTargets)
         {
             UpdateUILabel("Checking for high res structures:");
-            foreach(string itr in baseTargets)
+            foreach (string itr in baseTargets)
             {
                 Structure tmp = StructureTuningHelper.GetStructureFromId(itr, selectedSS);
-                if(tmp != null && !tmp.IsEmpty)
+                if (tmp != null && !tmp.IsEmpty)
                 {
                     ProvideUIUpdate($"Checking if {tmp.Id} is high resolution");
-                    if(tmp.IsHighResolution)
+                    if (tmp.IsHighResolution)
                     {
                         string id = tmp.Id;
                         ProvideUIUpdate($"{id} is high resolution. Converting to default resolution now");
-                        
+
                         OverWriteHighResStructureWithLowResStructure(tmp);
                         ProvideUIUpdate($"{id} has been converted to low resolution");
                     }
@@ -131,6 +165,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return false;
         }
 
+        /// <summary>
+        /// Method to take a high resolution structure as input and overwrite it with a new structure that is default resolution
+        /// </summary>
+        /// <param name="theStructure"></param>
+        /// <returns></returns>
         private bool OverWriteHighResStructureWithLowResStructure(Structure theStructure)
         {
             ProvideUIUpdate($"Retrieving all contour points for: {theStructure.Id}");
@@ -140,7 +179,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ProvideUIUpdate($"Stop slice: {stopSlice}");
             VVector[][][] structurePoints = GetAllContourPoints(theStructure, startSlice, stopSlice);
             ProvideUIUpdate($"Contour points for: {theStructure.Id} loaded");
-            
+
             ProvideUIUpdate($"Removing and re-adding {theStructure.Id} to structure set");
             (bool fail, Structure lowResStructure) = RemoveAndReAddStructure(theStructure);
             if (fail) return true;
@@ -150,6 +189,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return false;
         }
 
+        /// <summary>
+        /// Helper method to retrive the contour points for the supplied structure on all contoured CT slices
+        /// </summary>
+        /// <param name="theStructure"></param>
+        /// <param name="startSlice"></param>
+        /// <param name="stopSlice"></param>
+        /// <returns></returns>
         private VVector[][][] GetAllContourPoints(Structure theStructure, int startSlice, int stopSlice)
         {
             int percentComplete = 0;
@@ -163,6 +209,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return structurePoints;
         }
 
+        /// <summary>
+        /// Helper method to remove the supplied high resolution structure, then add a new structure with the same id as the high resolution 
+        /// structure (automatically defaults to default resolution)
+        /// </summary>
+        /// <param name="theStructure"></param>
+        /// <returns></returns>
         private (bool, Structure) RemoveAndReAddStructure(Structure theStructure)
         {
             UpdateUILabel("Removing and re-adding structure:");
@@ -172,7 +224,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (selectedSS.CanRemoveStructure(theStructure))
             {
                 selectedSS.RemoveStructure(theStructure);
-                if(selectedSS.CanAddStructure(dicomType,id))
+                if (selectedSS.CanAddStructure(dicomType, id))
                 {
                     newStructure = selectedSS.AddStructure(dicomType, id);
                     ProvideUIUpdate($"{newStructure.Id} has been added to the structure set");
@@ -191,6 +243,15 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return (false, newStructure);
         }
 
+        /// <summary>
+        /// Similar to the contourlowresstructure method in generatetsbase, except instead of supplying the high res structure as an
+        /// input argument, the contour points for the high res structure are directly supplied
+        /// </summary>
+        /// <param name="structurePoints"></param>
+        /// <param name="lowResStructure"></param>
+        /// <param name="startSlice"></param>
+        /// <param name="stopSlice"></param>
+        /// <returns></returns>
         private bool ContourLowResStructure(VVector[][][] structurePoints, Structure lowResStructure, int startSlice, int stopSlice)
         {
             UpdateUILabel($"Contouring {lowResStructure.Id}:");
@@ -214,13 +275,17 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             return false;
         }
+        #endregion
 
         #region Target Creation
+        /// <summary>
+        /// Check if the requested preliminary targets already exist in the structure set.
+        /// </summary>
+        /// <returns></returns>
         private bool CheckForTargetStructures()
         {
             UpdateUILabel("Checking For Missing Target Structures: ");
             ProvideUIUpdate(0, "Checking for missing target structures!");
-            List<Tuple<string, string>> missingTargets = new List<Tuple<string, string>> { };
             int calcItems = createPrelimTargetList.Count;
             int counter = 0;
             foreach (Tuple<string, string> itr in createPrelimTargetList)
@@ -239,22 +304,15 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 else ProvideUIUpdate($"Target: {itr.Item2} is exists and is contoured");
                 ProvideUIUpdate(100 * ++counter / calcItems);
             }
-            if (missingTargets.Any())
-            {
-                ProvideUIUpdate("Targets missing from the structure set! Creating them now!");
-                if (CreateTargetStructures(missingTargets)) return true;
-            }
-            if(addedTargetIds.Any())
-            {
-                ProvideUIUpdate("Contouring targets now");
-                if (ContourTargetStructures()) return true;
-            }
-            ProvideUIUpdate("All requested targets are present and contoured! Skipping target creation!");
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
 
-        private bool CreateTargetStructures(List<Tuple<string, string>> missingTargets)
+        /// <summary>
+        /// Create the identified missing preliminary targets
+        /// </summary>
+        /// <returns></returns>
+        private bool CreateMissingTargetStructures()
         {
             UpdateUILabel("Create Missing Target Structures: ");
             ProvideUIUpdate(0, "Creating missing target structures!");
@@ -276,14 +334,19 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     return true;
                 }
             }
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
 
+        /// <summary>
+        /// Contour the preliminary targets according to the standard practice rules for ctv_brain, ptv_brain, ctv_spine, ptv_spine, and ptv_csi
+        /// </summary>
+        /// <returns></returns>
         private bool ContourTargetStructures()
         {
             Structure tmp = null;
-            int calcItems = addedTargetIds.Count + 5;
             int counter = 0;
+            int calcItems = addedTargetIds.Count + 2;
             foreach (string itr in addedTargetIds.OrderBy(x => x.ElementAt(0)))
             {
                 ProvideUIUpdate(100 * ++counter / calcItems, $"Contouring target: {itr}");
@@ -349,27 +412,46 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             if (addedTargetIds.Any(x => string.Equals(x.ToLower(), "ptv_csi")))
             {
-                ProvideUIUpdate(100 * ++counter / calcItems, "Generating: PTV_CSI");
-                ProvideUIUpdate(100 * ++counter / calcItems, "Retrieving: PTV_CSI, PTV_Brain, and PTV_Spine");
-                //used to create the ptv_csi structures
-                Structure combinedTarget = StructureTuningHelper.GetStructureFromId("PTV_CSI", selectedSS);
-                Structure brainTarget = StructureTuningHelper.GetStructureFromId("PTV_Brain", selectedSS);
-                Structure spineTarget = StructureTuningHelper.GetStructureFromId("PTV_Spine", selectedSS);
-                ProvideUIUpdate(100 * ++counter / calcItems, "Unioning PTV_Brain and PTV_Spine to make PTV_CSI");
-                combinedTarget.SegmentVolume = brainTarget.Margin(0.0);
-                combinedTarget.SegmentVolume = combinedTarget.Or(spineTarget.Margin(0.0));
-
-                ProvideUIUpdate(100 * ++counter / calcItems, "Cropping PTV_CSI from body with 3 mm inner margin");
-                //1/3/2022, crop PTV structure from body by 3mm
-                (bool fail, StringBuilder errorMessage) = ContourHelper.CropStructureFromBody(combinedTarget, selectedSS, -0.3, selectedSS.Structures.First(x => x.Id.ToLower().Contains("body")).Id);
-                if (fail)
-                {
-                    ProvideUIUpdate(errorMessage.ToString());
-                    return true;
-                }
+                if(ContourPTVCSI()) return true;
+                ProvideUIUpdate(100 * ++counter / calcItems, "PTV_CSI generated and contoured!");
             }
-            else ProvideUIUpdate(100 * ++counter / calcItems, "PTV_CSI already exists in the structure set! Skipping!");
-            ProvideUIUpdate(100 * ++counter / calcItems, "Targets added and contoured!");
+            else if (createPrelimTargetList.Any(x => string.Equals(x.Item2.ToLower(), "ptv_csi")))
+            {
+                ProvideUIUpdate(100 * ++counter / calcItems, "PTV_CSI already exists in the structure set! Skipping!");
+            }
+            ProvideUIUpdate(100, "Targets added and contoured!");
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
+            return false;
+        }
+
+        /// <summary>
+        /// Helper method to contour PTV_CSI by combining ptv_brain and ptv_spine, then cropping the resulting structure 3 mm from body
+        /// </summary>
+        /// <returns></returns>
+        private bool ContourPTVCSI()
+        {
+            int counter = 0;
+            int calcItems = 4;
+            ProvideUIUpdate("Generating: PTV_CSI");
+            ProvideUIUpdate(100 * ++counter / calcItems, "Retrieving: PTV_CSI, PTV_Brain, and PTV_Spine");
+            //used to create the ptv_csi structures
+            Structure combinedTarget = StructureTuningHelper.GetStructureFromId("PTV_CSI", selectedSS);
+            Structure brainTarget = StructureTuningHelper.GetStructureFromId("PTV_Brain", selectedSS);
+            Structure spineTarget = StructureTuningHelper.GetStructureFromId("PTV_Spine", selectedSS);
+            ProvideUIUpdate(100 * ++counter / calcItems, "Unioning PTV_Brain and PTV_Spine to make PTV_CSI");
+            combinedTarget.SegmentVolume = brainTarget.Margin(0.0);
+            combinedTarget.SegmentVolume = combinedTarget.Or(spineTarget.Margin(0.0));
+
+            ProvideUIUpdate(100 * ++counter / calcItems, "Cropping PTV_CSI from body with 3 mm inner margin");
+            //1/3/2022, crop PTV structure from body by 3mm
+            (bool fail, StringBuilder errorMessage) = ContourHelper.CropStructureFromBody(combinedTarget, selectedSS, -0.3, selectedSS.Structures.First(x => x.Id.ToLower().Contains("body")).Id);
+            if (fail)
+            {
+                ProvideUIUpdate(errorMessage.ToString());
+                return true;
+            }
+            ProvideUIUpdate(100 * ++counter / calcItems, "PTV_CSI cropped from body with 3 mm inner margin");
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
         #endregion
