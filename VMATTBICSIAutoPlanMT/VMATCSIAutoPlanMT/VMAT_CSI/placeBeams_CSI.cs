@@ -21,7 +21,25 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private double[] CCW = { 179.0, 181.0 };
         private ExternalBeamMachineParameters ebmpArc;
 
-        public PlaceBeams_CSI(StructureSet ss, List<Tuple<string, List<Tuple<string, int>>>> planInfo, double[] coll, string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, string mr, bool overlap, double overlapMargin, bool closePW)
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="ss"></param>
+        /// <param name="planInfo"></param>
+        /// <param name="coll"></param>
+        /// <param name="linac"></param>
+        /// <param name="energy"></param>
+        /// <param name="calcModel"></param>
+        /// <param name="optModel"></param>
+        /// <param name="gpuDose"></param>
+        /// <param name="gpuOpt"></param>
+        /// <param name="mr"></param>
+        /// <param name="overlap"></param>
+        /// <param name="overlapMargin"></param>
+        /// <param name="closePW"></param>
+        public PlaceBeams_CSI(StructureSet ss, List<Tuple<string, List<Tuple<string, int>>>> planInfo, double[] coll, 
+                              string linac, string energy, string calcModel, string optModel, string gpuDose, string gpuOpt, 
+                              string mr, bool overlap, double overlapMargin, bool closePW)
         {
             selectedSS = ss;
             planIsoBeamInfo = new List<Tuple<string, List<Tuple<string, int>>>>(planInfo);
@@ -39,6 +57,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             SetCloseOnFinish(closePW, 3000);
         }
 
+        /// <summary>
+        /// Run control
+        /// </summary>
+        /// <returns></returns>
         //to handle system access exception violation
         [HandleProcessCorruptedStateExceptions]
         public override bool Run()
@@ -78,11 +100,22 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
         }
 
+        #region Manage TS_ArmsAvoid
+        /// <summary>
+        /// Simple helper method to check if TS_ArmsAvoid is present and contoured in the structure set. Looks cleaner to use this method
+        /// rather than put the return method in the run control
+        /// </summary>
+        /// <returns></returns>
         private bool CheckTSArmsAvoid()
         {
             return StructureTuningHelper.DoesStructureExistInSS("TS_ArmsAvoid", selectedSS, true);
         }
 
+        /// <summary>
+        /// Method to retrieve and extend the body contour to encompass TS_ArmsAvoid. Necessary to ensure the dose calculation grid encompasses
+        /// TS_ArmsAvoid otherwise the optimization loop will run into faults
+        /// </summary>
+        /// <returns></returns>
         private bool ExtendBodyContour()
         {
             int percentComplete = 0;
@@ -92,6 +125,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved body structure: {body.Id}");
             if (selectedSS.CanAddStructure("CONTROL", "human_body"))
             {
+                //Create a copy of the current body structure for later
                 Structure bodyCopy = selectedSS.AddStructure("CONTROL", "human_body");
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Created structure: {bodyCopy.Id}");
                 bodyCopy.SegmentVolume = body.Margin(0.0);
@@ -103,6 +137,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 return true;
             }
 
+            //union TS_ArmsAvoid and body onto the body structure
             (bool unionFail, StringBuilder unionMessage) = ContourHelper.ContourUnion(StructureTuningHelper.GetStructureFromId("TS_ArmsAvoid", selectedSS), body, 0.0);
             if (unionFail)
             {
@@ -113,6 +148,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return false;
         }
 
+        /// <summary>
+        /// The reverse of the ExtendBodyContour method. Retrieve the created body copy structure and copy it onto the body, then remove the body
+        /// copy structure
+        /// </summary>
+        /// <returns></returns>
         private bool CropBodyFromArmsAvoid()
         {
             int percentComplete = 0;
@@ -142,12 +182,21 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             return false;
         }
+        #endregion
 
+        #region Isocenter position calculation
+        /// <summary>
+        /// Helper method to Retrieve the center of the brain/PTV_Brain structure
+        /// </summary>
+        /// <param name="counter"></param>
+        /// <param name="calcItems"></param>
+        /// <returns></returns>
         private (bool, double) GetBrainZCenter(ref int counter, ref int calcItems)
         {
             bool fail = false;
             double brainZCenter = 0.0;
             ProvideUIUpdate(100 * ++counter / calcItems, "Retrieving Brain Structure");
+            //shouldn't matter if its brain or PTV_brain (ideally would be the same, but the center points should be within 5mm of each other)
             Structure ptvBrain = StructureTuningHelper.GetStructureFromId("Brain", selectedSS);
             if (ptvBrain == null || ptvBrain.IsEmpty)
             {
@@ -168,6 +217,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return (fail, brainZCenter);
         }
 
+        /// <summary>
+        /// Helper method to scale the Y isocenter position to be 80% of the anterior-most position of the spince
+        /// </summary>
+        /// <param name="spineYMin"></param>
+        /// <param name="spineYCenter"></param>
+        /// <param name="scaleFactor"></param>
+        /// <returns></returns>
         private double ScaleSpineYPosition(double spineYMin, double spineYCenter, double scaleFactor)
         {
             spineYMin *= scaleFactor;
@@ -185,6 +241,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return spineYMin;
         }
 
+        /// <summary>
+        /// Helper method to retrieve the min Y, min Z, and max Z positions from PTV_Spine or the spinalcord
+        /// </summary>
+        /// <param name="counter"></param>
+        /// <param name="calcItems"></param>
+        /// <returns></returns>
         private (bool, double, double, double) GetSpineYminZminZMax(ref int counter, ref int calcItems)
         {
             bool fail = false;
@@ -192,15 +254,16 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             double spineZMax = 0.0;
             double spineZMin = 0.0;
             calcItems += 5;
+
             ProvideUIUpdate(100 * ++counter / calcItems, "Retrieving PTV_Spine Structure");
             Structure ptvSpine = StructureTuningHelper.GetStructureFromId("PTV_Spine", selectedSS);
-            if (ptvSpine == null)
+            if (ptvSpine == null || ptvSpine.IsEmpty)
             {
                 calcItems += 1;
                 ProvideUIUpdate(100 * ++counter / calcItems, "Failed to find PTV_Spine Structure! Retrieving spinal cord structure");
                 ptvSpine = StructureTuningHelper.GetStructureFromId("spinalcord", selectedSS);
-                if (ptvSpine == null) ptvSpine = StructureTuningHelper.GetStructureFromId("spinal_cord", selectedSS);
-                if (ptvSpine == null)
+                if (ptvSpine == null || ptvSpine.IsEmpty) ptvSpine = StructureTuningHelper.GetStructureFromId("spinal_cord", selectedSS);
+                if (ptvSpine == null || ptvSpine.IsEmpty)
                 {
                     ProvideUIUpdate("Failed to retrieve spinal cord structure! Cannot calculate isocenter positions! Exiting", true);
                     fail = true;
@@ -209,7 +272,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
 
             ProvideUIUpdate("Calculating anterior extent of PTV_Spine");
-            //Place field isocenters in y-direction at 2/3 the max 
             spineYMin = ptvSpine.MeshGeometry.Positions.Min(p => p.Y);
             ProvideUIUpdate("Calculating superior and inferior extent of PTV_Spine");
             spineZMax = ptvSpine.MeshGeometry.Positions.Max(p => p.Z);
@@ -227,19 +289,25 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ProvideUIUpdate(100 * ++counter / calcItems, $"Superior extent of PTV_Spine: {spineZMax:0.0} mm");
             ProvideUIUpdate(100 * ++counter / calcItems, $"Inferior extent of PTV_Spine: {spineZMin:0.0} mm");
 
+            //Rescale Ymin (anterior-most position) to 80% of it's value for iso placement
             spineYMin = ScaleSpineYPosition(spineYMin, ptvSpine.CenterPoint.y, 0.8);
             ProvideUIUpdate(100 * ++counter / calcItems);
             return (fail, spineYMin, spineZMin, spineZMax);
         }
 
+        /// <summary>
+        /// Calculate the necessary isocenter positions for all VMAT plans
+        /// </summary>
+        /// <returns></returns>
         protected override List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> GetIsocenterPositions()
         {
             UpdateUILabel("Calculating isocenter positions: ");
             ProvideUIUpdate(0, "Extracting isocenter positions for all plans");
+            //external beam plan, list<iso position, iso name, number of beams for iso>
             List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> allIsocenters = new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
             Image image = selectedSS.Image;
             VVector userOrigin = image.UserOrigin;
-            int count = 0;
+            ProvideUIUpdate($"Retrieved user origin position: ({userOrigin.x:0.0}, {userOrigin.y:0.0}, {userOrigin.z:0.0}) mm");
             List<Tuple<string, List<string>>> planIdTargets = new List<Tuple<string, List<string>>>(TargetsHelper.GetTargetListForEachPlan(prescriptions));
             foreach (ExternalPlanSetup itr in vmatPlans)
             {
@@ -262,50 +330,16 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 }
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Longest target in plan {itr.Id}: {longestTargetInPlan.Id}");
 
+                //iso position, iso name, number of beams for iso
                 List<Tuple<VVector, string, int>> tmp = new List<Tuple<VVector, string, int>> { };
-                isoSeparation = 380.0;
                 if (string.Equals(longestTargetInPlan.Id.ToLower(), "ptv_csi"))
                 {
-                    (bool failSpineRetrival, double spineYMin, double spineZMin, double spineZMax) = GetSpineYminZminZMax(ref percentComplete, ref calcItems);
-                    if (failSpineRetrival) return allIsocenters;
-
-                    (bool failBrainRetrival, double brainZCenter) = GetBrainZCenter(ref percentComplete, ref calcItems);
-                    if (failBrainRetrival) return allIsocenters;
-                    //since Brain CTV = Brain and PTV = CTV + 5 mm uniform margin, center of brain is unaffected by adding the 5 mm margin if the PTV_Brain structure could not be found
-                    ProvideUIUpdate($"Calculating distance between center of PTV_Brain and inf extent of PTV_Spine");
-                    maxTargetLength = brainZCenter - spineZMin;
-                    ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Extent: {maxTargetLength:0.0} mm");
-
-                    for (int i = 0; i < numIsos; i++)
+                    (bool failPTVCSIIso, List<Tuple<VVector, string, int>> isos) = CalculateIsoPositionsForCSIInit(itr, numIsos, userOrigin.x);
+                    if(failPTVCSIIso)
                     {
-                        VVector v = new VVector();
-                        ProvideUIUpdate($"Determining position for isocenter: {i + 1}");
-                        //special case when the main target is ptv_csi
-                        //asign y position to spineYmin
-                        v.y = spineYMin;
-                        //assign the first isocenter to the center of the ptv_brain
-                        if (i == 0) v.z = brainZCenter;
-                        else
-                        {
-                            v.z = spineZMin + (numIsos - i - 1) * isoSeparation + 180.0;
-                            if(i == 1 && numIsos > 2)
-                            {
-                                //inf field edge.ptv spine + 18 cm = iso position + 20 cm Y field extent)
-                                double infIsoFieldEdge = spineZMin + 180.0 + 200.0;
-                                Structure brainTarget = StructureTuningHelper.GetStructureFromId("PTV_Brain", selectedSS);
-                                //brain field inferior extent (ptv brain inf extent - 5 cm)
-                                double supFieldExtent = brainTarget.MeshGeometry.Positions.Min(p => p.Z) - 50.0;
-                                v.z = CalculationHelper.ComputeAverage(infIsoFieldEdge, supFieldExtent);
-                                // too close to brain iso, push it inf
-                                if (v.z + 200.0 > tmp.ElementAt(0).Item1.z) v.z = tmp.ElementAt(0).Item1.z - 200.0;
-                            }
-                        }
-                        
-                        ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated isocenter position {i + 1}");
-                        tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPositions(v, itr, ref percentComplete, ref calcItems),
-                                                                planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, itr.Id)).Item2.ElementAt(i).Item1,
-                                                                planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, itr.Id)).Item2.ElementAt(i).Item2));
+                        return new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
                     }
+                    tmp.AddRange(isos);
                 }
                 else
                 {
@@ -328,19 +362,86 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Finished retrieving isocenters for plan: {itr.Id}");
                 allIsocenters.Add(Tuple.Create(itr, new List<Tuple<VVector, string, int>>(tmp)));
-                count++;
             }
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return allIsocenters;
         }
 
+        /// <summary>
+        /// Helper method to calculate the isocenter positions for the initial CSI plan (PTV_CSI target)
+        /// </summary>
+        /// <param name="thePlan"></param>
+        /// <param name="numIsos"></param>
+        /// <param name="xUserOrigin"></param>
+        /// <returns></returns>
+        private (bool, List<Tuple<VVector, string, int>>) CalculateIsoPositionsForCSIInit(ExternalPlanSetup thePlan, int numIsos, double xUserOrigin)
+        {
+            int percentComplete = 0;
+            int calcItems = numIsos;
+            List<Tuple<VVector, string, int>> tmp = new List<Tuple<VVector, string, int>> { };
+            //special case when the main target is ptv_csi
+            (bool failSpineRetrival, double spineYMin, double spineZMin, double spineZMax) = GetSpineYminZminZMax(ref percentComplete, ref calcItems);
+            if (failSpineRetrival) return (true, tmp);
+
+            (bool failBrainRetrival, double brainZCenter) = GetBrainZCenter(ref percentComplete, ref calcItems);
+            if (failBrainRetrival) return (true, tmp);
+
+            //maximum separation between isocenters (35 cm for 5 cm overlap). May remove this since it's not used with the updated
+            //iso placement algorithm
+            isoSeparation = 350.0;
+            for (int i = 0; i < numIsos; i++)
+            {
+                VVector v = new VVector();
+                ProvideUIUpdate($"Determining position for isocenter: {i + 1}");
+                //asign x position to user origin x position
+                v.x = xUserOrigin;
+                //asign y position to spineYmin
+                v.y = spineYMin;
+                //assign the first isocenter to the center of the ptv_brain
+                if (i == 0) v.z = brainZCenter;
+                else
+                {
+                    v.z = spineZMin + (numIsos - i - 1) * isoSeparation + 180.0;
+                    if (i == 1 && numIsos > 2)
+                    {
+                        //if this is iso 2 and the total number of isos is 3, apply this special logic to balance field
+                        //overlap between brain iso and lower spine iso
+                        //inf field superior edge.ptv spine + 18 cm = iso position + 20 cm Y field extent)
+                        double infIsoFieldSupEdge = spineZMin + 180.0 + 200.0;
+                        Structure brainTarget = StructureTuningHelper.GetStructureFromId("PTV_Brain", selectedSS);
+                        //brain field inferior extent (ptv brain inf extent - 5 cm margin)
+                        double supFieldInfExtent = brainTarget.MeshGeometry.Positions.Min(p => p.Z) - 50.0;
+                        //place the iso at the midpoint between the brain field inf extent and low spine file sup extent
+                        v.z = CalculationHelper.ComputeAverage(infIsoFieldSupEdge, supFieldInfExtent);
+                        // Check to ensure calculated iso position is not too close to brain iso, If so, push it inf
+                        if (v.z + 200.0 > tmp.ElementAt(0).Item1.z) v.z = tmp.ElementAt(0).Item1.z - 200.0;
+                    }
+                }
+
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated isocenter position {i + 1}");
+                ProvideUIUpdate($"Isocenter position: ({v.x:0.0}, {v.y:0.0}, {v.z:0.0}) mm");
+                tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPositions(v, thePlan, ref percentComplete, ref calcItems),
+                                                        planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, thePlan.Id)).Item2.ElementAt(i).Item1,
+                                                        planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, thePlan.Id)).Item2.ElementAt(i).Item2));
+            }
+            return (false, tmp);
+        }
+        #endregion
+
+        #region Beam placement
+        /// <summary>
+        /// Utility method to generate and place the beams for each vmat iso for this plan
+        /// </summary>
+        /// <param name="iso"></param>
+        /// <returns></returns>
         protected override bool SetVMATBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> iso)
         {
             ProvideUIUpdate(0, $"Preparing to set isocenters for plan: {iso.Item1.Id}");
             int percentComplete = 0;
             int calcItems = 3;
             bool initCSIPlan = false;
-            //if the plan id is equal to the plan Id in the first entry in the prescriptions, then this is the initial plan --> use special rules to fit fields
+            //if the plan id is equal to the plan Id in the first entry in the prescriptions, then this is the initial plan
+            //--> use special rules to fit fields
             if (string.Equals(iso.Item1.Id, prescriptions.First().Item1)) initCSIPlan = true;
             //DRR parameters (dummy parameters to generate DRRs for each field)
             DRRCalculationParameters DRR = GenerateDRRParameters();
@@ -439,6 +540,14 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return false;
         }
 
+        /// <summary>
+        /// Helper method for calculating the appropriate jaw positions for the fields that will be used in the initial CSI plan (PTV_CSI is target)
+        /// </summary>
+        /// <param name="isFirstIso"></param>
+        /// <param name="iso"></param>
+        /// <param name="margins"></param>
+        /// <param name="numIsos"></param>
+        /// <returns></returns>
         private (bool, VRect<double>) GetXYJawPositionsForPTVCSI(bool isFirstIso, VVector iso, FitToStructureMargins margins, int numIsos)
         {
             ProvideUIUpdate("Fitting jaws to target");
@@ -458,7 +567,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 }
                 double InfMargin = margins.Y1 + 20.0;
                 ProvideUIUpdate($"Adjusting inf field margin to >= 5cm");
-
                 
                 if (StructureTuningHelper.DoesStructureExistInSS("larynx", selectedSS, true))
                 {
@@ -489,9 +597,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     {
                         ProvideUIUpdate($"Separation between brain and spines isos is >= 20cm: {iso.z - infSpineIso:0.0} mm");
                         //spine iso field should have y2 maxed at 20 cm. spatial location of that field extent
-                        double infSpineIsoFieldExtent = infSpineIso + 200;
-                        //take the max margin of the existing calculated margin and the difference between ptv_brain z min and inf spine iso field extent + 5 cm overlap
-                        InfMargin = Math.Max(InfMargin, brain.MeshGeometry.Positions.Min(p => p.Z) - infSpineIsoFieldExtent + 50.0);
+                        double infSpineIsoSupFieldExtent = infSpineIso + 200;
+                        //take the max margin of the existing calculated margin and the difference between ptv_brain z min
+                        //and inf spine iso field extent + 5 cm overlap
+                        InfMargin = Math.Max(InfMargin, brain.MeshGeometry.Positions.Min(p => p.Z) - infSpineIsoSupFieldExtent + 50.0);
                         ProvideUIUpdate($"Max of current inf margin and (brain zmin - spineIsoFieldExtent + 5cm): {InfMargin:0.0} cm");
                     }
                 }
@@ -526,6 +635,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return (false, VerifyProposedJawPositions(x1, y1, x2, y2));
         }
 
+        /// <summary>
+        /// Helper method to compute the jaw positions for the specified target using the specified margins
+        /// </summary>
+        /// <param name="iso"></param>
+        /// <param name="margins"></param>
+        /// <param name="target"></param>
+        /// <returns></returns>
         private (bool, VRect<double>) GetXYJawPositionsForStructure(VVector iso, FitToStructureMargins margins, Structure target = null)
         {
             ProvideUIUpdate("Fitting jaws to target");
@@ -541,6 +657,14 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return (false, VerifyProposedJawPositions(x1, y1, x2, y2));
         }
 
+        /// <summary>
+        /// Helper method to verify the calculated jaw positions will not exceed the machine limits
+        /// </summary>
+        /// <param name="x1"></param>
+        /// <param name="y1"></param>
+        /// <param name="x2"></param>
+        /// <param name="y2"></param>
+        /// <returns></returns>
         private VRect<double> VerifyProposedJawPositions(double x1, double y1, double x2, double y2)
         {
             if (y2 > 200.0) y2 = 200.0;
@@ -550,6 +674,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return new VRect<double>(x1, y1, x2, y2);
         }
 
+        /// <summary>
+        /// Helper method to compute the bounding box for the supplied structure. Used for fitting the jaws to PTV_CSI
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="zMin"></param>
+        /// <param name="zMax"></param>
+        /// <returns></returns>
         private VVector[] GetLateralStructureBoundingBox(Structure target, double zMin, double zMax) 
         {
             MeshGeometry3D mesh = target.MeshGeometry;
@@ -576,10 +707,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 //find min and max x positions for the body on this slice (so we can adapt the box positions for each slice)
                 for (int i = 0; i < pts.GetLength(0); i++)
                 {
-                    if (pts[i].Max(p => p.x) > xMax) xMax = pts[i].Max(p => p.x);
-                    if (pts[i].Min(p => p.x) < xMin) xMin = pts[i].Min(p => p.x);
-                    if (pts[i].Max(p => p.y) > yMax) yMax = pts[i].Max(p => p.y);
-                    if (pts[i].Min(p => p.y) < yMin) yMin = pts[i].Min(p => p.y);
+                    xMax = Math.Max(xMax, pts[i].Max(p => p.x));
+                    xMin = Math.Min(xMin, pts[i].Min(p => p.x));
+                    yMax = Math.Max(yMax, pts[i].Max(p => p.y));
+                    yMin = Math.Min(yMin, pts[i].Min(p => p.y));
                 }
             }
             VVector[] boundinBox = new[] {
@@ -591,5 +722,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ProvideUIUpdate($"xMax: {xMax:0.0} mm, xMin: {xMin:0.0} mm, yMax: {yMax:0.0} mm, yMin: {yMin:0.0} mm");
             return boundinBox;
         }
+        #endregion
     }
 }

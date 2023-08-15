@@ -7,14 +7,13 @@ namespace VMATCSIAutoPlanMT
 {
     public partial class App : Application
     {
+        /// <summary>
+        /// Called when application is launched. Copy the starteventargs into a string list and pass to main UI
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void Application_Startup(object sender, StartupEventArgs e)
         {
-            //selectOption SO;
-            //if (e.Args.Length == 3) SO = new selectOption(true);
-            //else SO = new selectOption(false);
-            //SO.ShowDialog();
-            //if (!SO.isVMATCSI && !SO.isVMATTBI && !SO.launchOptimization) Current.Shutdown();
-
             List<string> theArguments = new List<string> { };
             if (e.Args.Length > 1)
             {
@@ -24,14 +23,6 @@ namespace VMATCSIAutoPlanMT
 
             VMAT_CSI.CSIAutoPlanMW mw = new VMAT_CSI.CSIAutoPlanMW(theArguments);
             if(!mw.GetCloseOpenPatientWindowStatus()) mw.Show();
-            //else
-            //{
-            //    string binDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            //    string optLoopExe = Directory.GetFiles(binDir, "*.exe").FirstOrDefault(x => x.Contains("VMATTBICSIOptLoopMT"));
-            //    ProcessStartInfo optLoopProcess = new ProcessStartInfo(optLoopExe);
-            //    Process.Start(optLoopProcess);
-            //    this.Shutdown();
-            //}
         }
     }
 }
