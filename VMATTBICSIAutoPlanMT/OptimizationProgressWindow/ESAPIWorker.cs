@@ -10,19 +10,28 @@ namespace OptimizationProgressWindow
         public bool isError = false;
         public readonly Dispatcher _dispatcher;
 
-        //constructor
+        /// <summary>
+        /// Constructor
+        /// </summary>
         public ESAPIWorker()
         {
             _dispatcher = Dispatcher.CurrentDispatcher;
         }
 
-        //asynchronously execute the supplied task on the MAIN thread
+        /// <summary>
+        /// Method to asynchronously execute the supplied task on the MAIN thread
+        /// </summary>
+        /// <param name="a"></param>
         public void DoWork(Action a)
         {
             _dispatcher.BeginInvoke(a);
         }
 
-        //method to create the new thread, set the apartment state, set the new thread to be a background thread, and execute the action supplied to this method
+        /// <summary>
+        /// Method to create a new thread, set the apartment state, set the new thread to be a background thread, 
+        /// and execute the action supplied to this method
+        /// </summary>
+        /// <param name="a"></param>
         public void RunOnNewThread(Action a)
         {
             Thread t = new Thread(() => a());

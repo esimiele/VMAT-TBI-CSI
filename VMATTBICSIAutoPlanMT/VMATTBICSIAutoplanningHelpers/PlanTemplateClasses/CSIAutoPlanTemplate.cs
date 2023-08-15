@@ -42,15 +42,26 @@ namespace VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses
         private List<Tuple<string, OptimizationObjectiveType, double, double, int>> initOptConstraints = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
         private List<Tuple<string, OptimizationObjectiveType, double, double, int>> bstOptConstraints = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
         public CSIAutoPlanTemplate()
         {
         }
 
+        /// <summary>
+        /// Overloaded constructor taking an int as input
+        /// </summary>
+        /// <param name="count"></param>
         public CSIAutoPlanTemplate(int count)
         {
-            templateName = String.Format("Template: {0}", count);
+            templateName = $"Template: {count}";
         }
 
+        /// <summary>
+        /// Overloaded constructor taking a string as input
+        /// </summary>
+        /// <param name="name"></param>
         public CSIAutoPlanTemplate(string name)
         {
             templateName = name;

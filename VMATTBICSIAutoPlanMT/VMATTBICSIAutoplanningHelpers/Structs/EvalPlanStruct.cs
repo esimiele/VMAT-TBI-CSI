@@ -5,7 +5,9 @@ using OptimizationObjectiveType = VMATTBICSIAutoPlanningHelpers.Enums.Optimizati
 
 namespace VMATTBICSIAutoPlanningHelpers.Structs
 {
-    //data structure to hold the results of the plan evaluation following an optimization
+    /// <summary>
+    /// Data struct to hold the results of the plan evaluation following an optimization
+    /// </summary>
     public struct EvalPlanStruct
     {
         //difference between current dose values for each structure in the optimization list and the optimization constraint(s) for that structure

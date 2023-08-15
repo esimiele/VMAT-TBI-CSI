@@ -4,10 +4,13 @@ using OptimizationObjectiveType = VMATTBICSIAutoPlanningHelpers.Enums.Optimizati
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
-    //placing helper method here to assist with conversion to own enum type
     public static class OptimizationTypeHelper
     {
-        //convert from Varian API enum to internal optimization objective type enum
+        /// <summary>
+        /// Helper method to convert from Varian API enum to internal optimization objective type enum
+        /// </summary>
+        /// <param name="pt"></param>
+        /// <returns></returns>
         public static OptimizationObjectiveType GetObjectiveType(OptimizationPointObjective pt)
         {
             if (pt.Operator == OptimizationObjectiveOperator.Upper) return OptimizationObjectiveType.Upper;
@@ -16,7 +19,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             else return OptimizationObjectiveType.None;
         }
 
-        //convert from string representation of optimization objective type to internal optimization objective type enum
+        /// <summary>
+        /// Helper method to convert from string representation of optimization objective type to internal optimization objective type enum
+        /// </summary>
+        /// <param name="op"></param>
+        /// <returns></returns>
         public static OptimizationObjectiveType GetObjectiveType(string op)
         {
             if (string.Equals(op, "Upper")) return OptimizationObjectiveType.Upper;
@@ -26,7 +33,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             else return OptimizationObjectiveType.None;
         }
 
-        //convert back to Varian API enum for optimization objective type enum
+        /// <summary>
+        /// Helper method to convert from the internal optimization objective type enum back to Varian API enum 
+        /// </summary>
+        /// <param name="op"></param>
+        /// <returns></returns>
         public static OptimizationObjectiveOperator GetObjectiveOperator(OptimizationObjectiveType op)
         {
             if (op == OptimizationObjectiveType.Upper) return OptimizationObjectiveOperator.Upper;

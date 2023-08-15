@@ -277,38 +277,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return (fail, sb);
         }
 
-        //public static (bool, StringBuilder) CreateTargetStructure(string targetStructureId, string baseStructureId, StructureSet selectedSS, AxisAlignedMargins margin, string alternateBasStructureId = "")
-        //{
-        //    StringBuilder sb = new StringBuilder();
-        //    bool fail = false;
-        //    sb.AppendLine($"Failed to find {targetStructureId} Structure! Retrieving {baseStructureId} structure");
-        //    Structure baseStructure = StructureTuningHelper.GetStructureFromId(baseStructureId, selectedSS);
-        //    if (baseStructure == null && !string.IsNullOrEmpty(alternateBasStructureId))
-        //    {
-        //        baseStructure = StructureTuningHelper.GetStructureFromId(alternateBasStructureId, selectedSS); 
-        //    }
-        //    if (baseStructure == null)
-        //    {
-        //        sb.AppendLine($"Could not retrieve base structure {baseStructureId}. Exiting!");
-        //        fail = true;
-        //        return (fail, sb);
-        //    }
-        //    sb.AppendLine($"Creating {targetStructureId} structure!");
-        //    if (selectedSS.CanAddStructure("CONTROL", $"{targetStructureId}"))
-        //    {
-        //        Structure target = selectedSS.AddStructure("CONTROL", $"{targetStructureId}");
-        //        target.SegmentVolume = baseStructure.AsymmetricMargin(margin);
-        //        sb.AppendLine($"Created {targetStructureId} structure!");
-        //    }
-        //    else
-        //    {
-        //        sb.AppendLine($"Failed to add {targetStructureId} to the structure set! Exiting!");
-        //        fail = true;
-        //        return (fail, sb);
-        //    }
-        //    return (fail, sb);
-        //}
-
         /// <summary>
         /// Helper method to generate a margin for a structure on the given CT slice using the supplied contour points at the specified distance
         /// </summary>
