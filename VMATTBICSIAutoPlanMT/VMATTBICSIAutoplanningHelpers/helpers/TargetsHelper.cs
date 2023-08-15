@@ -242,7 +242,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             List<Tuple<string, string, int, DoseValue, double>> tmpList = prescriptions.OrderBy(x => x.Item5).ToList();
             if (tmpList.Any(x => string.Equals(x.Item1.ToLower(), plandId.ToLower())))
             {
-                Tuple<string, string, int, DoseValue, double> rx = prescriptions.Last(x => string.Equals(x.Item1.ToLower(), plandId.ToLower()));
+                Tuple<string, string, int, DoseValue, double> rx = tmpList.Last(x => string.Equals(x.Item1.ToLower(), plandId.ToLower()));
                 dose = rx.Item3 * rx.Item4.Dose;
             }
             return dose;
@@ -255,7 +255,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             List<Tuple<string, string, int, DoseValue, double>> tmpList = prescriptions.OrderBy(x => x.Item5).ToList();
             if (tmpList.Any(x => string.Equals(x.Item1.ToLower(), plandId.ToLower())))
             {
-                Tuple<string, string, int, DoseValue, double> rx = prescriptions.Last(x => string.Equals(x.Item1.ToLower(), plandId.ToLower()));
+                Tuple<string, string, int, DoseValue, double> rx = tmpList.Last(x => string.Equals(x.Item1.ToLower(), plandId.ToLower()));
                 targetId = rx.Item2;
             }
             return targetId;
@@ -341,6 +341,22 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 planIdRx.Add(Tuple.Create(tmpList.Last().Item1, GetHighestRxForPlan(prescriptions, tmpList.Last().Item1)));
             }
             return planIdRx;
+        }
+
+        public static List<Tuple<string, string, int, DoseValue, double>> GetHighestRxPrescriptionForEachPlan(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
+        {
+            List<Tuple<string, string, int, DoseValue, double>> highestRxPrescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+            //sort prescriptions by cumulative Rx
+            List<Tuple<string, string, int, DoseValue, double>> tmpList = prescriptions.OrderBy(x => x.Item5).ToList();
+
+            //add the last item in the prescription list where the plan id matches the plan id in the first entry in the sorted prescription list
+            highestRxPrescriptions.Add(tmpList.Last(x => string.Equals(x.Item1, tmpList.First().Item1)));
+            if (tmpList.Any(x => !string.Equals(x.Item1, tmpList.First().Item1)))
+            {
+                //add the last item in the prescription list where the plan id DOES NOT match the plan id in the first entry in the sorted prescription list
+                highestRxPrescriptions.Add(tmpList.Last(x => !string.Equals(x.Item1, tmpList.First().Item1)));
+            }
+            return highestRxPrescriptions;
         }
     }
 }

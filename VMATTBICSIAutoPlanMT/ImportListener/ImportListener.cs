@@ -31,6 +31,7 @@ namespace ImportListener
         static System.Timers.Timer aTimer = null;
         const string _twirl = "-\\|/";
         static private int index = 0;
+        static bool playAnimation = true;
 
         /// <summary>
         /// Main function. Input arguments are passed from calling script and include import path, mrn, aria database daemon info, local daemon info, and timeout period
@@ -38,7 +39,7 @@ namespace ImportListener
         /// <param name="args"></param>
         static void Main(string[] args)
         {
-            //args = new string[] { "\\\\shariatscap105\\Dicom\\RSDCM\\Import\\", "$CSIDryRun_2", "VMSDBD" ,"10.151.176.60" ,"51402" ,"DCMTK" ,"50400" ,"3600" };
+            args = new string[] { "\\\\shariatscap105\\Dicom\\RSDCM\\Import\\", "$CSIDryRun_2", "VMSDBD" ,"10.151.176.60" ,"51402" ,"DCMTK" ,"50400" ,"3600" };
             if (!ParseInputArguments(args.ToList())) Run();
             else Console.WriteLine("Error! Unable to parse command line arguments! Cannot listen for RT structure set! Exiting");
             Console.WriteLine("Press any key to exit");
@@ -60,7 +61,7 @@ namespace ImportListener
                 if (filePresent)
                 {
                     //wait one minute to ensure autocontouring model is done writing rt struct
-                    ResetTimer();
+                    ResetTimer(false);
                     Console.WriteLine("Waiting for RT Struct file to be free for import...");
                     WaitForFile();
                     if (fileReadyForImport) ImportRTStructureSet();
@@ -136,10 +137,12 @@ namespace ImportListener
         /// <summary>
         /// Simple method to reset the elapsed time to 0 and restart the time
         /// </summary>
-        private static void ResetTimer()
+        /// <param name="stopAnimation"></param>
+        private static void ResetTimer(bool stopAnimation)
         {
             aTimer.Stop();
             elapsedSec = 0.0;
+            playAnimation = stopAnimation;
             aTimer.Start();
         }
 
@@ -159,7 +162,7 @@ namespace ImportListener
                 }
                 Wait(10000);
             }
-            Console.WriteLine($"Elapsed time: {elapsedSec} sec");
+            Console.WriteLine($"Elapsed time: {elapsedSec:0.0} sec");
         }
 
         /// <summary>
@@ -196,7 +199,7 @@ namespace ImportListener
         private static void OnTimedEvent(Object source, ElapsedEventArgs e)
         {
             //increment the time on the progress window for each "tick", which is set to intervals of 0.1 second
-            UpdateProgress();
+            if(playAnimation) UpdateProgress();
             elapsedSec += (double)updateFrequencyMSec / 1000;
         }
 
@@ -237,7 +240,7 @@ namespace ImportListener
                 }
                 Wait(10000);
             }
-            Console.WriteLine($"Elapsed time: {elapsedSec} sec");
+            Console.WriteLine($"Elapsed time: {elapsedSec:0.0} sec");
         }
 
         /// <summary>
