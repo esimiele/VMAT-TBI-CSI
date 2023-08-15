@@ -9,6 +9,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public static class PlanPrepHelper
     {
+        /// <summary>
+        /// Helper method to gather the relevant information that should be put in the TBI shift note
+        /// </summary>
+        /// <param name="vmatPlan"></param>
+        /// <param name="appaPlan"></param>
+        /// <returns></returns>
         public static StringBuilder GetTBIShiftNote(ExternalPlanSetup vmatPlan, ExternalPlanSetup appaPlan)
         {
             StringBuilder sb = new StringBuilder();
@@ -24,7 +30,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             List<string> isoNames = new List<string>(IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos));
             if (appaPlan != null) isoNames.AddRange(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos));
 
-            //vector to hold the isocenter name, the x,y,z shifts from CT ref, and the shifts between each adjacent iso for each axis (LR, AntPost, SupInf)
+            //vector to hold the x,y,z shifts from CT ref and the shifts between each adjacent iso for each axis (LR, AntPost, SupInf)
             (List<Tuple<double, double, double>> shiftsfromBBs, List<Tuple<double, double, double>> shiftsBetweenIsos) = CalculateShifts(isoPositions);
 
             //create the message
@@ -40,6 +46,15 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return sb;
         }
 
+        /// <summary>
+        /// Helper method to take the relevant shift information and build the shift note for TBI plans
+        /// </summary>
+        /// <param name="TT"></param>
+        /// <param name="isoNames"></param>
+        /// <param name="shiftsBetweenIsos"></param>
+        /// <param name="numVMATIsos"></param>
+        /// <param name="numIsos"></param>
+        /// <returns></returns>
         private static StringBuilder BuildTBIShiftNote(double TT, List<string> isoNames, List<Tuple<double, double, double>> shiftsBetweenIsos, int numVMATIsos, int numIsos)
         {
             StringBuilder sb = new StringBuilder();
@@ -84,6 +99,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return sb;
         }
 
+        /// <summary>
+        /// Helper method to gather the relevant information that should be put in the CSI shift note
+        /// </summary>
+        /// <param name="vmatPlan"></param>
+        /// <param name="appaPlan"></param>
+        /// <returns></returns>
         public static StringBuilder GetCSIShiftNote(ExternalPlanSetup vmatPlan)
         {
             StringBuilder sb = new StringBuilder();
@@ -105,6 +126,15 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return sb;
         }
 
+        /// <summary>
+        /// Helper method to take the relevant shift information and build the shift note for CSI plan
+        /// </summary>
+        /// <param name="TT"></param>
+        /// <param name="isoNames"></param>
+        /// <param name="shiftsBetweenIsos"></param>
+        /// <param name="numVMATIsos"></param>
+        /// <param name="numIsos"></param>
+        /// <returns></returns>
         private static StringBuilder BuildCSIShiftNote(double TT, List<string> isoNames, List<Tuple<double, double, double>> shiftsBetweenIsos)
         {
             StringBuilder sb = new StringBuilder();
@@ -137,9 +167,15 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return sb;
         }
 
+        /// <summary>
+        /// Helper method to extract the isocenter positions for the supplied plan
+        /// </summary>
+        /// <param name="plan"></param>
+        /// <returns></returns>
         public static List<Tuple<double,double,double>> ExtractIsoPositions(ExternalPlanSetup plan)
         {
             List<Tuple<double, double, double>> isoPositions = new List<Tuple<double, double, double>> { };
+            //order from sup to inf for HFS
             foreach (Beam b in plan.Beams.Where(x => !x.IsSetupField).OrderByDescending(o => o.IsocenterPosition.z))
             {
                 VVector v = b.IsocenterPosition;
@@ -152,6 +188,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return isoPositions;
         }
 
+        /// <summary>
+        /// Helper method to take the supplied plan and extract a list of the list of beams for each isocenter
+        /// </summary>
+        /// <param name="plan"></param>
+        /// <returns></returns>
         public static List<List<Beam>> ExtractBeamsPerIso(ExternalPlanSetup plan)
         {
             List<List<Beam>> beamsPerIso = new List<List<Beam>> { };
@@ -181,6 +222,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return beamsPerIso;
         }
 
+        /// <summary>
+        /// Helper method to calculate the shifts from the bbs and the shifts between isocenters for the supplied list of isocenters
+        /// </summary>
+        /// <param name="isoPositions"></param>
+        /// <returns></returns>
         public static (List<Tuple<double, double, double>>, List<Tuple<double, double, double>>) CalculateShifts(List<Tuple<double, double, double>> isoPositions)
         {
             List<Tuple<double, double, double>> shiftsFromBBs = new List<Tuple<double, double, double>> { };

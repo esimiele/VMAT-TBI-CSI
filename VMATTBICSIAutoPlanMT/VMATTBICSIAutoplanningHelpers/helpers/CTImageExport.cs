@@ -24,6 +24,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         private string _patID;
         private ImportExportDataStruct _data;
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="img"></param>
+        /// <param name="patientID"></param>
+        /// <param name="theData"></param>
+        /// <param name="closePW"></param>
         public CTImageExport(VMS.TPS.Common.Model.API.Image img, 
                              string patientID,
                              ImportExportDataStruct theData,
@@ -35,6 +42,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             SetCloseOnFinish(closePW, 3000);
         }
 
+        /// <summary>
+        /// Run control
+        /// </summary>
+        /// <returns></returns>
         public override bool Run()
         {
             try
@@ -68,6 +79,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return false;
         }
 
+        /// <summary>
+        /// Utility method to verify the supplied file path
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
         private bool VerifyPathIntegrity(string path)
         {
             if (string.IsNullOrEmpty(path))

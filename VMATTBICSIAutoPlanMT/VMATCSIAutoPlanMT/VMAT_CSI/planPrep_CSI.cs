@@ -7,6 +7,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
     class PlanPrep_CSI : PlanPrepBase
     {
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="vmat"></param>
+        /// <param name="closePW"></param>
         public PlanPrep_CSI(ExternalPlanSetup vmat, bool closePW)
         {
             VMATPlan = vmat;
@@ -14,6 +19,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         }
 
         #region Run Control
+        /// <summary>
+        /// Run control
+        /// </summary>
+        /// <returns></returns>
         public override bool Run()
         {
             UpdateUILabel("Running:");
@@ -28,6 +37,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         #endregion
 
         #region Preliminary Checks
+        /// <summary>
+        /// Preliminary checks prior to preparing plan for approval
+        /// </summary>
+        /// <returns></returns>
         private bool PreliminaryChecks()
         {
             UpdateUILabel("Preliminary Checks:");
@@ -40,6 +53,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         #endregion
 
         #region Separate the vmat plan
+        /// <summary>
+        /// Separate the VMAT plan into separate plans: one for each isocenter. Much of the heavy lifting for this method is performed in PlanPrepBase
+        /// </summary>
+        /// <returns></returns>
         private bool SeparatePlans()
         {
             UpdateUILabel("Separating VMAT plan:");
