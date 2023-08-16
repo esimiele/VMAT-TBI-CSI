@@ -308,7 +308,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             }
             string targetId = prescriptions.First(x => string.Equals(x.Item1, isoLocations.Item1.Id)).Item2;
 
-            if(StructureTuningHelper.DoesStructureExistInSS(targetId,selectedSS,true))
+            if(!StructureTuningHelper.DoesStructureExistInSS(targetId, selectedSS, true))
             {
                 ProvideUIUpdate($"Error getting target structure ({targetId}) for plan: {isoLocations.Item1.Id}! Exiting!", true);
                 return true;

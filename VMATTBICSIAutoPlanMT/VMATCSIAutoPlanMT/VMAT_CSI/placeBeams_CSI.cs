@@ -217,26 +217,34 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return (fail, brainZCenter);
         }
 
+
         /// <summary>
         /// Helper method to scale the Y isocenter position to be 80% of the anterior-most position of the spince
         /// </summary>
         /// <param name="spineYMin"></param>
         /// <param name="spineYCenter"></param>
+        /// <param name="minYBound"></param>
         /// <param name="scaleFactor"></param>
         /// <returns></returns>
-        private double ScaleSpineYPosition(double spineYMin, double spineYCenter, double scaleFactor)
+        private double ScaleSpineYPosition(double spineYMin, double spineYCenter, double minYBound, double scaleFactor)
         {
             spineYMin *= scaleFactor;
             //absolute value accounts for positive or negative y position in DCM coordinates
             if (Math.Abs(spineYMin) < Math.Abs(spineYCenter))
             {
-                ProvideUIUpdate($"0.8 * PTV_Spine Ymin is more posterior than center of PTV_Spine!: {spineYMin:0.0} mm vs {spineYCenter:0.0} mm");
+                ProvideUIUpdate($"{scaleFactor} * PTV_Spine Ymin is more posterior than center of PTV_Spine!: {spineYMin:0.0} mm vs {spineYCenter:0.0} mm");
                 spineYMin = spineYCenter;
                 ProvideUIUpdate($"Assigning Ant-post iso location to center of PTV_Spine: {spineYMin:0.0} mm");
             }
+            else if(Math.Abs(spineYMin) > Math.Abs(minYBound))
+            {
+                ProvideUIUpdate($"{scaleFactor} * PTV_Spine Ymin is more anterior than spinal cord Ymin with 20 mm margin!: {spineYMin:0.0} mm vs {minYBound:0.0} mm");
+                spineYMin = scaleFactor * minYBound;
+                ProvideUIUpdate($"Assigning Ant-post iso location to {scaleFactor} * {minYBound: 0.0}: {spineYMin:0.0} mm");
+            }
             else
             {
-                ProvideUIUpdate($"0.8 * Anterior extent of PTV_spine: {spineYMin:0.0} mm");
+                ProvideUIUpdate($"{scaleFactor} * Anterior extent of PTV_spine: {spineYMin:0.0} mm");
             }
             return spineYMin;
         }
@@ -249,27 +257,19 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         /// <returns></returns>
         private (bool, double, double, double) GetSpineYminZminZMax(ref int counter, ref int calcItems)
         {
-            bool fail = false;
             double spineYMin = 0.0;
             double spineZMax = 0.0;
             double spineZMin = 0.0;
             calcItems += 5;
 
+            if (!StructureTuningHelper.DoesStructureExistInSS("PTV_Spine", selectedSS, true) || !StructureTuningHelper.DoesStructureExistInSS("SpinalCord", selectedSS, true))
+            {
+                ProvideUIUpdate("Error! Either PTV_Spine or SpinalCord structure are missing or empty! Correct and try again!", true);
+                return (true, spineYMin, spineZMin, spineZMax);
+            }
             ProvideUIUpdate(100 * ++counter / calcItems, "Retrieving PTV_Spine Structure");
             Structure ptvSpine = StructureTuningHelper.GetStructureFromId("PTV_Spine", selectedSS);
-            if (ptvSpine == null || ptvSpine.IsEmpty)
-            {
-                calcItems += 1;
-                ProvideUIUpdate(100 * ++counter / calcItems, "Failed to find PTV_Spine Structure! Retrieving spinal cord structure");
-                ptvSpine = StructureTuningHelper.GetStructureFromId("spinalcord", selectedSS);
-                if (ptvSpine == null || ptvSpine.IsEmpty) ptvSpine = StructureTuningHelper.GetStructureFromId("spinal_cord", selectedSS);
-                if (ptvSpine == null || ptvSpine.IsEmpty)
-                {
-                    ProvideUIUpdate("Failed to retrieve spinal cord structure! Cannot calculate isocenter positions! Exiting", true);
-                    fail = true;
-                    return (fail, spineYMin, spineZMin, spineZMax);
-                }
-            }
+            Structure spine = StructureTuningHelper.GetStructureFromId("SpinalCord", selectedSS);
 
             ProvideUIUpdate("Calculating anterior extent of PTV_Spine");
             spineYMin = ptvSpine.MeshGeometry.Positions.Min(p => p.Y);
@@ -279,20 +279,23 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (!ptvSpine.Id.ToLower().Contains("ptv"))
             {
                 ProvideUIUpdate("Adding 5 mm anterior margin to spinal cord structure to mimic anterior extent of PTV_Spine!");
-                spineYMin += 5;
+                spineYMin += 10;
                 ProvideUIUpdate("Adding 10 mm superior margin to spinal cord structure to mimic superior extent of PTV_Spine!");
-                spineZMax += 10.0;
+                spineZMax += 15.0;
                 ProvideUIUpdate("Adding 15 mm inferior margin to spinal cord structure to mimic inferior extent of PTV_Spine!");
-                spineZMin -= 15.0;
+                spineZMin -= 20.0;
             }
             ProvideUIUpdate($"Anterior extent of PTV_Spine: {spineYMin:0.0} mm");
             ProvideUIUpdate(100 * ++counter / calcItems, $"Superior extent of PTV_Spine: {spineZMax:0.0} mm");
             ProvideUIUpdate(100 * ++counter / calcItems, $"Inferior extent of PTV_Spine: {spineZMin:0.0} mm");
 
+            double minYBound = spine.MeshGeometry.Positions.Min(p => p.Y) - 20.0;
+            ProvideUIUpdate($"Minimum Y bound for isocenter placement set to anterior extent of spinal cord + 20 mm margin: {minYBound:0.0} mm");
+
             //Rescale Ymin (anterior-most position) to 80% of it's value for iso placement
-            spineYMin = ScaleSpineYPosition(spineYMin, ptvSpine.CenterPoint.y, 0.8);
+            spineYMin = ScaleSpineYPosition(spineYMin, ptvSpine.CenterPoint.y, minYBound,  0.8);
             ProvideUIUpdate(100 * ++counter / calcItems);
-            return (fail, spineYMin, spineZMin, spineZMax);
+            return (false, spineYMin, spineZMin, spineZMax);
         }
 
         /// <summary>
@@ -668,9 +671,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private VRect<double> VerifyProposedJawPositions(double x1, double y1, double x2, double y2)
         {
             if (y2 > 200.0) y2 = 200.0;
-            if (x2 > 200.0) x2 = 200.0;
+            if (x2 > 150.0) x2 = 150.0;
             if (y1 < -200.0) y1 = -200.0;
-            if (x1 < -200.0) x1 = -200.0;
+            if (x1 < -150.0) x1 = -150.0;
             return new VRect<double>(x1, y1, x2, y2);
         }
 

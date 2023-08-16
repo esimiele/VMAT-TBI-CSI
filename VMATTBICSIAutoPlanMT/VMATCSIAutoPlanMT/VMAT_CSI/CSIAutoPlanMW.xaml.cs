@@ -1394,8 +1394,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                                       closePWOnFinish);
 
             place.Initialize("VMAT CSI", prescriptions);
-            place.Execute();
+            bool result = place.Execute();
             log.AppendLogOutput("Plan generation and beam placement output:", place.GetLogOutput());
+            if (result) return;
             VMATplans = new List<ExternalPlanSetup>(place.GetGeneratedVMATPlans());
             if (!VMATplans.Any()) return;
 

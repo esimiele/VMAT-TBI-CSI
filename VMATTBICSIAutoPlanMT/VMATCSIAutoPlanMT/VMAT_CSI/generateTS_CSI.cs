@@ -418,7 +418,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ProvideUIUpdate("Preparing to contour TS_arms...");
             //generate arms avoid structures
             //need lungs, body, and ptv spine structures
-            if(StructureTuningHelper.DoesStructureExistInSS("lungs", selectedSS, true) || StructureTuningHelper.DoesStructureExistInSS("body", selectedSS, true))
+            if(!StructureTuningHelper.DoesStructureExistInSS("lungs", selectedSS, true) || !StructureTuningHelper.DoesStructureExistInSS("body", selectedSS, true))
             {
                 ProvideUIUpdate("Error! Body and/or lungs structures were not found or are empty! Exiting!", true);
                 return true;
