@@ -39,7 +39,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// Helper method to check if there are any external beam plans in Aria that match the plan Ids in the prescription for this patient
         /// </summary>
         /// <returns></returns>
-        //2-12-2023 to be converted to non-virtual method so TBI uses the same plan checking syntax as CSI
         protected virtual bool CheckExistingPlans()
         {
             UpdateUILabel("Checking for existing plans: ");

@@ -9,6 +9,7 @@ using VMATTBICSIAutoPlanningHelpers.Helpers;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
+using VMATTBICSIAutoPlanningHelpers.Delegates;
 using System.Reflection;
 
 namespace VMATCSIAutoPlanMT.VMAT_CSI
@@ -74,6 +75,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             try
             {
+                UpdateUI update = ProvideUIUpdate;
+                ContourHelper.counttoonethousand(update);
+                return false;
                 isoNames.Clear();
                 if (PreliminaryChecks()) return true;
                 if (UnionLRStructures()) return true;
@@ -122,7 +126,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ProvideUIUpdate(100 * ++counter / calcItems, "Body structure found and is contoured");
 
             //check if user origin was set
-            if (IsUOriginInside(selectedSS)) return true;
+            if (IsUOriginInside()) return true;
             ProvideUIUpdate(100 * ++counter / calcItems, "User origin is inside body");
 
             //only need spinal cord to determine number of spine isocenters. Otherwise, just need target structures for this class

@@ -37,6 +37,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private double targetMargin;
         private Structure flashStructure = null;
         private double flashMargin;
+        private bool useFlash = false;
 
         public GenerateTS_TBI(List<Tuple<string, string>> ts, List<Tuple<string, TSManipulationType, double>> list, List<Tuple<string, string, int, DoseValue, double>> presc, StructureSet ss, double tm, bool flash, Structure fSt, double fM, bool closePW)
         {
@@ -93,7 +94,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             ProvideUIUpdate(100 * ++counter / calcItems, "Body structure exists and is not empty");
 
             //check if user origin was set
-            if (IsUOriginInside(selectedSS)) return true;
+            if (IsUOriginInside()) return true;
             ProvideUIUpdate(100 * ++counter / calcItems, "User origin is inside body");
             
             if (CheckBodyExtentAndMatchline()) return true;
@@ -401,7 +402,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated number of buffer slices for dummy box: {bufferSlices}");
             calcItems += matchplaneLocation - (addedTSTargetMinZ - bufferSlices);
 
-            (bool failDummy, Structure dummyBox) = CheckAndGenerateStructure("DummyBox");
+            (bool failDummy, Structure dummyBox) = RemoveAndGenerateStructure("DummyBox");
             if (failDummy) return (failDummy, dummyBox);
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Created structure: {dummyBox.Id}");
 
@@ -428,7 +429,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             int calcItems = 3;
 
             //do the structure manipulation
-            (bool failTSLegs, Structure TS_legs) = CheckAndGenerateStructure(TSLegsId);
+            (bool failTSLegs, Structure TS_legs) = RemoveAndGenerateStructure(TSLegsId);
             if (failTSLegs) return true;
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Created structure: {TS_legs.Id}");
 
@@ -511,7 +512,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //create flash for the plan per the users request
             //NOTE: IT IS IMPORTANT THAT ALL OF THE STRUCTURES CREATED IN THIS METHOD (I.E., ALL STRUCTURES USED TO GENERATE FLASH HAVE THE KEYWORD 'FLASH' SOMEWHERE IN THE STRUCTURE ID)!
             //first need to create a bolus structure (remove it if it already exists)
-            (bool failBolus, Structure bolusFlash) = CheckAndGenerateStructure("BOLUS_FLASH");
+            (bool failBolus, Structure bolusFlash) = RemoveAndGenerateStructure("BOLUS_FLASH");
             if (failBolus) return true;
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Created structure: {bolusFlash.Id}");
 
@@ -563,7 +564,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Contour union betwen between {bolusFlash.Id} and body onto body");
 
             //now create the ptv_flash structure
-            (bool failPTVFlash, Structure ptvBodyFlash) = CheckAndGenerateStructure("PTV_BODY_FLASH");
+            (bool failPTVFlash, Structure ptvBodyFlash) = RemoveAndGenerateStructure("PTV_BODY_FLASH");
             if (failPTVFlash) return true;
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Created structure: {ptvBodyFlash.Id}");
 
@@ -578,7 +579,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
 
             //now create the ptv_flash structure (analogous to PTV_Body)
-            (bool failFlashTarget, Structure TSPTVFlash) = CheckAndGenerateStructure("TS_PTV_FLASH");
+            (bool failFlashTarget, Structure TSPTVFlash) = RemoveAndGenerateStructure("TS_PTV_FLASH");
             if (failFlashTarget) return true;
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Created structure: {TSPTVFlash.Id}");
 

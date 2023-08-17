@@ -119,6 +119,7 @@
     <Compile Include="BaseClasses\PlaceBeamsBase.cs" />
     <Compile Include="BaseClasses\PlanPrepBase.cs" />
     <Compile Include="BaseClasses\AutoPlanTemplateBase.cs" />
+    <Compile Include="Delegates\AllDelegates.cs" />
     <Compile Include="Enums\AllEnums.cs" />
     <Compile Include="Helpers\AppClosingHelper.cs" />
     <Compile Include="Helpers\CalculationHelper.cs" />
