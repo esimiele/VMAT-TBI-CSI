@@ -173,6 +173,13 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
+        /// <summary>
+        /// Simple method to identify the index of the supplied TS manipulation item in the TS manipulation list, remove it, and update the list with
+        /// the same item except the structure id is swapped with the low resolution structure equivalent
+        /// </summary>
+        /// <param name="highResManipulationItem"></param>
+        /// <param name="lowResId"></param>
+        /// <returns></returns>
         private bool UpdateManipulationList(Tuple<string, TSManipulationType, double> highResManipulationItem, string lowResId)
         {
             bool fail = false;
@@ -258,6 +265,11 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
+        /// <summary>
+        /// Helper method to evaluate the structure manipulation list for empty or high resolution structures. If any 
+        /// high resolution structures are identified, convert them to low resolution
+        /// </summary>
+        /// <returns></returns>
         protected bool CheckHighResolution()
         {
             UpdateUILabel("High-Res Structures: ");
@@ -265,6 +277,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             List<Tuple<string, TSManipulationType, double>> highResManipulationList = new List<Tuple<string, TSManipulationType, double>> { };
             foreach (Tuple<string, TSManipulationType, double> itr in TSManipulationList)
             {
+                //only need to check structures that will be involved in crop and contour overlap operations
                 if (itr.Item2 == TSManipulationType.CropTargetFromStructure || itr.Item2 == TSManipulationType.ContourOverlapWithTarget || itr.Item2 == TSManipulationType.CropFromBody)
                 {
                     Structure tmp = StructureTuningHelper.GetStructureFromId(itr.Item1, selectedSS);
@@ -297,6 +310,11 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
+        /// <summary>
+        /// Helper method to create an empty low resolution structure with id of <highResStructure.Id>_lowRes
+        /// </summary>
+        /// <param name="highResStructure"></param>
+        /// <returns></returns>
         private (bool, Structure) CreateLowResStructure(Structure highResStructure)
         {
             Structure lowRes = null;
@@ -313,6 +331,11 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return (fail, lowRes);
         }
 
+        /// <summary>
+        /// Utility method to convert the structures in the supplied manipulation list from high resolution to low resolution
+        /// </summary>
+        /// <param name="highResManipulationList"></param>
+        /// <returns></returns>
         private bool ConvertHighToLowRes(List<Tuple<string, TSManipulationType, double>> highResManipulationList)
         {
             int percentComplete = 0;
@@ -348,7 +371,8 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         }
 
         /// <summary>
-        /// Helper method to 
+        /// Helper method to contour the supplied low resolution structure using the contour points from the supplied 
+        /// high resolution structure in the range of startSlice - stopSlice
         /// </summary>
         /// <param name="highResStructure"></param>
         /// <param name="lowRes"></param>

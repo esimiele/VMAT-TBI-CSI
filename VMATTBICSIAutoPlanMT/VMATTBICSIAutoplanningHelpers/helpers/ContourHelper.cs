@@ -5,7 +5,6 @@ using System.Text;
 using System.Windows.Media.Media3D;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using VMATTBICSIAutoPlanningHelpers.Delegates;
 using System.Diagnostics;
 using System.Threading;
 
@@ -13,16 +12,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public static class ContourHelper
     {
-
-        public static bool counttoonethousand(UpdateUI u)
-        {
-            for(int i = 0; i < 1000; i++)
-            {
-                u((i + 1) / 10);
-                Thread.Sleep(10);
-            }
-            return false;
-        }
+        
 
         /// <summary>
         /// Helper method to crop the given structure from the body structure
