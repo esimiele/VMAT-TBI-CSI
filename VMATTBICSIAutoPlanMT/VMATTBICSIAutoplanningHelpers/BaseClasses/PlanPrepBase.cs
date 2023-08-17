@@ -11,9 +11,9 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
     public class PlanPrepBase : SimpleMTbase
     {
         protected ExternalPlanSetup VMATPlan = null;
-        public int numVMATIsos = 0;
-        public int numIsos;
-        public List<ExternalPlanSetup> separatedPlans = new List<ExternalPlanSetup> { };
+        protected int numVMATIsos = 0;
+        protected int numIsos;
+        protected List<ExternalPlanSetup> separatedPlans = new List<ExternalPlanSetup> { };
         protected bool recalcNeeded = false;
 
         /// <summary>

@@ -121,12 +121,18 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return addedTSTarget;
         }
 
-        protected bool ManipulateTuningStructures(Tuple<string, TSManipulationType, double> manipulationItem, Structure target, ref int counter, ref int calcItems)
+        /// <summary>
+        /// Helper method to direct the manipulation of the tuning structures
+        /// </summary>
+        /// <param name="manipulationItem"></param>
+        /// <param name="target"></param>
+        /// <returns></returns>
+        protected bool ManipulateTuningStructures(Tuple<string, TSManipulationType, double> manipulationItem, Structure target)
         {
             Structure theStructure = StructureTuningHelper.GetStructureFromId(manipulationItem.Item1, selectedSS);
             if (manipulationItem.Item2 == TSManipulationType.CropFromBody)
             {
-                ProvideUIUpdate(100 * ++counter / calcItems, $"Cropping {manipulationItem.Item1} from Body with margin {manipulationItem.Item3} cm");
+                ProvideUIUpdate($"Cropping {manipulationItem.Item1} from Body with margin {manipulationItem.Item3} cm");
                 //crop from body
                 (bool failOp, StringBuilder errorOpMessage) = ContourHelper.CropStructureFromBody(theStructure, selectedSS, manipulationItem.Item3);
                 if (failOp)
@@ -137,7 +143,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             }
             else if (manipulationItem.Item2 == TSManipulationType.CropTargetFromStructure)
             {
-                ProvideUIUpdate(100 * ++counter / calcItems, $"Cropping target {target.Id} from {manipulationItem.Item1} with margin {manipulationItem.Item3} cm");
+                ProvideUIUpdate($"Cropping target {target.Id} from {manipulationItem.Item1} with margin {manipulationItem.Item3} cm");
                 //crop target from structure
                 (bool failCrop, StringBuilder errorCropMessage) = ContourHelper.CropStructureFromStructure(target, theStructure, manipulationItem.Item3);
                 if (failCrop)
@@ -148,27 +154,64 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             }
             else if (manipulationItem.Item2 == TSManipulationType.ContourOverlapWithTarget)
             {
-                ProvideUIUpdate($"Contouring overlap between {manipulationItem.Item1} and {target.Id}");
-                string overlapName = $"ts_{manipulationItem.Item1}&&{target.Id}";
-                if (overlapName.Length > 16) overlapName = overlapName.Substring(0, 16);
-                Structure addedTSNormal = AddTSStructures(new Tuple<string, string>("CONTROL", overlapName));
-                addedTSNormal.SegmentVolume = theStructure.Margin(0.0);
-                (bool failOverlap, StringBuilder errorOverlapMessage) = ContourHelper.ContourOverlap(target, addedTSNormal, manipulationItem.Item3);
+                if (CreateOverlapStructure(target, theStructure, manipulationItem.Item3)) return true;
+            }
+            else if (manipulationItem.Item2 == TSManipulationType.ContourSubStructure || manipulationItem.Item2 == TSManipulationType.ContourOuterStructure)
+            {
+                if (ContourInnerOuterStructure(theStructure, manipulationItem.Item3)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Helper method to create an overlap structure, copy the OAR onto the overlap structure, then contour the overlap between overlap structure 
+        /// and the target. Once contoured a check is performed to ensure that the overlap structure is not empty
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="OAR"></param>
+        /// <param name="margin"></param>
+        /// <returns></returns>
+        private bool CreateOverlapStructure(Structure target, Structure OAR, double margin)
+        {
+            int percentComplete = 0;
+            int calcItems = 5;
+            ProvideUIUpdate($"Contouring overlap between {OAR.Id} and {target.Id}");
+            string overlapName = $"ts_{OAR.Id}&&{target.Id}";
+            if (overlapName.Length > 16) overlapName = overlapName.Substring(0, 16);
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Overlap structure Id: {overlapName}");
+            //add a new structure (default resolution by default)
+            if (selectedSS.CanAddStructure("CONTROL", overlapName))
+            {
+                Structure overlapStructure = AddTSStructures(new Tuple<string, string>("CONTROL", overlapName));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Created empty structure {overlapName}");
+
+                (bool copyFail, StringBuilder errorMessage) = ContourHelper.CopyStructureOntoStructure(OAR, overlapStructure);
+                if(copyFail)
+                {
+                    ProvideUIUpdate(errorMessage.ToString(), true);
+                    return true;
+                }
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Copied {OAR.Id} onto {overlapName}");
+
+                (bool failOverlap, StringBuilder errorOverlapMessage) = ContourHelper.ContourOverlap(target, overlapStructure, margin);
                 if (failOverlap)
                 {
                     ProvideUIUpdate(errorOverlapMessage.ToString());
                     return true;
                 }
-                if (addedTSNormal.IsEmpty)
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Contoured overlap between {target.Id} and {overlapName}");
+
+                if (overlapStructure.IsEmpty)
                 {
-                    ProvideUIUpdate(100 * ++counter / calcItems, $"{overlapName} was contoured, but it's empty! Removing!");
-                    selectedSS.RemoveStructure(addedTSNormal);
+                    ProvideUIUpdate(100 * ++percentComplete / calcItems, $"{overlapName} was contoured, but it's empty! Removing!");
+                    selectedSS.RemoveStructure(overlapStructure);
                 }
-                else ProvideUIUpdate(100 * ++counter / calcItems, $"Finished contouring {overlapName}");
+                else ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Finished contouring {overlapName}");
             }
-            else if (manipulationItem.Item2 == TSManipulationType.ContourSubStructure || manipulationItem.Item2 == TSManipulationType.ContourOuterStructure)
+            else
             {
-                if (ContourInnerOuterStructure(theStructure, manipulationItem.Item3)) return true;
+                ProvideUIUpdate($"Error! Cannot add new structure: {overlapName}!\nCorrect this issue and try again!", true);
+                return true;
             }
             return false;
         }
@@ -195,13 +238,19 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return fail;
         }
 
+        /// <summary>
+        /// Simple helper method to create an inner/outer structure. Analogous to the margin for structure tool in contouring
+        /// </summary>
+        /// <param name="originalStructure"></param>
+        /// <param name="margin"></param>
+        /// <returns></returns>
         protected bool ContourInnerOuterStructure(Structure originalStructure, double margin)
         {
             int counter = 0;
             int calcItems = 2;
             //all other sub structures
             ProvideUIUpdate(100 * ++counter / calcItems, $"Creating {(margin > 0 ? "outer" : "sub")} structure!");
-            (bool fail, Structure addedStructure) = RemoveAndGenerateStructure($"{originalStructure.Id}{margin:0.0}cm");
+            (bool fail, Structure addedStructure) = RemoveAndGenerateStructure($"{originalStructure.Id}{(margin > 0 ? "+" : "-")}{Math.Abs(margin):0.0}cm");
             if (fail) return true;
             //convert from cm to mm
             addedStructure.SegmentVolume = originalStructure.Margin(margin * 10);
@@ -211,57 +260,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 selectedSS.RemoveStructure(addedStructure);
             }
             else ProvideUIUpdate(100, $"Finished contouring {addedStructure.Id}");
-            return false;
-        }
-
-        protected bool ContourInnerOuterStructure(Structure addedStructure)
-        {
-            int counter = 0;
-            int calcItems = 4;
-            //all other sub structures
-            Structure originalStructure = null;
-            double margin = 0.0;
-            int pos1 = addedStructure.Id.IndexOf("-");
-            if (pos1 == -1) pos1 = addedStructure.Id.IndexOf("+");
-            int pos2 = addedStructure.Id.IndexOf("cm");
-            if (pos1 != -1 && pos2 != -1)
-            {
-                string originalStructureId = addedStructure.Id.Substring(0, pos1);
-                ProvideUIUpdate(100 * ++counter / calcItems, "Grabbing margin value!");
-                if (!double.TryParse(addedStructure.Id.Substring(pos1, pos2 - pos1), out margin))
-                {
-                    ProvideUIUpdate($"Margin parse failed for sub structure: {addedStructure.Id}!", true);
-                    return true;
-                }
-                ProvideUIUpdate(margin.ToString());
-
-                ProvideUIUpdate(100 * ++counter / calcItems, $"Grabbing original structure {originalStructureId}");
-                //logic to handle case where the original structure had to be converted to low resolution
-                originalStructure = StructureTuningHelper.GetStructureFromId(originalStructureId.ToLower(), selectedSS);
-                if (originalStructure == null) originalStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains(originalStructureId.ToLower()) && x.Id.ToLower().Contains("_low"));
-                if (originalStructure == null)
-                {
-                    ProvideUIUpdate($"Warning! Could not retrieve base structure {originalStructureId} to generate {addedStructure.Id}!");
-                    ProvideUIUpdate($"Removing {addedStructure.Id}");
-                    selectedSS.RemoveStructure(addedStructure);
-                    return false;
-                }
-
-                ProvideUIUpdate(100 * ++counter / calcItems, $"Creating {(margin > 0 ? "outer" : "sub")} structure!");
-                //convert from cm to mm
-                addedStructure.SegmentVolume = originalStructure.Margin(margin * 10);
-                if (addedStructure.IsEmpty)
-                {
-                    ProvideUIUpdate($"{addedStructure.Id} was contoured, but is empty! Removing!");
-                    selectedSS.RemoveStructure(addedStructure);
-                }
-                else ProvideUIUpdate(100, $"Finished contouring {addedStructure.Id}");
-            }
-            else
-            {
-                ProvideUIUpdate($"Error! I can't find the keywords '-' or '+', and 'cm' in the structure id for: {addedStructure.Id}", true);
-                return true;
-            }
             return false;
         }
 

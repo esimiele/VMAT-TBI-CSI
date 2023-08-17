@@ -400,7 +400,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 }
                 else
                 {
-                    if (ContourInnerOuterStructure(addedStructure)) return true;
+                    ProvideUIUpdate($"The requested tuning structure generation operation is not recognized: {itr}. Skipping!");
                 }
             }
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
@@ -565,7 +565,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     //normal structure id, manipulation type, added margin (if applicable)
                     foreach (Tuple<string, TSManipulationType, double> itr1 in TSManipulationList)
                     {
-                        if (ManipulateTuningStructures(itr1, addedTSTarget, ref counter, ref calcItems)) return true;
+                        if (ManipulateTuningStructures(itr1, addedTSTarget)) return true;
+                        ProvideUIUpdate(100 * ++counter / calcItems);
                     }
                 }
                 else ProvideUIUpdate("No TS manipulations requested!");
@@ -988,8 +989,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     //special rules for initial plan,
                     //first, determine the number of isocenters required to treat PTV_Spine
                     //Grab extent of PTV_Spine and add a 2 cm margin to this distance to give 2 cm buffer on the sup portion of the target to ensure adequate coverage/overlap between upper spine field and brain fields
-                    (bool isFail, double spineTargetExtent) = GetSpineTargetExtent(ref counter, ref calcItems, 2.0);
+                    (bool isFail, double spineTargetExtent) = GetSpineTargetExtent(2.0);
                     if (isFail) return true;
+                    ProvideUIUpdate(100 * ++counter / calcItems);
 
                     numVMATIsos = CalculateNumVMATIsosForPTVCSI(spineTargetExtent, brainInfMargin, maxFieldExtent, minFieldOverlap);
                     ProvideUIUpdate(100 * ++counter / calcItems, $"Final calculated number of VMAT isocenters: {numVMATIsos}");
@@ -1039,18 +1041,16 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         /// <summary>
         /// Helper method to calculate the extent of PTV_Spine with a user-supplied additional margin
         /// </summary>
-        /// <param name="counter"></param>
-        /// <param name="calcItems"></param>
         /// <param name="addedMarginInCm"></param>
         /// <returns></returns>
-        private (bool, double) GetSpineTargetExtent(ref int counter, ref int calcItems, double addedMarginInCm)
+        private (bool, double) GetSpineTargetExtent(double addedMarginInCm)
         {
             bool fail = false;
             double spineTargetExtent = 0.0;
             if (StructureTuningHelper.DoesStructureExistInSS("PTV_Spine", selectedSS, true))
             {
                 Structure spineTarget = StructureTuningHelper.GetStructureFromId("PTV_Spine", selectedSS);
-                ProvideUIUpdate(100 * ++counter / calcItems, "Retrieved spinal cord structure");
+                ProvideUIUpdate("Retrieved spinal cord structure");
                 Point3DCollection pts = spineTarget.MeshGeometry.Positions;
                 //ESAPI default distances are in mm
                 spineTargetExtent = (pts.Max(p => p.Z) - pts.Min(p => p.Z)) + addedMarginInCm * 10;
