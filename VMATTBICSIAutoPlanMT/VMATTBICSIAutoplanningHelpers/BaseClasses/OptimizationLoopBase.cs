@@ -864,7 +864,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             List<Tuple<string, OptimizationObjectiveType, double, double, int>> addedTSstructures = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan).Where(x => x.Item1.ToLower().Contains("cooler") || x.Item1.ToLower().Contains("heater")).ToList();
             //now create new cooler and heating structures
             ProvideUIUpdate($"Retrieving target structure for plan: {plan.Id}");
-            List<Tuple<string, string>> plansTargets = TargetsHelper.GetPlanTargetList(_data.prescriptions);
+            List<Tuple<string, string>> plansTargets = TargetsHelper.GetHighestRxPlanTargetList(_data.prescriptions);
             if (!plansTargets.Any())
             {
                 ProvideUIUpdate("Error! Could not retrieve list of plans and associated targets! Exiting", true);

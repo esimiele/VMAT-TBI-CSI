@@ -460,7 +460,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             }
             catch (Exception e)
             {
-                MessageBox.Show(String.Format("Error could not parse TS structure: {0}\nBecause: {1}", line, e.Message));
+                MessageBox.Show($"Error could not parse TS structure: {line}\nBecause: {e.Message}");
                 return Tuple.Create("", 0.0, 0.0, 0.0, 0, new List<Tuple<string, double, string, double>> { });
             }
         }

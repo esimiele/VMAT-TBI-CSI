@@ -587,7 +587,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private bool CheckAllRequestedTargetCropAndOverlapManipulations()
         {
             List<string> structuresToRemove = new List<string> { };
-            List<Tuple<string, string>> tgts = TargetsHelper.GetPlanTargetList(prescriptions);
+            List<Tuple<string, string>> tgts = TargetsHelper.GetHighestRxPlanTargetList(prescriptions);
             int percentCompletion = 0;
             int calcItems = ((1 + 2 * tgts.Count) * cropAndOverlapStructures.Count) + 1;
             ProvideUIUpdate(100 * ++percentCompletion / calcItems, "Retrieved plan-target list");

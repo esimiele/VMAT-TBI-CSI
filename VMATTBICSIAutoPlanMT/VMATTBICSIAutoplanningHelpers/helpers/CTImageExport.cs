@@ -20,6 +20,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public class CTImageExport : SimpleMTbase
     {
+        //data members
         private VMS.TPS.Common.Model.API.Image _image;
         private string _patID;
         private ImportExportDataStruct _data;

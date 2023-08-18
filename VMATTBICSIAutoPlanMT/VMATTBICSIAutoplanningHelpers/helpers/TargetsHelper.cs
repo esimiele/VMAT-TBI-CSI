@@ -232,7 +232,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="prescriptions"></param>
         /// <returns></returns>
-        public static List<Tuple<string, string>> GetPlanTargetList(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
+        public static List<Tuple<string, string>> GetHighestRxPlanTargetList(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
         {
             List<Tuple<string, string>> plansTargets = new List<Tuple<string, string>> { };
             if (!prescriptions.Any()) return plansTargets;
@@ -260,7 +260,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="targetList"></param>
         /// <returns></returns>
-        public static List<Tuple<string, string>> GetPlanTargetList(List<Tuple<string, double, string>> targetList)
+        public static List<Tuple<string, string>> GetHighestRxPlanTargetList(List<Tuple<string, double, string>> targetList)
         {
             //for this list, item1 is the target, item 2 is the cumulated dose (cGy), and item 3 is the plan
             List<Tuple<string, string>> plansTargets = new List<Tuple<string, string>> { };

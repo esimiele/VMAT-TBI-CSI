@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Windows.Media.Media3D;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 
@@ -90,9 +91,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     {
                         sb.AppendLine($"{isoNames.ElementAt(count)} shift from **{isoNames.ElementAt(count - 1)} ISO**");
                     }
-                    if (!CalculationHelper.AreEqual(itr.Item1, 0.0)) sb.AppendLine(String.Format("X = {0:0.0} cm {1}", Math.Abs(itr.Item1), itr.Item1 > 0 ? "LEFT" : "RIGHT"));
-                    if (!CalculationHelper.AreEqual(itr.Item2, 0.0)) sb.AppendLine(String.Format("Y = {0:0.0} cm {1}", Math.Abs(itr.Item2), itr.Item2 > 0 ? "POST" : "ANT"));
-                    sb.AppendLine(String.Format("Z = {0:0.0} cm {1}", Math.Abs(itr.Item3), itr.Item3 > 0 ? "SUP" : "INF"));
+                    if (!CalculationHelper.AreEqual(itr.Item1, 0.0)) sb.AppendLine($"X = {Math.Abs(itr.Item1):0.0} cm {(itr.Item1 > 0 ? "LEFT" : "RIGHT")}");
+                    if (!CalculationHelper.AreEqual(itr.Item2, 0.0)) sb.AppendLine($"Y = {Math.Abs(itr.Item2):0.0} cm {(itr.Item2 > 0 ? "POST" : "ANT")}");
+                    sb.AppendLine($"Z = {Math.Abs(itr.Item3):0.0} cm {(itr.Item3 > 0 ? "SUP" : "INF")}");
                 }
                 count++;
             }
@@ -159,9 +160,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 {
                     sb.AppendLine(String.Format("{0} shift from **{1} ISO**", isoNames.ElementAt(count), isoNames.ElementAt(count - 1)));
                 }
-                if (!CalculationHelper.AreEqual(itr.Item1, 0.0)) sb.AppendLine(String.Format("X = {0:0.0} cm {1}", Math.Abs(itr.Item1), itr.Item1 > 0 ? "LEFT" : "RIGHT"));
-                if (!CalculationHelper.AreEqual(itr.Item2, 0.0)) sb.AppendLine(String.Format("Y = {0:0.0} cm {1}", Math.Abs(itr.Item2), itr.Item2 > 0 ? "POST" : "ANT"));
-                sb.AppendLine(String.Format("Z = {0:0.0} cm {1}", Math.Abs(itr.Item3), itr.Item3 > 0 ? "SUP" : "INF"));
+                if (!CalculationHelper.AreEqual(itr.Item1, 0.0)) sb.AppendLine($"X = {Math.Abs(itr.Item1):0.0} cm {(itr.Item1 > 0 ? "LEFT" : "RIGHT")}");
+                if (!CalculationHelper.AreEqual(itr.Item2, 0.0)) sb.AppendLine($"Y = {Math.Abs(itr.Item2):0.0} cm {(itr.Item2 > 0 ? "POST" : "ANT")}");
+                sb.AppendLine($"Z = {Math.Abs(itr.Item3):0.0} cm {(itr.Item3 > 0 ? "SUP" : "INF")}");
                 count++;
             }
             return sb;
