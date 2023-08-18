@@ -266,11 +266,11 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// </summary>
         /// <param name="v"></param>
         /// <param name="plan"></param>
-        /// <param name="counter"></param>
-        /// <param name="calcItems"></param>
         /// <returns></returns>
-        protected VVector RoundIsocenterPositions(VVector v, ExternalPlanSetup plan, ref int counter, ref int calcItems)
+        protected VVector RoundIsocenterPositions(VVector v, ExternalPlanSetup plan)
         {
+            int counter = 0;
+            int calcItems = 3;
             ProvideUIUpdate(100 * ++counter / calcItems, "Rounding Y- and Z-positions to nearest integer values");
             //round z position to the nearest integer
             v = selectedSS.Image.DicomToUser(v, plan);
@@ -330,38 +330,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             List<Structure> tmpJnxList = new List<Structure> { };
             for (int i = 1; i < isoLocations.Item2.Count; i++)
             {
-                //ProvideUIUpdate($"Junction: {i}");
-                ////this is left as a double so I can cast it to an int in the second overlap item and use it in the calculation in the third overlap item
-                ////logic to consider the situation where the y extent of the fields are NOT 40 cm!
-                //Beam iso1Beam1 = isoLocations.Item1.Beams.First(x => CalculationHelper.AreEqual(x.IsocenterPosition.z, isoLocations.Item2.ElementAt(i - 1).Item1.z));
-                //ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"First beam in isocenter {i - 1}: {iso1Beam1.Id}");
-
-                //Beam iso2Beam1 = isoLocations.Item1.Beams.First(x => CalculationHelper.AreEqual(x.IsocenterPosition.z, isoLocations.Item2.ElementAt(i).Item1.z));
-                //ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"First beam in isocenter {i}: {iso2Beam1.Id}");
-
-                ////assumes iso1beam1 y1 is oriented inferior on patient and iso2beam1 is oriented superior on patient
-                //double fieldLength = Math.Abs(iso1Beam1.GetEditableParameters().ControlPoints.First().JawPositions.Y1) + Math.Abs(iso2Beam1.GetEditableParameters().ControlPoints.First().JawPositions.Y2);
-                //ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Field length ({iso1Beam1.Id} Y1 + {iso2Beam1.Id} Y2): {fieldLength} mm");
-
-                //double numSlices = Math.Ceiling(fieldLength + contourOverlapMargin - Math.Abs(isoLocations.Item2.ElementAt(i).Item1.z - isoLocations.Item2.ElementAt(i - 1).Item1.z));
-                //if(numSlices <= 0)
-                //{
-                //    ProvideUIUpdate($"Error! Calculated number of slices is <= 0 ({numSlices}) for junction: {i}!", true);
-                //    ProvideUIUpdate($"Field length: {fieldLength:0.00} mm");
-                //    ProvideUIUpdate($"Contour overlap margin: {contourOverlapMargin:0.00} mm");
-                //    ProvideUIUpdate($"Isocenter separation: {Math.Abs(isoLocations.Item2.ElementAt(i).Item1.z - isoLocations.Item2.ElementAt(i - 1).Item1.z):0.00}!");
-                //    return true;
-                //}
-                //ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Number of slices to contour: {(int)(numSlices / zResolution)}");
-
-                ////calculate the center position between adjacent isocenters. NOTE: this calculation works from superior to inferior!
-                //double overlapCenter = isoLocations.Item2.ElementAt(i - 1).Item1.z + iso1Beam1.GetEditableParameters().ControlPoints.First().JawPositions.Y1  - contourOverlapMargin / 2 + numSlices / 2;
-                //ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Overlap center position: {overlapCenter:0.00} mm");
-
-                //overlap.Add(new Tuple<double, int, int>(overlapCenter, // the center location
-                //                                        (int)(numSlices / zResolution), //total number of slices to contour
-                //                                        (int)((overlapCenter - numSlices / 2 - dicomOrigin.z) / zResolution))); // starting slice to contour
-
                 (bool fail, Tuple<double, int, int> result) = CalculateOverlapParameters(i,
                                                                                          isoLocations.Item1,
                                                                                          isoLocations.Item2.ElementAt(i - 1).Item1,

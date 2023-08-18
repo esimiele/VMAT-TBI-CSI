@@ -17,6 +17,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
     public class GenerateTS_TBI : GenerateTSbase
     {
+        //Get methods
         public int GetNumberOfIsocenters() { return numIsos; }
         public int GetNumberOfVMATIsocenters() { return numVMATIsos; }
         public List<Tuple<string, List<Tuple<string, string>>>> GetTsTargets() { return tsTargets; }
@@ -33,6 +34,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         //plan id, normalization volume
         private List<Tuple<string, string>> normVolumes = new List<Tuple<string, string>> { };
 
+        //data members
         private int numIsos;
         private int numVMATIsos;
         private double targetMargin;
@@ -711,28 +713,20 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (CutTSTargetFromMatchline(TSPTVFlash, StructureTuningHelper.GetStructureFromId("matchline", selectedSS), dummyBox)) return true;
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Cut {TSPTVFlash.Id} structure at matchline structure");
             }
-            UpdateNormVolumesTsTargetsWithFlash();
+            normVolumes = new List<Tuple<string, string>>(UpdateNormVolumesWithFlash(normVolumes));
+            tsTargets = new List<Tuple<string, List<Tuple<string, string>>>>(UpdateTsTargetsWithFlash(tsTargets));
             return false;
         }
 
         /// <summary>
-        /// Helper method to update the normalization volumes list with the analogous flash targets
+        /// Helper method to update the TS targets list with the analogous flash targets
         /// </summary>
         /// <returns></returns>
-        private bool UpdateNormVolumesTsTargetsWithFlash()
+        private List<Tuple<string, List<Tuple<string, string>>>> UpdateTsTargetsWithFlash(List<Tuple<string, List<Tuple<string, string>>>> targets)
         {
-            //only update the normalization volumes if ts_ptv_vmat was set to the normalization volume for this plan
-            if(string.Equals(normVolumes.First().Item2, "TS_PTV_VMAT"))
-            {
-                //normalization volume for plan is ts_ptv_vmat
-                //--> update to ts_ptv_flash
-                normVolumes.Clear();
-                normVolumes.Add(Tuple.Create(prescriptions.First().Item1, "TS_PTV_FLASH"));
-            }
-
             //we know ts_PTV_VMAT was listed as a ts target, so we will need to go in and replace that with the corresponding flash targets
             List<Tuple<string, string>> tmpTargets = new List<Tuple<string, string>> { };
-            foreach (Tuple<string,string> itr in tsTargets.First().Item2)
+            foreach (Tuple<string,string> itr in targets.First().Item2)
             {
                 if (string.Equals(itr.Item2, "TS_PTV_VMAT"))
                 {
@@ -740,10 +734,31 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 }
                 else tmpTargets.Add(itr);
             }
-            tsTargets = new List<Tuple<string, List<Tuple<string, string>>>> { Tuple.Create(prescriptions.First().Item1, tmpTargets) };
-            return false;
+            return new List<Tuple<string, List<Tuple<string, string>>>> { Tuple.Create(prescriptions.First().Item1, tmpTargets) };
         }
 
+        /// <summary>
+        /// Helper method to update the normalization volumes list with the analogous flash targets
+        /// </summary>
+        /// <returns></returns>
+        private List<Tuple<string,string>> UpdateNormVolumesWithFlash(List<Tuple<string,string>> volumes)
+        {
+            List<Tuple<string,string>> updatedNormVolumes = new List<Tuple<string,string>>(volumes);
+            //only update the normalization volumes if ts_ptv_vmat was set to the normalization volume for this plan
+            if (string.Equals(updatedNormVolumes.First().Item2, "TS_PTV_VMAT"))
+            {
+                //normalization volume for plan is ts_ptv_vmat
+                //--> update to ts_ptv_flash
+                updatedNormVolumes.Clear();
+                updatedNormVolumes.Add(Tuple.Create(prescriptions.First().Item1, "TS_PTV_FLASH"));
+            }
+            return updatedNormVolumes;
+        }
+
+        /// <summary>
+        /// Method to calculate the required number of VMAT isocenters and the total number of isocenters (including AP/PA isocenters is needed)
+        /// </summary>
+        /// <returns></returns>
         protected override bool CalculateNumIsos()
         {
             UpdateUILabel("Calculate number of isos:");

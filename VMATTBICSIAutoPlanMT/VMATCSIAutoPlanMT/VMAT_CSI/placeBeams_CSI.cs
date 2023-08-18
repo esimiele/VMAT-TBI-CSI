@@ -358,7 +358,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     };
 
                     ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated isocenter position {1}");
-                    tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPositions(v, itr, ref percentComplete, ref calcItems),
+                    tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPositions(v, itr),
                                                             planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, itr.Id)).Item2.ElementAt(0).Item1,
                                                             planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, itr.Id)).Item2.ElementAt(0).Item2));
                 }
@@ -423,7 +423,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated isocenter position {i + 1}");
                 ProvideUIUpdate($"Isocenter position: ({v.x:0.0}, {v.y:0.0}, {v.z:0.0}) mm");
-                tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPositions(v, thePlan, ref percentComplete, ref calcItems),
+                tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPositions(v, thePlan),
                                                         planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, thePlan.Id)).Item2.ElementAt(i).Item1,
                                                         planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, thePlan.Id)).Item2.ElementAt(i).Item2));
             }

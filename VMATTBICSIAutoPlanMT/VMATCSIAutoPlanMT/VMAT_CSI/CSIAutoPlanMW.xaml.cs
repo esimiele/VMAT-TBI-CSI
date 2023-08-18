@@ -671,13 +671,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
 
             targets = new List<Tuple<string, double, string>>(parsedTargets.Item1);
-            (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) parsedPrescriptions = TargetsHelper.GetPrescriptions(targets,
-                                                                                                                                      initDosePerFxTB.Text,
-                                                                                                                                      initNumFxTB.Text,
-                                                                                                                                      initRxTB.Text,
-                                                                                                                                      boostDosePerFxTB.Text,
-                                                                                                                                      boostNumFxTB.Text,
-                                                                                                                                      boostRxTB.Text);
+            (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) parsedPrescriptions = TargetsHelper.BuildPrescriptionList(targets,
+                                                                                                                                           initDosePerFxTB.Text,
+                                                                                                                                           initNumFxTB.Text,
+                                                                                                                                           initRxTB.Text,
+                                                                                                                                           boostDosePerFxTB.Text,
+                                                                                                                                           boostNumFxTB.Text,
+                                                                                                                                           boostRxTB.Text);
             if(!parsedPrescriptions.Item1.Any())
             {
                 log.LogError(parsedPrescriptions.Item2);

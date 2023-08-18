@@ -560,10 +560,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
 
             targets = new List<Tuple<string, double,string>>(parsedTargets.Item1);
-            (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) parsedPrescriptions = TargetsHelper.GetPrescriptions(targets,
-                                                                                                                                      dosePerFxTB.Text,
-                                                                                                                                      numFxTB.Text,
-                                                                                                                                      RxTB.Text);
+            (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) parsedPrescriptions = TargetsHelper.BuildPrescriptionList(targets,
+                                                                                                                                           dosePerFxTB.Text,
+                                                                                                                                           numFxTB.Text,
+                                                                                                                                           RxTB.Text);
             if (!parsedPrescriptions.Item1.Any())
             {
                 log.LogError(parsedPrescriptions.Item2);

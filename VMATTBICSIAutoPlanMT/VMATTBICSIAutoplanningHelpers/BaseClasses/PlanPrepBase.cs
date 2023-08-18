@@ -73,7 +73,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="beamsPerIso"></param>
         /// <param name="names"></param>
         /// <returns></returns>
-        protected bool SeparateVMATPlan(ExternalPlanSetup plan, List<List<Beam>> beamsPerIso, List<string> names)
+        protected bool SeparatePlan(ExternalPlanSetup plan, List<List<Beam>> beamsPerIso, List<string> names, bool isAPPA = false)
         {
             int percentComplete = 0;
             int calcItems = 4 * beamsPerIso.Count;
@@ -83,7 +83,8 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             {
                 //copy the plan, set the plan id based on the counter, and make a empty list to hold the beams that need to be removed
                 ExternalPlanSetup newplan = (ExternalPlanSetup)plan.Course.CopyPlanSetup(plan);
-                newplan.Id = $"{count + 1} {names.ElementAt(count)}";
+                if(isAPPA) newplan.Id = $"{count + 1} {(names.ElementAt(count).Contains("upper") ? "Upper Legs" : "Lower Legs")}";
+                else newplan.Id = $"{count + 1} {names.ElementAt(count)}";
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Created new plan {newplan.Id} as copy of {plan.Id}");
                 List<Beam> beamsToRemove = new List<Beam> { };
                 //can't add reference point to plan because it must be open in Eclipse for ESAPI to perform this function. Need to fix in v16
