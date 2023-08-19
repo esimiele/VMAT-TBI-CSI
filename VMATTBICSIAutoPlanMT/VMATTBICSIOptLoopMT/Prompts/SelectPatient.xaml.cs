@@ -69,7 +69,7 @@ namespace VMATTBICSIOptLoopMT.Prompts
             else
             {
                 //implement file selection system to select folder
-                MessageBox.Show(String.Format("Log file directory: {0}\nDoes not exist! Please open an patient by manually entering an MRN.", logPath + "\\preparation\\"));
+                MessageBox.Show($"Log file directory: {(logPath + "\\preparation\\")}\nDoes not exist! Please open an patient by manually entering an MRN.");
             }
         }
 

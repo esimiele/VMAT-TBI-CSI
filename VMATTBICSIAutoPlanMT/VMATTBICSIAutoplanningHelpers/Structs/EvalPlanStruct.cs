@@ -28,7 +28,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Structs
         public void Construct()
         {
             //vector to hold the results from the optimization for a particular OPTIMIZATION objective
-            //structure, dvh data, current dose obj, dose diff^2, cost, current priority, priority difference
+            //structure, dvh data, current dose obj, dose diff^2, cost, current priority
             diffPlanOpt = new List<Tuple<Structure, DVHData, double, double, double, int>> { };
             //vector to hold the results from the optimization for a particular PLAN objective
             diffPlanObj = new List<Tuple<Structure, DVHData, double, double>> { };
