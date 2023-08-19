@@ -12,19 +12,27 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
     public static class TargetsUIHelper
     {
+        /// <summary>
+        /// Helper method to add the default targets in the supplied auto plan template to a list that can be used to populate the UI
+        /// </summary>
+        /// <param name="template"></param>
+        /// <returns></returns>
         public static List<Tuple<string, double, string>> AddTargetDefaults(AutoPlanTemplateBase template)
         {
-            List<Tuple<string, double, string>> tmpList = new List<Tuple<string, double, string>> { Tuple.Create("--select--", 0.0, "--select--") };
             List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>> { };
             if (template != null)
             {
-                tmpList = new List<Tuple<string, double, string>>(template.GetTargets());
-                foreach (Tuple<string, double, string> itr in tmpList) targetList.Add(itr);
+                foreach (Tuple<string, double, string> itr in template.GetTargets()) targetList.Add(itr);
             }
-            else targetList = new List<Tuple<string, double, string>>(tmpList);
+            else targetList = new List<Tuple<string, double, string>> { Tuple.Create("--select--", 0.0, "--select--") };
             return targetList;
         }
 
+        /// <summary>
+        /// Helper method to search through the structure set and try to retrieve any potential targets
+        /// </summary>
+        /// <param name="selectedSS"></param>
+        /// <returns></returns>
         public static List<Tuple<string, double, string>> ScanSSAndAddTargets(StructureSet selectedSS)
         {
             List<Structure> tgt = selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ptv") && !x.Id.ToLower().Contains("ts_") && x.ApprovalHistory.First().Equals(StructureApprovalStatus.Approved)).ToList();
@@ -39,6 +47,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return targetList;
         }
 
+        /// <summary>
+        /// Helper method to add the header information to the Set Targets tab
+        /// </summary>
+        /// <param name="width"></param>
+        /// <returns></returns>
         public static StackPanel GetTargetHeader(double width)
         {
             StackPanel sp = new StackPanel
@@ -85,7 +98,26 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sp;
         }
 
-        public static StackPanel AddTargetVolumes(double width, Tuple<string, double, string> listItem, string clearBtnNamePrefix, int counter, List<string> planIDs, SelectionChangedEventHandler typeChngHndl, RoutedEventHandler clearEvtHndl, bool addTargetEvenIfNotInSS = false)
+        /// <summary>
+        /// Helper method to add a target item to the Set Targets tab
+        /// </summary>
+        /// <param name="width"></param>
+        /// <param name="listItem"></param>
+        /// <param name="clearBtnNamePrefix"></param>
+        /// <param name="counter"></param>
+        /// <param name="planIDs"></param>
+        /// <param name="typeChngHndl"></param>
+        /// <param name="clearEvtHndl"></param>
+        /// <param name="addTargetEvenIfNotInSS"></param>
+        /// <returns></returns>
+        public static StackPanel AddTargetVolumes(double width, 
+                                                  Tuple<string, double, string> listItem, 
+                                                  string clearBtnNamePrefix, 
+                                                  int counter, 
+                                                  List<string> planIDs, 
+                                                  SelectionChangedEventHandler typeChngHndl, 
+                                                  RoutedEventHandler clearEvtHndl, 
+                                                  bool addTargetEvenIfNotInSS = false)
         {
             StackPanel sp = new StackPanel
             {
@@ -157,6 +189,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sp;
         }
 
+        /// <summary>
+        /// Helper method to parse the Set targets tab and return a list of targets for the plan(s)
+        /// </summary>
+        /// <param name="theSP"></param>
+        /// <returns></returns>
         public static (List<Tuple<string, double, string>>, StringBuilder) ParseTargets(StackPanel theSP)
         {
             StringBuilder sb = new StringBuilder();

@@ -9,6 +9,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
     public static class RingUIHelper
     {
+        /// <summary>
+        /// Helper method to print the add ring header information to the UI
+        /// </summary>
+        /// <param name="theWidth"></param>
+        /// <returns></returns>
         public static StackPanel GetRingHeader(double theWidth)
         {
             StackPanel sp = new StackPanel
@@ -66,7 +71,24 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sp;
         }
 
-        public static StackPanel AddRing(StackPanel theSP, List<string> targetIds, Tuple<string, double, double, double> listItem, string clearBtnPrefix, int clearSpareBtnCounter, RoutedEventHandler clearEvtHndl, bool addTargetEvenIfNotInSS = false)
+        /// <summary>
+        /// Helper method to add a ring item to the UI
+        /// </summary>
+        /// <param name="theSP"></param>
+        /// <param name="targetIds"></param>
+        /// <param name="listItem"></param>
+        /// <param name="clearBtnPrefix"></param>
+        /// <param name="clearSpareBtnCounter"></param>
+        /// <param name="clearEvtHndl"></param>
+        /// <param name="addTargetEvenIfNotInSS"></param>
+        /// <returns></returns>
+        public static StackPanel AddRing(StackPanel theSP, 
+                                         List<string> targetIds, 
+                                         Tuple<string, double, double, double> listItem, 
+                                         string clearBtnPrefix, 
+                                         int clearSpareBtnCounter, 
+                                         RoutedEventHandler clearEvtHndl, 
+                                         bool addTargetEvenIfNotInSS = false)
         {
             StackPanel sp = new StackPanel
             {
@@ -165,6 +187,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sp;
         }
 
+        /// <summary>
+        /// Helper method to parse the create rings subtab and return a list of rings that should be created as part of TS generation and manipulation
+        /// </summary>
+        /// <param name="theSP"></param>
+        /// <returns></returns>
         public static (List<Tuple<string, double, double, double>>, StringBuilder) ParseCreateRingList(StackPanel theSP)
         {
             StringBuilder sb = new StringBuilder();

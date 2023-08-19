@@ -10,6 +10,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
     public static class PlanObjectiveSetupUIHelper
     {
+        /// <summary>
+        /// Helper method to generate the header information for the plan objectives tab on the main optimization loop UI
+        /// </summary>
+        /// <param name="theWidth"></param>
+        /// <returns></returns>
         public static StackPanel GetObjHeader(double theWidth)
         {
             StackPanel sp = new StackPanel
@@ -78,7 +83,12 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sp;
         }
 
-        public static List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> GetPlanObjectives(StackPanel theSP)
+        /// <summary>
+        /// Helper method to parse the plan objective list from the main optimization loop UI
+        /// </summary>
+        /// <param name="theSP"></param>
+        /// <returns></returns>
+        public static List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> ParsePlanObjectives(StackPanel theSP)
         {
             //get constraints
             List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> tmp = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> { };

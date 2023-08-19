@@ -12,6 +12,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
     public static class OptimizationLoopUIHelper
     {
+        /// <summary>
+        /// Helper method to print the header of the optimization objectives for the supplied plan id to the optimization loop UI
+        /// </summary>
+        /// <param name="planId"></param>
+        /// <returns></returns>
         public static string GetOptimizationObjectivesHeader(string planId)
         {
             StringBuilder sb = new StringBuilder();
@@ -22,6 +27,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Helper method to print the header of the optimization results for the supplied plan id to the optimization loop UI
+        /// </summary>
+        /// <param name="planId"></param>
+        /// <returns></returns>
         public static string GetOptimizationResultsHeader(string planId)
         {
             StringBuilder sb = new StringBuilder();
@@ -32,6 +42,10 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Helper method to print the header information for the requested planning objectives to the optimization loop UI
+        /// </summary>
+        /// <returns></returns>
         public static string GetPlanObjectivesHeader()
         {
             StringBuilder sb = new StringBuilder();
@@ -42,6 +56,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Helper method to print the requested planning objectives to the optimization loop UI
+        /// </summary>
+        /// <param name="planObj"></param>
+        /// <returns></returns>
         public static string PrintPlanObjectives(List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> planObj)
         {
             StringBuilder sb = new StringBuilder();
@@ -55,7 +74,24 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sb.ToString();
         }
 
-        public static string GetRunSetupInfoHeader(List<ExternalPlanSetup> plans, PlanType type, bool coverageCheck, int numOpt, bool oneMoreOpt, bool copyAndSavePlans, double targetCoverage)
+        /// <summary>
+        /// Helper method to print the global run configuration settings for this optimization loop run
+        /// </summary>
+        /// <param name="plans"></param>
+        /// <param name="type"></param>
+        /// <param name="coverageCheck"></param>
+        /// <param name="numOpt"></param>
+        /// <param name="oneMoreOpt"></param>
+        /// <param name="copyAndSavePlans"></param>
+        /// <param name="targetCoverage"></param>
+        /// <returns></returns>
+        public static string GetRunSetupInfoHeader(List<ExternalPlanSetup> plans, 
+                                                   PlanType type, 
+                                                   bool coverageCheck, 
+                                                   int numOpt, 
+                                                   bool oneMoreOpt, 
+                                                   bool copyAndSavePlans, 
+                                                   double targetCoverage)
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("---------------------------------------------------------------------------------------------------------");
@@ -75,7 +111,16 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sb.ToString();
         }
 
-        public static string PrintAdditionalPlanDoseInfo(List<Tuple<string, string, double, string>> requestedInfo, ExternalPlanSetup plan, List<Tuple<string, string>> normalizationVolumes)
+        /// <summary>
+        /// Helper method to print the requested additional information about the achieved plan quality following an optimization loop iteration
+        /// </summary>
+        /// <param name="requestedInfo"></param>
+        /// <param name="plan"></param>
+        /// <param name="normalizationVolumes"></param>
+        /// <returns></returns>
+        public static string PrintAdditionalPlanDoseInfo(List<Tuple<string, string, double, string>> requestedInfo, 
+                                                         ExternalPlanSetup plan, 
+                                                         List<Tuple<string, string>> normalizationVolumes)
         {
             StringBuilder sb = new StringBuilder();
 
@@ -136,6 +181,12 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Helper method to print the requested optimization tuning structures and their constraints/requirements for generation to the 
+        /// optimization loop UI
+        /// </summary>
+        /// <param name="requestedTSstructures"></param>
+        /// <returns></returns>
         public static string PrintRequestedTSStructures(List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures)
         {
             StringBuilder sb = new StringBuilder();
@@ -173,6 +224,12 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Helper method to print the optimization constraints for the plan to the optimization loop UI
+        /// </summary>
+        /// <param name="planId"></param>
+        /// <param name="constraints"></param>
+        /// <returns></returns>
         public static string PrintPlanOptimizationConstraints(string planId, List<Tuple<string, OptimizationObjectiveType, double, double, int>> constraints)
         {
             StringBuilder sb = new StringBuilder();
@@ -184,7 +241,18 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sb.ToString();
         }
 
-        public static string PrintPlanOptimizationResultVsConstraints(ExternalPlanSetup plan, List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams, List<Tuple<Structure, DVHData, double, double, double, int>> diffPlanOpt, double totalCostPlanOpt)
+        /// <summary>
+        /// Helper method to print the plan quality results versus the requested optimization constraints to the optimization loop UI
+        /// </summary>
+        /// <param name="plan"></param>
+        /// <param name="optParams"></param>
+        /// <param name="diffPlanOpt"></param>
+        /// <param name="totalCostPlanOpt"></param>
+        /// <returns></returns>
+        public static string PrintPlanOptimizationResultVsConstraints(ExternalPlanSetup plan, 
+                                                                      List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams, 
+                                                                      List<Tuple<Structure, DVHData, double, double, double, int>> diffPlanOpt, 
+                                                                      double totalCostPlanOpt)
         {
             StringBuilder sb = new StringBuilder();
             //print the results of the quality check for this optimization

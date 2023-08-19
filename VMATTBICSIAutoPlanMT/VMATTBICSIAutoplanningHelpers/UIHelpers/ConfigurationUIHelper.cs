@@ -11,12 +11,22 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
     public static class ConfigurationUIHelper
     {
+        /// <summary>
+        /// Helper method to print the parameters contained in each of the supplied plan templates. Necessary method for optimization loop UI
+        /// </summary>
+        /// <param name="templates"></param>
+        /// <returns></returns>
         public static StringBuilder PrintPlanTemplateConfigurationParameters(List<AutoPlanTemplateBase> templates)
         {
             if (templates.First() is CSIAutoPlanTemplate) return PrintCSIPlanTemplateConfigurationParameters(templates.Cast<CSIAutoPlanTemplate>().ToList());
             else return PrintTBIPlanTemplateConfigurationParameters(templates.Cast<TBIAutoPlanTemplate>().ToList());
         }
 
+        /// <summary>
+        /// Helper method to print the CSI plan template parameters
+        /// </summary>
+        /// <param name="templates"></param>
+        /// <returns></returns>
         public static StringBuilder PrintCSIPlanTemplateConfigurationParameters(List<CSIAutoPlanTemplate> templates) 
         { 
             StringBuilder sb = new StringBuilder();
@@ -73,6 +83,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sb;
         }
 
+        /// <summary>
+        /// Helper method to print the TBI plan template parameters
+        /// </summary>
+        /// <param name="templates"></param>
+        /// <returns></returns>
         public static StringBuilder PrintTBIPlanTemplateConfigurationParameters(List<TBIAutoPlanTemplate> templates)
         {
             StringBuilder sb = new StringBuilder();
@@ -100,6 +115,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sb;
         }
 
+        /// <summary>
+        /// Helper method to print the targets and tuning structure information
+        /// </summary>
+        /// <param name="itr"></param>
+        /// <returns></returns>
         private static StringBuilder PrintTargetsTSParameters(AutoPlanTemplateBase itr)
         {
             StringBuilder sb = new StringBuilder();
@@ -132,6 +152,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sb;
         }
 
+        /// <summary>
+        /// Helper method to print the plan objectives contained in the supplied auto plan template object
+        /// </summary>
+        /// <param name="itr"></param>
+        /// <returns></returns>
         private static StringBuilder PrintPlanObjRequestedInfo(AutoPlanTemplateBase itr)
         {
             StringBuilder sb = new StringBuilder();
