@@ -125,6 +125,7 @@
     <Compile Include="Helpers\CalculationHelper.cs" />
     <Compile Include="Helpers\ExportFormatTypeHelper.cs" />
     <Compile Include="Helpers\FlashTypeHelper.cs" />
+    <Compile Include="Helpers\PlanObjectiveHelper.cs" />
     <Compile Include="Helpers\PlanPrepHelper.cs" />
     <Compile Include="Helpers\RingHelper.cs" />
     <Compile Include="PlanTemplateClasses\TBIAutoPlanTemplate.cs" />

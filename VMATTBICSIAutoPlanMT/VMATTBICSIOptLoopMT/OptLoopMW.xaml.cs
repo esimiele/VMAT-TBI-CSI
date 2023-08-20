@@ -142,6 +142,10 @@ namespace VMATTBICSIOptLoopMT
         #endregion
 
         #region load and open patient
+        /// <summary>
+        /// Utility method to load a patient into the script. Attempt to read the log file from the preparation script
+        /// </summary>
+        /// <param name="patmrn"></param>
         private void LoadPatient(string patmrn)
         {
             if (app == null) return;
@@ -350,7 +354,7 @@ namespace VMATTBICSIOptLoopMT
             {
                 ClearAllItemsFromUIList(planObjectiveParamSP);
                 //requires a structure set to properly function
-                planObj = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>>(ConstructPlanObjectives(selectedTemplate.GetPlanObjectives()));
+                planObj = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>>(PlanObjectiveHelper.ConstructPlanObjectives(selectedTemplate.GetPlanObjectives(), selectedSS, tsTargets));
                 PopulatePlanObjectivesTab(planObjectiveParamSP);
                 planDoseInfo = new List<Tuple<string, string, double, string>>(selectedTemplate.GetRequestedPlanDoseInfo());
                 requestedTSstructures = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>(selectedTemplate.GetRequestedOptTSStructures());
@@ -389,6 +393,10 @@ namespace VMATTBICSIOptLoopMT
             return (theSP, theScroller);
         }
 
+        /// <summary>
+        /// Helper method to retrieve the structure set and list of plans
+        /// </summary>
+        /// <returns></returns>
         private (List<ExternalPlanSetup>, StructureSet) GetStructureSetAndPlans()
         {
             List<ExternalPlanSetup> thePlans = new List<ExternalPlanSetup> { };
@@ -450,6 +458,9 @@ namespace VMATTBICSIOptLoopMT
             return (thePlans, ss);
         }
 
+        /// <summary>
+        /// UI helper method to clear all selected parameters
+        /// </summary>
         private void ClearEverything()
         {
             //clear all existing content from the main window
@@ -461,6 +472,9 @@ namespace VMATTBICSIOptLoopMT
             ClearAllItemsFromUIList(planObjectiveParamSP);
         }
 
+        /// <summary>
+        /// UI helper method to populate the prescription text boxes in the UI
+        /// </summary>
         private void PopulateRx()
         {
             //populate the prescription text boxes
@@ -482,6 +496,10 @@ namespace VMATTBICSIOptLoopMT
             }
         }
 
+        /// <summary>
+        /// Helper method to population the Optimization Setup tab with the optimization constraints that are currently assigned to the plan
+        /// </summary>
+        /// <param name="theSP"></param>
         private void PopulateOptimizationTab(StackPanel theSP)
         {
             //clear the current list of optimization constraints and ones obtained from the plan to the user
@@ -536,6 +554,10 @@ namespace VMATTBICSIOptLoopMT
             }
         }
 
+        /// <summary>
+        /// Helper UI method to clear all items from the UI
+        /// </summary>
+        /// <param name="theSP"></param>
         private void ClearAllItemsFromUIList(StackPanel theSP)
         {
             theSP.Children.Clear();
@@ -548,40 +570,15 @@ namespace VMATTBICSIOptLoopMT
         #endregion
 
         #region start optimization
+        /// <summary>
+        /// Event to start the optimization loop
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void StartOpt_Click(object sender, RoutedEventArgs e)
         {
-            if (!plans.Any()) 
-            { 
-                MessageBox.Show("No plans found!"); 
-                return; 
-            }
-
-            if (optimizationParamSP.Children.Count == 0)
-            {
-                MessageBox.Show("No optimization parameters present to assign to the VMAT plan!");
-                return;
-            }
-            if (!int.TryParse(numOptLoops.Text, out int numOptimizations))
-            {
-                MessageBox.Show("Error! Invalid input for number of optimization loops! \nFix and try again.");
-                return;
-            }
-
-            if(!double.TryParse(targetNormTB.Text, out double planNorm))
-            {
-                MessageBox.Show("Error! Target normalization is NaN \nFix and try again.");
-                return;
-            }
-            if(planNorm < 0.0 || planNorm > 100.0)
-            {
-                MessageBox.Show("Error! Target normalization is is either < 0% or > 100% \nExiting!");
-                return;
-            }
-            if(numOptimizations < 1)
-            {
-                MessageBox.Show("Number of requested optimizations needs to be greater than or equal to 1.\nExiting!");
-                return;
-            }
+            (bool prelimChecksFail, double planNorm, int numOptimizations) = PreliminaryChecksOptimizationLoopStart();
+            if (prelimChecksFail) return;
 
             (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optimizationParamSP);
             if (!parsedOptimizationConstraints.Item1.Any())
@@ -600,17 +597,7 @@ namespace VMATTBICSIOptLoopMT
 
             //assign optimization constraints
             pi.BeginModifications();
-            foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in parsedOptimizationConstraints.Item1)
-            {
-                ExternalPlanSetup thePlan = null;
-                //additional check if the plan was not found in the list of VMATplans
-                thePlan = plans.FirstOrDefault(x => string.Equals(x.Id, itr.Item1));
-                if (thePlan != null)
-                {
-                    OptimizationSetupUIHelper.RemoveOptimizationConstraintsFromPLan(thePlan);
-                    OptimizationSetupUIHelper.AssignOptConstraints(itr.Item2, thePlan, true, 0.0);
-                }
-            }
+            if (AssignRequestedOptimizationConstraints(parsedOptimizationConstraints.Item1)) return;
 
             //does the user want to run the initial dose coverage check?
             runCoverageCheck = runCoverageCk.IsChecked.Value;
@@ -648,27 +635,71 @@ namespace VMATTBICSIOptLoopMT
             optLoop.Execute();
         }
 
-        private List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> ConstructPlanObjectives(List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> obj)
+        /// <summary>
+        /// Helper to take the parsed constraints from the UI and assign them to VMAT plan
+        /// </summary>
+        /// <param name="constraints"></param>
+        /// <returns></returns>
+        private bool AssignRequestedOptimizationConstraints(List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> constraints)
         {
-            List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> tmp = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> { };
-            if(selectedSS != null)
+            foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in constraints)
             {
-                foreach (Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation> itr in obj)
+                ExternalPlanSetup thePlan = null;
+                //additional check if the plan was not found in the list of VMATplans
+                thePlan = plans.FirstOrDefault(x => string.Equals(x.Id, itr.Item1));
+                if (thePlan != null)
                 {
-                    string volume = itr.Item1;
-                    if (tsTargets.Any(x => string.Equals(x.Item1, itr.Item1)))
-                    {
-                        //volume is a target and has a corresponding ts target
-                        //update volume with ts target id
-                        volume = tsTargets.First(x => string.Equals(x.Item1, itr.Item1)).Item2;
-                    }
-                    if (StructureTuningHelper.DoesStructureExistInSS(volume, selectedSS, true))
-                    {
-                        tmp.Add(Tuple.Create(volume, itr.Item2, itr.Item3, itr.Item4, itr.Item5));
-                    }
+                    OptimizationSetupUIHelper.RemoveOptimizationConstraintsFromPLan(thePlan);
+                    OptimizationSetupUIHelper.AssignOptConstraints(itr.Item2, thePlan, true, 0.0);
+                }
+                else
+                {
+                    MessageBox.Show($"Error! Could not find requested plan: {itr.Item1}! Exiting");
+                    return true;
                 }
             }
-            return tmp;
+            return false;
+        }
+
+        /// <summary>
+        /// Preliminary checks to ensure the requested optimization loop settings are good to go
+        /// </summary>
+        /// <returns></returns>
+        private (bool, double, int) PreliminaryChecksOptimizationLoopStart()
+        {
+            double planNorm = 0.0;
+            int numOptimizations = -1;
+            if (!plans.Any())
+            {
+                MessageBox.Show("No plans found!");
+                return (true, planNorm, numOptimizations);
+            }
+            if (optimizationParamSP.Children.Count == 0)
+            {
+                MessageBox.Show("No optimization parameters present to assign to the VMAT plan!");
+                return (true, planNorm, numOptimizations);
+            }
+            if (!int.TryParse(numOptLoops.Text, out numOptimizations))
+            {
+                MessageBox.Show("Error! Invalid input for number of optimization loops! \nFix and try again.");
+                return (true, planNorm, numOptimizations);
+            }
+            if (!double.TryParse(targetNormTB.Text, out planNorm))
+            {
+                MessageBox.Show("Error! Target normalization is NaN \nFix and try again.");
+                return (true, planNorm, numOptimizations);
+            }
+            if (planNorm < 0.0 || planNorm > 100.0)
+            {
+                MessageBox.Show("Error! Target normalization is is either < 0% or > 100% \nExiting!");
+                return (true, planNorm, numOptimizations);
+            }
+            if (numOptimizations < 1)
+            {
+                MessageBox.Show("Number of requested optimizations needs to be greater than or equal to 1.\nExiting!");
+                return (true, planNorm, numOptimizations);
+            }
+            return (false, planNorm, numOptimizations);
         }
         #endregion
 

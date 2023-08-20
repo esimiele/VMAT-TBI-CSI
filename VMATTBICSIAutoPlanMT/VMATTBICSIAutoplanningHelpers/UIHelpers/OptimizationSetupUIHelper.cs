@@ -482,7 +482,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             StringBuilder sb = new StringBuilder();
             foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in parameters)
             {
-                Structure s = VMATplan.StructureSet.Structures.First(x => x.Id == opt.Item1);
+                Structure s =StructureTuningHelper.GetStructureFromId(opt.Item1, VMATplan.StructureSet);
                 if (opt.Item2 != OptimizationObjectiveType.Mean) VMATplan.OptimizationSetup.AddPointObjective(s, OptimizationTypeHelper.GetObjectiveOperator(opt.Item2), new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item4, (double)opt.Item5);
                 else VMATplan.OptimizationSetup.AddMeanDoseObjective(s, new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), (double)opt.Item5);
             }

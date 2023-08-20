@@ -649,8 +649,8 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             //assign the new optimization constraints (passed as an argument to this method)
             foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in obj)
             {
-                if (opt.Item2 != OptimizationObjectiveType.Mean) plan.OptimizationSetup.AddPointObjective(plan.StructureSet.Structures.First(x => x.Id == opt.Item1), OptimizationTypeHelper.GetObjectiveOperator(opt.Item2), new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item4, opt.Item5);
-                else plan.OptimizationSetup.AddMeanDoseObjective(plan.StructureSet.Structures.First(x => x.Id == opt.Item1), new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item5);
+                if (opt.Item2 != OptimizationObjectiveType.Mean) plan.OptimizationSetup.AddPointObjective(StructureTuningHelper.GetStructureFromId(opt.Item1, plan.StructureSet), OptimizationTypeHelper.GetObjectiveOperator(opt.Item2), new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item4, opt.Item5);
+                else plan.OptimizationSetup.AddMeanDoseObjective(StructureTuningHelper.GetStructureFromId(opt.Item1, plan.StructureSet), new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item5);
                 ProvideUIUpdate(100 * ++percentComplete / calcItems);
             }
             UpdateOverallProgress(100 * ++overallPercentCompletion / overallCalcItems);
