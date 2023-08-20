@@ -87,16 +87,25 @@ namespace VMATTBICSIOptLoopMT
         //list<original target id, ts target id>
         private List<Tuple<string, string>> tsTargets = new List<Tuple<string, string>> { };
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="args"></param>
         public OptLoopMW(string[] args)
         {
             InitializeComponent();
             InitializeScript(args);
         }
 
+        /// <summary>
+        /// Script initialization including generating the connection to Aria, loading the patient, and displaying the script configuration
+        /// </summary>
+        /// <param name="args"></param>
+        /// <returns></returns>
         private bool InitializeScript(string[] args)
         {
             try { app = VMS.TPS.Common.Model.API.Application.CreateApplication(); }
-            catch (Exception e) { MessageBox.Show(String.Format("Warning! Could not generate Aria application instance because: {0}", e.Message)); }
+            catch (Exception e) { MessageBox.Show($"Warning! Could not generate Aria application instance because: {e.Message}"); }
 
             string logConfigurationFile = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini";
             if (File.Exists(logConfigurationFile)) LoadConfigurationSettings(logConfigurationFile);
@@ -587,7 +596,7 @@ namespace VMATTBICSIOptLoopMT
                 return;
             }
             //determine if flash was used to prep the plan
-            if (parsedOptimizationConstraints.Item1.Where(x => x.Item2.Where(y => y.Item1.ToLower().Contains("flash")).Any()).Any()) useFlash = true;
+            if (parsedOptimizationConstraints.Item1.Any(x => x.Item2.Any(y => y.Item1.ToLower().Contains("flash")))) useFlash = true;
 
             //assign optimization constraints
             pi.BeginModifications();
@@ -595,7 +604,7 @@ namespace VMATTBICSIOptLoopMT
             {
                 ExternalPlanSetup thePlan = null;
                 //additional check if the plan was not found in the list of VMATplans
-                thePlan = plans.FirstOrDefault(x => x.Id == itr.Item1);
+                thePlan = plans.FirstOrDefault(x => string.Equals(x.Id, itr.Item1));
                 if (thePlan != null)
                 {
                     OptimizationSetupUIHelper.RemoveOptimizationConstraintsFromPLan(thePlan);
@@ -650,7 +659,7 @@ namespace VMATTBICSIOptLoopMT
                     if (tsTargets.Any(x => string.Equals(x.Item1, itr.Item1)))
                     {
                         //volume is a target and has a corresponding ts target
-                        //update volume if with ts target id
+                        //update volume with ts target id
                         volume = tsTargets.First(x => string.Equals(x.Item1, itr.Item1)).Item2;
                     }
                     if (StructureTuningHelper.DoesStructureExistInSS(volume, selectedSS, true))
@@ -664,6 +673,9 @@ namespace VMATTBICSIOptLoopMT
         #endregion
 
         #region script and configuration
+        /// <summary>
+        /// Simple helper method print the loaded configuration parameters to the UI on the Script Configuration tab
+        /// </summary>
         private void DisplayConfigurationParameters()
         {
             configTB.Text = "";
@@ -692,6 +704,11 @@ namespace VMATTBICSIOptLoopMT
             targetNormTB.Text = defaultPlanNorm;
         }
 
+        /// <summary>
+        /// Simple method to load a new configuration .ini file
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void LoadNewConfigFile_Click(object sender, RoutedEventArgs e)
         {
             configFile = "";
@@ -709,6 +726,10 @@ namespace VMATTBICSIOptLoopMT
             }
         }
 
+        /// <summary>
+        /// Method to determine which set of configuration parameters to load depending on the type of plan being considered
+        /// </summary>
+        /// <param name="type"></param>
         private void LoadConfigurationSettingsForPlanType(PlanType type)
         {
             List<string> configurationFiles = new List<string> { };
@@ -728,6 +749,11 @@ namespace VMATTBICSIOptLoopMT
             }
         }
 
+        /// <summary>
+        /// Utility method to read the configuration .ini file and load the requested settings into memory
+        /// </summary>
+        /// <param name="file"></param>
+        /// <returns></returns>
         private bool LoadConfigurationSettings(string file)
         {
             configFile = file;
@@ -792,6 +818,10 @@ namespace VMATTBICSIOptLoopMT
             }
         }
 
+        /// <summary>
+        /// Helper method to read all the plan template files from the appropriate directory depending on the plan type being considered
+        /// </summary>
+        /// <param name="type"></param>
         private void LoadTemplatePlanChoices(PlanType type)
         {
             int count = 1;
@@ -813,10 +843,16 @@ namespace VMATTBICSIOptLoopMT
             {
                 MessageBox.Show($"Error could not load plan template file because: {e.Message}!");
             }
-            selectedTemplate = PlanTemplates.FirstOrDefault(x => x.GetTemplateName() == selectedTemplateName);
+            selectedTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.GetTemplateName(), selectedTemplateName));
             if (selectedTemplate != null) templateList.SelectedItem = selectedTemplate;
         }
 
+        /// <summary>
+        /// Utility method to read the log file from the preparation script for the selected patient 
+        /// and store the information so it can be used by this script
+        /// </summary>
+        /// <param name="fullLogName"></param>
+        /// <returns></returns>
         private bool LoadLogFile(string fullLogName)
         {
             try
@@ -905,12 +941,17 @@ namespace VMATTBICSIOptLoopMT
             }
             catch (Exception e) 
             { 
-                MessageBox.Show($"Error could not load log file because: {e.Message}\n\n");
+                MessageBox.Show($"Error could not load log file because: {e.Message}");
                 return true;
             }
         }
         #endregion
 
+        /// <summary>
+        /// Window closing even
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             //be sure to close the patient before closing the application. Not doing so will result in unclosed timestamps in eclipse

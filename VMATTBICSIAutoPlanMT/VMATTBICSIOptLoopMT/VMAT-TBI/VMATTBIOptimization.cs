@@ -15,6 +15,10 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
 {
     class VMATTBIOptimization : OptimizationLoopBase
     {
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="_d"></param>
         public VMATTBIOptimization(OptDataContainer _d)
         {
             _data = _d;
@@ -22,6 +26,10 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             CalculateNumberOfItemsToComplete();
         }
 
+        /// <summary>
+        /// Primary run control
+        /// </summary>
+        /// <returns></returns>
         public override bool Run()
         {
             try
@@ -56,6 +64,9 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             return false;
         }
 
+        /// <summary>
+        /// Helper method to calculate the total number of items to complete during this optimization loop run
+        /// </summary>
         protected void CalculateNumberOfItemsToComplete()
         {
             overallCalcItems = 4;
@@ -67,25 +78,23 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
         }
 
         #region preliminary checks specific to TBI
+        /// <summary>
+        /// Preliminary checks 
+        /// </summary>
+        /// <param name="ss"></param>
+        /// <returns></returns>
         private bool PreliminaryChecksSpinningManny(StructureSet ss)
         {
             int percentComplete = 0;
             int calcItems = 3;
 
-            Structure spinningManny = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinmannysurface" || x.Id.ToLower() == "couchmannysurfac");
-            if (spinningManny == null) ProvideUIUpdate(100 * ++percentComplete / calcItems, "Spinning Manny structure not found");
-            else ProvideUIUpdate(100 * ++percentComplete / calcItems, "Retrieved Spinning Manny structure");
-
-            Structure matchline = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "matchline");
-            if (matchline == null) ProvideUIUpdate(100 * ++percentComplete / calcItems, "Matchline structure not found");
-            else ProvideUIUpdate(100 * ++percentComplete / calcItems, "Retrieved Matchline structure");
-
             //check if there is a matchline contour. If so, is it empty?
-            if (matchline != null && !matchline.IsEmpty)
+            if (StructureTuningHelper.DoesStructureExistInSS("Matchline", ss, true))
             {
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, "Matchline structure present in structure set and is NOT empty");
                 //if a matchline contour is present and filled, does the spinning manny couch exist in the structure set? 
                 //If not, let the user know so they can decide if they want to continue of stop the optimization loop
-                if (spinningManny == null || spinningManny.IsEmpty)
+                if (!StructureTuningHelper.DoesStructureExistInSS(new List<string> { "spinmannysurface", "couchmannysurfac" }, ss, true))
                 {
                     ConfirmPrompt CP = new ConfirmPrompt("I found a matchline, but no spinning manny couch or it's empty!" + Environment.NewLine + Environment.NewLine + "Continue?!");
                     CP.ShowDialog();
@@ -96,6 +105,11 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                     }
                 }
             }
+            else ProvideUIUpdate(100 * ++percentComplete / calcItems, "Matchline structure not found");
+
+            Structure spinningManny = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinmannysurface" || x.Id.ToLower() == "couchmannysurfac");
+            if (spinningManny == null) ProvideUIUpdate(100 * ++percentComplete / calcItems, "Spinning Manny structure not found");
+            else ProvideUIUpdate(100 * ++percentComplete / calcItems, "Retrieved Spinning Manny structure");
 
             if (spinningManny != null && !spinningManny.IsEmpty)
             {
@@ -108,6 +122,11 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             return false;
         }
 
+        /// <summary>
+        /// Preliminary checks to ensure the bolus_flash structure does not overlap with any of the support structures. If so, optimization will not be permitted. 
+        /// Pre-emptively crop the bolus flash structure from the couch structures
+        /// </summary>
+        /// <returns></returns>
         private bool PreliminaryChecksBolusOverlapWithSupport()
         {
             ProvideUIUpdate(0,"Cropping bolus_flash from any support structures");
@@ -137,7 +156,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                     ProvideUIUpdate("The following plans have dose calculated and use the same structure set:");
                     ProvideUIUpdate(planIdList.ToString());
 
-                    foreach (ExternalPlanSetup itr in otherPlans) if (!_data.plans.Where(x => x == itr).Any()) planRecalcList.Add(itr);
+                    foreach (ExternalPlanSetup itr in otherPlans) if (!_data.plans.Any(x => x == itr)) planRecalcList.Add(itr);
                     ProvideUIUpdate(100 * ++percentComplete / calcItems, "Revised plan list to exclude plans that will be optimized");
                     calcItems += planRecalcList.Count;
 
@@ -163,6 +182,14 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
         #endregion
 
         #region coverage check
+        /// <summary>
+        /// Helper method to run the coverage check for the supplied plan
+        /// </summary>
+        /// <param name="plan"></param>
+        /// <param name="relativeDose"></param>
+        /// <param name="targetVolCoverage"></param>
+        /// <param name="useFlash"></param>
+        /// <returns></returns>
         private bool RunCoverageCheck(ExternalPlanSetup plan, double relativeDose, double targetVolCoverage, bool useFlash)
         {
             ProvideUIUpdate("Running coverage check..." + Environment.NewLine);
@@ -221,6 +248,11 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
         #endregion
 
         #region optimization loop
+        /// <summary>
+        /// Overridden method to handle any remaining run options once the maximum number of iterations has been reached in the optimization loop
+        /// </summary>
+        /// <param name="plans"></param>
+        /// <returns></returns>
         protected override bool ResolveRunOptions(List<ExternalPlanSetup> plans)
         {
             if (_data.oneMoreOpt)
@@ -234,12 +266,17 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             return false;
         }
 
+        /// <summary>
+        /// Helper method to remove the virtual bolus structure from the structure set, recalculate the dose, and renormalize to the original PTV without flash
+        /// </summary>
+        /// <param name="plans"></param>
+        /// <returns></returns>
         private bool RemoveFlashAndRecalc(List<ExternalPlanSetup> plans)
         {
             ProvideUIUpdate(100 * ++overallPercentCompletion / overallCalcItems, Environment.NewLine + "Removing flash, recalculating dose, and renormalizing to TS_PTV_VMAT!");
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
 
-            Structure bolus = _data.selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "bolus_flash");
+            Structure bolus = StructureTuningHelper.GetStructureFromId("bolus_flash", _data.selectedSS);;
             if (bolus == null)
             {
                 //no structure named bolus_flash found. This is a problem. 
