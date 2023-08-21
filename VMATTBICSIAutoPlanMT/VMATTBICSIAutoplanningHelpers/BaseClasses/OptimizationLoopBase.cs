@@ -142,7 +142,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             if (couchAndRails.Any() && couchAndRails.Any(x => !x.IsEmpty))
             {
                 if(couchAndRails.Any(x => x.GetContoursOnImagePlane(0).Any()) || couchAndRails.Any(x => x.GetContoursOnImagePlane(ss.Image.ZSize - 1).Any())) _checkSupportStructures = true;
-                ProvideUIUpdate(100 * ++percentComplete / calcItems, "Checking if couch structures are on first or last slices of image", _checkSupportStructures);
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, "Checking if couch structures are on first or last slices of image");
             }
             else ProvideUIUpdate(100 * ++percentComplete / calcItems, "No couch structures present --> nothing to check");
 
