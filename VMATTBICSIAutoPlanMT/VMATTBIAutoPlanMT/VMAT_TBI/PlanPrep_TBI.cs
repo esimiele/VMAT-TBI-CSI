@@ -45,7 +45,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (RemoveFlashRunSequence()) return true;
             }
             if (SeparatePlans()) return true;
-            //if (recalcNeeded && ReCalculateDose()) return true;
+            if (recalcNeeded && ReCalculateDose()) return true;
             UpdateUILabel("Finished!");
             ProvideUIUpdate(100, "Finished separating plans!");
             ProvideUIUpdate($"Run time: {GetElapsedTime()} (mm:ss)");
