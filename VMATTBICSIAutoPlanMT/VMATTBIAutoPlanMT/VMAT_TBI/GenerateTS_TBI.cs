@@ -11,7 +11,6 @@ using VMATTBICSIAutoPlanningHelpers.Helpers;
 using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
 using System.Text;
 using System.Runtime.ExceptionServices;
-using System.Reflection;
 
 namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
@@ -806,13 +805,24 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     //get number of isos for PTV superior to matchplane (always truncate this value to a maximum of 4 isocenters)
                     numVMATIsos = (int)Math.Ceiling((pts.Max(p => p.Z) - matchline.CenterPoint.z) / (maxFieldExtent - minFieldOverlap));
                     if (numVMATIsos > 4) numVMATIsos = 4;
-                    ProvideUIUpdate($"Separation between body z max and matchline center z: {(pts.Max(p => p.Z) - matchline.CenterPoint.z)}");
-                    ProvideUIUpdate($"numVAMTIsos calculated as double: {(pts.Max(p => p.Z) - matchline.CenterPoint.z) / (maxFieldExtent - minFieldOverlap)}");
+                    ProvideUIUpdate($"Separation between body z max and matchline center z: {(pts.Max(p => p.Z) - matchline.CenterPoint.z):0.0}");
+                    ProvideUIUpdate($"numVAMTIsos calculated as double: {(pts.Max(p => p.Z) - matchline.CenterPoint.z) / (maxFieldExtent - minFieldOverlap):0.0}");
                     ProvideUIUpdate(100 * ++percentComplete / calcItems);
 
                     //Only add a second legs iso if the extent of the body is > 40.0 cm
-                    if (matchline.CenterPoint.z - pts.Min(p => p.Z) <= maxFieldExtent) numIsos = numVMATIsos + 1;
-                    else numIsos = numVMATIsos + 2;
+                    ProvideUIUpdate($"Separation between matchline z center and body z min: {matchline.CenterPoint.z - pts.Min(p => p.Z):0.0}");
+                    if (matchline.CenterPoint.z - pts.Min(p => p.Z) <= maxFieldExtent)
+                    {
+                        ProvideUIUpdate($"Separation between matchline z center and body z min is <= maximum field extent ({maxFieldExtent})");
+                        ProvideUIUpdate($"Only one APPA isocenters is required for coverage");
+                        numIsos = numVMATIsos + 1;
+                    }
+                    else
+                    {
+                        ProvideUIUpdate($"Separation between matchline z center and body z min is > maximum field extent ({maxFieldExtent})");
+                        ProvideUIUpdate($"Two APPA isocenters are required for coverage");
+                        numIsos = numVMATIsos + 2;
+                    }
                     ProvideUIUpdate(100 * ++percentComplete / calcItems);
                 }
             }

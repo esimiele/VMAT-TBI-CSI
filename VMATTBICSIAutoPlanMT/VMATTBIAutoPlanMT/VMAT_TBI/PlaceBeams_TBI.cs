@@ -23,8 +23,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         //data members
         private double[] collRot;
-        private double[] CW = { 181.0, 179.0 };
-        private double[] CCW = { 179.0, 181.0 };
+        private double gantryStart;
+        private double gantryStop;
         private ExternalBeamMachineParameters ebmpArc;
         private ExternalBeamMachineParameters ebmpStatic;
         private List<VRect<double>> jawPos;
@@ -377,10 +377,20 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
                     //all even beams (e.g., 2, 4, etc.) will be CCW and all odd beams will be CW
                     GantryDirection direction;
-                    if (totalNumVMATBeams % 2 == 0) direction = GantryDirection.CounterClockwise;
-                    else direction = GantryDirection.Clockwise;
+                    if (totalNumVMATBeams % 2 == 0)
+                    {
+                        direction = GantryDirection.CounterClockwise;
+                        gantryStart = 179.0;
+                        gantryStop = 181.0;
+                    }
+                    else
+                    {
+                        direction = GantryDirection.Clockwise;
+                        gantryStart = 181.0;
+                        gantryStop = 179.0;
+                    }
 
-                    Beam b = vmatPlan.AddArcBeam(ebmpArc, jp, coll, CCW[0], CCW[1], direction, 0, iso.Item2.ElementAt(i).Item1);
+                    Beam b = vmatPlan.AddArcBeam(ebmpArc, jp, coll, gantryStart, gantryStop, direction, 0, iso.Item2.ElementAt(i).Item1);
                     ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added arc beam to iso: {i + 1}");
 
                     //id = <beam num> <rotation direction> <iso name><coll rotation>

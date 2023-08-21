@@ -72,12 +72,13 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="plan"></param>
         /// <param name="beamsPerIso"></param>
         /// <param name="names"></param>
+        /// <param name="previousNumIsos"></param>
         /// <returns></returns>
-        protected bool SeparatePlan(ExternalPlanSetup plan, List<List<Beam>> beamsPerIso, List<string> names, bool isAPPA = false)
+        protected bool SeparatePlan(ExternalPlanSetup plan, List<List<Beam>> beamsPerIso, List<string> names, bool isAPPA = false, int previousNumIsos = 0)
         {
             int percentComplete = 0;
             int calcItems = 4 * beamsPerIso.Count;
-            int count = 0;
+            int count = previousNumIsos;
             //iterate through list of beams for each isocenter
             foreach (List<Beam> beams in beamsPerIso)
             {

@@ -45,7 +45,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (RemoveFlashRunSequence()) return true;
             }
             if (SeparatePlans()) return true;
-            if (recalcNeeded && ReCalculateDose()) return true;
+            //if (recalcNeeded && ReCalculateDose()) return true;
             UpdateUILabel("Finished!");
             ProvideUIUpdate(100, "Finished separating plans!");
             ProvideUIUpdate($"Run time: {GetElapsedTime()} (mm:ss)");
@@ -115,7 +115,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (appaPlan != null)
             {
                 ProvideUIUpdate($"Separating isocenters in plan {appaPlan.Id} into separate plans");
-                if(SeparatePlan(appaPlan, appaBeamsPerIso, isoNames, true)) return true;
+                if(SeparatePlan(appaPlan, appaBeamsPerIso, isoNames, true, numVMATIsos)) return true;
                 ProvideUIUpdate(100 * ++percentComplete / ++calcItems, $"Successfully separated isocenters in plan {appaPlan.Id}");
             }
             return false;
