@@ -67,7 +67,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 
             if (numIsos > numVMATIsos) sb.AppendLine("VMAT TBI setup per procedure. Please ensure the matchline on Spinning Manny and the bag matches");
             else sb.AppendLine("VMAT TBI setup per procedure. No Spinning Manny.");
-            sb.AppendLine($"TT = {TT:0.0} cm for all plans");
+            if(TT != -1) sb.AppendLine($"TT = {TT:0.0} cm for all plans");
             sb.AppendLine("Dosimetric shifts SUP to INF:");
 
             int count = 0;
@@ -146,7 +146,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             else sb.AppendLine("No couch surface structure found in plan!");
 
             sb.AppendLine("VMAT CSI setup per procedure.");
-            sb.AppendLine($"TT = {TT:0.0} cm for all plans");
+            if(TT != -1) sb.AppendLine($"TT = {TT:0.0} cm for all plans");
             sb.AppendLine("Dosimetric shifts SUP to INF:");
 
             int count = 0;

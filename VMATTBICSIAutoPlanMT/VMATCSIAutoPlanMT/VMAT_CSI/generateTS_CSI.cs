@@ -240,10 +240,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             int counter = 0;
             int calcItems = 4;
 
+            string addedStructureId = addedStructure.Id;
             string normalId;
             double thickness;
             double margin;
-            if (addedStructure.Id.ToLower().Contains("eyes"))
+            if (addedStructureId.ToLower().Contains("eyes"))
             {
                 //TS_eyes
                 normalId = "Eyes";
@@ -275,7 +276,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 Structure normal = StructureTuningHelper.GetStructureFromId(normalId, selectedSS);
                 ProvideUIUpdate(100 * ++counter / calcItems, $"Retrieved structure: {normal.Id}");
-                ProvideUIUpdate($"Generating ring {addedStructure.Id} for target {targetStructure.Id}");
+                ProvideUIUpdate($"Generating ring {addedStructureId} for target {targetStructure.Id}");
 
                 (bool partialRingFail, StringBuilder partialRingErrorMessage) = ContourPartialRing(targetStructure, normal, addedStructure, margin, thickness);
                 if (partialRingFail)
@@ -283,19 +284,19 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     stackTraceError = partialRingErrorMessage.ToString();
                     return true;
                 }
-                ProvideUIUpdate(100 * ++counter / calcItems, $"Finished contouring ring: {addedStructure.Id}");
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Finished contouring ring: {addedStructureId}");
 
                 if(normal.IsHighResolution)
                 {
-                    ProvideUIUpdate($"Normal structure ({normal.Id}) is high resolution. Attempting to convert {addedStructure.Id} to high resolution");
+                    ProvideUIUpdate($"Normal structure ({normal.Id}) is high resolution. Attempting to convert {addedStructureId} to high resolution");
                     if(addedStructure.CanConvertToHighResolution())
                     {
                         addedStructure.ConvertToHighResolution();
-                        ProvideUIUpdate($"Converted {addedStructure.Id} to high resolution");
+                        ProvideUIUpdate($"Converted {addedStructureId} to high resolution");
                     }
                     else
                     {
-                        ProvideUIUpdate($"Error! Could not convert {addedStructure.Id} to high resolution! Exiting!", true);
+                        ProvideUIUpdate($"Error! Could not convert {addedStructureId} to high resolution! Exiting!", true);
                         return true;
                     }
                 }
@@ -310,9 +311,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 ProvideUIUpdate(100 * ++counter / calcItems, "Overlap Contoured!");
 
                 if (CheckTSGlobesLensesStructureIntegrity(addedStructure)) return true;
-                ProvideUIUpdate($"Finished contouring: {addedStructure.Id}");
+                ProvideUIUpdate($"Finished contouring: {addedStructureId}");
             }
-            else ProvideUIUpdate($"Warning! Could not retrieve normal structure! Skipping {addedStructure.Id}");
+            else ProvideUIUpdate($"Warning! Could not retrieve normal structure! Skipping {addedStructureId}");
             return false;
         }
 

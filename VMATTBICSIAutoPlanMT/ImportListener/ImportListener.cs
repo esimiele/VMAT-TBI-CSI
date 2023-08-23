@@ -39,7 +39,7 @@ namespace ImportListener
         /// <param name="args"></param>
         static void Main(string[] args)
         {
-            args = new string[] { "\\\\shariatscap105\\Dicom\\RSDCM\\Import\\", "$CSIDryRun_2", "VMSDBD" ,"10.151.176.60" ,"51402" ,"DCMTK" ,"50400" ,"3600" };
+            //args = new string[] { "\\\\shariatscap105\\Dicom\\RSDCM\\Import\\", "$CSIDryRun_3", "VMSDBD" ,"10.151.176.60" ,"51402" ,"DCMTK" ,"50400" ,"3600" };
             if (!ParseInputArguments(args.ToList())) Run();
             else Console.WriteLine("Error! Unable to parse command line arguments! Cannot listen for RT structure set! Exiting");
             Console.WriteLine("Press any key to exit");
