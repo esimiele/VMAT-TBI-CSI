@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Linq;
 using System.Threading;
 using System.Timers;
 using System.IO;
-using System.Collections.Generic;
 using EvilDICOM.Core;
 using EvilDICOM.Network;
 using EvilDICOM.Network.Enums;
@@ -13,17 +11,7 @@ namespace ImportListener
 {
     class ImportListener
     {
-        static string path;
-        static string mrn;
-        static string ariaDBAET;
-        static string ariaDBIP;
-        static int ariaDBPort;
-        static string localAET;
-        static int localPort;
-        //timeout in seconds (30 mins by default)
-        static double timeoutSec = 30 * 60.0;
         static int updateFrequencyMSec = 100;
-
         static bool filePresent = false;
         static bool fileReadyForImport = false;
         static string theFile;
@@ -39,9 +27,10 @@ namespace ImportListener
         /// <param name="args"></param>
         static void Main(string[] args)
         {
-            //args = new string[] { "\\\\shariatscap105\\Dicom\\RSDCM\\Import\\", "$CSIDryRun_3", "VMSDBD" ,"10.151.176.60" ,"51402" ,"DCMTK" ,"50400" ,"3600" };
-            if (!ParseInputArguments(args.ToList())) Run();
+            ImportSettingsModel importSettings = new ImportSettingsModel(args);
+            if(!importSettings.ParseError) Run(importSettings);
             else Console.WriteLine("Error! Unable to parse command line arguments! Cannot listen for RT structure set! Exiting");
+
             Console.WriteLine("Press any key to exit");
             Console.ReadLine();
         }
@@ -50,24 +39,24 @@ namespace ImportListener
         /// Run control for the listener
         /// </summary>
         /// <returns></returns>
-        private static bool Run()
+        private static bool Run(ImportSettingsModel settings)
         {
             try
             {
                 SetTimer();
-                PrintConfiguration();
+                PrintConfiguration(settings);
                 Console.WriteLine("Listening for RT structure set...");
-                ListenForRTStruct();
+                ListenForRTStruct(settings.ImportPath, settings.MRN, settings.TimeoutSec);
                 if (filePresent)
                 {
                     //wait one minute to ensure autocontouring model is done writing rt struct
                     ResetTimer(false);
                     Console.WriteLine("Waiting for RT Struct file to be free for import...");
-                    WaitForFile();
-                    if (fileReadyForImport) ImportRTStructureSet();
-                    else Console.WriteLine($"Auto contours for patient ({mrn}) were being used by another process and could not be imported. Exiting");
+                    WaitForFile(settings.TimeoutSec);
+                    if (fileReadyForImport) ImportRTStructureSet(settings);
+                    else Console.WriteLine($"Auto contours for patient ({settings.MRN}) were being used by another process and could not be imported. Exiting");
                 }
-                else Console.WriteLine($"Auto contours for patient ({mrn}) not found in time allotted. Exiting");
+                else Console.WriteLine($"Auto contours for patient ({settings.MRN}) not found in time allotted. Exiting");
             }
             catch (Exception e)
             {
@@ -81,43 +70,21 @@ namespace ImportListener
         }
 
         /// <summary>
-        /// Simple logic to parse the input string array of arguments. At least 7 arguments must be passed, the 8th is optional
-        /// </summary>
-        /// <param name="args"></param>
-        /// <returns></returns>
-        private static bool ParseInputArguments(List<string> args)
-        {
-            if (args.Any())
-            {
-                path = args.ElementAt(0);
-                mrn = args.ElementAt(1);
-                ariaDBAET = args.ElementAt(2);
-                ariaDBIP = args.ElementAt(3);
-                ariaDBPort = int.Parse(args.ElementAt(4));
-                localAET = args.ElementAt(5);
-                localPort = int.Parse(args.ElementAt(6));
-                if (args.Count() == 8) timeoutSec = double.Parse(args.ElementAt(7));
-                return false;
-            }
-            else return true;
-        }
-
-        /// <summary>
         /// Print the listener configuration settings for this run
         /// </summary>
         /// <param name="listening"></param>
-        private static void PrintConfiguration(bool listening = true)
+        private static void PrintConfiguration(ImportSettingsModel settings)
         {
             Console.WriteLine(DateTime.Now);
             Console.WriteLine("Configuration:");
-            Console.WriteLine($"Import path: {path}");
-            Console.WriteLine($"Patient Id: {mrn}");
-            Console.WriteLine($"Aria DB Daemon AE Title: {ariaDBAET}");
-            Console.WriteLine($"Aria DB Daemon IP: {ariaDBIP}");
-            Console.WriteLine($"Aria DB Daemon Port: {ariaDBPort}");
-            Console.WriteLine($"Local Daemon AE Title: {localAET}");
-            Console.WriteLine($"Local Daemon Port: {localPort}");
-            Console.WriteLine($"Requested timeout: {timeoutSec} seconds");
+            Console.WriteLine($"Import path: {settings.ImportPath}");
+            Console.WriteLine($"Patient Id: {settings.MRN}");
+            Console.WriteLine($"Aria DB Daemon AE Title: {settings.AriaDBAET}");
+            Console.WriteLine($"Aria DB Daemon IP: {settings.AriaDBIP}");
+            Console.WriteLine($"Aria DB Daemon Port: {settings.AriaDBPort}");
+            Console.WriteLine($"Local Daemon AE Title: {settings.LocalAET}");
+            Console.WriteLine($"Local Daemon Port: {settings.LocalPort}");
+            Console.WriteLine($"Requested timeout: {settings.TimeoutSec} seconds");
             Console.WriteLine("");
         }
 
@@ -149,7 +116,7 @@ namespace ImportListener
         /// <summary>
         /// Once the structure set file has been found in the import folder,
         /// </summary>
-        private static void WaitForFile()
+        private static void WaitForFile(double timeoutSec)
         {
             while (!fileReadyForImport && elapsedSec < timeoutSec)
             {
@@ -216,21 +183,21 @@ namespace ImportListener
         /// Method to construct the aria database and local daemons
         /// </summary>
         /// <returns></returns>
-        private static (Entity, Entity) ConstructDaemons()
+        private static (Entity, Entity) ConstructDaemons(ImportSettingsModel settings)
         {
-            Entity ariaDBDaemon = new Entity(ariaDBAET, ariaDBIP, ariaDBPort);
-            Entity localDaemon = Entity.CreateLocal(localAET, localPort);
+            Entity ariaDBDaemon = new Entity(settings.AriaDBAET, settings.AriaDBIP, settings.AriaDBPort);
+            Entity localDaemon = Entity.CreateLocal(settings.LocalAET, settings.LocalPort);
             return (ariaDBDaemon, localDaemon);
         }
 
         /// <summary>
         /// Simple method to monitor the import folder for the structure set file (checks every 10 sec). Once found, set the file present flag to true
         /// </summary>
-        private static void ListenForRTStruct()
+        private static void ListenForRTStruct(string importPath, string mrn, double timeoutSec)
         {
             while(!filePresent && elapsedSec < timeoutSec)
             {
-                if (CheckDirectoryForRTStruct())
+                if (CheckDirectoryForRTStruct(importPath, mrn))
                 {
                     filePresent = true;
                     aTimer.Stop();
@@ -257,9 +224,9 @@ namespace ImportListener
         /// mrn supplied as an input argument to the listener
         /// </summary>
         /// <returns></returns>
-        private static bool CheckDirectoryForRTStruct()
+        private static bool CheckDirectoryForRTStruct(string importPath, string mrn)
         {
-            foreach (string file in Directory.GetFiles(path))
+            foreach (string file in Directory.GetFiles(importPath))
             {
                 //get the names of each patient whose CT data is in the CT DICOM dump directory
                 DICOMObject dcmObj = DICOMObject.Read(file);
@@ -276,10 +243,10 @@ namespace ImportListener
         /// Push the dicom structure set file to the aria database
         /// </summary>
         /// <returns></returns>
-        private static bool ImportRTStructureSet()
+        private static bool ImportRTStructureSet(ImportSettingsModel settings)
         {
             Console.WriteLine("Importing structure set now...");
-            (Entity ariaDBDaemon, Entity localDaemon) = ConstructDaemons();
+            (Entity ariaDBDaemon, Entity localDaemon) = ConstructDaemons(settings);
             if (PingDaemon(ariaDBDaemon, localDaemon)) return true;
 
             DICOMSCU client = new DICOMSCU(localDaemon);
