@@ -28,7 +28,7 @@ namespace ImportListener
 
         public ImportSettingsModel(string[] args)
         {
-            args = new string[] { "\\\\shariatscap105\\Dicom\\RSDCM\\Import\\", "$CSIDryRun_4", "VMSDBD" ,"10.151.176.60" ,"51402" ,"DCMTK" ,"50400" ,"3600" };
+            //args = new string[] { "\\\\shariatscap105\\Dicom\\RSDCM\\Import\\", "$CSIDryRun_4", "VMSDBD" ,"10.151.176.60" ,"51402" ,"DCMTK" ,"50400" ,"3600" };
             if (args.Any() && !ParseInputArguments(args.ToList())) _parseError = false;
             else
             {
