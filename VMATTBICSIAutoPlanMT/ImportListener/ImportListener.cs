@@ -6,6 +6,8 @@ using EvilDICOM.Core;
 using EvilDICOM.Network;
 using EvilDICOM.Network.Enums;
 using EvilDICOM.Core.Helpers;
+using VMS.TPS.Common.Model.API;
+using System.Linq;
 
 namespace ImportListener
 {
@@ -256,6 +258,10 @@ namespace ImportListener
 
             Console.WriteLine("Executing C-store operation now...");
             EvilDICOM.Network.DIMSE.CStoreResponse response = storer.SendCStore(dcm, ref msgId);
+            if(response == null)
+            {
+                response.Status = CheckAriaDBForImportedSS(settings.MRN, dcm);
+            }
             if ((Status)response.Status != Status.SUCCESS)
             {
                 Console.WriteLine($"CStore failed");
@@ -266,6 +272,49 @@ namespace ImportListener
                 RemoveRTStructDcmFile(theFile);
             }
             return false;
+        }
+
+        /// <summary>
+        /// Helper method to check the aria DB for the imported structure set. Used in cases where the c-store response returns a null object, which 
+        /// typically happens due to a network timeout error. 
+        /// </summary>
+        /// <param name="mrn"></param>
+        /// <param name="dcm"></param>
+        /// <returns></returns>
+        private static ushort CheckAriaDBForImportedSS(string mrn, DICOMObject dcm)
+        {
+            Status importedSuccess = Status.FAILURE;
+            //connection timed-out or something. Usually successfully imports --> directly check Aria DB through ESAPI
+            Console.WriteLine("Warning! CStore response was null! This typically happens when the network connection times out");
+            Console.WriteLine("Attempting to directly check the Aria DB if the structure set was imported successfully");
+            try
+            {
+                Application app = Application.CreateApplication();
+                Patient pi = app.OpenPatientById(mrn);
+                if (pi != null)
+                {
+                    string SSUID = dcm.FindFirst(TagHelper.UID).DData as string;
+                    if (!string.IsNullOrEmpty(SSUID))
+                    {
+                        if (pi.StructureSets.Any(x => string.Equals(SSUID, x.UID)))
+                        {
+                            importedSuccess = Status.SUCCESS;
+                        }
+                        Console.WriteLine("Structure set not found in Aria!");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"Error! Could not open patient {mrn}!");
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error! Unable to connect to aria DB to check if structure set was successfully imported! Check manually!");
+                Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
+            }
+            return (ushort)importedSuccess;
         }
 
         /// <summary>

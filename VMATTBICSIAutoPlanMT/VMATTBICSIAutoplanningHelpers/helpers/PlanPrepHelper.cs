@@ -40,7 +40,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             if (StructureTuningHelper.DoesStructureExistInSS("couchsurface", vmatPlan.StructureSet, true))
             {
                 Structure couchSurface = StructureTuningHelper.GetStructureFromId("couchsurface", vmatPlan.StructureSet);
-                TT = shiftsfromBBs.First().Item2 - (couchSurface.MeshGeometry.Positions.Min(p => p.Y)) / 10;
+                TT = (vmatPlan.Beams.First(x => !x.IsSetupField).IsocenterPosition.y- couchSurface.MeshGeometry.Positions.Min(p => p.Y)) / 10;
             }
 
             sb.Append(BuildTBIShiftNote(TT, isoNames, shiftsBetweenIsos, numVMATIsos, numIsos));
@@ -120,7 +120,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             if (StructureTuningHelper.DoesStructureExistInSS("couchsurface", vmatPlan.StructureSet, true))
             {
                 Structure couchSurface = StructureTuningHelper.GetStructureFromId("couchsurface", vmatPlan.StructureSet);
-                TT = shiftsfromBBs.First().Item2 - (couchSurface.MeshGeometry.Positions.Min(p => p.Y)) / 10;
+                TT = (vmatPlan.Beams.First(x => !x.IsSetupField).IsocenterPosition.y - couchSurface.MeshGeometry.Positions.Min(p => p.Y)) / 10;
             }
 
             sb.Append(BuildCSIShiftNote(TT, IsoNameHelper.GetCSIIsoNames(isoPositions.Count), shiftsBetweenIsos));
@@ -158,7 +158,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 }
                 else
                 {
-                    sb.AppendLine(String.Format("{0} shift from **{1} ISO**", isoNames.ElementAt(count), isoNames.ElementAt(count - 1)));
+                    sb.AppendLine($"{isoNames.ElementAt(count)} shift from **{isoNames.ElementAt(count - 1)} ISO**");
                 }
                 if (!CalculationHelper.AreEqual(itr.Item1, 0.0)) sb.AppendLine($"X = {Math.Abs(itr.Item1):0.0} cm {(itr.Item1 > 0 ? "LEFT" : "RIGHT")}");
                 if (!CalculationHelper.AreEqual(itr.Item2, 0.0)) sb.AppendLine($"Y = {Math.Abs(itr.Item2):0.0} cm {(itr.Item2 > 0 ? "POST" : "ANT")}");

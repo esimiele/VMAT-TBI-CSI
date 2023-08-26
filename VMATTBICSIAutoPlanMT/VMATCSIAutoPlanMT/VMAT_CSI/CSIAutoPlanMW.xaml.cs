@@ -197,13 +197,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 foreach (StructureSet s in pi.StructureSets.OrderByDescending(x => x.HistoryDateTime)) SSID.Items.Add(s.Id);
                 //SSID default is the current structure set in the context
-                if (!string.IsNullOrEmpty(ss))
+                if (!string.IsNullOrEmpty(ss) && pi.StructureSets.Any(x => string.Equals(x.Id, ss)))
                 {
-                    selectedSS = pi.StructureSets.FirstOrDefault(x => string.Equals(x.Id, ss));
+                    selectedSS = pi.StructureSets.First(x => string.Equals(x.Id, ss));
                     SSID.Text = selectedSS.Id;
                 }
                 else log.LogError("Warning! No structure set in context! Please select a structure set at the top of the GUI!");
-                ExportCTUIHelper.PopulateCTImageSets(pi.StructureSets.Where(x => x != selectedSS).ToList(), selectedSS, CTimageSP);
+                PopulateExportCTTab();
                 patientMRNLabel.Content = pi.Id;
             }
             else log.LogError("Could not open patient!");
@@ -349,6 +349,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         #region ExportCT
+        private void PopulateExportCTTab()
+        {
+            ExportCTUIHelper.PopulateCTImageSets(pi.StructureSets.Where(x => x != selectedSS).ToList(), selectedSS, CTimageSP);
+        }
+
         //stuff related to Export CT tab
         private void ExportImgInfo_Click(object sender, RoutedEventArgs e)
         {

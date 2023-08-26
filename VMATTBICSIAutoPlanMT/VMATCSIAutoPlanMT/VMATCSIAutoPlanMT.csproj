@@ -161,9 +161,9 @@
     </EmbeddedResource>
     <None Include="Configuration\VMAT_CSI_config.ini" />
     <None Include="packages.config" />
-    <None Include="PlanTemplates\CSI_reduceDose.ini" />
-    <None Include="PlanTemplates\CSI_regimen1.ini" />
-    <None Include="PlanTemplates\CSI_regimen2.ini" />
+    <None Include="PlanTemplates\1Low Dose CSI.ini" />
+    <None Include="PlanTemplates\2Intermediate Risk CSI.ini" />
+    <None Include="PlanTemplates\3High Risk CSI.ini" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
