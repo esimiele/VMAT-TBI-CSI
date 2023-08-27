@@ -8,6 +8,8 @@ using EvilDICOM.Network.Enums;
 using EvilDICOM.Core.Helpers;
 using VMS.TPS.Common.Model.API;
 using System.Linq;
+using System.Diagnostics;
+using System.Reflection;
 
 namespace ImportListener
 {
@@ -17,6 +19,7 @@ namespace ImportListener
         static bool filePresent = false;
         static bool fileReadyForImport = false;
         static string theFile;
+        static string SSUID;
         static double elapsedSec = 0.0;
         static System.Timers.Timer aTimer = null;
         const string _twirl = "-\\|/";
@@ -61,6 +64,13 @@ namespace ImportListener
                         {
                             //open aria and check if the spinal cord and brain are high res. If so, launch CSI autoplanning code
                             //and instruct to auto downsample to normal res
+                            if(CheckIfImportedStructuresAreHighRes(settings.MRN))
+                            {
+                                if(LaunchExe("VMATCSIAutoPlanMT", settings.MRN))
+                                {
+                                    Environment.Exit(0);
+                                }
+                            }
                         }
                     }
                     else Console.WriteLine($"Auto contours for patient ({settings.MRN}) were being used by another process and could not be imported. Exiting");
@@ -76,6 +86,50 @@ namespace ImportListener
             }
             if(aTimer != null) aTimer.Dispose();
             return false;
+        }
+
+        /// <summary>
+        /// Helper method to launch the executable with name matching the supplied name
+        /// </summary>
+        /// <param name="exeName"></param>
+        private static bool LaunchExe(string exeName, string mrn)
+        {
+            bool successfulLaunch = false;
+            string path = AppExePath(exeName);
+            if (!string.IsNullOrEmpty(path))
+            {
+                ProcessStartInfo p = new ProcessStartInfo(path)
+                {
+                    //something vague and unique. -d for downsample
+                    Arguments = $"-d {mrn} {SSUID}"
+                };
+                Process.Start(p);
+                Console.WriteLine($"Launched VMAT CSI autoplanning code to automatically down sample high-res structures!");
+                successfulLaunch = true;
+            }
+            else Console.WriteLine($"Error! {exeName} executable NOT found!");
+            return successfulLaunch;
+        }
+
+        /// <summary>
+        /// Same method in the .cs launcher (can't use external libraries in single file plugins)
+        /// </summary>
+        /// <param name="exeName"></param>
+        /// <returns></returns>
+        private static string AppExePath(string exeName)
+        {
+            return FirstExePathIn(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), exeName);
+        }
+
+        /// <summary>
+        /// Same method in the .cs launcher (can't use external libraries in single file plugins)
+        /// </summary>
+        /// <param name="dir"></param>
+        /// <param name="exeName"></param>
+        /// <returns></returns>
+        private static string FirstExePathIn(string dir, string exeName)
+        {
+            return Directory.GetFiles(dir, "*.exe").FirstOrDefault(x => x.Contains(exeName));
         }
 
         /// <summary>
@@ -302,20 +356,21 @@ namespace ImportListener
                 Patient pi = app.OpenPatientById(mrn);
                 if (pi != null)
                 {
-                    string SSUID = dcm.FindFirst(TagHelper.UID).DData as string;
+                    SSUID = dcm.FindFirst(TagHelper.UID).DData as string;
                     if (!string.IsNullOrEmpty(SSUID))
                     {
                         if (pi.StructureSets.Any(x => string.Equals(SSUID, x.UID)))
                         {
                             importedSuccess = Status.SUCCESS;
                         }
-                        Console.WriteLine("Structure set not found in Aria!");
+                        else Console.WriteLine("Structure set not found in Aria!");
                     }
                 }
                 else
                 {
                     Console.WriteLine($"Error! Could not open patient {mrn}!");
                 }
+                app.ClosePatient();
             }
             catch (Exception e)
             {
@@ -324,6 +379,54 @@ namespace ImportListener
                 Console.WriteLine(e.StackTrace);
             }
             return (ushort)importedSuccess;
+        }
+
+        /// <summary>
+        /// Helper method to check the imported structures in the Aria DB and see if they were imported as high res
+        /// </summary>
+        /// <param name="mrn"></param>
+        /// <returns></returns>
+        private static bool CheckIfImportedStructuresAreHighRes(string mrn)
+        {
+            bool isHighRes = false;
+            try
+            {
+                Application app = Application.CreateApplication();
+                Patient pi = app.OpenPatientById(mrn);
+                if (pi != null)
+                {
+                    if (!string.IsNullOrEmpty(SSUID))
+                    {
+                        if (pi.StructureSets.Any(x => string.Equals(SSUID, x.UID)))
+                        {
+                            StructureSet ss = pi.StructureSets.First(x => string.Equals(SSUID, x.UID));
+                            if(ss.Structures.Any(x => (string.Equals(x.Id.ToLower(), "spinalcord") && !x.IsEmpty && x.IsHighResolution)))
+                            {
+                                Console.WriteLine($"Spinal cord was imported as high resolution!");
+                                isHighRes = true;
+                            }
+                            else if (ss.Structures.Any(x => (string.Equals(x.Id.ToLower(), "brain") && !x.IsEmpty && x.IsHighResolution)))
+                            {
+                                Console.WriteLine($"Brain was imported as high resolution!");
+                                isHighRes = true;
+                            }
+                        }
+                        else Console.WriteLine("Structure set not found in Aria!");
+                    }
+                    app.ClosePatient();
+                }
+                else
+                {
+                    Console.WriteLine($"Error! Could not open patient {mrn}!");
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error! Unable to connect to aria DB to check if the imported structures were imported as high resolution! Check manually!");
+                Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
+            }
+            return isHighRes;
         }
 
         /// <summary>

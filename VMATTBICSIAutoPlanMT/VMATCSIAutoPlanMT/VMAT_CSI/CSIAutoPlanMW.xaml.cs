@@ -376,6 +376,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 if (result) return;
                 imgExported = true;
                 exportCTTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+                this.Close();
             }
             else log.LogError("No image selected for export!");
         }
@@ -2307,7 +2308,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                 else if (parameter == "log file path")
                                 {
                                     string result = ConfigurationHelper.VerifyPathIntegrity(value);
-                                    if (!string.IsNullOrEmpty(result)) logPath = result;
+                                    if (!string.IsNullOrEmpty(result))
+                                    {
+                                        logPath = result;
+                                        if (!string.Equals(logPath, log.LogPath)) log.LogPath = logPath;
+                                    }
                                     else log.LogError($"Warning! {value} does NOT exist!");
                                 }
                                 else if (parameter == "close progress windows on finish")

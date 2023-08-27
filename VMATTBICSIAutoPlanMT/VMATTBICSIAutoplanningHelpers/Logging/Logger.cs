@@ -22,6 +22,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         public string StructureSet { set => selectedSS = value; }
         public bool ChangesSaved { set => changesSaved = value; }
         public string User { set => userId = value; }
+        public string LogPath { get { return logPath; } set { logPath = value; } }
         //plan ID, target Id, numFx, dosePerFx, cumulative dose
         public List<Tuple<string, string, int, DoseValue, double>> Prescriptions { set => prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(value); }
         public List<string> AddedPrelimTargetsStructures { set => addedPrelimTargets = new List<string>(value); }

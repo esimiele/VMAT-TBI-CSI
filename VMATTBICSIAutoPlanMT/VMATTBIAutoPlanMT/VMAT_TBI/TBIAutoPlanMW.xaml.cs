@@ -1940,7 +1940,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                                 else if (parameter == "log file path")
                                 {
                                     string path = ConfigurationHelper.VerifyPathIntegrity(value);
-                                    if (!string.IsNullOrEmpty(path)) logPath = path;
+                                    if (!string.IsNullOrEmpty(path))
+                                    {
+                                        logPath = path;
+                                        if (!string.Equals(logPath, log.LogPath)) log.LogPath = logPath;
+                                    }
                                     else log.LogError($"Warning! {value} does NOT exist!");
                                 }
                                 else if (parameter == "close progress windows on finish")
