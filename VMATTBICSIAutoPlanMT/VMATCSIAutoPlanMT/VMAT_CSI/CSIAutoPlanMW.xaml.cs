@@ -127,7 +127,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private bool InitializeScript(List<string> args)
         {
             try { app = VMS.TPS.Common.Model.API.Application.CreateApplication(); }
-            catch (Exception e) { MessageBox.Show(String.Format("Warning! Could not generate Aria application instance because: {0}", e.Message)); }
+            catch (Exception e) { MessageBox.Show($"Warning! Could not generate Aria application instance because: {e.Message}"); }
             string mrn = "";
             string ss = "";
             if (args.Any())
@@ -351,7 +351,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         #region ExportCT
         private void PopulateExportCTTab()
         {
-            ExportCTUIHelper.PopulateCTImageSets(pi.StructureSets.Where(x => x != selectedSS).ToList(), selectedSS, CTimageSP);
+            VMS.TPS.Common.Model.API.Image theImage = null;
+            if (selectedSS != null) theImage = selectedSS.Image;
+            ExportCTUIHelper.PopulateCTImageSets(ExportCTUIHelper.GetAllCTImagesForPatient(pi).Where(x => x != theImage).ToList(), theImage, CTimageSP);
         }
 
         //stuff related to Export CT tab
@@ -364,7 +366,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if (app == null || pi == null || imgExported) return;
             //CT image stack panel, patient structure set list, patient id, image export path, image export format
-            VMS.TPS.Common.Model.API.Image selectedImage = ExportCTUIHelper.GetSelectedImageForExport(CTimageSP, pi.StructureSets.ToList());
+            VMS.TPS.Common.Model.API.Image selectedImage = ExportCTUIHelper.GetSelectedImageForExport(CTimageSP, ExportCTUIHelper.GetAllCTImagesForPatient(pi));
             if(selectedImage != null)
             {
                 CTImageExport exporter = new CTImageExport(selectedImage, pi.Id, IEData, closePWOnFinish);

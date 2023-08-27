@@ -44,8 +44,10 @@ namespace VMS.TPS
                     if (!string.IsNullOrEmpty(path))
                     {
                         ProcessStartInfo p = new ProcessStartInfo(path);
-                        if (!addOptLaunchOption) p.Arguments = String.Format("{0} {1}",context.Patient.Id, context.StructureSet.Id);
-                        else p.Arguments = String.Format("{0} {1} {2}",context.Patient.Id,context.StructureSet.Id, true);
+                        string SSID = "/";
+                        if (context.StructureSet != null) SSID = context.StructureSet.Id;
+                        if (!addOptLaunchOption) p.Arguments = String.Format("{0} {1}",context.Patient.Id, SSID);
+                        else p.Arguments = String.Format("{0} {1} {2}",context.Patient.Id,SSID, true);
                         Process.Start(p);
                     }
                     else MessageBox.Show(String.Format("Error! {0} executable NOT found!", exeName));

@@ -13,11 +13,7 @@ namespace VMATCSIAutoPlanMT
         private void Application_Startup(object sender, StartupEventArgs e)
         {
             List<string> theArguments = new List<string> { };
-            if (e.Args.Length > 1)
-            {
-                //only add first two arguments (patient id and structure set). Don't care about 3rd argument
-                for (int i = 0; i < 2; i++) theArguments.Add(e.Args[i]);
-            }
+            for (int i = 0; i < e.Args.Length; i++) theArguments.Add(e.Args[i]);
 
             VMAT_CSI.CSIAutoPlanMW mw = new VMAT_CSI.CSIAutoPlanMW(theArguments);
             if(!mw.GetCloseOpenPatientWindowStatus()) mw.Show();

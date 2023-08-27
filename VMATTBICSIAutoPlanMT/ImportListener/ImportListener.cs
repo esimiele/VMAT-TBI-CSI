@@ -55,7 +55,14 @@ namespace ImportListener
                     ResetTimer(false);
                     Console.WriteLine("Waiting for RT Struct file to be free for import...");
                     WaitForFile(settings.TimeoutSec);
-                    if (fileReadyForImport) ImportRTStructureSet(settings);
+                    if (fileReadyForImport)
+                    {
+                        if(ImportRTStructureSet(settings))
+                        {
+                            //open aria and check if the spinal cord and brain are high res. If so, launch CSI autoplanning code
+                            //and instruct to auto downsample to normal res
+                        }
+                    }
                     else Console.WriteLine($"Auto contours for patient ({settings.MRN}) were being used by another process and could not be imported. Exiting");
                 }
                 else Console.WriteLine($"Auto contours for patient ({settings.MRN}) not found in time allotted. Exiting");
@@ -248,6 +255,7 @@ namespace ImportListener
         private static bool ImportRTStructureSet(ImportSettingsModel settings)
         {
             Console.WriteLine("Importing structure set now...");
+            bool importSuccess = false;
             (Entity ariaDBDaemon, Entity localDaemon) = ConstructDaemons(settings);
             if (PingDaemon(ariaDBDaemon, localDaemon)) return true;
 
@@ -265,13 +273,14 @@ namespace ImportListener
             if ((Status)response.Status != Status.SUCCESS)
             {
                 Console.WriteLine($"CStore failed");
+                importSuccess = true;
             }
             else
             {
                 Console.WriteLine($"DICOM C-Store from {localDaemon.AeTitle} => {ariaDBDaemon.AeTitle} @{ariaDBDaemon.IpAddress}:{ariaDBDaemon.Port}: {(Status)response.Status}");
                 RemoveRTStructDcmFile(theFile);
             }
-            return false;
+            return importSuccess;
         }
 
         /// <summary>

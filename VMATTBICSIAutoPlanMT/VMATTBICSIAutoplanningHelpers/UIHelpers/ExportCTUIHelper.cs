@@ -5,6 +5,7 @@ using System.Windows;
 using VMS.TPS.Common.Model.API;
 using System.Text;
 using Image = VMS.TPS.Common.Model.API.Image;
+using VMS.TPS.Common.Model.Types;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
@@ -24,11 +25,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <param name="structureSets"></param>
         /// <param name="selectedSS"></param>
         /// <param name="theSP"></param>
-        public static void PopulateCTImageSets(List<StructureSet> structureSets, StructureSet selectedSS, StackPanel theSP)
+        public static void PopulateCTImageSets(List<Image> CTImages, Image selectedImage, StackPanel theSP)
         {
             //needed to allow automatic selection of CT image for selected CT structure set (nothing will be selected if no structure set is selected)
-            if (selectedSS != null)  structureSets.Insert(0, selectedSS);
-            foreach (StructureSet itr in structureSets) theSP.Children.Add(AddCTImageSetToUI(theSP, itr.Image, itr == selectedSS ? true : false));
+            if (selectedImage != null)  CTImages.Insert(0, selectedImage);
+            foreach (Image itr in CTImages) theSP.Children.Add(AddCTImageSetToUI(theSP, itr, (itr == selectedImage || CTImages.Count == 1) ? true : false));
         }
 
         /// <summary>
@@ -146,13 +147,23 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <param name="theSP"></param>
         /// <param name="structureSets"></param>
         /// <returns></returns>
-        public static Image GetSelectedImageForExport(StackPanel theSP, List<StructureSet> structureSets)
+        public static Image GetSelectedImageForExport(StackPanel theSP, List<Image> CTImages)
         {
             StringBuilder sb = new StringBuilder();
             string selectedCTID = ParseSelectedCTImage(theSP);
             Image theImage = null;
-            if (!string.IsNullOrWhiteSpace(selectedCTID)) theImage = structureSets.FirstOrDefault(x => x.Image.Id == selectedCTID).Image;
-            return (theImage);
+            if (!string.IsNullOrWhiteSpace(selectedCTID)) theImage = CTImages.FirstOrDefault(x => string.Equals(x.Id, selectedCTID));
+            return theImage;
+        }
+
+        /// <summary>
+        /// Helper method to return a list of all CT images for the patient
+        /// </summary>
+        /// <param name="pi"></param>
+        /// <returns></returns>
+        public static List<Image> GetAllCTImagesForPatient(Patient pi)
+        {
+            return pi.Studies.SelectMany(x => x.Series).Where(x => x.Modality == SeriesModality.CT).SelectMany(x => x.Images).Where(x => x.ZSize > 1).ToList();
         }
     }
 }
