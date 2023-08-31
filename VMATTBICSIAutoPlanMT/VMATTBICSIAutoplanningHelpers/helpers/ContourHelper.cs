@@ -11,8 +11,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public static class ContourHelper
     {
-        
-
         /// <summary>
         /// Helper method to crop the given structure from the body structure
         /// </summary>

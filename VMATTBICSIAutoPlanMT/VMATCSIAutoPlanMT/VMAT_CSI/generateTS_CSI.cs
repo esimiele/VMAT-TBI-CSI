@@ -102,7 +102,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         }
         #endregion
 
-        #region Preliminary Checks and Structure Unioning
+        #region Preliminary Checks
         /// <summary>
         /// Preliminary checks to ensure body exists and is contoured, user origin is inside body, and spinal cord structure exists
         /// </summary>

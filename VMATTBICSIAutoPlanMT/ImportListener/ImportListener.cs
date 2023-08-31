@@ -226,7 +226,7 @@ namespace ImportListener
         /// </summary>
         /// <param name="source"></param>
         /// <param name="e"></param>
-        private static void OnTimedEvent(Object source, ElapsedEventArgs e)
+        private static void OnTimedEvent(object source, ElapsedEventArgs e)
         {
             //increment the time on the progress window for each "tick", which is set to intervals of 0.1 second
             if(playAnimation) UpdateProgress();
