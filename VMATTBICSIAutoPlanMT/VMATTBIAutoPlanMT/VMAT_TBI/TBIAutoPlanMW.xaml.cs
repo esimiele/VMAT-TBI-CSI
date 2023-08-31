@@ -134,6 +134,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 ss = args.ElementAt(1);
             }
 
+            logPath = ConfigurationHelper.ReadyLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
             log = new Logger(logPath, PlanType.VMAT_TBI, mrn);
             LoadDefaultConfigurationFiles();
             if (app != null)
@@ -171,7 +172,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             //load script configuration and display the settings
             List<string> configurationFiles = new List<string> { };
-            configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
             configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_TBI_config.ini");
             foreach (string itr in configurationFiles) LoadConfigurationSettings(itr);
         }
@@ -1837,6 +1837,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (configFile != "") configTB.Text += $"Configuration file: {configFile}" + Environment.NewLine + Environment.NewLine;
             else configTB.Text += "Configuration file: none" + Environment.NewLine + Environment.NewLine;
             configTB.Text += $"Documentation path: {documentationPath}" + Environment.NewLine + Environment.NewLine;
+            configTB.Text += $"Log file path: {logPath}" + Environment.NewLine + Environment.NewLine;
             configTB.Text += $"Close progress windows on finish: {closePWOnFinish}" + Environment.NewLine + Environment.NewLine;
             configTB.Text += "Default parameters:" + Environment.NewLine;
             configTB.Text += $"Contour field ovelap: {contourOverlap}" + Environment.NewLine;
@@ -1935,16 +1936,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                                 {
                                     string path = ConfigurationHelper.VerifyPathIntegrity(value);
                                     if (!string.IsNullOrEmpty(path)) documentationPath = path;
-                                    else log.LogError($"Warning! {value} does NOT exist!");
-                                }
-                                else if (parameter == "log file path")
-                                {
-                                    string path = ConfigurationHelper.VerifyPathIntegrity(value);
-                                    if (!string.IsNullOrEmpty(path))
-                                    {
-                                        logPath = path;
-                                        if (!string.Equals(logPath, log.LogPath)) log.LogPath = logPath;
-                                    }
                                     else log.LogError($"Warning! {value} does NOT exist!");
                                 }
                                 else if (parameter == "close progress windows on finish")

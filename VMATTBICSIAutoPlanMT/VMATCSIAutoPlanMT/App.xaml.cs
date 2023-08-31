@@ -1,13 +1,18 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Windows;
+using VMATTBICSIAutoPlanningHelpers.Helpers;
+using VMATTBICSIAutoPlanningHelpers.Logging;
 
 namespace VMATCSIAutoPlanMT
 {
     public partial class App : Application
     {
         /// <summary>
-        /// Called when application is launched. Copy the starteventargs into a string list and pass to main UI
+        /// Called when application is launched. Copy the starteventargs into a string list and pass to main UI or pass them to the autoconvert high to default
+        /// res class (indicated by the first argument in the startup args list)
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
@@ -23,9 +28,19 @@ namespace VMATCSIAutoPlanMT
             if (theArguments.Any() && string.Equals(theArguments.First(), "-d"))
             {
                 //called from import listener. Need to auto-downsample some important structures
+                Logger log = new Logger(ConfigurationHelper.ReadyLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini"),
+                                        VMATTBICSIAutoPlanningHelpers.Enums.PlanType.VMAT_CSI,
+                                        theArguments.ElementAt(1));
+                log.OpType = VMATTBICSIAutoPlanningHelpers.Enums.ScriptOperationType.AutoConvertHighToDefaultRes;
                 VMAT_CSI.AutoResConverter ARC = new VMAT_CSI.AutoResConverter(theArguments.ElementAt(1), theArguments.ElementAt(2));
                 bool result = ARC.Execute();
-                if (result) MessageBox.Show("Unable to convert high resolution structures to default resolution! Try running the script normally and select the 'Generate Prelim Targets' tab");
+                log.AppendLogOutput(ARC.GetLogOutput().ToString());
+                if (result)
+                {
+                    log.AppendLogOutput(ARC.GetErrorStackTrace());
+                    log.LogError("Unable to convert high resolution structures to default resolution! Try running the script normally and select the 'Generate Prelim Targets' tab");
+                }
+                AppClosingHelper.CloseApplication(ARC.GetAriaApplicationInstance(), ARC.GetIsPatientOpenStatus(), ARC.GetAriaIsModifiedStatus(), true, log);
             }
             else
             {

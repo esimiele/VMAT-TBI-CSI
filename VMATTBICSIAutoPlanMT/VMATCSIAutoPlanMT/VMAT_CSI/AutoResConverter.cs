@@ -10,14 +10,22 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
     public class AutoResConverter : SimpleMTbase
     {
+        #region Get methods
         public string GetErrorStackTrace() { return stackTraceError; }
+        public Application GetAriaApplicationInstance() { return app; }
+        public bool GetIsPatientOpenStatus() { return isPatientOpen; }
+        public bool GetAriaIsModifiedStatus() { return isModified; }
+        #endregion
 
+        //data memebers
         private string mrn;
+        private bool isPatientOpen = false;
+        private bool isModified = false;
         private string SSUID;
         private StructureSet selectedSS;
         private ProvideUIUpdateDelegate PUUD;
         private string stackTraceError;
-        Application app = null;
+        private Application app = null;
 
         public AutoResConverter(string PID, string id)
         {
@@ -26,6 +34,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             SetCloseOnFinish(true, 1000);
         }
 
+        #region Run control
         public override bool Run()
         {
             try
@@ -34,7 +43,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 if (GenerateAriaInstance()) return true;
                 if (PreliminaryChecks()) return true;
                 if (ConvertHighToDefaultResolution()) return true;
-                if (CleanUp()) return true;
                 UpdateUILabel("Finished!");
                 ProvideUIUpdate(100, "Finished converting critical high res structures to default res!");
                 ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
@@ -47,7 +55,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 return true;
             }
         }
+        #endregion
 
+        #region Generate Aria instance, prelim checks, and convert
         private bool GenerateAriaInstance()
         {
             UpdateUILabel("Generating Aria instance:");
@@ -59,6 +69,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 Patient pi = app.OpenPatientById(mrn);
                 if (pi != null)
                 {
+                    isPatientOpen = true;
                     ProvideUIUpdate($"Patient: {mrn} open successfully");
                     if (!string.IsNullOrEmpty(SSUID))
                     {
@@ -84,6 +95,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 ProvideUIUpdate($"Error! Unable to connect to aria DB to check if structure set was successfully imported! Check manually!", true);
                 ProvideUIUpdate(e.Message);
                 ProvideUIUpdate(e.StackTrace);
+                stackTraceError = e.StackTrace;
             }
             ProvideUIUpdate(100, $"Elapsed time: {GetElapsedTime()}");
             return fail;
@@ -110,29 +122,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             UpdateUILabel("Converting to default res:");
             ProvideUIUpdate(0, $"Converting any critical high res structures to default resolution");
             if (ContourHelper.CheckHighResolutionAndConvert(new List<string> { "brain", "spinal_cord", "spinalcord" }, selectedSS, PUUD)) return true;
+            isModified = true;
             ProvideUIUpdate(100, "Checked and converted any high res base targets");
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
-
-        private bool CleanUp()
-        {
-            UpdateUILabel("Cleaning up:");
-            try
-            {
-                app.SaveModifications();
-                ProvideUIUpdate("Modification saved!");
-                app.ClosePatient();
-                ProvideUIUpdate($"Patient: {mrn} closed successfully!");
-                app.Dispose();
-                return false;
-            }
-            catch (Exception e)
-            {
-                ProvideUIUpdate($"Error! Unable to clean up because: {e.Message}", true);
-                ProvideUIUpdate($"Modifications may or may not be saved to the data based! Check manually!");
-                return true;
-            }
-        }
+        #endregion
     }
 }

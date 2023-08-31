@@ -13,7 +13,6 @@ using VMATTBICSIAutoPlanningHelpers.Helpers;
 using VMATTBICSIAutoPlanningHelpers.Structs;
 using VMATTBICSIAutoPlanningHelpers.UIHelpers;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
-using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
 using VMATTBICSIOptLoopMT.VMAT_CSI;
 using VMATTBICSIOptLoopMT.VMAT_TBI;
 using VMATTBICSIOptLoopMT.Prompts;
@@ -107,8 +106,10 @@ namespace VMATTBICSIOptLoopMT
             try { app = VMS.TPS.Common.Model.API.Application.CreateApplication(); }
             catch (Exception e) { MessageBox.Show($"Warning! Could not generate Aria application instance because: {e.Message}"); }
 
-            string logConfigurationFile = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini";
-            if (File.Exists(logConfigurationFile)) LoadConfigurationSettings(logConfigurationFile);
+            if (File.Exists(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini"))
+            {
+                logFilePath = ConfigurationHelper.ReadyLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
+            }
 
             PlanTemplates = new ObservableCollection<AutoPlanTemplateBase>() { };
             DataContext = this;
@@ -813,11 +814,6 @@ namespace VMATTBICSIOptLoopMT
                                 {
                                     documentationPath = value;
                                     if (documentationPath.LastIndexOf("\\") != documentationPath.Length - 1) documentationPath += "\\";
-                                }
-                                else if (parameter == "log file path")
-                                {
-                                    logFilePath = value;
-                                    if (logFilePath.LastIndexOf("\\") != logFilePath.Length - 1) logFilePath += "\\";
                                 }
                                 else if (parameter == "demo") 
                                 { 

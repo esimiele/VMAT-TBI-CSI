@@ -12,6 +12,52 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
     public static class ConfigurationHelper
     {
         /// <summary>
+        /// Simple helper method to read the requested log file path from the log configuration file. Returns the parse path (empty string if it was unable to parse)
+        /// </summary>
+        /// <param name="configFile"></param>
+        /// <returns></returns>
+        public static string ReadyLogPathFromConfigurationFile(string configFile)
+        {
+            string logPath = "";
+            try
+            {
+                using (StreamReader reader = new StreamReader(configFile))
+                {
+                    //setup temporary vectors to hold the parsed data
+                    string line;
+
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        //this line contains useful information (i.e., it is not a comment)
+                        if (!string.IsNullOrEmpty(line) && line.Substring(0, 1) != "%")
+                        {
+                            //useful info on this line in the format of parameter=value
+                            //parse parameter and value separately using '=' as the delimeter
+                            if (line.Contains("="))
+                            {
+                                //default configuration parameters
+                                string parameter = line.Substring(0, line.IndexOf("="));
+                                string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
+                                if (parameter == "log file path")
+                                {
+                                    logPath = VerifyPathIntegrity(value);
+                                }
+                            }
+                        }
+                    }
+                    reader.Close();
+                }
+            }
+            //let the user know if the data parsing failed
+            catch (Exception e)
+            {
+                MessageBox.Show($"Error could not load configuration file because: {e.Message}\n\nAssuming default parameters");
+                MessageBox.Show(e.StackTrace);
+            }
+            return logPath;
+        }
+
+        /// <summary>
         /// Helper function to parse a template .ini file and build a new instance of CSIAutoPlanTemplate 
         /// </summary>
         /// <param name="file"></param>

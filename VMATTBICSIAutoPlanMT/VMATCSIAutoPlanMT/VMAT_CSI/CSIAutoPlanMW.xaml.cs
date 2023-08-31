@@ -119,7 +119,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             //load script configuration and display the settings
             List<string> configurationFiles = new List<string> { };
-            configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
             configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_CSI_config.ini");
             foreach (string itr in configurationFiles) LoadConfigurationSettings(itr);
         }
@@ -137,6 +136,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
 
             IEData = new ImportExportDataStruct();
+            logPath = ConfigurationHelper.ReadyLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
             log = new Logger(logPath, PlanType.VMAT_CSI, mrn);
             LoadDefaultConfigurationFiles();
             if (app != null)
@@ -146,7 +146,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
                 //check the version information of Eclipse installed on this machine. If it is older than version 15.6, let the user know that this script may not work properly on their system
                 if (!double.TryParse(app.ScriptEnvironment.VersionInfo.Substring(0, app.ScriptEnvironment.VersionInfo.LastIndexOf(".")), out double vinfo)) log.LogError("Warning! Could not parse Eclise version number! Proceed with caution!");
-                else if (vinfo < 15.6) log.LogError(String.Format("Warning! Detected Eclipse version: {0:0.0} is older than v15.6! Proceed with caution!", vinfo));
+                else if (vinfo < 15.6) log.LogError($"Warning! Detected Eclipse version: {vinfo} is older than v15.6! Proceed with caution!");
             }
 
             PlanTemplates = new ObservableCollection<CSIAutoPlanTemplate>() { new CSIAutoPlanTemplate("--select--") };
@@ -2165,6 +2165,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (configFile != "") configTB.Text += $"Configuration file: {configFile}" + Environment.NewLine + Environment.NewLine;
             else configTB.Text += "Configuration file: none" + Environment.NewLine + Environment.NewLine;
             configTB.Text += $"Documentation path: {documentationPath}" + Environment.NewLine + Environment.NewLine;
+            configTB.Text += $"Log file path: {logPath}" + Environment.NewLine + Environment.NewLine;
             configTB.Text += $"Close progress windows on finish: {closePWOnFinish}" + Environment.NewLine + Environment.NewLine;
             configTB.Text += $"Import/export settings:" + Environment.NewLine;
             configTB.Text += $"Image export path: {IEData.WriteLocation}" + Environment.NewLine;
@@ -2303,16 +2304,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                 {
                                     string result = ConfigurationHelper.VerifyPathIntegrity(value);
                                     if (!string.IsNullOrEmpty(result)) documentationPath = result;
-                                    else log.LogError($"Warning! {value} does NOT exist!");
-                                }
-                                else if (parameter == "log file path")
-                                {
-                                    string result = ConfigurationHelper.VerifyPathIntegrity(value);
-                                    if (!string.IsNullOrEmpty(result))
-                                    {
-                                        logPath = result;
-                                        if (!string.Equals(logPath, log.LogPath)) log.LogPath = logPath;
-                                    }
                                     else log.LogError($"Warning! {value} does NOT exist!");
                                 }
                                 else if (parameter == "close progress windows on finish")

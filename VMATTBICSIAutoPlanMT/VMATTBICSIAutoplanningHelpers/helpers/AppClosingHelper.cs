@@ -1,6 +1,7 @@
 ﻿using VMATTBICSIAutoPlanningHelpers.Logging;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
 using System.Windows;
+using Application = VMS.TPS.Common.Model.API.Application;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
@@ -14,7 +15,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="isModified"></param>
         /// <param name="autoSave"></param>
         /// <param name="log"></param>
-        public static void CloseApplication(VMS.TPS.Common.Model.API.Application app, bool patientOpen, bool isModified, bool autoSave, Logger log)
+        public static void CloseApplication(Application app, bool patientOpen, bool isModified, bool autoSave, Logger log)
         {
             //be sure to close the patient before closing the application. Not doing so will result in unclosed timestamps in eclipse
             if (isModified)
