@@ -108,7 +108,7 @@ namespace VMATTBICSIOptLoopMT
 
             if (File.Exists(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini"))
             {
-                logFilePath = ConfigurationHelper.ReadyLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
+                logFilePath = ConfigurationHelper.ReadLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
             }
 
             PlanTemplates = new ObservableCollection<AutoPlanTemplateBase>() { };

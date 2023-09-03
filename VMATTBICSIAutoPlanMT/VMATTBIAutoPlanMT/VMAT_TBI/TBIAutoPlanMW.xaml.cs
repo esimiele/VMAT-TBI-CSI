@@ -134,7 +134,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 ss = args.ElementAt(1);
             }
 
-            logPath = ConfigurationHelper.ReadyLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
+            logPath = ConfigurationHelper.ReadLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
             log = new Logger(logPath, PlanType.VMAT_TBI, mrn);
             LoadDefaultConfigurationFiles();
             if (app != null)

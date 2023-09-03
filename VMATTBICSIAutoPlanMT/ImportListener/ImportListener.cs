@@ -19,7 +19,7 @@ namespace ImportListener
         static bool filePresent = false;
         static bool fileReadyForImport = false;
         static string theFile;
-        static string SSUID;
+        static string SSID;
         static double elapsedSec = 0.0;
         static System.Timers.Timer aTimer = null;
         const string _twirl = "-\\|/";
@@ -102,7 +102,7 @@ namespace ImportListener
                 ProcessStartInfo p = new ProcessStartInfo(path)
                 {
                     //something vague and unique. -d for downsample
-                    Arguments = $"-d {mrn} {SSUID}"
+                    Arguments = $"-d {mrn} {SSID}"
                 };
                 Process.Start(p);
                 Console.WriteLine($"Launched VMAT CSI autoplanning code to automatically down sample high-res structures!");
@@ -335,7 +335,7 @@ namespace ImportListener
             else
             {
                 Console.WriteLine($"DICOM C-Store from {localDaemon.AeTitle} => {ariaDBDaemon.AeTitle} @{ariaDBDaemon.IpAddress}:{ariaDBDaemon.Port}: {(Status)response.Status}");
-                //RemoveRTStructDcmFile(theFile);
+                RemoveRTStructDcmFile(theFile);
             }
             return importFailed;
         }
@@ -359,10 +359,10 @@ namespace ImportListener
                 Patient pi = app.OpenPatientById(mrn);
                 if (pi != null)
                 {
-                    SSUID = dcm.FindFirst(TagHelper.StructureSetLabel).DData as string;
-                    if (!string.IsNullOrEmpty(SSUID))
+                    SSID = dcm.FindFirst(TagHelper.StructureSetLabel).DData as string;
+                    if (!string.IsNullOrEmpty(SSID))
                     {
-                        if (pi.StructureSets.Any(x => string.Equals(SSUID, x.Id)))
+                        if (pi.StructureSets.Any(x => string.Equals(SSID, x.Id)))
                         {
                             importedSuccess = Status.SUCCESS;
                         }
@@ -399,11 +399,11 @@ namespace ImportListener
                 Patient pi = app.OpenPatientById(mrn);
                 if (pi != null)
                 {
-                    if (!string.IsNullOrEmpty(SSUID))
+                    if (!string.IsNullOrEmpty(SSID))
                     {
-                        if (pi.StructureSets.Any(x => string.Equals(SSUID, x.Id)))
+                        if (pi.StructureSets.Count(x => string.Equals(SSID, x.Id)) == 1)
                         {
-                            StructureSet ss = pi.StructureSets.First(x => string.Equals(SSUID, x.Id));
+                            StructureSet ss = pi.StructureSets.First(x => string.Equals(SSID, x.Id));
                             if(ss.Structures.Any(x => (string.Equals(x.Id.ToLower(), "spinalcord") && !x.IsEmpty && x.IsHighResolution)))
                             {
                                 Console.WriteLine($"Spinal cord was imported as high resolution!");
@@ -415,7 +415,7 @@ namespace ImportListener
                                 isHighRes = true;
                             }
                         }
-                        else Console.WriteLine("Structure set not found in Aria!");
+                        else Console.WriteLine("Structure set not found in Aria or more than one structure set found with the same Id! Check manually!");
                     }
                     app.ClosePatient();
                     app.Dispose();

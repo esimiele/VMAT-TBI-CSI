@@ -16,7 +16,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="configFile"></param>
         /// <returns></returns>
-        public static string ReadyLogPathFromConfigurationFile(string configFile)
+        public static string ReadLogPathFromConfigurationFile(string configFile)
         {
             string logPath = "";
             try

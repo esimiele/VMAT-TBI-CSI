@@ -21,7 +21,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private string mrn;
         private bool isPatientOpen = false;
         private bool isModified = false;
-        private string SSUID;
+        private string SSID;
         private StructureSet selectedSS;
         private ProvideUIUpdateDelegate PUUD;
         private string stackTraceError;
@@ -30,7 +30,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         public AutoResConverter(string PID, string id)
         {
             mrn = PID;
-            SSUID = id;
+            SSID = id;
             SetCloseOnFinish(true, 1000);
         }
 
@@ -71,13 +71,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 {
                     isPatientOpen = true;
                     ProvideUIUpdate($"Patient: {mrn} open successfully");
-                    if (!string.IsNullOrEmpty(SSUID))
+                    if (!string.IsNullOrEmpty(SSID))
                     {
-                        ProvideUIUpdate($"Structure set UID: {SSUID}");
-                        if (pi.StructureSets.Any(x => string.Equals(SSUID, x.UID)))
+                        ProvideUIUpdate($"Structure set UID: {SSID}");
+                        if (pi.StructureSets.Any(x => string.Equals(SSID, x.Id)))
                         {
                             ProvideUIUpdate($"Structure set exists for patient!");
-                            selectedSS = pi.StructureSets.First(x => string.Equals(SSUID, x.UID));
+                            selectedSS = pi.StructureSets.First(x => string.Equals(SSID, x.Id));
                             ProvideUIUpdate($"Structure set Id: {selectedSS.Id}");
                             pi.BeginModifications();
                             fail = false;

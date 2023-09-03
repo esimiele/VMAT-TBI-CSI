@@ -28,7 +28,7 @@ namespace VMATCSIAutoPlanMT
             if (theArguments.Any() && string.Equals(theArguments.First(), "-d"))
             {
                 //called from import listener. Need to auto-downsample some important structures
-                Logger log = new Logger(ConfigurationHelper.ReadyLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini"),
+                Logger log = new Logger(ConfigurationHelper.ReadLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini"),
                                         VMATTBICSIAutoPlanningHelpers.Enums.PlanType.VMAT_CSI,
                                         theArguments.ElementAt(1));
                 log.OpType = VMATTBICSIAutoPlanningHelpers.Enums.ScriptOperationType.AutoConvertHighToDefaultRes;

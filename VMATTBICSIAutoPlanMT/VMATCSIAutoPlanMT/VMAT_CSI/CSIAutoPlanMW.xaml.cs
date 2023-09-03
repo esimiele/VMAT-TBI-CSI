@@ -136,7 +136,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
 
             IEData = new ImportExportDataStruct();
-            logPath = ConfigurationHelper.ReadyLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
+            logPath = ConfigurationHelper.ReadLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
             log = new Logger(logPath, PlanType.VMAT_CSI, mrn);
             LoadDefaultConfigurationFiles();
             if (app != null)
