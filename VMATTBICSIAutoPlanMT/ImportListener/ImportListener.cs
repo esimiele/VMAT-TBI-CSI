@@ -30,6 +30,7 @@ namespace ImportListener
         /// Main function. Input arguments are passed from calling script and include import path, mrn, aria database daemon info, local daemon info, and timeout period
         /// </summary>
         /// <param name="args"></param>
+        [STAThread]
         static void Main(string[] args)
         {
             ImportSettingsModel importSettings = new ImportSettingsModel(args);
@@ -60,13 +61,13 @@ namespace ImportListener
                     WaitForFile(settings.TimeoutSec);
                     if (fileReadyForImport)
                     {
-                        if(ImportRTStructureSet(settings))
+                        if(!ImportRTStructureSet(settings))
                         {
                             //open aria and check if the spinal cord and brain are high res. If so, launch CSI autoplanning code
                             //and instruct to auto downsample to normal res
                             if(CheckIfImportedStructuresAreHighRes(settings.MRN))
                             {
-                                if(LaunchExe("VMATCSIAutoPlanMT", settings.MRN))
+                                if (LaunchExe("VMATCSIAutoPlanMT", settings.MRN))
                                 {
                                     Environment.Exit(0);
                                 }
@@ -309,7 +310,7 @@ namespace ImportListener
         private static bool ImportRTStructureSet(ImportSettingsModel settings)
         {
             Console.WriteLine("Importing structure set now...");
-            bool importSuccess = false;
+            bool importFailed = false;
             (Entity ariaDBDaemon, Entity localDaemon) = ConstructDaemons(settings);
             if (PingDaemon(ariaDBDaemon, localDaemon)) return true;
 
@@ -320,21 +321,23 @@ namespace ImportListener
 
             Console.WriteLine("Executing C-store operation now...");
             EvilDICOM.Network.DIMSE.CStoreResponse response = storer.SendCStore(dcm, ref msgId);
+            //EvilDICOM.Network.DIMSE.CStoreResponse response = null;
             if(response == null)
             {
+                response = new EvilDICOM.Network.DIMSE.CStoreResponse();
                 response.Status = CheckAriaDBForImportedSS(settings.MRN, dcm);
             }
             if ((Status)response.Status != Status.SUCCESS)
             {
                 Console.WriteLine($"CStore failed");
-                importSuccess = true;
+                importFailed = true;
             }
             else
             {
                 Console.WriteLine($"DICOM C-Store from {localDaemon.AeTitle} => {ariaDBDaemon.AeTitle} @{ariaDBDaemon.IpAddress}:{ariaDBDaemon.Port}: {(Status)response.Status}");
-                RemoveRTStructDcmFile(theFile);
+                //RemoveRTStructDcmFile(theFile);
             }
-            return importSuccess;
+            return importFailed;
         }
 
         /// <summary>
@@ -356,10 +359,10 @@ namespace ImportListener
                 Patient pi = app.OpenPatientById(mrn);
                 if (pi != null)
                 {
-                    SSUID = dcm.FindFirst(TagHelper.UID).DData as string;
+                    SSUID = dcm.FindFirst(TagHelper.StructureSetLabel).DData as string;
                     if (!string.IsNullOrEmpty(SSUID))
                     {
-                        if (pi.StructureSets.Any(x => string.Equals(SSUID, x.UID)))
+                        if (pi.StructureSets.Any(x => string.Equals(SSUID, x.Id)))
                         {
                             importedSuccess = Status.SUCCESS;
                         }
@@ -371,6 +374,7 @@ namespace ImportListener
                     Console.WriteLine($"Error! Could not open patient {mrn}!");
                 }
                 app.ClosePatient();
+                app.Dispose();
             }
             catch (Exception e)
             {
@@ -397,9 +401,9 @@ namespace ImportListener
                 {
                     if (!string.IsNullOrEmpty(SSUID))
                     {
-                        if (pi.StructureSets.Any(x => string.Equals(SSUID, x.UID)))
+                        if (pi.StructureSets.Any(x => string.Equals(SSUID, x.Id)))
                         {
-                            StructureSet ss = pi.StructureSets.First(x => string.Equals(SSUID, x.UID));
+                            StructureSet ss = pi.StructureSets.First(x => string.Equals(SSUID, x.Id));
                             if(ss.Structures.Any(x => (string.Equals(x.Id.ToLower(), "spinalcord") && !x.IsEmpty && x.IsHighResolution)))
                             {
                                 Console.WriteLine($"Spinal cord was imported as high resolution!");
@@ -414,6 +418,7 @@ namespace ImportListener
                         else Console.WriteLine("Structure set not found in Aria!");
                     }
                     app.ClosePatient();
+                    app.Dispose();
                 }
                 else
                 {
