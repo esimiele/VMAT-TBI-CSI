@@ -18,7 +18,7 @@ namespace VMATCSIAutoPlanMT
         /// <param name="e"></param>
         private void Application_Startup(object sender, StartupEventArgs e)
         {
-            //string[] dummyArgs = { "-d", "$CSIDryRun_4", "" };
+            //string[] dummyArgs = { "-d", "CSI55", "C230830_CSI" };
             //List<string> theArguments = new List<string> { };
             //for (int i = 0; i < dummyArgs.Length; i++) theArguments.Add(dummyArgs[i]);
 
@@ -41,6 +41,7 @@ namespace VMATCSIAutoPlanMT
                     log.LogError("Unable to convert high resolution structures to default resolution! Try running the script normally and select the 'Generate Prelim Targets' tab");
                 }
                 AppClosingHelper.CloseApplication(ARC.GetAriaApplicationInstance(), ARC.GetIsPatientOpenStatus(), ARC.GetAriaIsModifiedStatus(), true, log);
+                Current.Shutdown();
             }
             else
             {

@@ -168,7 +168,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
 
             logPath += "\\preparation\\" + type + "\\" + mrn + "\\";
             string fileName = logPath + mrn + ".txt";
-            if (!changesSaved)
+            if (!changesSaved && opType != ScriptOperationType.ExportCT)
             {
                 logPath += "unsaved" + "\\";
                 fileName = logPath + DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss") + ".txt";

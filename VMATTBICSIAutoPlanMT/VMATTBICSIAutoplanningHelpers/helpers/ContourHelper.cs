@@ -385,9 +385,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             ProvideUIUpdate(0,"Checking for high res structures:");
             foreach (string itr in structures)
             {
-                Structure tmp = StructureTuningHelper.GetStructureFromId(itr, selectedSS);
-                if (tmp != null && !tmp.IsEmpty)
+                if (StructureTuningHelper.DoesStructureExistInSS(itr, selectedSS, true))
                 {
+                    Structure tmp = StructureTuningHelper.GetStructureFromId(itr, selectedSS);
                     ProvideUIUpdate(0,$"Checking if {tmp.Id} is high resolution");
                     if (tmp.IsHighResolution)
                     {
