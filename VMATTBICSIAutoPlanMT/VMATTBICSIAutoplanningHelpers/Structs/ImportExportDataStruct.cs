@@ -3,6 +3,9 @@ using VMATTBICSIAutoPlanningHelpers.Enums;
 
 namespace VMATTBICSIAutoPlanningHelpers.Structs
 {
+    /// <summary>
+    /// Helper class to store the relevant information regarding image export
+    /// </summary>
     public class ImportExportDataStruct
     {
         //AE title, IP, port

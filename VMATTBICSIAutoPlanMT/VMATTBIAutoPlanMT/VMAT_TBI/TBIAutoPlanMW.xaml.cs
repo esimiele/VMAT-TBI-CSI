@@ -134,6 +134,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 ss = args.ElementAt(1);
             }
 
+            logPath = ConfigurationHelper.ReadLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
             log = new Logger(logPath, PlanType.VMAT_TBI, mrn);
             LoadDefaultConfigurationFiles();
             if (app != null)
@@ -171,7 +172,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             //load script configuration and display the settings
             List<string> configurationFiles = new List<string> { };
-            configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
             configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_TBI_config.ini");
             foreach (string itr in configurationFiles) LoadConfigurationSettings(itr);
         }
@@ -213,9 +213,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             {
                 foreach (StructureSet s in pi.StructureSets.OrderByDescending(x => x.HistoryDateTime)) SSID.Items.Add(s.Id);
                 //SSID default is the current structure set in the context
-                if (!string.IsNullOrEmpty(ss))
+                if (!string.IsNullOrEmpty(ss) && pi.StructureSets.Any(x => string.Equals(x.Id, ss)))
                 {
-                    selectedSS = pi.StructureSets.FirstOrDefault(x => string.Equals(x.Id, ss));
+                    selectedSS = pi.StructureSets.First(x => string.Equals(x.Id, ss));
                     SSID.Text = selectedSS.Id;
                 }
                 else log.LogError("Warning! No structure set in context! Please select a structure set at the top of the GUI!");
@@ -560,10 +560,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
 
             targets = new List<Tuple<string, double,string>>(parsedTargets.Item1);
-            (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) parsedPrescriptions = TargetsHelper.GetPrescriptions(targets,
-                                                                                                                                      dosePerFxTB.Text,
-                                                                                                                                      numFxTB.Text,
-                                                                                                                                      RxTB.Text);
+            (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) parsedPrescriptions = TargetsHelper.BuildPrescriptionList(targets,
+                                                                                                                                           dosePerFxTB.Text,
+                                                                                                                                           numFxTB.Text,
+                                                                                                                                           RxTB.Text);
             if (!parsedPrescriptions.Item1.Any())
             {
                 log.LogError(parsedPrescriptions.Item2);
@@ -1837,6 +1837,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (configFile != "") configTB.Text += $"Configuration file: {configFile}" + Environment.NewLine + Environment.NewLine;
             else configTB.Text += "Configuration file: none" + Environment.NewLine + Environment.NewLine;
             configTB.Text += $"Documentation path: {documentationPath}" + Environment.NewLine + Environment.NewLine;
+            configTB.Text += $"Log file path: {logPath}" + Environment.NewLine + Environment.NewLine;
             configTB.Text += $"Close progress windows on finish: {closePWOnFinish}" + Environment.NewLine + Environment.NewLine;
             configTB.Text += "Default parameters:" + Environment.NewLine;
             configTB.Text += $"Contour field ovelap: {contourOverlap}" + Environment.NewLine;
@@ -1935,12 +1936,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                                 {
                                     string path = ConfigurationHelper.VerifyPathIntegrity(value);
                                     if (!string.IsNullOrEmpty(path)) documentationPath = path;
-                                    else log.LogError($"Warning! {value} does NOT exist!");
-                                }
-                                else if (parameter == "log file path")
-                                {
-                                    string path = ConfigurationHelper.VerifyPathIntegrity(value);
-                                    if (!string.IsNullOrEmpty(path)) logPath = path;
                                     else log.LogError($"Warning! {value} does NOT exist!");
                                 }
                                 else if (parameter == "close progress windows on finish")

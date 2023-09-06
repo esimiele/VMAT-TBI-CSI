@@ -8,11 +8,13 @@ using SimpleProgressWindow;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
 using System.Text;
+using System.Security.Cryptography.X509Certificates;
 
 namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 {
     public class GenerateTSbase : SimpleMTbase
     {
+        //Get methods
         public List<Tuple<string, List<string>>> GetIsoNames() { return isoNames; }
         public List<string> GetAddedStructures() { return addedStructures; }
         public List<Tuple<string, TSManipulationType, double>> GetSparingList() { return TSManipulationList; }
@@ -22,10 +24,11 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         protected StructureSet selectedSS;
         //structure, manipulation type, added margin (if applicable)
         protected List<Tuple<string, TSManipulationType, double>> TSManipulationList;
+        //id of added structures
         protected List<string> addedStructures = new List<string> { };
-        protected bool useFlash = false;
         //plan Id, list of isocenter names for this plan
         protected List<Tuple<string,List<string>>> isoNames = new List<Tuple<string, List<string>>> { };
+        //flag to indicate to the main UI that the structure manipulation list needs to be updated
         protected bool updateTSManipulationList = false;
         protected string stackTraceError;
 
@@ -55,6 +58,10 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         #endregion
 
         #region helper functions related to TS generation and manipulation
+        /// <summary>
+        /// Helper method to union all identified left and right structures
+        /// </summary>
+        /// <returns></returns>
         protected bool UnionLRStructures()
         {
             UpdateUILabel("Unioning Structures: ");
@@ -81,6 +88,12 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
+        /// <summary>
+        /// Helper method to retrieve a tuning/optimization structure target with id equal to TS_<targetId> or requestedTSTargetId
+        /// </summary>
+        /// <param name="targetId"></param>
+        /// <param name="requestedTSTargetId"></param>
+        /// <returns></returns>
         protected Structure GetTSTarget(string targetId, string requestedTSTargetId = "")
         {
             string newName;
@@ -94,18 +107,32 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 //left here because of special logic to generate the structure if it doesn't exist
                 ProvideUIUpdate($"TS target {newName} does not exist. Creating it now!");
                 addedTSTarget = AddTSStructures(new Tuple<string, string>("CONTROL", newName));
-                ProvideUIUpdate($"Copying target {targetId} contours onto {newName}");
-                addedTSTarget.SegmentVolume = StructureTuningHelper.GetStructureFromId(targetId, selectedSS).Margin(0.0);
+            }
+            if(addedTSTarget.IsEmpty)
+            {
+                if (StructureTuningHelper.DoesStructureExistInSS(targetId, selectedSS, true))
+                {
+                    ProvideUIUpdate($"Copying target {targetId} contours onto {newName}");
+                    (bool fail, StringBuilder errorMessage) = ContourHelper.CopyStructureOntoStructure(StructureTuningHelper.GetStructureFromId(targetId, selectedSS), addedTSTarget);
+                    if (fail) ProvideUIUpdate($"Error! Could not copy {targetId} onto {addedTSTarget.Id} because: {errorMessage}", true);
+                }
+                else ProvideUIUpdate($"Error! Could not retrieve {targetId} structure!", true);
             }
             return addedTSTarget;
         }
 
-        protected bool ManipulateTuningStructures(Tuple<string, TSManipulationType, double> manipulationItem, Structure target, ref int counter, ref int calcItems)
+        /// <summary>
+        /// Helper method to direct the manipulation of the tuning structures
+        /// </summary>
+        /// <param name="manipulationItem"></param>
+        /// <param name="target"></param>
+        /// <returns></returns>
+        protected bool ManipulateTuningStructures(Tuple<string, TSManipulationType, double> manipulationItem, Structure target)
         {
             Structure theStructure = StructureTuningHelper.GetStructureFromId(manipulationItem.Item1, selectedSS);
             if (manipulationItem.Item2 == TSManipulationType.CropFromBody)
             {
-                ProvideUIUpdate(100 * ++counter / calcItems, $"Cropping {manipulationItem.Item1} from Body with margin {manipulationItem.Item3} cm");
+                ProvideUIUpdate($"Cropping {manipulationItem.Item1} from Body with margin {manipulationItem.Item3} cm");
                 //crop from body
                 (bool failOp, StringBuilder errorOpMessage) = ContourHelper.CropStructureFromBody(theStructure, selectedSS, manipulationItem.Item3);
                 if (failOp)
@@ -116,7 +143,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             }
             else if (manipulationItem.Item2 == TSManipulationType.CropTargetFromStructure)
             {
-                ProvideUIUpdate(100 * ++counter / calcItems, $"Cropping target {target.Id} from {manipulationItem.Item1} with margin {manipulationItem.Item3} cm");
+                ProvideUIUpdate($"Cropping target {target.Id} from {manipulationItem.Item1} with margin {manipulationItem.Item3} cm");
                 //crop target from structure
                 (bool failCrop, StringBuilder errorCropMessage) = ContourHelper.CropStructureFromStructure(target, theStructure, manipulationItem.Item3);
                 if (failCrop)
@@ -127,23 +154,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             }
             else if (manipulationItem.Item2 == TSManipulationType.ContourOverlapWithTarget)
             {
-                ProvideUIUpdate($"Contouring overlap between {manipulationItem.Item1} and {target.Id}");
-                string overlapName = $"ts_{manipulationItem.Item1}&&{target.Id}";
-                if (overlapName.Length > 16) overlapName = overlapName.Substring(0, 16);
-                Structure addedTSNormal = AddTSStructures(new Tuple<string, string>("CONTROL", overlapName));
-                addedTSNormal.SegmentVolume = theStructure.Margin(0.0);
-                (bool failOverlap, StringBuilder errorOverlapMessage) = ContourHelper.ContourOverlap(target, addedTSNormal, manipulationItem.Item3);
-                if (failOverlap)
-                {
-                    ProvideUIUpdate(errorOverlapMessage.ToString());
-                    return true;
-                }
-                if (addedTSNormal.IsEmpty)
-                {
-                    ProvideUIUpdate(100 * ++counter / calcItems, $"{overlapName} was contoured, but it's empty! Removing!");
-                    selectedSS.RemoveStructure(addedTSNormal);
-                }
-                else ProvideUIUpdate(100 * ++counter / calcItems, $"Finished contouring {overlapName}");
+                if (CreateOverlapStructure(target, theStructure, manipulationItem.Item3)) return true;
             }
             else if (manipulationItem.Item2 == TSManipulationType.ContourSubStructure || manipulationItem.Item2 == TSManipulationType.ContourOuterStructure)
             {
@@ -152,6 +163,66 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
+        /// <summary>
+        /// Helper method to create an overlap structure, copy the OAR onto the overlap structure, then contour the overlap between overlap structure 
+        /// and the target. Once contoured a check is performed to ensure that the overlap structure is not empty
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="OAR"></param>
+        /// <param name="margin"></param>
+        /// <returns></returns>
+        private bool CreateOverlapStructure(Structure target, Structure OAR, double margin)
+        {
+            int percentComplete = 0;
+            int calcItems = 5;
+            ProvideUIUpdate($"Contouring overlap between {OAR.Id} and {target.Id}");
+            string overlapName = $"ts_{OAR.Id}&&{target.Id}";
+            if (overlapName.Length > 16) overlapName = overlapName.Substring(0, 16);
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Overlap structure Id: {overlapName}");
+            //add a new structure (default resolution by default)
+            if (selectedSS.CanAddStructure("CONTROL", overlapName))
+            {
+                Structure overlapStructure = AddTSStructures(new Tuple<string, string>("CONTROL", overlapName));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Created empty structure {overlapName}");
+
+                (bool copyFail, StringBuilder errorMessage) = ContourHelper.CopyStructureOntoStructure(OAR, overlapStructure);
+                if(copyFail)
+                {
+                    ProvideUIUpdate(errorMessage.ToString(), true);
+                    return true;
+                }
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Copied {OAR.Id} onto {overlapName}");
+
+                (bool failOverlap, StringBuilder errorOverlapMessage) = ContourHelper.ContourOverlap(target, overlapStructure, margin);
+                if (failOverlap)
+                {
+                    ProvideUIUpdate(errorOverlapMessage.ToString());
+                    return true;
+                }
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Contoured overlap between {target.Id} and {overlapName}");
+
+                if (overlapStructure.IsEmpty)
+                {
+                    ProvideUIUpdate(100 * ++percentComplete / calcItems, $"{overlapName} was contoured, but it's empty! Removing!");
+                    selectedSS.RemoveStructure(overlapStructure);
+                }
+                else ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Finished contouring {overlapName}");
+            }
+            else
+            {
+                ProvideUIUpdate($"Error! Cannot add new structure: {overlapName}!\nCorrect this issue and try again!", true);
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Simple method to identify the index of the supplied TS manipulation item in the TS manipulation list, remove it, and update the list with
+        /// the same item except the structure id is swapped with the low resolution structure equivalent
+        /// </summary>
+        /// <param name="highResManipulationItem"></param>
+        /// <param name="lowResId"></param>
+        /// <returns></returns>
         private bool UpdateManipulationList(Tuple<string, TSManipulationType, double> highResManipulationItem, string lowResId)
         {
             bool fail = false;
@@ -160,25 +231,29 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             if (index != -1)
             {
                 TSManipulationList.RemoveAt(index);
-                TSManipulationList.Insert(index, new Tuple<string, TSManipulationType, double>(lowResId, highResManipulationItem.Item2, highResManipulationItem.Item3));
+                TSManipulationList.Insert(index, 
+                                          new Tuple<string, TSManipulationType, double>(lowResId, highResManipulationItem.Item2, highResManipulationItem.Item3));
             }
             else fail = true;
             return fail;
         }
 
+        /// <summary>
+        /// Simple helper method to create an inner/outer structure. Analogous to the margin for structure tool in contouring
+        /// </summary>
+        /// <param name="originalStructure"></param>
+        /// <param name="margin"></param>
+        /// <returns></returns>
         protected bool ContourInnerOuterStructure(Structure originalStructure, double margin)
         {
             int counter = 0;
             int calcItems = 2;
             //all other sub structures
             ProvideUIUpdate(100 * ++counter / calcItems, $"Creating {(margin > 0 ? "outer" : "sub")} structure!");
-            (bool fail, Structure addedStructure) = CheckAndGenerateStructure($"{originalStructure.Id}{margin:0.0}cm");
+            (bool fail, Structure addedStructure) = RemoveAndGenerateStructure($"{originalStructure.Id}{(margin > 0 ? "+" : "-")}{Math.Abs(margin):0.0}cm");
             if (fail) return true;
             //convert from cm to mm
-            //lock(locker)
-            //{
-                addedStructure.SegmentVolume = originalStructure.Margin(margin * 10);
-           //}
+            addedStructure.SegmentVolume = originalStructure.Margin(margin * 10);
             if (addedStructure.IsEmpty)
             {
                 ProvideUIUpdate(100 * ++counter / calcItems, $"{addedStructure.Id} was contoured, but is empty! Removing!");
@@ -188,57 +263,11 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
-        protected bool ContourInnerOuterStructure(Structure addedStructure)
-        {
-            int counter = 0;
-            int calcItems = 4;
-            //all other sub structures
-            Structure originalStructure = null;
-            double margin = 0.0;
-            int pos1 = addedStructure.Id.IndexOf("-");
-            if (pos1 == -1) pos1 = addedStructure.Id.IndexOf("+");
-            int pos2 = addedStructure.Id.IndexOf("cm");
-            if (pos1 != -1 && pos2 != -1)
-            {
-                string originalStructureId = addedStructure.Id.Substring(0, pos1);
-                ProvideUIUpdate(100 * ++counter / calcItems, "Grabbing margin value!");
-                if (!double.TryParse(addedStructure.Id.Substring(pos1, pos2 - pos1), out margin))
-                {
-                    ProvideUIUpdate($"Margin parse failed for sub structure: {addedStructure.Id}!", true);
-                    return true;
-                }
-                ProvideUIUpdate(margin.ToString());
-
-                ProvideUIUpdate(100 * ++counter / calcItems, $"Grabbing original structure {originalStructureId}");
-                //logic to handle case where the original structure had to be converted to low resolution
-                originalStructure = StructureTuningHelper.GetStructureFromId(originalStructureId.ToLower(), selectedSS);
-                if (originalStructure == null) originalStructure = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower().Contains(originalStructureId.ToLower()) && x.Id.ToLower().Contains("_low"));
-                if (originalStructure == null)
-                {
-                    ProvideUIUpdate($"Warning! Could not retrieve base structure {originalStructureId} to generate {addedStructure.Id}!");
-                    ProvideUIUpdate($"Removing {addedStructure.Id}");
-                    selectedSS.RemoveStructure(addedStructure);
-                    return false;
-                }
-
-                ProvideUIUpdate(100 * ++counter / calcItems, $"Creating {(margin > 0 ? "outer" : "sub")} structure!");
-                //convert from cm to mm
-                addedStructure.SegmentVolume = originalStructure.Margin(margin * 10);
-                if (addedStructure.IsEmpty)
-                {
-                    ProvideUIUpdate($"{addedStructure.Id} was contoured, but is empty! Removing!");
-                    selectedSS.RemoveStructure(addedStructure);
-                }
-                else ProvideUIUpdate(100, $"Finished contouring {addedStructure.Id}");
-            }
-            else
-            {
-                ProvideUIUpdate($"Error! I can't find the keywords '-' or '+', and 'cm' in the structure id for: {addedStructure.Id}", true);
-                return true;
-            }
-            return false;
-        }
-
+        /// <summary>
+        /// Helper method to evaluate the structure manipulation list for empty or high resolution structures. If any 
+        /// high resolution structures are identified, convert them to low resolution
+        /// </summary>
+        /// <returns></returns>
         protected bool CheckHighResolution()
         {
             UpdateUILabel("High-Res Structures: ");
@@ -246,6 +275,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             List<Tuple<string, TSManipulationType, double>> highResManipulationList = new List<Tuple<string, TSManipulationType, double>> { };
             foreach (Tuple<string, TSManipulationType, double> itr in TSManipulationList)
             {
+                //only need to check structures that will be involved in crop and contour overlap operations
                 if (itr.Item2 == TSManipulationType.CropTargetFromStructure || itr.Item2 == TSManipulationType.ContourOverlapWithTarget || itr.Item2 == TSManipulationType.CropFromBody)
                 {
                     Structure tmp = StructureTuningHelper.GetStructureFromId(itr.Item1, selectedSS);
@@ -278,6 +308,11 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
+        /// <summary>
+        /// Helper method to create an empty low resolution structure with id of <highResStructure.Id>_lowRes
+        /// </summary>
+        /// <param name="highResStructure"></param>
+        /// <returns></returns>
         private (bool, Structure) CreateLowResStructure(Structure highResStructure)
         {
             Structure lowRes = null;
@@ -294,6 +329,11 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return (fail, lowRes);
         }
 
+        /// <summary>
+        /// Utility method to convert the structures in the supplied manipulation list from high resolution to low resolution
+        /// </summary>
+        /// <param name="highResManipulationList"></param>
+        /// <returns></returns>
         private bool ConvertHighToLowRes(List<Tuple<string, TSManipulationType, double>> highResManipulationList)
         {
             int percentComplete = 0;
@@ -317,6 +357,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 if (fail) return true;
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added low-res structure: {lowRes.Id}");
                 ProvideUIUpdate($"Contouring {lowRes.Id} now");
+
                 ContourLowResStructure(highResStruct, lowRes, startSlice, stopSlice);
                 
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("Removing existing high-res structure from manipulation list and replacing with low-res"));
@@ -327,6 +368,15 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
+        /// <summary>
+        /// Helper method to contour the supplied low resolution structure using the contour points from the supplied 
+        /// high resolution structure in the range of startSlice - stopSlice
+        /// </summary>
+        /// <param name="highResStructure"></param>
+        /// <param name="lowRes"></param>
+        /// <param name="startSlice"></param>
+        /// <param name="stopSlice"></param>
+        /// <returns></returns>
         private bool ContourLowResStructure(Structure highResStructure, Structure lowRes, int startSlice, int stopSlice)
         {
             int percentComplete = 0;
@@ -352,6 +402,98 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
+        /// <summary>
+        /// Simple utility method to check that the supplied list of structure ids can be added as structures to the structure set
+        /// </summary>
+        /// <param name="structuresToAdd"></param>
+        /// <returns></returns>
+        protected bool VerifyAddTSStructures(List<Tuple<string, string>> structuresToAdd)
+        {
+            bool fail = false;
+            ProvideUIUpdate("Verifying requested TS structures can be added to the structure set!");
+            int counter = 0;
+            int calcItems = structuresToAdd.Count;
+            foreach (Tuple<string, string> itr in structuresToAdd)
+            {
+                if (!selectedSS.CanAddStructure(itr.Item1, itr.Item2))
+                {
+                    ProvideUIUpdate($"Error! {itr.Item2} can't be added the structure set!", true);
+                    fail = true;
+                }
+                ProvideUIUpdate(100 * ++counter / calcItems);
+            }
+            return fail;
+        }
+
+        /// <summary>
+        /// Simple utility method to remove the supplied list of structures from the structure set
+        /// </summary>
+        /// <param name="structuresToRemove"></param>
+        /// <returns></returns>
+        private bool RemoveStructures(List<Structure> structuresToRemove)
+        {
+            int calcItems = structuresToRemove.Count;
+            int counter = 0;
+            foreach (Structure itr in structuresToRemove)
+            {
+                if (selectedSS.CanRemoveStructure(itr))
+                {
+                    ProvideUIUpdate(100 * ++counter / calcItems, $"Removing: {itr.Id}");
+                    selectedSS.RemoveStructure(itr);
+                }
+                else
+                {
+                    ProvideUIUpdate($"Error! Could not remove structure: {itr.Id}!", true);
+                    if (string.IsNullOrEmpty(itr.DicomType)) ProvideUIUpdate($"{itr.Id} DICOM type: None");
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Helper function to remove the tuning structures that will be generated in this run and any existing tuning structures. Once removed
+        /// re-add the tuning structures that will be generated in this run to the structure set
+        /// </summary>
+        /// <param name="structures"></param>
+        /// <param name="removeTSTargets"></param>
+        /// <returns></returns>
+        protected bool RemoveOldTSStructures(List<Tuple<string, string>> structures, bool removeTSTargets = false)
+        {
+            UpdateUILabel("Remove Prior Tuning Structures: ");
+            ProvideUIUpdate(0, "Removing prior tuning structures");
+
+            //Get the list of requested ts structures to remove (also add targets if requested)
+            List<Tuple<string, string>> structuresToRemove;
+            if (!removeTSTargets) structuresToRemove = structures.Where(x => !x.Item2.ToLower().Contains("ctv") && !x.Item2.ToLower().Contains("ptv")).ToList();
+            else structuresToRemove = structures;
+
+            //From the above list, get the list of structures that can actually be removed from the structure set
+            (bool fail, List<Structure> removeList) = VerifyRemoveTSStructures(structuresToRemove);
+            if (fail) return true;
+
+            ProvideUIUpdate(0, "Adding any remaining tuning structures to the stack");
+            //now grab all existing structures in structure set where id starts with 'TS_'
+            List<Structure> tsStructs = selectedSS.Structures.Where(x => x.Id.Length > 2 && string.Equals(x.Id.ToLower().Substring(0, 3), "ts_")).ToList();
+            //Add the difference between tsStructures and removeList to removeList (i.e., existing ts structures that need to be removed that weren't contained
+            //in the requested ts generation structures for this run
+            removeList.AddRange(tsStructs.Except(removeList));
+            //remove the structures
+            if (RemoveStructures(removeList)) return true;
+
+            //now re-add the structurestoremove list of structures to the structure set
+            if (VerifyAddTSStructures(structuresToRemove)) return true;
+            ProvideUIUpdate(100, "Prior tuning structures successfully removed!");
+            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
+            return false;
+        }
+
+        /// <summary>
+        /// Helper method to check the supplied list of structures to see if they can be removed from the structure set. Build a list of structures that
+        /// can be removed from the structure set
+        /// </summary>
+        /// <param name="structuresToRemove"></param>
+        /// <returns></returns>
         private (bool, List<Structure>) VerifyRemoveTSStructures(List<Tuple<string, string>> structuresToRemove)
         {
             List<Structure> removeList = new List<Structure> { };
@@ -389,77 +531,21 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return (fail, removeList);
         }
 
-        protected bool VerifyAddTSStructures(List<Tuple<string, string>> structuresToAdd)
-        {
-            bool fail = false;
-            ProvideUIUpdate("Verifying requested TS structures can be added to the structure set!");
-            int counter = 0;
-            int calcItems = structuresToAdd.Count;
-            foreach (Tuple<string, string> itr in structuresToAdd)
-            {
-                if (!selectedSS.CanAddStructure(itr.Item1, itr.Item2))
-                {
-                    ProvideUIUpdate($"Error! {itr.Item2} can't be added the structure set!", true);
-                    fail = true;
-                }
-                ProvideUIUpdate(100 * ++counter / calcItems);
-            }
-            return fail;
-        }
-
-        private bool RemoveStructures(List<Structure> structuresToRemove)
-        {
-            int calcItems = structuresToRemove.Count;
-            int counter = 0;
-            foreach (Structure itr in structuresToRemove)
-            {
-                if (selectedSS.CanRemoveStructure(itr))
-                {
-                    ProvideUIUpdate(100 * ++counter / calcItems, $"Removing: {itr.Id}");
-                    selectedSS.RemoveStructure(itr);
-                }
-                else
-                {
-                    ProvideUIUpdate($"Error! Could not remove structure: {itr.Id}!", true);
-                    if (string.IsNullOrEmpty(itr.DicomType)) ProvideUIUpdate($"{itr.Id} DICOM type: None");
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        protected bool RemoveOldTSStructures(List<Tuple<string, string>> structures, bool removeTSTargetsToo = false)
-        {
-            UpdateUILabel("Remove Prior Tuning Structures: ");
-            ProvideUIUpdate(0, "Removing prior tuning structures");
-            //remove existing TS structures if they exist and re-add them to the structure list
-
-            List<Tuple<string, string>> structuresToRemove;
-            if (!removeTSTargetsToo) structuresToRemove = structures.Where(x => !x.Item2.ToLower().Contains("ctv") && !x.Item2.ToLower().Contains("ptv")).ToList();
-            else structuresToRemove = structures;
-
-            (bool fail, List<Structure> removeList) = VerifyRemoveTSStructures(structuresToRemove);
-            if (fail) return true;
-            ProvideUIUpdate(0, "Adding any remaining tuning structures to the stack");
-            //4-15-2022 
-            //remove ALL tuning structures from any previous runs (structure id starts with 'TS_'). Be sure to exclude any requested TS structures from the config file as we just added them!
-            List<Structure> tsStructs = selectedSS.Structures.Where(x => x.Id.Length > 2 && string.Equals(x.Id.ToLower().Substring(0, 3), "ts_")).ToList();
-            removeList.AddRange(tsStructs.Except(removeList));
-            if (RemoveStructures(removeList)) return true;
-
-            if (VerifyAddTSStructures(structuresToRemove)) return true;
-            ProvideUIUpdate(100, "Prior tuning structures successfully removed!");
-            ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
-            return false;
-        }
-
-        protected (bool, Structure) CheckAndGenerateStructure(string id)
+        /// <summary>
+        /// Helper method to check if a structure exists, remove it if it does, and generate a new structure with the specified Id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        protected (bool, Structure) RemoveAndGenerateStructure(string id)
         {
             bool fail = false;
             Structure theStructure = null;
             if (StructureTuningHelper.DoesStructureExistInSS(id, selectedSS))
             {
-                if (selectedSS.CanRemoveStructure(StructureTuningHelper.GetStructureFromId(id, selectedSS))) selectedSS.RemoveStructure(StructureTuningHelper.GetStructureFromId(id, selectedSS));
+                if (selectedSS.CanRemoveStructure(StructureTuningHelper.GetStructureFromId(id, selectedSS)))
+                {
+                    selectedSS.RemoveStructure(StructureTuningHelper.GetStructureFromId(id, selectedSS));
+                }
                 else
                 {
                     ProvideUIUpdate("Error! Could not add dummy box to structure set to cut target at matchplane! Exiting!", true);
@@ -474,6 +560,11 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return (fail, theStructure);
         }
 
+        /// <summary>
+        /// Helper method to create a Structure using the supplied dicom type and structure id
+        /// </summary>
+        /// <param name="itr1"></param>
+        /// <returns></returns>
         protected Structure AddTSStructures(Tuple<string, string> itr1)
         {
             Structure addedStructure = null;
@@ -488,9 +579,15 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return addedStructure;
         }
 
-        protected bool IsUOriginInside(StructureSet ss)
+        /// <summary>
+        /// Simple helper method to check if the user origin has been assigned and exists inside the patient body
+        /// </summary>
+        /// <returns></returns>
+        protected bool IsUOriginInside()
         {
-            if (!ss.Image.HasUserOrigin || !StructureTuningHelper.GetStructureFromId("Body", ss).IsPointInsideSegment(ss.Image.UserOrigin))
+            if (!selectedSS.Image.HasUserOrigin || 
+                !StructureTuningHelper.DoesStructureExistInSS("Body", selectedSS, true) || 
+                !StructureTuningHelper.GetStructureFromId("Body", selectedSS).IsPointInsideSegment(selectedSS.Image.UserOrigin))
             {
                 ProvideUIUpdate("Did you forget to set the user origin? \nUser origin is NOT inside body contour! \nPlease fix and try again!", true);
                 return true;

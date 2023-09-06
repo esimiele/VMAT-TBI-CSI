@@ -11,6 +11,10 @@ namespace VMS.TPS
 {
     public class Script
     {
+        /// <summary>
+        /// Simple method to launch the launcher executable while passing the patient mrn and structure set id
+        /// </summary>
+        /// <param name="context"></param>
         [MethodImpl(MethodImplOptions.NoInlining)]
         public void Execute(ScriptContext context)
         {
@@ -19,26 +23,19 @@ namespace VMS.TPS
                 if (context.Patient != null)
                 {
                     bool addOptLaunchOption = false;
-                    bool isCSIPlan = false;
                     ExternalPlanSetup plan = context.ExternalPlanSetup;
-                    if (plan != null && (plan.Id.ToLower().Contains("tbi") || plan.Id.ToLower().Contains("csi") && !plan.IsDoseValid))
+                    if (plan != null && (plan.Id.ToLower().Contains("tbi") || plan.Id.ToLower().Contains("csi")))
                     {
                         addOptLaunchOption = true;
-                        if (plan.Id.ToLower().Contains("csi")) isCSIPlan = true;
                     }
                     else
                     {
                         List<Course> courses = context.Patient.Courses.Where(x => x.Id.ToLower().Contains("tbi") || x.Id.ToLower().Contains("csi")).ToList();
                         if (courses.Any())
                         {
-                            foreach (Course c in courses)
+                            if(courses.SelectMany(x => x.ExternalPlanSetups).Any(x => x.Id.ToLower().Contains("tbi") || x.Id.ToLower().Contains("csi")))
                             {
-                                if (c.ExternalPlanSetups.Where(x => (x.Id.ToLower().Contains("tbi") || x.Id.ToLower().Contains("csi")) && !x.IsDoseValid).Any())
-                                {
-                                    if (c.ExternalPlanSetups.Where(x => x.Id.ToLower().Contains("csi")).Any()) isCSIPlan = true;
-                                    addOptLaunchOption = true;
-                                    break;
-                                }
+                                addOptLaunchOption = true;
                             }
                         }
                     }
@@ -47,15 +44,10 @@ namespace VMS.TPS
                     if (!string.IsNullOrEmpty(path))
                     {
                         ProcessStartInfo p = new ProcessStartInfo(path);
-                        if (context.Patient != null)
-                        {
-                            if (!addOptLaunchOption) p.Arguments = String.Format("{0} {1}", context.Patient.Id, context.StructureSet.Id);
-                            else
-                            {
-                                if(isCSIPlan) p.Arguments = String.Format("{0} {1} {2} {3}", context.Patient.Id, context.StructureSet.Id, "true", "true");
-                                else p.Arguments = String.Format("{0} {1} {2}", context.Patient.Id, context.StructureSet.Id, "true");
-                            }
-                        }
+                        string SSID = "/";
+                        if (context.StructureSet != null) SSID = context.StructureSet.Id;
+                        if (!addOptLaunchOption) p.Arguments = String.Format("{0} {1}",context.Patient.Id, SSID);
+                        else p.Arguments = String.Format("{0} {1} {2}",context.Patient.Id,SSID, true);
                         Process.Start(p);
                     }
                     else MessageBox.Show(String.Format("Error! {0} executable NOT found!", exeName));
@@ -65,16 +57,32 @@ namespace VMS.TPS
             catch (Exception e) { MessageBox.Show(e.Message); };
         }
 
+        /// <summary>
+        /// Retrieve the full file name of the executable
+        /// </summary>
+        /// <param name="exeName"></param>
+        /// <returns></returns>
         private string AppExePath(string exeName)
         {
             return FirstExePathIn(Path.GetDirectoryName(GetSourceFilePath()), exeName);
         }
 
+        /// <summary>
+        /// Return the first identified executable in the supplied directory that has a name matching the supplied name
+        /// </summary>
+        /// <param name="dir"></param>
+        /// <param name="exeName"></param>
+        /// <returns></returns>
         private string FirstExePathIn(string dir, string exeName)
         {
             return Directory.GetFiles(dir, "*.exe").FirstOrDefault(x => x.Contains(exeName));
         }
 
+        /// <summary>
+        /// Clever trick to return the full path of the currently executing file
+        /// </summary>
+        /// <param name="sourceFilePath"></param>
+        /// <returns></returns>
         private string GetSourceFilePath([CallerFilePath] string sourceFilePath = "")
         {
             return sourceFilePath;

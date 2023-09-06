@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Windows.Media.Media3D;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 
@@ -9,6 +10,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public static class PlanPrepHelper
     {
+        /// <summary>
+        /// Helper method to gather the relevant information that should be put in the TBI shift note
+        /// </summary>
+        /// <param name="vmatPlan"></param>
+        /// <param name="appaPlan"></param>
+        /// <returns></returns>
         public static StringBuilder GetTBIShiftNote(ExternalPlanSetup vmatPlan, ExternalPlanSetup appaPlan)
         {
             StringBuilder sb = new StringBuilder();
@@ -24,7 +31,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             List<string> isoNames = new List<string>(IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos));
             if (appaPlan != null) isoNames.AddRange(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos));
 
-            //vector to hold the isocenter name, the x,y,z shifts from CT ref, and the shifts between each adjacent iso for each axis (LR, AntPost, SupInf)
+            //vector to hold the x,y,z shifts from CT ref and the shifts between each adjacent iso for each axis (LR, AntPost, SupInf)
             (List<Tuple<double, double, double>> shiftsfromBBs, List<Tuple<double, double, double>> shiftsBetweenIsos) = CalculateShifts(isoPositions);
 
             //create the message
@@ -33,13 +40,22 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             if (StructureTuningHelper.DoesStructureExistInSS("couchsurface", vmatPlan.StructureSet, true))
             {
                 Structure couchSurface = StructureTuningHelper.GetStructureFromId("couchsurface", vmatPlan.StructureSet);
-                TT = shiftsfromBBs.First().Item2 - (couchSurface.MeshGeometry.Positions.Min(p => p.Y)) / 10;
+                TT = (vmatPlan.Beams.First(x => !x.IsSetupField).IsocenterPosition.y- couchSurface.MeshGeometry.Positions.Min(p => p.Y)) / 10;
             }
 
             sb.Append(BuildTBIShiftNote(TT, isoNames, shiftsBetweenIsos, numVMATIsos, numIsos));
             return sb;
         }
 
+        /// <summary>
+        /// Helper method to take the relevant shift information and build the shift note for TBI plans
+        /// </summary>
+        /// <param name="TT"></param>
+        /// <param name="isoNames"></param>
+        /// <param name="shiftsBetweenIsos"></param>
+        /// <param name="numVMATIsos"></param>
+        /// <param name="numIsos"></param>
+        /// <returns></returns>
         private static StringBuilder BuildTBIShiftNote(double TT, List<string> isoNames, List<Tuple<double, double, double>> shiftsBetweenIsos, int numVMATIsos, int numIsos)
         {
             StringBuilder sb = new StringBuilder();
@@ -51,7 +67,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 
             if (numIsos > numVMATIsos) sb.AppendLine("VMAT TBI setup per procedure. Please ensure the matchline on Spinning Manny and the bag matches");
             else sb.AppendLine("VMAT TBI setup per procedure. No Spinning Manny.");
-            sb.AppendLine($"TT = {TT:0.0} cm for all plans");
+            if(TT != -1) sb.AppendLine($"TT = {TT:0.0} cm for all plans");
             sb.AppendLine("Dosimetric shifts SUP to INF:");
 
             int count = 0;
@@ -75,15 +91,21 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     {
                         sb.AppendLine($"{isoNames.ElementAt(count)} shift from **{isoNames.ElementAt(count - 1)} ISO**");
                     }
-                    if (!CalculationHelper.AreEqual(itr.Item1, 0.0)) sb.AppendLine(String.Format("X = {0:0.0} cm {1}", Math.Abs(itr.Item1), itr.Item1 > 0 ? "LEFT" : "RIGHT"));
-                    if (!CalculationHelper.AreEqual(itr.Item2, 0.0)) sb.AppendLine(String.Format("Y = {0:0.0} cm {1}", Math.Abs(itr.Item2), itr.Item2 > 0 ? "POST" : "ANT"));
-                    sb.AppendLine(String.Format("Z = {0:0.0} cm {1}", Math.Abs(itr.Item3), itr.Item3 > 0 ? "SUP" : "INF"));
+                    if (!CalculationHelper.AreEqual(itr.Item1, 0.0)) sb.AppendLine($"X = {Math.Abs(itr.Item1):0.0} cm {(itr.Item1 > 0 ? "LEFT" : "RIGHT")}");
+                    if (!CalculationHelper.AreEqual(itr.Item2, 0.0)) sb.AppendLine($"Y = {Math.Abs(itr.Item2):0.0} cm {(itr.Item2 > 0 ? "POST" : "ANT")}");
+                    sb.AppendLine($"Z = {Math.Abs(itr.Item3):0.0} cm {(itr.Item3 > 0 ? "SUP" : "INF")}");
                 }
                 count++;
             }
             return sb;
         }
 
+        /// <summary>
+        /// Helper method to gather the relevant information that should be put in the CSI shift note
+        /// </summary>
+        /// <param name="vmatPlan"></param>
+        /// <param name="appaPlan"></param>
+        /// <returns></returns>
         public static StringBuilder GetCSIShiftNote(ExternalPlanSetup vmatPlan)
         {
             StringBuilder sb = new StringBuilder();
@@ -98,13 +120,22 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             if (StructureTuningHelper.DoesStructureExistInSS("couchsurface", vmatPlan.StructureSet, true))
             {
                 Structure couchSurface = StructureTuningHelper.GetStructureFromId("couchsurface", vmatPlan.StructureSet);
-                TT = shiftsfromBBs.First().Item2 - (couchSurface.MeshGeometry.Positions.Min(p => p.Y)) / 10;
+                TT = (vmatPlan.Beams.First(x => !x.IsSetupField).IsocenterPosition.y - couchSurface.MeshGeometry.Positions.Min(p => p.Y)) / 10;
             }
 
             sb.Append(BuildCSIShiftNote(TT, IsoNameHelper.GetCSIIsoNames(isoPositions.Count), shiftsBetweenIsos));
             return sb;
         }
 
+        /// <summary>
+        /// Helper method to take the relevant shift information and build the shift note for CSI plan
+        /// </summary>
+        /// <param name="TT"></param>
+        /// <param name="isoNames"></param>
+        /// <param name="shiftsBetweenIsos"></param>
+        /// <param name="numVMATIsos"></param>
+        /// <param name="numIsos"></param>
+        /// <returns></returns>
         private static StringBuilder BuildCSIShiftNote(double TT, List<string> isoNames, List<Tuple<double, double, double>> shiftsBetweenIsos)
         {
             StringBuilder sb = new StringBuilder();
@@ -115,7 +146,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             else sb.AppendLine("No couch surface structure found in plan!");
 
             sb.AppendLine("VMAT CSI setup per procedure.");
-            sb.AppendLine($"TT = {TT:0.0} cm for all plans");
+            if(TT != -1) sb.AppendLine($"TT = {TT:0.0} cm for all plans");
             sb.AppendLine("Dosimetric shifts SUP to INF:");
 
             int count = 0;
@@ -127,19 +158,25 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 }
                 else
                 {
-                    sb.AppendLine(String.Format("{0} shift from **{1} ISO**", isoNames.ElementAt(count), isoNames.ElementAt(count - 1)));
+                    sb.AppendLine($"{isoNames.ElementAt(count)} shift from **{isoNames.ElementAt(count - 1)} ISO**");
                 }
-                if (!CalculationHelper.AreEqual(itr.Item1, 0.0)) sb.AppendLine(String.Format("X = {0:0.0} cm {1}", Math.Abs(itr.Item1), itr.Item1 > 0 ? "LEFT" : "RIGHT"));
-                if (!CalculationHelper.AreEqual(itr.Item2, 0.0)) sb.AppendLine(String.Format("Y = {0:0.0} cm {1}", Math.Abs(itr.Item2), itr.Item2 > 0 ? "POST" : "ANT"));
-                sb.AppendLine(String.Format("Z = {0:0.0} cm {1}", Math.Abs(itr.Item3), itr.Item3 > 0 ? "SUP" : "INF"));
+                if (!CalculationHelper.AreEqual(itr.Item1, 0.0)) sb.AppendLine($"X = {Math.Abs(itr.Item1):0.0} cm {(itr.Item1 > 0 ? "LEFT" : "RIGHT")}");
+                if (!CalculationHelper.AreEqual(itr.Item2, 0.0)) sb.AppendLine($"Y = {Math.Abs(itr.Item2):0.0} cm {(itr.Item2 > 0 ? "POST" : "ANT")}");
+                sb.AppendLine($"Z = {Math.Abs(itr.Item3):0.0} cm {(itr.Item3 > 0 ? "SUP" : "INF")}");
                 count++;
             }
             return sb;
         }
 
+        /// <summary>
+        /// Helper method to extract the isocenter positions for the supplied plan
+        /// </summary>
+        /// <param name="plan"></param>
+        /// <returns></returns>
         public static List<Tuple<double,double,double>> ExtractIsoPositions(ExternalPlanSetup plan)
         {
             List<Tuple<double, double, double>> isoPositions = new List<Tuple<double, double, double>> { };
+            //order from sup to inf for HFS
             foreach (Beam b in plan.Beams.Where(x => !x.IsSetupField).OrderByDescending(o => o.IsocenterPosition.z))
             {
                 VVector v = b.IsocenterPosition;
@@ -152,6 +189,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return isoPositions;
         }
 
+        /// <summary>
+        /// Helper method to take the supplied plan and extract a list of the list of beams for each isocenter
+        /// </summary>
+        /// <param name="plan"></param>
+        /// <returns></returns>
         public static List<List<Beam>> ExtractBeamsPerIso(ExternalPlanSetup plan)
         {
             List<List<Beam>> beamsPerIso = new List<List<Beam>> { };
@@ -181,6 +223,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return beamsPerIso;
         }
 
+        /// <summary>
+        /// Helper method to calculate the shifts from the bbs and the shifts between isocenters for the supplied list of isocenters
+        /// </summary>
+        /// <param name="isoPositions"></param>
+        /// <returns></returns>
         public static (List<Tuple<double, double, double>>, List<Tuple<double, double, double>>) CalculateShifts(List<Tuple<double, double, double>> isoPositions)
         {
             List<Tuple<double, double, double>> shiftsFromBBs = new List<Tuple<double, double, double>> { };

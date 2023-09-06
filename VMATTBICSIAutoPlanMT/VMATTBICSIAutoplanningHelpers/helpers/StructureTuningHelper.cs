@@ -9,23 +9,34 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public static class StructureTuningHelper
     {
-        //helper method to easily add sparing structures to a sparing structure list. The reason this is its own method is because of the logic used to include/remove sex-specific organs
-        public static List<Tuple<string, TSManipulationType, double>> AddTemplateSpecificStructureManipulations(List<Tuple<string, TSManipulationType, double>> caseSpareStruct, List<Tuple<string, TSManipulationType, double>> template, string sex)
+        /// <summary>
+        /// Helper method to easily add tuning structure manipulations to the final list that will be used in the GenerateTS classes
+        /// </summary>
+        /// <param name="caseSpareStruct"></param>
+        /// <param name="template"></param>
+        /// <param name="sex"></param>
+        /// <returns></returns>
+        public static List<Tuple<string, TSManipulationType, double>> AddTemplateSpecificStructureManipulations(List<Tuple<string, TSManipulationType, double>> templateManipulationList, List<Tuple<string, TSManipulationType, double>> manipulationListToUpdate, string sex)
         {
-            foreach (Tuple<string, TSManipulationType, double> s in caseSpareStruct)
+            foreach (Tuple<string, TSManipulationType, double> s in templateManipulationList)
             {
                 if (s.Item1.ToLower() == "ovaries" || s.Item1.ToLower() == "testes")
                 {
                     if ((sex == "Female" && s.Item1.ToLower() == "ovaries") || (sex == "Male" && s.Item1.ToLower() == "testes"))
                     {
-                        template.Add(s);
+                        manipulationListToUpdate.Add(s);
                     }
                 }
-                else template.Add(s);
+                else manipulationListToUpdate.Add(s);
             }
-            return template;
+            return manipulationListToUpdate;
         }
 
+        /// <summary>
+        /// Helper method to look through the structure set and identify a list of left and right structures that should be unioned together
+        /// </summary>
+        /// <param name="selectedSS"></param>
+        /// <returns></returns>
         public static List<Tuple<Structure, Structure, string>> CheckStructuresToUnion(StructureSet selectedSS)
         {
             //left structure, right structure, unioned structure name
@@ -44,6 +55,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return structuresToUnion;
         }
 
+        /// <summary>
+        /// Simple helper method to add the proper ending to the unioned structure name
+        /// </summary>
+        /// <param name="initName"></param>
+        /// <returns></returns>
         private static string AddProperEndingToName(string initName)
         {
             string unionedName;
@@ -53,6 +69,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return unionedName;
         }
 
+        /// <summary>
+        /// Utility method to take the supplied left and right structures and union them together
+        /// </summary>
+        /// <param name="itr"></param>
+        /// <param name="selectedSS"></param>
+        /// <returns></returns>
         public static (bool, StringBuilder) UnionLRStructures(Tuple<Structure, Structure, string> itr, StructureSet selectedSS)
         {
             StringBuilder sb = new StringBuilder();
@@ -60,21 +82,29 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             string newName = itr.Item3;
             try
             {
-                Structure existStructure = GetStructureFromId(newName, selectedSS);
                 //a structure already exists in the structure set with the intended name
-                if (existStructure != null) newStructure = existStructure;
+                if (DoesStructureExistInSS(newName, selectedSS)) newStructure = GetStructureFromId(newName, selectedSS);
                 else newStructure = selectedSS.AddStructure("CONTROL", newName);
-                newStructure.SegmentVolume = itr.Item1.Margin(0.0);
-                newStructure.SegmentVolume = newStructure.Or(itr.Item2.Margin(0.0));
+                (bool copyFail, StringBuilder copyMessage) = ContourHelper.CopyStructureOntoStructure(itr.Item1, newStructure);
+                if (copyFail) return (true, copyMessage);
+                (bool unionFail, StringBuilder unionMessage) = ContourHelper.ContourUnion(itr.Item2, newStructure, 0.0);
+                if (unionFail) return (true, unionMessage);
             }
             catch (Exception except) 
             { 
-                sb.Append($"Warning! Could not add structure: {newName}\nBecause: {except.Message}"); 
+                sb.Append($"Warning! Could not union {itr.Item1.Id} and {itr.Item2.Id} onto {newName}\nBecause: {except.Message}"); 
                 return (true, sb); 
             }
             return (false, sb);
         }
 
+        /// <summary>
+        /// Super helpful method to return the first structure with Id matching the supplied Id from the structure set
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="selectedSS"></param>
+        /// <param name="createIfEmpty"></param>
+        /// <returns></returns>
         public static Structure GetStructureFromId(string id, StructureSet selectedSS, bool createIfEmpty = false)
         {
             Structure theStructure = null;
@@ -92,12 +122,26 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return theStructure;
         }
 
+        /// <summary>
+        /// Super helpful method to determine if the supplied structur ids exists in the structure set
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="selectedSS"></param>
+        /// <param name="checkIsEmpty"></param>
+        /// <returns></returns>
         public static bool DoesStructureExistInSS(string id, StructureSet selectedSS, bool checkIsEmpty = false)
         {
             if(!checkIsEmpty) return selectedSS.Structures.Any(x => string.Equals(id.ToLower(), x.Id.ToLower()));
             else return selectedSS.Structures.Any(x => string.Equals(id.ToLower(), x.Id.ToLower()) && !x.IsEmpty);
         }
 
+        /// <summary>
+        /// Helper method to determine if any of the supplied structure ids exist in the structure set
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <param name="selectedSS"></param>
+        /// <param name="checkIsEmpty"></param>
+        /// <returns></returns>
         public static bool DoesStructureExistInSS(List<string> ids, StructureSet selectedSS, bool checkIsEmpty = false)
         {
             foreach(string itr in ids)
@@ -114,6 +158,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return false;
         }
 
+        /// <summary>
+        /// Simple method to determine if there is overlap between the supplied target and normal structures
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="normal"></param>
+        /// <param name="selectedSS"></param>
+        /// <param name="marginInCm"></param>
+        /// <returns></returns>
         public static bool IsOverlap(Structure target, Structure normal, StructureSet selectedSS, double marginInCm)
         {
             bool isOverlap = false;

@@ -11,11 +11,16 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
     public class PlanPrepBase : SimpleMTbase
     {
         protected ExternalPlanSetup VMATPlan = null;
-        public int numVMATIsos = 0;
-        public int numIsos;
-        public List<ExternalPlanSetup> separatedPlans = new List<ExternalPlanSetup> { };
+        protected int numVMATIsos = 0;
+        protected int numIsos;
+        protected List<ExternalPlanSetup> separatedPlans = new List<ExternalPlanSetup> { };
         protected bool recalcNeeded = false;
 
+        /// <summary>
+        /// Helper method to verify the name formatting of all the beam Ids is appropriate and will not cause problems with this script
+        /// </summary>
+        /// <param name="plan"></param>
+        /// <returns></returns>
         protected bool CheckBeamNameFormatting(ExternalPlanSetup plan)
         {
             StringBuilder sb = new StringBuilder();
@@ -40,6 +45,12 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return beamFormatError;
         }
 
+        /// <summary>
+        /// Helper method to check if the plan dose calculation option for the supplied plan is set to true. If so, this all separated plans will require
+        /// recalculation
+        /// </summary>
+        /// <param name="thePlan"></param>
+        /// <returns></returns>
         protected bool CheckIfDoseRecalcNeeded(ExternalPlanSetup thePlan)
         {
             if (thePlan.GetCalculationOptions(thePlan.GetCalculationModel(CalculationType.PhotonVolumeDose)).Any(x => string.Equals(x.Key, "PlanDoseCalculation")))
@@ -54,16 +65,27 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
-        protected bool SeparateVMATPlan(ExternalPlanSetup plan, List<List<Beam>> beamsPerIso, List<string> names)
+        /// <summary>
+        /// Utility method to take the supplied plan, list of isos with list of beams, and list of iso names and separate the isocenters in the supplied
+        /// plan into separate plans
+        /// </summary>
+        /// <param name="plan"></param>
+        /// <param name="beamsPerIso"></param>
+        /// <param name="names"></param>
+        /// <param name="previousNumIsos"></param>
+        /// <returns></returns>
+        protected bool SeparatePlan(ExternalPlanSetup plan, List<List<Beam>> beamsPerIso, List<string> names, bool isAPPA = false, int previousNumIsos = 0)
         {
             int percentComplete = 0;
             int calcItems = 4 * beamsPerIso.Count;
-            int count = 0;
+            int count = previousNumIsos;
+            //iterate through list of beams for each isocenter
             foreach (List<Beam> beams in beamsPerIso)
             {
                 //copy the plan, set the plan id based on the counter, and make a empty list to hold the beams that need to be removed
                 ExternalPlanSetup newplan = (ExternalPlanSetup)plan.Course.CopyPlanSetup(plan);
-                newplan.Id = $"{count + 1} {names.ElementAt(count)}";
+                if(isAPPA) newplan.Id = $"{count + 1} {(names.ElementAt(count).Contains("upper") ? "Upper Legs" : "Lower Legs")}";
+                else newplan.Id = $"{count + 1} {names.ElementAt(count)}";
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Created new plan {newplan.Id} as copy of {plan.Id}");
                 List<Beam> beamsToRemove = new List<Beam> { };
                 //can't add reference point to plan because it must be open in Eclipse for ESAPI to perform this function. Need to fix in v16
@@ -94,6 +116,13 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
+        /// <summary>
+        /// Helper method to remove extra beams from each separated plan. Each separated plan initially has all beams and this method removes the
+        /// beams not associated with the isocenter of interest for this plan
+        /// </summary>
+        /// <param name="newPlan"></param>
+        /// <param name="removeMe"></param>
+        /// <returns></returns>
         protected bool RemoveExtraBeams(ExternalPlanSetup newPlan, List<Beam> removeMe)
         {
             //now remove the beams for the current plan copy
@@ -115,6 +144,10 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
+        /// <summary>
+        /// Helper method to recalculate dose for all plans in the separatedPlans list
+        /// </summary>
+        /// <returns></returns>
         public bool ReCalculateDose()
         {
             int percentComplete = 0;

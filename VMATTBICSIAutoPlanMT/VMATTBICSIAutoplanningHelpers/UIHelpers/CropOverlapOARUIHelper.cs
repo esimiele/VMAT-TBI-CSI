@@ -8,6 +8,10 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
     public static class CropOverlapOARUIHelper
     {
+        /// <summary>
+        /// Helper method to print the Crop and Overlap structure header information on the Crop/Overlap subtab
+        /// </summary>
+        /// <returns></returns>
         public static StackPanel GetCropOverlapHeader()
         {
             StackPanel sp = new StackPanel
@@ -31,7 +35,22 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sp;
         }
 
-        public static StackPanel AddCropOverlapOAR(List<string> allStructures, string OAR, string clearBtnPrefix, int clearSpareBtnCounter, RoutedEventHandler clearEvtHndl, bool addOAREvenIfNotInSS = false)
+        /// <summary>
+        /// Helper method to add structures to the UIthat will be evaluated for crop and overlap operations
+        /// </summary>
+        /// <param name="allStructures"></param>
+        /// <param name="OAR"></param>
+        /// <param name="clearBtnPrefix"></param>
+        /// <param name="clearSpareBtnCounter"></param>
+        /// <param name="clearEvtHndl"></param>
+        /// <param name="addOAREvenIfNotInSS"></param>
+        /// <returns></returns>
+        public static StackPanel AddCropOverlapOAR(List<string> allStructures, 
+                                                   string OAR, 
+                                                   string clearBtnPrefix, 
+                                                   int clearSpareBtnCounter, 
+                                                   RoutedEventHandler clearEvtHndl, 
+                                                   bool addOAREvenIfNotInSS = false)
         {
             StackPanel sp = new StackPanel
             {
@@ -88,6 +107,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sp;
         }
 
+        /// <summary>
+        /// Helper method to read the selected structures in the UI for crop and overlap operations. Return a list of the structure Ids
+        /// </summary>
+        /// <param name="theSP"></param>
+        /// <returns></returns>
         public static (List<string>, StringBuilder) ParseCropOverlapOARList(StackPanel theSP)
         {
             StringBuilder sb = new StringBuilder();

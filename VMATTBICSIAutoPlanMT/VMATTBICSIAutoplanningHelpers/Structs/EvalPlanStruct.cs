@@ -5,7 +5,9 @@ using OptimizationObjectiveType = VMATTBICSIAutoPlanningHelpers.Enums.Optimizati
 
 namespace VMATTBICSIAutoPlanningHelpers.Structs
 {
-    //data structure to hold the results of the plan evaluation following an optimization
+    /// <summary>
+    /// Data struct to hold the results of the plan evaluation following an optimization
+    /// </summary>
     public struct EvalPlanStruct
     {
         //difference between current dose values for each structure in the optimization list and the optimization constraint(s) for that structure
@@ -26,7 +28,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Structs
         public void Construct()
         {
             //vector to hold the results from the optimization for a particular OPTIMIZATION objective
-            //structure, dvh data, current dose obj, dose diff^2, cost, current priority, priority difference
+            //structure, dvh data, current dose obj, dose diff^2, cost, current priority
             diffPlanOpt = new List<Tuple<Structure, DVHData, double, double, double, int>> { };
             //vector to hold the results from the optimization for a particular PLAN objective
             diffPlanObj = new List<Tuple<Structure, DVHData, double, double>> { };

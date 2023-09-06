@@ -13,8 +13,12 @@ namespace Launcher
     /// </summary>
     public partial class LauncherMainWindow : Window
     {
-        //bool isCSIPlan = false;
         string arguments = "";
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="startupArgs"></param>
         public LauncherMainWindow(List<string> startupArgs)
         {
             InitializeComponent();
@@ -22,28 +26,44 @@ namespace Launcher
             {
                 if (startupArgs.Count > 2) LaunchOptBtn.Visibility = Visibility.Visible;
                 //patient mrn, structure set
-                arguments = String.Format("{0} {1}", startupArgs.ElementAt(0), startupArgs.ElementAt(1));
+                arguments = $"{startupArgs.ElementAt(0)} {startupArgs.ElementAt(1)}";
             }
         }
 
+        /// <summary>
+        /// Button event to launch the TBI autoplanner prep script
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void VMATTBIBtn_Click(object sender, RoutedEventArgs e)
         {
             LaunchExe("VMATTBIAutoPlanMT");
         }
 
+        /// <summary>
+        /// Button event to launch the CSI autoplanner prep script
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void VMATCSIBtn_Click(object sender, RoutedEventArgs e)
         {
             LaunchExe("VMATCSIAutoPlanMT");
         }
 
+        /// <summary>
+        /// Button event to launch the optimization loop script
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void LaunchOptLoopBtn_Click(object sender, RoutedEventArgs e)
         {
-            //string exeName;
-            //if (isCSIPlan) exeName = "VMATCSIOptLoopMT";
-            //else exeName = "VMATTBIOptLoopMT";
             LaunchExe("VMATTBICSIOptLoopMT");
         }
 
+        /// <summary>
+        /// Helper method to launch the executable with name matching the supplied name
+        /// </summary>
+        /// <param name="exeName"></param>
         private void LaunchExe(string exeName)
         {
             string path = AppExePath(exeName);
@@ -59,11 +79,22 @@ namespace Launcher
             else MessageBox.Show(String.Format("Error! {0} executable NOT found!", exeName));
         }
 
+        /// <summary>
+        /// Same method in the .cs launcher (can't use external libraries in single file plugins)
+        /// </summary>
+        /// <param name="exeName"></param>
+        /// <returns></returns>
         private string AppExePath(string exeName)
         {
             return FirstExePathIn(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), exeName);
         }
 
+        /// <summary>
+        /// Same method in the .cs launcher (can't use external libraries in single file plugins)
+        /// </summary>
+        /// <param name="dir"></param>
+        /// <param name="exeName"></param>
+        /// <returns></returns>
         private string FirstExePathIn(string dir, string exeName)
         {
             return Directory.GetFiles(dir, "*.exe").FirstOrDefault(x => x.Contains(exeName));

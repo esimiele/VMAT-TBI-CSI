@@ -15,6 +15,10 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
     {
         ExternalPlanSetup evalPlan = null;
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="_d"></param>
         public VMATCSIOptimization(OptDataContainer _d)
         {
             _data = _d;
@@ -22,6 +26,10 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             CalculateNumberOfItemsToComplete();
         }
 
+        /// <summary>
+        /// Run control
+        /// </summary>
+        /// <returns></returns>
         public override bool Run()
         {
             try
@@ -45,6 +53,9 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             return false;
         }
 
+        /// <summary>
+        /// Helper method to calculate the total number of items to complete during this optimization loop run
+        /// </summary>
         protected void CalculateNumberOfItemsToComplete()
         {
             overallCalcItems = 3;
@@ -55,6 +66,12 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
         }
 
         #region plan sum
+        /// <summary>
+        /// Helper method to create an empty plan that will be used to store the summed dose from the initial and boost plans
+        /// </summary>
+        /// <param name="ss"></param>
+        /// <param name="thePlans"></param>
+        /// <returns></returns>
         private ExternalPlanSetup CreatePlanSum(StructureSet ss, List<ExternalPlanSetup> thePlans)
         {
             //create evaluation plan
@@ -84,6 +101,12 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             return evalPlan;
         }
 
+        /// <summary>
+        /// Utility method to build a plan sum using the supplied list of plans
+        /// </summary>
+        /// <param name="evalPlan"></param>
+        /// <param name="thePlans"></param>
+        /// <returns></returns>
         private bool BuildPlanSum(ExternalPlanSetup evalPlan, List<ExternalPlanSetup> thePlans)
         {
             UpdateUILabel("Build plan sum:");
@@ -97,6 +120,14 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             return false;
         }
 
+        /// <summary>
+        /// Helper method to build an nested array of dose values for all slices of the dose matrix
+        /// </summary>
+        /// <param name="totalSlices"></param>
+        /// <param name="sum"></param>
+        /// <param name="initialPlan"></param>
+        /// <param name="boostPlan"></param>
+        /// <returns></returns>
         private int[][,] CreateSummedDoseArray(int totalSlices, ExternalPlanSetup sum, ExternalPlanSetup initialPlan, ExternalPlanSetup boostPlan)
         {
             ProvideUIUpdate("Summing the dose distributions from initial and boost plans");
@@ -126,6 +157,12 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             return sumArray;
         }
 
+        /// <summary>
+        /// Simple method to retrieve the 2D dose array for the specified slice of the dose matrix
+        /// </summary>
+        /// <param name="e"></param>
+        /// <param name="slice"></param>
+        /// <returns></returns>
         private int[,] GetDoseArray(EvaluationDose e, int slice)
         {
             int[,] buffer = new int[e.XSize, e.YSize];
@@ -133,9 +170,15 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             return buffer;
         }
 
+        /// <summary>
+        /// Helper method to take the nested array of dose values and assigned them to the plan sum
+        /// </summary>
+        /// <param name="evalPlan"></param>
+        /// <param name="summedDoses"></param>
+        /// <param name="totalSlices"></param>
+        /// <returns></returns>
         private bool AssignSummedDoseToEvalPlan(ExternalPlanSetup evalPlan, int[][,] summedDoses, int totalSlices)
         {
-            //testing 3/9/23
             //max dose and structure DVHs are within 0.1% between evaluation plan and true plan sum
             //this needs to be done outside the above loop because as soon as we call createevaluationdose, it will wipe anything we have assigned to the eval plan thus far
             ProvideUIUpdate($"Assigning summed doses to eval plan: {evalPlan.Id}");
@@ -163,6 +206,11 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
         #endregion
 
         #region optimization loop
+        /// <summary>
+        /// Overridden method of resolving the final run options once the maximum number of iterations has been reached
+        /// </summary>
+        /// <param name="plans"></param>
+        /// <returns></returns>
         protected override bool ResolveRunOptions(List<ExternalPlanSetup> plans)
         {
             if (_data.oneMoreOpt)
@@ -188,6 +236,12 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             return false;
         }
 
+        /// <summary>
+        /// Method to run the initial CSI plan through one final optimization to try and lower hotspots in an attempt to cool the composite plan down
+        /// </summary>
+        /// <param name="initialPlan"></param>
+        /// <param name="dmax"></param>
+        /// <returns></returns>
         private bool AttemptToLowerInitPlanDmax(ExternalPlanSetup initialPlan, double dmax)
         {
             ProvideUIUpdate($"Initial plan ({initialPlan.Id}) Dmax is {dmax * 100:0.0}%!");
@@ -227,10 +281,15 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             return false;
         }
 
+        /// <summary>
+        /// Control method for directing the flow of sequential optimization
+        /// </summary>
+        /// <param name="plans"></param>
+        /// <returns></returns>
         protected override bool RunSequentialPlansOptimizationLoop(List<ExternalPlanSetup> plans)
         {
             //a requirement for sequentional optimization
-            List<Tuple<string, string>> plansTargets = TargetsHelper.GetPlanTargetList(_data.prescriptions);
+            List<Tuple<string, string>> plansTargets = TargetsHelper.GetHighestRxPlanTargetList(_data.prescriptions);
             if(!plansTargets.Any())
             {
                 ProvideUIUpdate("Error! Prescriptions are missing! Cannot determine the appropriate target for each plan! Exiting!", true);
@@ -271,7 +330,13 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                     if (CalculateDose(_data.isDemo, itr, _data.app)) return true;
                     ProvideUIUpdate(100 * ++percentComplete / calcItems, "Dose calculated, normalizing plan!");
                     //normalize
-                    if(NormalizePlan(itr, TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, OptimizationLoopHelper.GetNormaliztionVolumeIdForPlan(itr.Id, _data.normalizationVolumes), _data.useFlash, _data.planType), _data.relativeDose, _data.targetVolCoverage)) return true;
+                    if(NormalizePlan(itr, 
+                                     TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, 
+                                                                                 OptimizationLoopHelper.GetNormaliztionVolumeIdForPlan(itr.Id, _data.normalizationVolumes), 
+                                                                                 _data.useFlash, 
+                                                                                 _data.planType), 
+                                     _data.relativeDose, 
+                                     _data.targetVolCoverage)) return true;
                     if (GetAbortStatus())
                     {
                         KillOptimizationLoop();
@@ -325,17 +390,29 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             return false;
         }
 
+        /// <summary>
+        /// Helper method to evaluate the plan quality of the supplied plan against the supplied optimization constraints
+        /// </summary>
+        /// <param name="plan"></param>
+        /// <param name="optParams"></param>
+        /// <returns></returns>
         private EvalPlanStruct EvaluatePlanSumComponentPlans(ExternalPlanSetup plan, List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams)
         {
             EvalPlanStruct e = new EvalPlanStruct();
             e.Construct(); 
-            (double, List<Tuple<Structure, DVHData, double, double, double, int>>) optimizationObjectiveEvaluation = EvaluateResultVsOptimizationConstraints(plan, optParams);
-            e.totalCostPlanOpt = optimizationObjectiveEvaluation.Item1;
-            e.diffPlanOpt = optimizationObjectiveEvaluation.Item2;
+            (double totalCostPlanOpt, List<Tuple<Structure, DVHData, double, double, double, int>> diffPlanOpt) = EvaluateResultVsOptimizationConstraints(plan, optParams);
+            e.totalCostPlanOpt = totalCostPlanOpt;
+            e.diffPlanOpt = diffPlanOpt;
             e.updatedObj = DetermineNewOptimizationObjectives(plan, e.diffPlanOpt, e.totalCostPlanOpt, optParams);
             return e;
         }
 
+        /// <summary>
+        /// Helper method to evaluate the plan quality of the sum plan agains the supplied planning objectives
+        /// </summary>
+        /// <param name="plan"></param>
+        /// <param name="planObj"></param>
+        /// <returns></returns>
         private bool EvaluatePlanSumQuality(ExternalPlanSetup plan, List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> planObj)
         {
             UpdateUILabel($"Plan sum evaluation: {plan.Id}");
@@ -365,43 +442,4 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
 
         #endregion
     }
-
-    //public class Testing
-    //{
-    //    private ExternalPlanSetup _plan;
-    //    private bool _demo;
-    //    public Testing(bool d, ExternalPlanSetup p)
-    //    {
-    //        _demo = d;
-    //        _plan = p;
-    //    }
-
-    //    public void Run(object o)
-    //    {
-    //        Testing t = (Testing)o;
-    //        CalculateDose(t._demo, t._plan);
-    //    }
-
-    //    public bool CalculateDose(bool isDemo, ExternalPlanSetup plan)
-    //    {
-    //        if (isDemo) Thread.Sleep(3000);
-    //        else
-    //        {
-    //            string id = plan.Id;
-    //            MessageBox.Show(id);
-    //            //try
-    //            //{
-    //            //    CalculationResult calcRes = plan.CalculateDose();
-    //            //}
-    //            //catch (Exception except)
-    //            //{
-    //            //    MessageBox.Show(except.Message);
-    //            //    //PrintFailedMessage("Dose calculation", except.Message);
-    //            //    return true;
-    //            //}
-    //        }
-           
-    //        return false;
-    //    }
-    //}
 }

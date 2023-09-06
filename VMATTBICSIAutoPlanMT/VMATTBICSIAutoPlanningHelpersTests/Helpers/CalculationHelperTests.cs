@@ -62,21 +62,23 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             VVector origin = new VVector(0, 0, 2.0);
             Mock.Arrange(() => ss.Image).Returns(theImage);
             Mock.Arrange(() => theImage.Origin).Returns(origin);
-            Assert.AreEqual(expected, CalculationHelper.ComputeSlice(z, ss));
+            Mock.Arrange(() => theImage.ZRes).Returns(2.0);
+            Assert.AreNotEqual(expected, CalculationHelper.ComputeSlice(z, ss));
         }
         
         //untested
         [TestMethod()]
         public void ComputeSlicePassTest()
         {
-            int expected = 49;
+            int expected = 50;
             double z = 100;
             StructureSet ss = Mock.Create<StructureSet>();
             Image theImage = Mock.Create<Image>();
-            VVector origin = new VVector(0, 0, 2.0);
+            VVector origin = new VVector(0, 0, 0.0);
             Mock.Arrange(() => ss.Image).Returns(theImage);
             Mock.Arrange(() => theImage.Origin).Returns(origin);
-            Assert.AreNotEqual(expected, CalculationHelper.ComputeSlice(z, ss));
+            Mock.Arrange(() => theImage.ZRes).Returns(2.0);
+            Assert.AreEqual(expected, CalculationHelper.ComputeSlice(z, ss));
         }
     }
 }

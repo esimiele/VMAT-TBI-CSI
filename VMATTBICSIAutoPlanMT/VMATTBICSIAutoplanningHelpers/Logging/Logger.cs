@@ -14,6 +14,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
 {
     public class Logger
     {
+        #region Set methods
         //general patient info
         public string MRN { set { mrn = value; } }
         public void SetPlanType(PlanType type) { planType = type; }
@@ -21,6 +22,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         public string StructureSet { set => selectedSS = value; }
         public bool ChangesSaved { set => changesSaved = value; }
         public string User { set => userId = value; }
+        public string LogPath { get { return logPath; } set { logPath = value; } }
         //plan ID, target Id, numFx, dosePerFx, cumulative dose
         public List<Tuple<string, string, int, DoseValue, double>> Prescriptions { set => prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(value); }
         public List<string> AddedPrelimTargetsStructures { set => addedPrelimTargets = new List<string>(value); }
@@ -40,6 +42,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         //plan ID, <structure, constraint type, dose cGy, volume %, priority>
         public List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> OptimizationConstraints { set => optimizationConstraints = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>(value); }
         public ScriptOperationType OpType { set => opType = value; }
+        #endregion
 
         //path to location to write log file
         private string logPath = "";
@@ -63,6 +66,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         private List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> optimizationConstraints;
         private ScriptOperationType opType = ScriptOperationType.General;
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="theType"></param>
+        /// <param name="patient"></param>
         public Logger(string path, PlanType theType, string patient)
         {
             logPath = path;
@@ -83,7 +92,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             _logFromErrors = new StringBuilder();
         }
 
-        //called after TS generation and beam placement are performed to copy the immediate log output from MTProgress window to the log file
+        /// <summary>
+        /// Helper method to copy a stringbuilder object to the logs. First argument is the operation type as a string and the second argument
+        /// is the detailed logs from that operation
+        /// </summary>
+        /// <param name="info"></param>
+        /// <param name="s"></param>
         public void AppendLogOutput(string info, StringBuilder s)
         {
             _logFromOperations.AppendLine(info);
@@ -91,12 +105,22 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             _logFromOperations.AppendLine("");
         }
 
+        /// <summary>
+        /// Simple method to copy a string to the logs
+        /// </summary>
+        /// <param name="info"></param>
         public void AppendLogOutput(string info)
         {
             _logFromOperations.AppendLine(info);
             _logFromOperations.AppendLine("");
         }
 
+        /// <summary>
+        /// Helper method to record an error or warning that occurred during script operation. Also optional to suppress the message box
+        /// warning
+        /// </summary>
+        /// <param name="error"></param>
+        /// <param name="suppressMessage"></param>
         public void LogError(string error, bool suppressMessage = false)
         {
             if(!suppressMessage) MessageBox.Show(error);
@@ -104,6 +128,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             _logFromErrors.AppendLine("");
         }
 
+        /// <summary>
+        /// Same as above except the input argument is a string builder instead of a string
+        /// </summary>
+        /// <param name="error"></param>
+        /// <param name="suppressMessage"></param>
         public void LogError(StringBuilder error, bool suppressMessage = false)
         {
             if(!suppressMessage) MessageBox.Show(error.ToString());
@@ -111,6 +140,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             _logFromErrors.AppendLine("");
         }
 
+        #region Dump logs
+        /// <summary>
+        /// Method to build and write the log file. Includes both cases where changes were and were not made to the database
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
         public bool Dump()
         {
             string type;
@@ -119,7 +154,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
 
             if(string.IsNullOrEmpty(logPath))
             {
-                MessageBox.Show("Log file path not set during script configuration! Please select a folder to writes the log file!");
+                LogError("Log file path not set during script configuration! Please select a folder to write the log file!");
                 FolderBrowserDialog FBD = new FolderBrowserDialog
                 {
                     SelectedPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
@@ -133,7 +168,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
 
             logPath += "\\preparation\\" + type + "\\" + mrn + "\\";
             string fileName = logPath + mrn + ".txt";
-            if (!changesSaved)
+            if (!changesSaved && opType != ScriptOperationType.ExportCT)
             {
                 logPath += "unsaved" + "\\";
                 fileName = logPath + DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss") + ".txt";
@@ -150,21 +185,22 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             }
 
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine(String.Format(DateTime.Now.ToString()));
-            sb.AppendLine(String.Format("User={0}", userId));
-            sb.AppendLine(String.Format("Patient={0}", mrn));
-            sb.AppendLine(String.Format("Plan type={0}", planType));
+            sb.AppendLine(DateTime.Now.ToString());
+            sb.AppendLine($"User={userId}");
+            sb.AppendLine($"Patient={mrn}");
+            sb.AppendLine($"Plan type={planType}");
+            //consider the operation that was performed when constructing the log file
             if (opType == ScriptOperationType.General) sb.Append(BuildGeneralOpLog());
             else if (opType == ScriptOperationType.GeneratePrelimTargets) sb.Append(BuildPrelimTargetOpLog());
             else sb.AppendLine("");
 
             sb.AppendLine("Errors and warnings:");
             sb.Append(_logFromErrors);
-            sb.AppendLine(String.Format(""));
+            sb.AppendLine("");
 
             sb.AppendLine("Detailed log output:");
             sb.Append(_logFromOperations);
-            sb.AppendLine(String.Format(""));
+            sb.AppendLine("");
             try
             {
                 File.WriteAllText(fileName, sb.ToString());
@@ -176,76 +212,86 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             return false;
         }
 
+        /// <summary>
+        /// Method to build the log file for a normal, general run of the preparation script where the focus was to prepare the structure
+        /// set for optimization
+        /// </summary>
+        /// <returns></returns>
         private StringBuilder BuildGeneralOpLog()
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine(String.Format("Structure set={0}", selectedSS));
-            sb.AppendLine(String.Format("Template={0}", template));
-            sb.AppendLine(String.Format(""));
-            sb.AppendLine(String.Format("Prescriptions:"));
-            foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions) sb.AppendLine(String.Format("    {{{0},{1},{2},{3},{4}}}", itr.Item1, itr.Item2, itr.Item3, itr.Item4.Dose, itr.Item5));
-            sb.AppendLine(String.Format(""));
+            sb.AppendLine($"Structure set={selectedSS}");
+            sb.AppendLine($"Template={template}");
+            sb.AppendLine("");
+            sb.AppendLine("Prescriptions:");
+            foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions) sb.AppendLine($"    {{{itr.Item1},{itr.Item2},{itr.Item3},{itr.Item4.Dose},{itr.Item5}}}");
+            sb.AppendLine("");
 
-            sb.AppendLine(String.Format("Added TS structures:"));
-            foreach (string itr in addedStructures) sb.AppendLine("    " + itr);
-            sb.AppendLine(String.Format(""));
+            sb.AppendLine("Added TS structures:");
+            foreach (string itr in addedStructures) sb.AppendLine($"    {itr}");
+            sb.AppendLine("");
 
-            sb.AppendLine(String.Format("Structure manipulations:"));
-            foreach (Tuple<string, TSManipulationType, double> itr in structureManipulations) sb.AppendLine(String.Format("    {{{0},{1},{2}}}", itr.Item1, itr.Item2.ToString(), itr.Item3));
-            sb.AppendLine(String.Format(""));
+            sb.AppendLine("Structure manipulations:");
+            foreach (Tuple<string, TSManipulationType, double> itr in structureManipulations) sb.AppendLine($"    {{{itr.Item1},{itr.Item2},{itr.Item3}}}");
+            sb.AppendLine("");
 
-            sb.AppendLine(String.Format("Isocenter names:"));
+            sb.AppendLine("Isocenter names:");
             foreach (Tuple<string, List<string>> itr in isoNames)
             {
-                sb.AppendLine(String.Format("    {0}", itr.Item1));
+                sb.AppendLine($"    {itr.Item1}");
                 foreach (string s in itr.Item2)
                 {
-                    sb.AppendLine(String.Format("        {0}", s));
+                    sb.AppendLine($"        {s}");
                 }
             }
-            sb.AppendLine(String.Format(""));
+            sb.AppendLine("");
 
-            sb.AppendLine(String.Format("Plan UIDs:"));
+            sb.AppendLine("Plan UIDs:");
             foreach (string itr in planUIDs)
             {
-                sb.AppendLine(String.Format("    {0}", itr));
+                sb.AppendLine($"    {itr}");
             }
-            sb.AppendLine(String.Format(""));
+            sb.AppendLine("");
 
             sb.AppendLine("TS Targets:");
             foreach (Tuple<string, string> itr in tsTargets)
             {
-                sb.AppendLine(String.Format("    {{{0},{1}}}", itr.Item1, itr.Item2));
+                sb.AppendLine($"    {{{itr.Item1},{itr.Item2}}}");
             }
-            sb.AppendLine(String.Format(""));
+            sb.AppendLine("");
 
             sb.AppendLine("Normalization volumes:");
             foreach (Tuple<string, string> itr in normVolumes)
             {
-                sb.AppendLine(String.Format("    {{{0},{1}}}", itr.Item1, itr.Item2));
+                sb.AppendLine($"    {{{itr.Item1},{itr.Item2}}}");
             }
-            sb.AppendLine(String.Format(""));
+            sb.AppendLine("");
 
-            sb.AppendLine(String.Format("Optimization constraints:"));
+            sb.AppendLine("Optimization constraints:");
             foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in optimizationConstraints)
             {
-                sb.AppendLine(String.Format("    {0}", itr.Item1));
+                sb.AppendLine($"    {itr.Item1}");
                 foreach (Tuple<string, OptimizationObjectiveType, double, double, int> itr1 in itr.Item2)
                 {
-                    sb.AppendLine(String.Format("        {{{0},{1},{2},{3},{4}}}", itr1.Item1, itr1.Item2.ToString(), itr1.Item3, itr1.Item4, itr1.Item5));
+                    sb.AppendLine($"        {{{itr1.Item1},{itr1.Item2},{itr1.Item3},{itr1.Item4},{itr1.Item5}}}");
                 }
             }
-            sb.AppendLine(String.Format(""));
+            sb.AppendLine("");
             return sb;
         }
 
+        /// <summary>
+        /// Method to build the log file when the script was only used to generate the preliminary targets
+        /// </summary>
+        /// <returns></returns>
         private StringBuilder BuildPrelimTargetOpLog()
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine(String.Format("Added preliminary targets:"));
+            sb.AppendLine("Added preliminary targets:");
             foreach (string itr in addedPrelimTargets) sb.AppendLine("    " + itr);
-            sb.AppendLine(String.Format(""));
+            sb.AppendLine("");
             return sb;
         }
+        #endregion
     }
 }

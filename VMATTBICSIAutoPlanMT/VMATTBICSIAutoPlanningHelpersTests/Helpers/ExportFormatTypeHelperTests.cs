@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using VMATTBICSIAutoPlanningHelpers.Enums;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
 {
@@ -12,9 +13,24 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
     public class ExportFormatTypeHelperTests
     {
         [TestMethod()]
-        public void GetExportFormatTypeTest()
+        public void GetExportFormatTypeTestPass()
         {
-            Assert.Fail();
+            string format = "dcm";
+            Assert.AreEqual(ExportFormatTypeHelper.GetExportFormatType(format), ImgExportFormat.DICOM);
+        }
+
+        [TestMethod()]
+        public void GetExportFormatTypeTestPassPNG()
+        {
+            string format = "png";
+            Assert.AreEqual(ExportFormatTypeHelper.GetExportFormatType(format), ImgExportFormat.PNG);
+        }
+
+        [TestMethod()]
+        public void GetExportFormatTypeTestFail()
+        {
+            string format = "dcn";
+            Assert.AreNotEqual(ExportFormatTypeHelper.GetExportFormatType(format), ImgExportFormat.DICOM);
         }
     }
 }

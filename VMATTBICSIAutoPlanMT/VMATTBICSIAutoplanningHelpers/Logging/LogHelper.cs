@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Windows;
+using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using VMS.TPS.Common.Model.Types;
 
@@ -69,6 +72,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             return Tuple.Create(planId, volumeId);
         }
 
+        /// <summary>
+        /// Helper method to parse the initial vmat plan (CSI or TBI) UID from the log file and match it to the corresponding plan in Eclipse
+        /// </summary>
+        /// <param name="file"></param>
+        /// <returns></returns>
         public static (string, StringBuilder) LoadVMATPlanUIDFromLogFile(string file)
         {
             StringBuilder sb = new StringBuilder();

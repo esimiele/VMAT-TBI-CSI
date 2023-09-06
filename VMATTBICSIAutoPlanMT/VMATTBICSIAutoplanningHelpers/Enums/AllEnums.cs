@@ -60,6 +60,7 @@
         General,
         ExportCT,
         GeneratePrelimTargets,
-        PlanPrep
+        PlanPrep,
+        AutoConvertHighToDefaultRes
     };
 }

@@ -119,11 +119,13 @@
     <Compile Include="BaseClasses\PlaceBeamsBase.cs" />
     <Compile Include="BaseClasses\PlanPrepBase.cs" />
     <Compile Include="BaseClasses\AutoPlanTemplateBase.cs" />
+    <Compile Include="Delegates\AllDelegates.cs" />
     <Compile Include="Enums\AllEnums.cs" />
     <Compile Include="Helpers\AppClosingHelper.cs" />
     <Compile Include="Helpers\CalculationHelper.cs" />
     <Compile Include="Helpers\ExportFormatTypeHelper.cs" />
     <Compile Include="Helpers\FlashTypeHelper.cs" />
+    <Compile Include="Helpers\PlanObjectiveHelper.cs" />
     <Compile Include="Helpers\PlanPrepHelper.cs" />
     <Compile Include="Helpers\RingHelper.cs" />
     <Compile Include="PlanTemplateClasses\TBIAutoPlanTemplate.cs" />

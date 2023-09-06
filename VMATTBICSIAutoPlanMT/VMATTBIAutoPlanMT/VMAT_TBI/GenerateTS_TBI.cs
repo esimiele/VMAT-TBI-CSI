@@ -16,6 +16,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
     public class GenerateTS_TBI : GenerateTSbase
     {
+        //Get methods
         public int GetNumberOfIsocenters() { return numIsos; }
         public int GetNumberOfVMATIsocenters() { return numVMATIsos; }
         public List<Tuple<string, List<Tuple<string, string>>>> GetTsTargets() { return tsTargets; }
@@ -32,13 +33,30 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         //plan id, normalization volume
         private List<Tuple<string, string>> normVolumes = new List<Tuple<string, string>> { };
 
+        //data members
         private int numIsos;
         private int numVMATIsos;
         private double targetMargin;
         private Structure flashStructure = null;
         private double flashMargin;
+        private bool useFlash = false;
 
-        public GenerateTS_TBI(List<Tuple<string, string>> ts, List<Tuple<string, TSManipulationType, double>> list, List<Tuple<string, string, int, DoseValue, double>> presc, StructureSet ss, double tm, bool flash, Structure fSt, double fM, bool closePW)
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="ts"></param>
+        /// <param name="list"></param>
+        /// <param name="presc"></param>
+        /// <param name="ss"></param>
+        /// <param name="tm"></param>
+        /// <param name="flash"></param>
+        /// <param name="fSt"></param>
+        /// <param name="fM"></param>
+        /// <param name="closePW"></param>
+        public GenerateTS_TBI(List<Tuple<string, string>> ts, 
+                              List<Tuple<string, TSManipulationType, double>> list, 
+                              List<Tuple<string, string, int, DoseValue, double>> presc, 
+                              StructureSet ss, double tm, bool flash, Structure fSt, double fM, bool closePW)
         {
             //overloaded constructor for the case where the user wants to include flash in the simulation
             TS_structures = new List<Tuple<string, string>>(ts);
@@ -52,6 +70,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             SetCloseOnFinish(closePW, 3000);
         }
 
+        #region Run control
+        /// <summary>
+        /// Run control
+        /// </summary>
+        /// <returns></returns>
         [HandleProcessCorruptedStateExceptions]
         public override bool Run()
         {
@@ -77,8 +100,14 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
             return false;
         }
+        #endregion
 
-        #region preliminary checks
+        #region Preliminary checks
+        /// <summary>
+        /// Preliminary checks to ensure the body exists, the user origin is inside the body, body extent and matchline presence, and check if the prep 
+        /// script was running previously
+        /// </summary>
+        /// <returns></returns>
         protected override bool PreliminaryChecks()
         {
             UpdateUILabel("Performing Preliminary Checks: ");
@@ -93,7 +122,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             ProvideUIUpdate(100 * ++counter / calcItems, "Body structure exists and is not empty");
 
             //check if user origin was set
-            if (IsUOriginInside(selectedSS)) return true;
+            if (IsUOriginInside()) return true;
             ProvideUIUpdate(100 * ++counter / calcItems, "User origin is inside body");
             
             if (CheckBodyExtentAndMatchline()) return true;
@@ -104,12 +133,17 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             return false;
         }
 
+        /// <summary>
+        /// Check the structure set for indications that this script was run previously
+        /// </summary>
+        /// <returns></returns>
         private bool CheckIfScriptRunPreviously()
         {
             if(StructureTuningHelper.DoesStructureExistInSS("human_body", selectedSS, true))
             {
                 if(selectedSS.Structures.Any(x => x.Id.ToLower().Contains("flash")))
                 {
+                    //copy human_body back onto body if flash was used in previous run of the script
                     Structure body = StructureTuningHelper.GetStructureFromId("body", selectedSS);
                     Structure humanBody = StructureTuningHelper.GetStructureFromId("human_body", selectedSS);
                     (bool failCopyTarget, StringBuilder copyErrorMessage) = ContourHelper.CopyStructureOntoStructure(humanBody, body);
@@ -125,7 +159,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             return false;
         }
 
-
+        /// <summary>
+        /// Check the body height against the limits for treating in the HFS position. If body is taller than limit (116 cm), verify that the matchline
+        /// structure is present and contoured
+        /// </summary>
+        /// <returns></returns>
         private bool CheckBodyExtentAndMatchline()
         {
             //get the points collection for the Body (used for calculating number of isocenters)
@@ -149,7 +187,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         }
         #endregion
 
-        #region helper methods for create ts structures
+        #region Helper methods for create ts structures
+        /// <summary>
+        /// Helper method to remove the dummy box structure used to cut the target at the matchline
+        /// </summary>
+        /// <returns></returns>
         private bool CleanUpDummyBox()
         {
             UpdateUILabel("Cleaning up:");
@@ -163,14 +205,28 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             return false;
         }
 
+        /// <summary>
+        /// Simple helper method to copy the body structure onto the supplied structure
+        /// </summary>
+        /// <param name="addedStructure"></param>
+        /// <returns></returns>
         private bool CopyBodyStructureOnToStructure(Structure addedStructure)
         {
-            Structure body = StructureTuningHelper.GetStructureFromId("Body", selectedSS);
-            addedStructure.SegmentVolume = body.Margin(0.0);
+            (bool fail, StringBuilder message) = ContourHelper.CopyStructureOntoStructure(StructureTuningHelper.GetStructureFromId("Body", selectedSS), addedStructure);
+            if(fail)
+            {
+                ProvideUIUpdate(message.ToString(), true);
+                return true;
+            }
             ProvideUIUpdate($"Copied body structure onto {addedStructure.Id}");
             return false;
         }
 
+        /// <summary>
+        /// Simple method to union the left and right lung block structures (for scleroderma trial)
+        /// </summary>
+        /// <param name="addedStructure"></param>
+        /// <returns></returns>
         private bool ContourLungsEvalVolume(Structure addedStructure)
         {
             Structure lung_block_left = StructureTuningHelper.GetStructureFromId("lung_block_l", selectedSS);
@@ -192,6 +248,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             return false;
         }
 
+        /// <summary>
+        /// Dedicated method for contouring the lung and kidney block volumes required by the scleroderma trial
+        /// </summary>
+        /// <param name="addedStructure"></param>
+        /// <returns></returns>
         private bool ContourBlockVolume(Structure addedStructure)
         {
             Structure baseStructure;
@@ -239,16 +300,20 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         }
         #endregion
 
-        #region create tuning structures
+        #region Create tuning structures
+        /// <summary>
+        /// Method to direct and control the flow of TS generation for TBI
+        /// </summary>
+        /// <returns></returns>
         protected override bool CreateTSStructures()
         {
             UpdateUILabel("Create TS Structures:");
             ProvideUIUpdate("Adding remaining tuning structures to stack!"); 
             if (RemoveOldTSStructures(TS_structures, true)) return true;
-            int calcItems = TS_structures.Count;
+
             int counter = 0;
-            //Need to add the Human body, PTV_BODY, and TS_PTV_VMAT contours manually
-            //if these structures were present, they should have been removed (regardless if they were contoured or not). 
+            int calcItems = TS_structures.Count;
+
             foreach (Tuple<string, string> itr in TS_structures)
             {
                 ProvideUIUpdate(100 * ++counter / calcItems, $"Adding {itr.Item2} to the structure set!");
@@ -257,7 +322,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
             ProvideUIUpdate(100, "Finished adding tuning structures!");
             ProvideUIUpdate(0, "Contouring tuning structures!");
+
             counter = 0;
+            calcItems = addedStructures.Count;
             //now contour the various structures
             foreach (string itr in addedStructures)
             {
@@ -287,6 +354,12 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             return false;
         }
 
+        /// <summary>
+        /// Simple helper method to copy the body structure onto the supplied structure, then crop the supplied structure from the body by the requested
+        /// inner margin
+        /// </summary>
+        /// <param name="addedStructure"></param>
+        /// <returns></returns>
         private bool GeneratePTVFromBody(Structure addedStructure)
         {
             if (CopyBodyStructureOnToStructure(addedStructure)) return true;
@@ -301,26 +374,29 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         }
         #endregion
 
+        /// <summary>
+        /// Directory method for controlling the flow of TS structure manipulations
+        /// </summary>
+        /// <returns></returns>
         protected override bool PerformTSStructureManipulation()
         {
             UpdateUILabel("Perform TS Manipulations: ");
             int counter = 0;
             int calcItems = TSManipulationList.Count * prescriptions.Count;
-            //determine if any TS structures need to be added to the selected structure set (i.e., were not present or were removed in the first foreach loop)
-            //this is provided here to only add additional TS if they are relevant to the current case (i.e., it doesn't make sense to add the brain TS's if we 
-            //are not interested in sparing brain)
-            string tmpPlanId = prescriptions.First().Item1;
+            
             List<Tuple<string, string>> tmpTSTargetList = new List<Tuple<string, string>> { };
             //prescriptions are inherently sorted by increasing cumulative Rx to targets
             foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
             {
                 Structure target = null;
+                //special logic. We want to actually manipulate ptv_body itself rather than a TS_PTV_Body structure
                 if (string.Equals(itr.Item2.ToLower(), "ptv_body"))
                 {
                     target = StructureTuningHelper.GetStructureFromId(itr.Item2, selectedSS);
                 }
                 else
                 {
+                    //target Id is not ptv_body, generate a new TSTarget
                     target = GetTSTarget(itr.Item2);
                     tmpTSTargetList.Add(new Tuple<string, string>(itr.Item2, target.Id));
                 }
@@ -331,15 +407,17 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 }
                 if (TSManipulationList.Any())
                 {
+                    //perform all relevant TS manipulations for the specified target
                     foreach (Tuple<string, TSManipulationType, double> itr1 in TSManipulationList)
                     {
-                        if (ManipulateTuningStructures(itr1, target, ref counter, ref calcItems)) return true;
+                        if (ManipulateTuningStructures(itr1, target)) return true;
+                        ProvideUIUpdate(100 * ++counter / calcItems);
                     }
                 }
                 else ProvideUIUpdate("No TS manipulations requested!");
                 if (string.Equals(itr.Item2.ToLower(), "ptv_body"))
                 {
-                    //ts_ptv_vmat needs to be handled after ts manipulation because ptv_body itsself needs to be cropped from all the relevant structures
+                    //ts_ptv_vmat needs to be handled AFTER ts manipulation because ptv_body itsself needs to be cropped from all the relevant structures
                     (bool fail, string tsPTVVMATId) = GenerateTSPTVBodyTarget(target, "TS_PTV_VMAT");
                     if (fail) return true;
                     tmpTSTargetList.Add(new Tuple<string, string>(itr.Item2, tsPTVVMATId));
@@ -347,12 +425,18 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
             //only one plan is allowed for the prescriptions --> last item is the highest Rx target for this plan and needs to be set as the normalization volume
             normVolumes.Add(Tuple.Create(prescriptions.Last().Item1, tmpTSTargetList.Last().Item2));
-            tsTargets.Add(new Tuple<string, List<Tuple<string, string>>>(tmpPlanId, new List<Tuple<string, string>>(tmpTSTargetList)));
+            tsTargets.Add(new Tuple<string, List<Tuple<string, string>>>(prescriptions.Last().Item1, new List<Tuple<string, string>>(tmpTSTargetList)));
 
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
 
+        /// <summary>
+        /// Method to Generate TS_PTV_Body target and perform the necessary cropping operations if a matchline structure is present in the structure set
+        /// </summary>
+        /// <param name="baseTarget"></param>
+        /// <param name="requestedTsTargetId"></param>
+        /// <returns></returns>
         private (bool, string) GenerateTSPTVBodyTarget(Structure baseTarget, string requestedTsTargetId)
         {
             UpdateUILabel($"Create {requestedTsTargetId}:");
@@ -380,6 +464,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             return (false, addedTSTarget.Id);
         }
 
+        /// <summary>
+        /// Utility method to contour a box structure starting on the matchline structure slice and continuing to the most-inferior slice of the body
+        /// plus an additional 5 cm margin (in case the user requested flash)
+        /// </summary>
+        /// <param name="matchline"></param>
+        /// <param name="target"></param>
+        /// <returns></returns>
         private (bool, Structure) ContourDummyBox(Structure matchline, Structure target)
         {
             UpdateUILabel("Cut TS Target at matchline:");
@@ -401,7 +492,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated number of buffer slices for dummy box: {bufferSlices}");
             calcItems += matchplaneLocation - (addedTSTargetMinZ - bufferSlices);
 
-            (bool failDummy, Structure dummyBox) = CheckAndGenerateStructure("DummyBox");
+            (bool failDummy, Structure dummyBox) = RemoveAndGenerateStructure("DummyBox");
             if (failDummy) return (failDummy, dummyBox);
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Created structure: {dummyBox.Id}");
 
@@ -421,6 +512,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             return (false, dummyBox);
         }
 
+        /// <summary>
+        /// Helper method to contour the legs target if there is a matchline structure present in the structure set
+        /// </summary>
+        /// <param name="TSLegsId"></param>
+        /// <param name="dummyBox"></param>
+        /// <param name="target"></param>
+        /// <returns></returns>
         private bool ContourTSLegs(string TSLegsId, Structure dummyBox, Structure target)
         {
             UpdateUILabel($"Contour {TSLegsId}:");
@@ -428,7 +526,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             int calcItems = 3;
 
             //do the structure manipulation
-            (bool failTSLegs, Structure TS_legs) = CheckAndGenerateStructure(TSLegsId);
+            (bool failTSLegs, Structure TS_legs) = RemoveAndGenerateStructure(TSLegsId);
             if (failTSLegs) return true;
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Created structure: {TS_legs.Id}");
 
@@ -450,10 +548,16 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             return false;
         }
 
+        /// <summary>
+        /// Simple helper method to crop the supplied target from the supplied dummy box and matchline structures
+        /// </summary>
+        /// <param name="addedTSTarget"></param>
+        /// <param name="matchline"></param>
+        /// <param name="dummyBox"></param>
+        /// <returns></returns>
         private bool CutTSTargetFromMatchline(Structure addedTSTarget, Structure matchline, Structure dummyBox)
         {
             UpdateUILabel($"Cut {addedTSTarget.Id} at matchline:");
-            
             //subtract both dummybox and matchline from TS_PTV_VMAT
             (bool failCropBox, StringBuilder cropBoxMessage) = ContourHelper.CropStructureFromStructure(addedTSTarget, dummyBox, 0.0);
             if (failCropBox)
@@ -474,6 +578,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             return false;
         }
 
+        /// <summary>
+        /// Helper method to create virtual bolus based on a specific OAR structure or on the entire body
+        /// </summary>
+        /// <param name="bolusFlash"></param>
+        /// <returns></returns>
         private bool ContourBolus(Structure bolusFlash)
         {
             //if the flashStructure is not null, then the user wants local flash --> use flashStructure. If not, then the user wants global flash --> use body structure
@@ -482,27 +591,31 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (flashStructure != null)
             {
                 bolusFlash.SegmentVolume = flashStructure.AsymmetricMargin(new AxisAlignedMargins(StructureMarginGeometry.Outer,
-                                                                                                                                flashMargin * 10.0,
-                                                                                                                                flashMargin * 10.0,
-                                                                                                                                flashMargin * 10.0,
-                                                                                                                                flashMargin * 10.0,
-                                                                                                                                flashMargin * 10.0,
-                                                                                                                                flashMargin * 10.0));
+                                                                                                  flashMargin * 10.0,
+                                                                                                  flashMargin * 10.0,
+                                                                                                  flashMargin * 10.0,
+                                                                                                  flashMargin * 10.0,
+                                                                                                  flashMargin * 10.0,
+                                                                                                  flashMargin * 10.0));
             }
             else
             {
                 Structure body = StructureTuningHelper.GetStructureFromId("body", selectedSS);
                 bolusFlash.SegmentVolume = body.AsymmetricMargin(new AxisAlignedMargins(StructureMarginGeometry.Outer,
-                                                                                                                      flashMargin * 10.0,
-                                                                                                                      flashMargin * 10.0,
-                                                                                                                      flashMargin * 10.0,
-                                                                                                                      flashMargin * 10.0,
-                                                                                                                      flashMargin * 10.0,
-                                                                                                                      flashMargin * 10.0));
+                                                                                        flashMargin * 10.0,
+                                                                                        flashMargin * 10.0,
+                                                                                        flashMargin * 10.0,
+                                                                                        flashMargin * 10.0,
+                                                                                        flashMargin * 10.0,
+                                                                                        flashMargin * 10.0));
             }
             return false;
         }
 
+        /// <summary>
+        /// Utility method for creating virtual bolus/flash
+        /// </summary>
+        /// <returns></returns>
         private bool CreateFlash()
         {
             UpdateUILabel("Create flash:");
@@ -511,7 +624,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //create flash for the plan per the users request
             //NOTE: IT IS IMPORTANT THAT ALL OF THE STRUCTURES CREATED IN THIS METHOD (I.E., ALL STRUCTURES USED TO GENERATE FLASH HAVE THE KEYWORD 'FLASH' SOMEWHERE IN THE STRUCTURE ID)!
             //first need to create a bolus structure (remove it if it already exists)
-            (bool failBolus, Structure bolusFlash) = CheckAndGenerateStructure("BOLUS_FLASH");
+            (bool failBolus, Structure bolusFlash) = RemoveAndGenerateStructure("BOLUS_FLASH");
             if (failBolus) return true;
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Created structure: {bolusFlash.Id}");
 
@@ -563,22 +676,22 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Contour union betwen between {bolusFlash.Id} and body onto body");
 
             //now create the ptv_flash structure
-            (bool failPTVFlash, Structure ptvBodyFlash) = CheckAndGenerateStructure("PTV_BODY_FLASH");
+            (bool failPTVFlash, Structure ptvBodyFlash) = RemoveAndGenerateStructure("PTV_BODY_FLASH");
             if (failPTVFlash) return true;
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Created structure: {ptvBodyFlash.Id}");
 
             //copy the NEW body structure (i.e., body + bolus_flash)
             if (GeneratePTVFromBody(ptvBodyFlash)) return true;
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Contoured {ptvBodyFlash.Id} structure from body structure");
-            
 
             foreach (Tuple<string, TSManipulationType, double> itr in TSManipulationList.Where(x => x.Item2 == TSManipulationType.ContourOverlapWithTarget || x.Item2 == TSManipulationType.CropTargetFromStructure))
             {
-                ManipulateTuningStructures(itr, ptvBodyFlash, ref percentComplete, ref calcItems);
+                ManipulateTuningStructures(itr, ptvBodyFlash);
+                ProvideUIUpdate(100 * ++percentComplete / calcItems);
             }
 
             //now create the ptv_flash structure (analogous to PTV_Body)
-            (bool failFlashTarget, Structure TSPTVFlash) = CheckAndGenerateStructure("TS_PTV_FLASH");
+            (bool failFlashTarget, Structure TSPTVFlash) = RemoveAndGenerateStructure("TS_PTV_FLASH");
             if (failFlashTarget) return true;
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Created structure: {TSPTVFlash.Id}");
 
@@ -599,24 +712,20 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (CutTSTargetFromMatchline(TSPTVFlash, StructureTuningHelper.GetStructureFromId("matchline", selectedSS), dummyBox)) return true;
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Cut {TSPTVFlash.Id} structure at matchline structure");
             }
-            UpdateNormVolumesTsTargetsWithFlash();
+            normVolumes = new List<Tuple<string, string>>(UpdateNormVolumesWithFlash(normVolumes));
+            tsTargets = new List<Tuple<string, List<Tuple<string, string>>>>(UpdateTsTargetsWithFlash(tsTargets));
             return false;
         }
 
-        private bool UpdateNormVolumesTsTargetsWithFlash()
+        /// <summary>
+        /// Helper method to update the TS targets list with the analogous flash targets
+        /// </summary>
+        /// <returns></returns>
+        private List<Tuple<string, List<Tuple<string, string>>>> UpdateTsTargetsWithFlash(List<Tuple<string, List<Tuple<string, string>>>> targets)
         {
-            //only update the normalization volumes if ts_ptv_vmat was set to the normalization volume for this plan
-            if(string.Equals(normVolumes.First().Item2, "TS_PTV_VMAT"))
-            {
-                //normalization volume for plan is ts_ptv_vmat
-                //--> update to ts_ptv_flash
-                normVolumes.Clear();
-                normVolumes.Add(Tuple.Create(prescriptions.First().Item1, "TS_PTV_FLASH"));
-            }
-
             //we know ts_PTV_VMAT was listed as a ts target, so we will need to go in and replace that with the corresponding flash targets
             List<Tuple<string, string>> tmpTargets = new List<Tuple<string, string>> { };
-            foreach (Tuple<string,string> itr in tsTargets.First().Item2)
+            foreach (Tuple<string,string> itr in targets.First().Item2)
             {
                 if (string.Equals(itr.Item2, "TS_PTV_VMAT"))
                 {
@@ -624,10 +733,31 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 }
                 else tmpTargets.Add(itr);
             }
-            tsTargets = new List<Tuple<string, List<Tuple<string, string>>>> { Tuple.Create(prescriptions.First().Item1, tmpTargets) };
-            return false;
+            return new List<Tuple<string, List<Tuple<string, string>>>> { Tuple.Create(prescriptions.First().Item1, tmpTargets) };
         }
 
+        /// <summary>
+        /// Helper method to update the normalization volumes list with the analogous flash targets
+        /// </summary>
+        /// <returns></returns>
+        private List<Tuple<string,string>> UpdateNormVolumesWithFlash(List<Tuple<string,string>> volumes)
+        {
+            List<Tuple<string,string>> updatedNormVolumes = new List<Tuple<string,string>>(volumes);
+            //only update the normalization volumes if ts_ptv_vmat was set to the normalization volume for this plan
+            if (string.Equals(updatedNormVolumes.First().Item2, "TS_PTV_VMAT"))
+            {
+                //normalization volume for plan is ts_ptv_vmat
+                //--> update to ts_ptv_flash
+                updatedNormVolumes.Clear();
+                updatedNormVolumes.Add(Tuple.Create(prescriptions.First().Item1, "TS_PTV_FLASH"));
+            }
+            return updatedNormVolumes;
+        }
+
+        /// <summary>
+        /// Method to calculate the required number of VMAT isocenters and the total number of isocenters (including AP/PA isocenters is needed)
+        /// </summary>
+        /// <returns></returns>
         protected override bool CalculateNumIsos()
         {
             UpdateUILabel("Calculate number of isos:");
@@ -675,17 +805,24 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     //get number of isos for PTV superior to matchplane (always truncate this value to a maximum of 4 isocenters)
                     numVMATIsos = (int)Math.Ceiling((pts.Max(p => p.Z) - matchline.CenterPoint.z) / (maxFieldExtent - minFieldOverlap));
                     if (numVMATIsos > 4) numVMATIsos = 4;
-                    ProvideUIUpdate($"Separation between body z max and matchline center z: {(pts.Max(p => p.Z) - matchline.CenterPoint.z)}");
-                    ProvideUIUpdate($"numVAMTIsos calculated as double: {(pts.Max(p => p.Z) - matchline.CenterPoint.z) / (maxFieldExtent - minFieldOverlap)}");
+                    ProvideUIUpdate($"Separation between body z max and matchline center z: {(pts.Max(p => p.Z) - matchline.CenterPoint.z):0.0}");
+                    ProvideUIUpdate($"numVAMTIsos calculated as double: {(pts.Max(p => p.Z) - matchline.CenterPoint.z) / (maxFieldExtent - minFieldOverlap):0.0}");
                     ProvideUIUpdate(100 * ++percentComplete / calcItems);
 
-                    //get number of iso for PTV inferior to matchplane
-                    //if (selectedSS.Structures.First(x => x.Id.ToLower() == "matchline").CenterPoint.z - pts.Min(p => p.Z) - 3.0 <= (400.0 - 20.0)) numIsos = numVMATIsos + 1;
-
-                    //5-20-2020 Nataliya said to only add a second legs iso if the extent of the TS_PTV_LEGS is > 40.0 cm
-                    //6-15-23, not entirely sure where the '-3.0' came from.. will need to do a bit of digging?
-                    if (matchline.CenterPoint.z - pts.Min(p => p.Z) - 3.0 <= maxFieldExtent) numIsos = numVMATIsos + 1;
-                    else numIsos = numVMATIsos + 2;
+                    //Only add a second legs iso if the extent of the body is > 40.0 cm
+                    ProvideUIUpdate($"Separation between matchline z center and body z min: {matchline.CenterPoint.z - pts.Min(p => p.Z):0.0}");
+                    if (matchline.CenterPoint.z - pts.Min(p => p.Z) <= maxFieldExtent)
+                    {
+                        ProvideUIUpdate($"Separation between matchline z center and body z min is <= maximum field extent ({maxFieldExtent})");
+                        ProvideUIUpdate($"Only one APPA isocenters is required for coverage");
+                        numIsos = numVMATIsos + 1;
+                    }
+                    else
+                    {
+                        ProvideUIUpdate($"Separation between matchline z center and body z min is > maximum field extent ({maxFieldExtent})");
+                        ProvideUIUpdate($"Two APPA isocenters are required for coverage");
+                        numIsos = numVMATIsos + 2;
+                    }
                     ProvideUIUpdate(100 * ++percentComplete / calcItems);
                 }
             }
@@ -704,7 +841,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     ProvideUIUpdate($" {itr1}");
                 }
             }
-
             return false;
         }
     }

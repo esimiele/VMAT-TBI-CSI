@@ -66,21 +66,32 @@
       <HintPath>..\packages\MSTest.TestFramework.2.2.7\lib\net45\Microsoft.VisualStudio.TestPlatform.TestFramework.Extensions.dll</HintPath>
     </Reference>
     <Reference Include="Telerik.JustMock, Version=2023.2.719.137, Culture=neutral, PublicKeyToken=721b6c5bc0326b3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\JustMock.Trial.2023.2.719.137\lib\net45\Telerik.JustMock.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Progress\Telerik JustMock\Libraries\Telerik.JustMock.dll</HintPath>
+    </Reference>
+    <Reference Include="VMS.TPS.Common.BusinessLogic.Interface">
+      <HintPath>..\..\..\VMS DLLs\15.6\15.6\VMS.TPS.Common.BusinessLogic.Interface.dll</HintPath>
+    </Reference>
+    <Reference Include="VMS.TPS.Common.Calculation.Interface">
+      <HintPath>..\..\..\VMS DLLs\15.6\15.6\VMS.TPS.Common.Calculation.Interface.dll</HintPath>
     </Reference>
     <Reference Include="VMS.TPS.Common.Model.API, Version=1.0.300.11, Culture=neutral, PublicKeyToken=305b81e210ec4b89, processorArchitecture=AMD64">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\VMS_TPS_resources\v15\VMS.TPS.Common.Model.API.dll</HintPath>
+      <HintPath>..\..\..\VMS DLLs\15.6\15.6\VMS.TPS.Common.Model.API.dll</HintPath>
+    </Reference>
+    <Reference Include="VMS.TPS.Common.Model.Interface">
+      <HintPath>..\..\..\VMS DLLs\15.6\15.6\VMS.TPS.Common.Model.Interface.dll</HintPath>
     </Reference>
     <Reference Include="VMS.TPS.Common.Model.Types, Version=1.0.300.11, Culture=neutral, PublicKeyToken=305b81e210ec4b89, processorArchitecture=AMD64">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\VMS_TPS_resources\v15\VMS.TPS.Common.Model.Types.dll</HintPath>
+      <HintPath>..\..\..\VMS DLLs\15.6\15.6\VMS.TPS.Common.Model.Types.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Helpers\CalculationHelperTests.cs" />
     <Compile Include="Helpers\ContourHelperTests.cs" />
     <Compile Include="Helpers\ExportFormatTypeHelperTests.cs" />
+    <Compile Include="Helpers\IsoNameHelperTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

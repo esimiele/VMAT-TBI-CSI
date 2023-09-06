@@ -8,7 +8,9 @@ using OptimizationObjectiveType = VMATTBICSIAutoPlanningHelpers.Enums.Optimizati
 
 namespace VMATTBICSIAutoPlanningHelpers.Structs
 {
-    //data structure to hold all the relevant information
+    /// <summary>
+    /// Data structure to hold all the relevant optimization loop configuration information
+    /// </summary>
     public struct OptDataContainer
     {
         //data members

@@ -10,6 +10,16 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public static class TSHeaterCoolerHelper
     {
+        /// <summary>
+        /// Helper method to generate a TS cooler structure
+        /// </summary>
+        /// <param name="plan"></param>
+        /// <param name="doseLevel"></param>
+        /// <param name="requestedDoseConstraint"></param>
+        /// <param name="volume"></param>
+        /// <param name="name"></param>
+        /// <param name="priority"></param>
+        /// <returns></returns>
         public static (string, Tuple<string, OptimizationObjectiveType, double, double, int>) GenerateCooler(ExternalPlanSetup plan, double doseLevel, double requestedDoseConstraint, double volume, string name, int priority)
         {
             StringBuilder sb = new StringBuilder();
@@ -27,7 +37,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 coolerStructure.ConvertDoseLevelToStructure(d, dv);
                 if (coolerStructure.IsEmpty)
                 {
-                    sb.AppendLine($"Cooler structure ({name}) is empty! Removing!");
+                    sb.AppendLine($"Cooler structure ({name}) is empty! Attempting to remove.");
                     if (ss.CanRemoveStructure(coolerStructure)) ss.RemoveStructure(coolerStructure);
                 }
                 else cooler = Tuple.Create(name, OptimizationObjectiveType.Upper, requestedDoseConstraint * plan.TotalDose.Dose, volume, priority);
@@ -35,10 +45,21 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return (sb.ToString(), cooler);
         }
 
+        /// <summary>
+        /// Helper method to generate a TS heater structure
+        /// </summary>
+        /// <param name="plan"></param>
+        /// <param name="target"></param>
+        /// <param name="doseLevelLow"></param>
+        /// <param name="doseLevelHigh"></param>
+        /// <param name="volume"></param>
+        /// <param name="name"></param>
+        /// <param name="priority"></param>
+        /// <returns></returns>
         public static (string, Tuple<string, OptimizationObjectiveType, double, double, int>) GenerateHeater(ExternalPlanSetup plan, Structure target, double doseLevelLow, double doseLevelHigh, double volume, string name, int priority)
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine($"Generating cooler structure: {name} now");
+            sb.AppendLine($"Generating heater structure: {name} now");
             //similar to the generateCooler method
             Tuple<string, OptimizationObjectiveType, double, double, int> heater = null;
             StructureSet ss = plan.StructureSet;
@@ -54,14 +75,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 dummy.ConvertDoseLevelToStructure(d, new DoseValue(doseLevelHigh * plan.TotalDose.Dose, DoseValue.DoseUnit.cGy));
                 //subtract the higher isodose volume from the heater structure and assign it to the heater structure. 
                 //This is the heater structure that will be used for optimization. Create a new optimization objective for this tunning structure
-                heaterStructure.SegmentVolume = heaterStructure.Sub(dummy.SegmentVolume.Margin(0.0));
+                ContourHelper.CropStructureFromStructure(heaterStructure, dummy, 0.0);
                 //clean up
                 ss.RemoveStructure(dummy);
                 //only keep the overlapping regions of the heater structure with the taget structure
-                heaterStructure.SegmentVolume = heaterStructure.And(target.Margin(0.0));
+                ContourHelper.ContourOverlap(target, heaterStructure, 0.0);
                 if (heaterStructure.IsEmpty)
                 {
-                    sb.AppendLine($"Generating cooler structure: {name} now");
+                    sb.AppendLine($"Heater structure {name} is empty! Attempting to remove.");
                     if (ss.CanRemoveStructure(heaterStructure)) ss.RemoveStructure(heaterStructure);
                 }
                 else
@@ -73,6 +94,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return (sb.ToString(), heater);
         }
 
+        /// <summary>
+        /// Helper method to take the supplied constraints and determine if all of the constraints were met in the supplied plan
+        /// </summary>
+        /// <param name="plan"></param>
+        /// <param name="target"></param>
+        /// <param name="constraints"></param>
+        /// <param name="isFinalOptimization"></param>
+        /// <returns></returns>
         public static bool AllHeaterCoolerTSConstraintsMet(ExternalPlanSetup plan, Structure target, List<Tuple<string, double, string, double>> constraints, bool isFinalOptimization)
         {
             if (constraints.Any())

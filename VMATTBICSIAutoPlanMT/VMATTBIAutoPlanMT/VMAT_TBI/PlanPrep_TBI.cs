@@ -11,9 +11,17 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
     public class PlanPrep_TBI : PlanPrepBase
     {
+        //data members
         private ExternalPlanSetup appaPlan;
         private bool removeFlash;
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="vmat"></param>
+        /// <param name="appa"></param>
+        /// <param name="flash"></param>
+        /// <param name="closePW"></param>
         public PlanPrep_TBI(ExternalPlanSetup vmat, ExternalPlanSetup appa, bool flash, bool closePW)
         {
             //copy arguments into local variables
@@ -24,6 +32,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         }
 
         #region Run Control
+        /// <summary>
+        /// Run control
+        /// </summary>
+        /// <returns></returns>
         public override bool Run()
         {
             UpdateUILabel("Running:");
@@ -42,6 +54,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         #endregion
 
         #region Preliminary Checks
+        /// <summary>
+        /// Preliminary checks
+        /// </summary>
+        /// <returns></returns>
         private bool PreliminaryChecks()
         {
             UpdateUILabel("Preliminary Checks:");
@@ -60,11 +76,15 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         #endregion
 
         #region Separate the plans
+        /// <summary>
+        /// Helper utility method to separate the VMAT and AP/PA isocenters into separate plans
+        /// </summary>
+        /// <returns></returns>
         private bool SeparatePlans()
         {
             UpdateUILabel("Separating plans:");
             int percentComplete = 0;
-            int calcItems = 2;
+            int calcItems = 3;
             ProvideUIUpdate(0, "Initializing...");
             List<List<Beam>> vmatBeamsPerIso = PlanPrepHelper.ExtractBeamsPerIso(VMATPlan);
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved list of beams for each isocenter for plan: {VMATPlan.Id}");
@@ -75,7 +95,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             {
                 appaBeamsPerIso = PlanPrepHelper.ExtractBeamsPerIso(appaPlan);
                 numIsos = appaBeamsPerIso.Count + numVMATIsos;
-                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved list of beams for each isocenter for plan: {appaPlan.Id}");
+                ProvideUIUpdate(100 * ++percentComplete / ++calcItems, $"Retrieved list of beams for each isocenter for plan: {appaPlan.Id}");
             }
 
             //get the isocenter names using the isoNameHelper class
@@ -85,60 +105,28 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (appaPlan != null)
             {
                 isoNames.AddRange(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos));
-                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved isocenter names for plan: {appaPlan.Id}");
+                ProvideUIUpdate(100 * ++percentComplete / ++calcItems, $"Retrieved isocenter names for plan: {appaPlan.Id}");
             }
 
             ProvideUIUpdate($"Separating isocenters in plan {VMATPlan.Id} into separate plans");
-            if (SeparateVMATPlan(VMATPlan, vmatBeamsPerIso, isoNames)) return true;
+            if (SeparatePlan(VMATPlan, vmatBeamsPerIso, isoNames)) return true;
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Successfully separated isocenters in plan {VMATPlan.Id}");
 
             if (appaPlan != null)
             {
                 ProvideUIUpdate($"Separating isocenters in plan {appaPlan.Id} into separate plans");
-                if(SeparateAPPAPlan(appaPlan, appaBeamsPerIso, isoNames)) return true;
-                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Successfully separated isocenters in plan {appaPlan.Id}");
-            }
-            return false;
-        }
-
-        private bool SeparateAPPAPlan(ExternalPlanSetup appaPlan, List<List<Beam>> appaBeamsPerIso, List<string> isoNames)
-        {
-            int percentComplete = 0;
-            int calcItems = 4 * appaBeamsPerIso.Count;
-            //counter for indexing names
-            int count = numVMATIsos;
-            //do the same as above, but for the AP/PA legs plan
-            foreach (List<Beam> beams in appaBeamsPerIso)
-            {
-                ExternalPlanSetup newplan = (ExternalPlanSetup)appaPlan.Course.CopyPlanSetup(appaPlan);
-                List<Beam> beamsToRemove = new List<Beam> { };
-                newplan.Id = String.Format("{0} {1}", count + 1, isoNames.ElementAt(count).Contains("upper") ? "Upper Legs" : "Lower Legs");
-                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Created new plan {newplan.Id} as copy of {appaPlan.Id}");
-                
-                //newplan.AddReferencePoint(newplan.StructureSet.Structures.First(x => x.Id.ToLower() == "ptv_body"), null, newplan.Id, newplan.Id);
-                separatedPlans.Add(newplan);
-                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added {newplan.Id} to list of separated plans");
-                foreach (Beam b in newplan.Beams)
-                {
-                    //if the current beam in newPlan is NOT found in the beams list, then remove it from the current new plan
-                    if (!beams.Where(x => x.Id == b.Id).Any() && !b.IsSetupField)
-                    {
-                        ProvideUIUpdate($"Added {b.Id} to list of beams to remove from {newplan.Id}");
-                        beamsToRemove.Add(b);
-                    }
-                }
-                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Finished identifying beams that need to be removed from {newplan.Id}");
-
-                if (RemoveExtraBeams(newplan, beamsToRemove)) return true;
-                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Removed excess beams from {newplan.Id}");
-
-                count++;
+                if(SeparatePlan(appaPlan, appaBeamsPerIso, isoNames, true, numVMATIsos)) return true;
+                ProvideUIUpdate(100 * ++percentComplete / ++calcItems, $"Successfully separated isocenters in plan {appaPlan.Id}");
             }
             return false;
         }
         #endregion
 
         #region Remove Flash Structure Operation
+        /// <summary>
+        /// Controller for removing flash from the structure set
+        /// </summary>
+        /// <returns></returns>
         private bool RemoveFlashRunSequence()
         {
             UpdateUILabel("Removing Flash:");
@@ -153,7 +141,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added APPA plan ({appaPlan.Id}) to list of plans requiring dose recalculation");
             }
 
-            (bool isError, List<ExternalPlanSetup> otherPlans) = CheckExistingPlansUsingSameSSWIthDoseCalculated(VMATPlan.Course.Patient.Courses.ToList(), VMATPlan.StructureSet);
+            (bool isError, List<ExternalPlanSetup> otherPlans) = CheckExistingPlansUsingSameSSWIthDoseCalculated(VMATPlan, VMATPlan.StructureSet);
             if (isError) return true;
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Finished checking for existing plans that have dose calculated and use the same structure set!");
 
@@ -175,10 +163,14 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             return false;
         }
 
+        /// <summary>
+        /// Simple method to grab all structures involved with flash and remove them from the structure set
+        /// </summary>
+        /// <returns></returns>
         private bool RemoveFlashStructures()
         {
             int percentComplete = 0;
-            int calcItems = 3;
+            int calcItems = 2;
             ProvideUIUpdate("Removing flash structures");
 
             StructureSet ss = VMATPlan.StructureSet;
@@ -187,8 +179,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             List<Structure> flashStr = ss.Structures.Where(x => x.Id.ToLower().Contains("flash") && !x.IsEmpty).ToList();
             calcItems += flashStr.Count;
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved list of structures used to create flash");
-            //List<Structure> removeMe = new List<Structure>(flashStr);
-            //ProvideUIUpdate((int)(100 * ++percentComplete / calcItems), $"Copied list of flash structures to a dummy list that can be used for iteration");
 
             //can't remove directly from flashStr because the vector size would change on each loop iteration
             foreach (Structure itr in flashStr)
@@ -203,6 +193,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             return false;
         }
 
+        /// <summary>
+        /// Helper method to grab the body copy structure (human_body) and copy it back onto the main body structure. Then remove the body
+        /// copy structure
+        /// </summary>
+        /// <returns></returns>
         private bool CopyHumanBodyOntoBody()
         {
             ProvideUIUpdate("Copying human_body structure onto body structure");
@@ -243,8 +238,15 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             return false;
         }
 
-        private (bool, List<ExternalPlanSetup>) CheckExistingPlansUsingSameSSWIthDoseCalculated(List<Course> courses, StructureSet ss)
+        /// <summary>
+        /// Method to look for other plans that have dose calculated that reference the supplied structure set
+        /// </summary>
+        /// <param name="thePlan"></param>
+        /// <param name="ss"></param>
+        /// <returns></returns>
+        private (bool, List<ExternalPlanSetup>) CheckExistingPlansUsingSameSSWIthDoseCalculated(ExternalPlanSetup thePlan, StructureSet ss)
         {
+            List<Course> courses = thePlan.Course.Patient.Courses.ToList();
             ProvideUIUpdate("Checking for existing plans that have dose calculated and use the same structure set");
             bool isError = false;
             //remove the structures used to generate flash in the plan
@@ -274,6 +276,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             return (isError, otherPlans);
         }
 
+        /// <summary>
+        /// Simple helper method to reset the dose calculation matrix for each of the supplied plans
+        /// </summary>
+        /// <param name="plans"></param>
+        /// <returns></returns>
         private bool ResetCalculationMatrix(List<ExternalPlanSetup> plans)
         {
             ProvideUIUpdate("Resetting dose calculation matrices");

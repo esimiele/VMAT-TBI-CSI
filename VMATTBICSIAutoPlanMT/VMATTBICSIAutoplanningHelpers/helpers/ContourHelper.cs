@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Windows.Media.Media3D;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
+using VMATTBICSIAutoPlanningHelpers.Delegates;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
@@ -135,6 +137,31 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         }
 
         /// <summary>
+        /// Helper method to combine/union a list of structures onto structureToUnion
+        /// </summary>
+        /// <param name="structuresToCombine"></param>
+        /// <param name="structureToUnion"></param>
+        /// <returns></returns>
+        public static (bool, StringBuilder) ContourUnion(List<Structure> structuresToCombine, Structure structureToUnion)
+        {
+            StringBuilder sb = new StringBuilder();
+            bool fail = false;
+            foreach(Structure itr in structuresToCombine)
+            {
+                if (itr != null && structureToUnion != null)
+                {
+                    structureToUnion.SegmentVolume = itr.SegmentVolume.Or(structureToUnion.SegmentVolume.Margin(0.0));
+                }
+                else
+                {
+                    sb.AppendLine("Error either target or normal structures are missing! Can't union target and normal structure!");
+                    fail = true;
+                }
+            }
+            return (fail, sb);
+        }
+
+        /// <summary>
         /// Helper mthod to create a ring structure from the supplied target structure using specified margin and thickness values
         /// </summary>
         /// <param name="target"></param>
@@ -251,38 +278,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return (fail, sb);
         }
 
-        //public static (bool, StringBuilder) CreateTargetStructure(string targetStructureId, string baseStructureId, StructureSet selectedSS, AxisAlignedMargins margin, string alternateBasStructureId = "")
-        //{
-        //    StringBuilder sb = new StringBuilder();
-        //    bool fail = false;
-        //    sb.AppendLine($"Failed to find {targetStructureId} Structure! Retrieving {baseStructureId} structure");
-        //    Structure baseStructure = StructureTuningHelper.GetStructureFromId(baseStructureId, selectedSS);
-        //    if (baseStructure == null && !string.IsNullOrEmpty(alternateBasStructureId))
-        //    {
-        //        baseStructure = StructureTuningHelper.GetStructureFromId(alternateBasStructureId, selectedSS); 
-        //    }
-        //    if (baseStructure == null)
-        //    {
-        //        sb.AppendLine($"Could not retrieve base structure {baseStructureId}. Exiting!");
-        //        fail = true;
-        //        return (fail, sb);
-        //    }
-        //    sb.AppendLine($"Creating {targetStructureId} structure!");
-        //    if (selectedSS.CanAddStructure("CONTROL", $"{targetStructureId}"))
-        //    {
-        //        Structure target = selectedSS.AddStructure("CONTROL", $"{targetStructureId}");
-        //        target.SegmentVolume = baseStructure.AsymmetricMargin(margin);
-        //        sb.AppendLine($"Created {targetStructureId} structure!");
-        //    }
-        //    else
-        //    {
-        //        sb.AppendLine($"Failed to add {targetStructureId} to the structure set! Exiting!");
-        //        fail = true;
-        //        return (fail, sb);
-        //    }
-        //    return (fail, sb);
-        //}
-
         /// <summary>
         /// Helper method to generate a margin for a structure on the given CT slice using the supplied contour points at the specified distance
         /// </summary>
@@ -378,6 +373,185 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                                 new VVector(0, yMax, 0)};
 
             return (boundingBox, sb);
+        }
+
+        /// <summary>
+        /// Helper method to check if the supplied list of structures exist and are high resolution
+        /// </summary>
+        /// <param name="baseTargets"></param>
+        /// <returns></returns>
+        public static bool CheckHighResolutionAndConvert(List<string> structures, StructureSet selectedSS, ProvideUIUpdateDelegate ProvideUIUpdate)
+        {
+            ProvideUIUpdate(0,"Checking for high res structures:");
+            foreach (string itr in structures)
+            {
+                if (StructureTuningHelper.DoesStructureExistInSS(itr, selectedSS, true))
+                {
+                    Structure tmp = StructureTuningHelper.GetStructureFromId(itr, selectedSS);
+                    ProvideUIUpdate(0,$"Checking if {tmp.Id} is high resolution");
+                    if (tmp.IsHighResolution)
+                    {
+                        string id = tmp.Id;
+                        ProvideUIUpdate(0,$"{id} is high resolution. Converting to default resolution now");
+
+                        if (OverWriteHighResStructureWithLowResStructure(tmp, selectedSS, ProvideUIUpdate))
+                        {
+                            ProvideUIUpdate(0,$"Error! Unable to overwrite existing high res structure {tmp.Id} with default resolution structure! Exiting!", true);
+                            return true;
+                        }
+                        ProvideUIUpdate(0,$"{id} has been converted to low resolution");
+                    }
+                    else
+                    {
+                        ProvideUIUpdate(0,$"{tmp.Id} is already defualt resolution");
+                    }
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Overloaded method to account for the fact the Eclipse may or may not append numbers to the structure names (because it thinks the names are taken)
+        /// </summary>
+        /// <param name="structures"></param>
+        /// <param name="selectedSS"></param>
+        /// <param name="ProvideUIUpdate"></param>
+        /// <returns></returns>
+        public static bool CheckHighResolutionAndConvert(List<Structure> structures, StructureSet selectedSS, ProvideUIUpdateDelegate ProvideUIUpdate)
+        {
+            ProvideUIUpdate(0, "Checking for high res structures:");
+            foreach (Structure itr in structures)
+            {
+                ProvideUIUpdate(0, $"Checking if {itr.Id} is high resolution");
+                if (itr.IsHighResolution)
+                {
+                    string id = itr.Id;
+                    ProvideUIUpdate(0, $"{id} is high resolution. Converting to default resolution now");
+
+                    if (OverWriteHighResStructureWithLowResStructure(itr, selectedSS, ProvideUIUpdate))
+                    {
+                        ProvideUIUpdate(0, $"Error! Unable to overwrite existing high res structure {itr.Id} with default resolution structure! Exiting!", true);
+                        return true;
+                    }
+                    ProvideUIUpdate(0, $"{id} has been converted to low resolution");
+                }
+                else
+                {
+                    ProvideUIUpdate(0, $"{itr.Id} is already defualt resolution");
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Method to take a high resolution structure as input and overwrite it with a new structure that is default resolution
+        /// </summary>
+        /// <param name="theStructure"></param>
+        /// <returns></returns>
+        private static bool OverWriteHighResStructureWithLowResStructure(Structure theStructure, StructureSet selectedSS, ProvideUIUpdateDelegate ProvideUIUpdate)
+        {
+            ProvideUIUpdate(0,$"Retrieving all contour points for: {theStructure.Id}");
+            int startSlice = CalculationHelper.ComputeSlice(theStructure.MeshGeometry.Positions.Min(p => p.Z), selectedSS);
+            int stopSlice = CalculationHelper.ComputeSlice(theStructure.MeshGeometry.Positions.Max(p => p.Z), selectedSS);
+            ProvideUIUpdate(0,$"Start slice: {startSlice}");
+            ProvideUIUpdate(0,$"Stop slice: {stopSlice}");
+            VVector[][][] structurePoints = GetAllContourPoints(theStructure, startSlice, stopSlice, ProvideUIUpdate);
+            ProvideUIUpdate(0, $"Contour points for: {theStructure.Id} loaded");
+
+            ProvideUIUpdate(0,$"Removing and re-adding {theStructure.Id} to structure set");
+            (bool fail, Structure lowResStructure) = RemoveAndReAddStructure(theStructure, selectedSS, ProvideUIUpdate);
+            if (fail) return true;
+
+            ProvideUIUpdate(0,$"Contouring {lowResStructure.Id} now");
+            ContourLowResStructure(structurePoints, lowResStructure, startSlice, stopSlice, ProvideUIUpdate);
+            return false;
+        }
+
+        /// <summary>
+        /// Helper method to remove the supplied high resolution structure, then add a new structure with the same id as the high resolution 
+        /// structure (automatically defaults to default resolution)
+        /// </summary>
+        /// <param name="theStructure"></param>
+        /// <returns></returns>
+        private static (bool, Structure) RemoveAndReAddStructure(Structure theStructure, StructureSet selectedSS, ProvideUIUpdateDelegate ProvideUIUpdate)
+        {
+            ProvideUIUpdate(0,"Removing and re-adding structure:");
+            Structure newStructure = null;
+            string id = theStructure.Id;
+            string dicomType = theStructure.DicomType;
+            if (selectedSS.CanRemoveStructure(theStructure))
+            {
+                selectedSS.RemoveStructure(theStructure);
+                if (selectedSS.CanAddStructure(dicomType, id))
+                {
+                    newStructure = selectedSS.AddStructure(dicomType, id);
+                    ProvideUIUpdate(0,$"{newStructure.Id} has been added to the structure set");
+                }
+                else
+                {
+                    ProvideUIUpdate(0,$"Could not re-add structure: {id}. Exiting", true);
+                    return (true, newStructure);
+                }
+            }
+            else
+            {
+                ProvideUIUpdate(0,$"Could not remove structure: {id}. Exiting", true);
+                return (true, newStructure);
+            }
+            return (false, newStructure);
+        }
+
+        /// <summary>
+        /// Similar to the contourlowresstructure method in generatetsbase, except instead of supplying the high res structure as an
+        /// input argument, the contour points for the high res structure are directly supplied
+        /// </summary>
+        /// <param name="structurePoints"></param>
+        /// <param name="lowResStructure"></param>
+        /// <param name="startSlice"></param>
+        /// <param name="stopSlice"></param>
+        /// <returns></returns>
+        private static bool ContourLowResStructure(VVector[][][] structurePoints, Structure lowResStructure, int startSlice, int stopSlice, ProvideUIUpdateDelegate ProvideUIUpdate)
+        {
+            ProvideUIUpdate(0, $"Contouring {lowResStructure.Id}:");
+            //Write the high res contour points on the newly added low res structure
+            int percentComplete = 0;
+            int calcItems = stopSlice - startSlice + 1;
+            for (int slice = startSlice; slice <= stopSlice; slice++)
+            {
+                VVector[][] points = structurePoints[percentComplete];
+                for (int i = 0; i < points.GetLength(0); i++)
+                {
+                    if (lowResStructure.IsPointInsideSegment(points[i][0]) ||
+                        lowResStructure.IsPointInsideSegment(points[i][points[i].GetLength(0) - 1]) ||
+                        lowResStructure.IsPointInsideSegment(points[i][(int)(points[i].GetLength(0) / 2)]))
+                    {
+                        lowResStructure.SubtractContourOnImagePlane(points[i], slice);
+                    }
+                    else lowResStructure.AddContourOnImagePlane(points[i], slice);
+                }
+                ProvideUIUpdate(100 * ++percentComplete / calcItems);
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Helper method to retrive the contour points for the supplied structure on all contoured CT slices
+        /// </summary>
+        /// <param name="theStructure"></param>
+        /// <param name="startSlice"></param>
+        /// <param name="stopSlice"></param>
+        /// <returns></returns>
+        public static VVector[][][] GetAllContourPoints(Structure theStructure, int startSlice, int stopSlice, ProvideUIUpdateDelegate ProvideUIUpdate)
+        {
+            int percentComplete = 0;
+            int calcItems = stopSlice - startSlice + 1;
+            VVector[][][] structurePoints = new VVector[stopSlice - startSlice + 1][][];
+            for (int slice = startSlice; slice <= stopSlice; slice++)
+            {
+                structurePoints[percentComplete++] = theStructure.GetContoursOnImagePlane(slice);
+                ProvideUIUpdate(100 * percentComplete / calcItems);
+            }
+            return structurePoints;
         }
     }
 }

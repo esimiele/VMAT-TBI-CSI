@@ -12,6 +12,12 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
     public static class StructureTuningUIHelper
     {
+        #region TS Generation
+        /// <summary>
+        /// Helper method to add the header information for TS Generation sub tab
+        /// </summary>
+        /// <param name="theSP"></param>
+        /// <returns></returns>
         public static StackPanel AddTemplateTSHeader(StackPanel theSP)
         {
             StackPanel sp = new StackPanel
@@ -49,7 +55,22 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sp;
         }
 
-        public static StackPanel AddTSVolume(StackPanel theSP, StructureSet selectedSS, Tuple<string, string> listItem, string clearBtnPrefix, int clearBtnCounter, RoutedEventHandler clearEvtHndl)
+        /// <summary>
+        /// Helper method to add a requested tuning structure item to the TS Generation sub tab
+        /// </summary>
+        /// <param name="theSP"></param>
+        /// <param name="selectedSS"></param>
+        /// <param name="listItem"></param>
+        /// <param name="clearBtnPrefix"></param>
+        /// <param name="clearBtnCounter"></param>
+        /// <param name="clearEvtHndl"></param>
+        /// <returns></returns>
+        public static StackPanel AddTSVolume(StackPanel theSP, 
+                                             StructureSet selectedSS, 
+                                             Tuple<string, string> listItem, 
+                                             string clearBtnPrefix, 
+                                             int clearBtnCounter, 
+                                             RoutedEventHandler clearEvtHndl)
         {
             StackPanel sp = new StackPanel
             {
@@ -138,6 +159,59 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sp;
         }
 
+        /// <summary>
+        /// Helper method to parse the requested tuning structure generations from the TS Generation sub tab. Returns the list of requested
+        /// TS structure generations
+        /// </summary>
+        /// <param name="theSP"></param>
+        /// <returns></returns>
+        public static (List<Tuple<string, string>>, StringBuilder) ParseCreateTSStructureList(StackPanel theSP)
+        {
+            StringBuilder sb = new StringBuilder();
+            List<Tuple<string, string>> TSStructureList = new List<Tuple<string, string>> { };
+            string dcmType = "";
+            string structure = "";
+            bool firstCombo = true;
+            bool headerObj = true;
+            foreach (object obj in theSP.Children)
+            {
+                //skip over the header row
+                if (!headerObj)
+                {
+                    foreach (object obj1 in ((StackPanel)obj).Children)
+                    {
+                        if (obj1.GetType() == typeof(ComboBox))
+                        {
+                            //first combo box is the structure and the second is the sparing type
+                            if (firstCombo)
+                            {
+                                dcmType = (obj1 as ComboBox).SelectedItem.ToString();
+                                firstCombo = false;
+                            }
+                            else structure = (obj1 as ComboBox).SelectedItem.ToString();
+                        }
+                    }
+                    if (dcmType == "--select--" || structure == "--select--")
+                    {
+                        sb.AppendLine("Error! \nStructure or DICOM Type not selected! \nSelect an option and try again");
+                        return (new List<Tuple<string, string>> { }, sb);
+                    }
+                    //only add the current row to the structure sparing list if all the parameters were successful parsed
+                    else TSStructureList.Add(Tuple.Create(dcmType, structure));
+                    firstCombo = true;
+                }
+                else headerObj = false;
+            }
+            return (TSStructureList, sb);
+        }
+        #endregion
+
+        #region TS Manipulation
+        /// <summary>
+        /// Helper method to build the header information for TS Manipulation to add to the TS Manipulation sub tab
+        /// </summary>
+        /// <param name="theSP"></param>
+        /// <returns></returns>
         public static StackPanel GetTSManipulationHeader(StackPanel theSP)
         {
             StackPanel sp = new StackPanel
@@ -195,7 +269,26 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sp;
         }
 
-        public static StackPanel AddTSManipulation(StackPanel theSP, List<string> structureIds, Tuple<string, TSManipulationType, double> listItem, string clearBtnPrefix, int clearSpareBtnCounter, SelectionChangedEventHandler typeChngHndl, RoutedEventHandler clearEvtHndl, bool skipStructureIdCheck)
+        /// <summary>
+        /// Helper method to add a structure manipulation item to the TS Manipulation sub tab
+        /// </summary>
+        /// <param name="theSP"></param>
+        /// <param name="structureIds"></param>
+        /// <param name="listItem"></param>
+        /// <param name="clearBtnPrefix"></param>
+        /// <param name="clearSpareBtnCounter"></param>
+        /// <param name="typeChngHndl"></param>
+        /// <param name="clearEvtHndl"></param>
+        /// <param name="skipStructureIdCheck"></param>
+        /// <returns></returns>
+        public static StackPanel AddTSManipulation(StackPanel theSP, 
+                                                   List<string> structureIds, 
+                                                   Tuple<string, TSManipulationType, double> listItem, 
+                                                   string clearBtnPrefix, 
+                                                   int clearSpareBtnCounter, 
+                                                   SelectionChangedEventHandler typeChngHndl, 
+                                                   RoutedEventHandler clearEvtHndl, 
+                                                   bool skipStructureIdCheck)
         {
             StackPanel sp = new StackPanel
             {
@@ -253,6 +346,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 HorizontalContentAlignment = HorizontalAlignment.Center
             };
             
+            //add the possible manipulation types to the manipulation type combo box
             foreach (TSManipulationType s in Enum.GetValues(typeof(TSManipulationType))) type_cb.Items.Add(s);
             if ((int)listItem.Item2 <= type_cb.Items.Count) type_cb.SelectedIndex = (int)listItem.Item2;
             else type_cb.SelectedIndex = 0;
@@ -290,15 +384,25 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sp;
         }
 
-        public static (List<string>, StringBuilder) VerifyTSManipulationIntputIntegrity(List<string> manipulationListIds, List<string> idsPostUnion, StructureSet ss)
+        /// <summary>
+        /// Helper method to take the parsed list of structure manipulations and evaluate if the structures exist or will exist (post L/R union) in the 
+        /// structure set
+        /// </summary>
+        /// <param name="manipulationListIds"></param>
+        /// <param name="idsPostUnion"></param>
+        /// <param name="ss"></param>
+        /// <returns></returns>
+        public static (List<string>, StringBuilder) VerifyTSManipulationIntputIntegrity(List<string> manipulationListIds, 
+                                                                                        List<string> idsPostUnion, 
+                                                                                        StructureSet ss)
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("Warning! The following structures are null or empty and can't be used for TS manipulation:");
             List<string> missingEmptyList = new List<string> { };
             foreach (string itr in manipulationListIds)
             {
-                //check to ensure the structures in the templateSpareList vector are actually present in the selected structure set and are actually contoured. If they are, add them to the defaultList vector, which will be passed 
-                //to the add_sp_volumes method
+                //check to ensure the structures in the manipulationListIds are actually present in the selected structure set
+                //and are actually contoured.
                 if (StructureTuningHelper.DoesStructureExistInSS(itr, ss))
                 {
                     //already exists in current structure set, check if it is empty
@@ -320,6 +424,12 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return (missingEmptyList, sb);
         }
 
+        /// <summary>
+        /// Helper method to parse the requested tuning structure manipulations from the TS Manipulation sub tab. Returns the list of requested
+        /// structure manipulations
+        /// </summary>
+        /// <param name="theSP"></param>
+        /// <returns></returns>
         public static (List<Tuple<string, TSManipulationType, double>>, StringBuilder) ParseTSManipulationList(StackPanel theSP)
         {
             StringBuilder sb = new StringBuilder();
@@ -346,8 +456,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                             }
                             else spareType = (obj1 as ComboBox).SelectedItem.ToString();
                         }
-                        //try to parse the margin value as a double
-                        else if (obj1.GetType() == typeof(TextBox)) if (!string.IsNullOrWhiteSpace((obj1 as TextBox).Text)) double.TryParse((obj1 as TextBox).Text, out margin);
+                        else if (obj1.GetType() == typeof(TextBox))
+                        {
+                            //try to parse the margin value as a double
+                            if (!string.IsNullOrWhiteSpace((obj1 as TextBox).Text)) double.TryParse((obj1 as TextBox).Text, out margin);
+                        }
                     }
                     if (structure == "--select--" || spareType == "--select--")
                     {
@@ -367,49 +480,8 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 }
                 else headerObj = false;
             }
-
             return (TSManipulationList, sb);
         }
-
-        public static (List<Tuple<string, string>>, StringBuilder) ParseCreateTSStructureList(StackPanel theSP)
-        {
-            StringBuilder sb = new StringBuilder();
-            List<Tuple<string, string>> TSStructureList = new List<Tuple<string, string>> { };
-            string dcmType = "";
-            string structure = "";
-            bool firstCombo = true;
-            bool headerObj = true;
-            foreach (object obj in theSP.Children)
-            {
-                //skip over the header row
-                if (!headerObj)
-                {
-                    foreach (object obj1 in ((StackPanel)obj).Children)
-                    {
-                        if (obj1.GetType() == typeof(ComboBox))
-                        {
-                            //first combo box is the structure and the second is the sparing type
-                            if (firstCombo)
-                            {
-                                dcmType = (obj1 as ComboBox).SelectedItem.ToString();
-                                firstCombo = false;
-                            }
-                            else structure = (obj1 as ComboBox).SelectedItem.ToString();
-                        }
-                    }
-                    if (dcmType == "--select--" || structure == "--select--")
-                    {
-                        sb.AppendLine("Error! \nStructure or DICOM Type not selected! \nSelect an option and try again");
-                        return (new List<Tuple<string, string>> { }, sb);
-                    }
-                    //only add the current row to the structure sparing list if all the parameters were successful parsed
-                    else TSStructureList.Add(Tuple.Create(dcmType, structure));
-                    firstCombo = true;
-                }
-                else headerObj = false;
-            }
-
-            return (TSStructureList, sb);
-        }
+        #endregion
     }
 }

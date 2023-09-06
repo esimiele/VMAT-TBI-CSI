@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using System.Text;
 using VMATTBICSIAutoPlanningHelpers.Logging;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
@@ -9,6 +8,13 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
     public static class PlanPrepUIHelper
     {
+        /// <summary>
+        /// Helper method to retrieve the VMAT plan that should be prepared for treatment
+        /// </summary>
+        /// <param name="pi"></param>
+        /// <param name="logPath"></param>
+        /// <param name="courseId"></param>
+        /// <returns></returns>
         public static (ExternalPlanSetup, StringBuilder) RetrieveVMATPlan(Patient pi, string logPath, string courseId)
         {
             ExternalPlanSetup thePlan = null;
@@ -40,7 +46,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                     Course theCourse = pi.Courses.FirstOrDefault(x => string.Equals(x.Id.ToLower(), courseId.ToLower()));
                     if (theCourse.ExternalPlanSetups.Where(x => !x.Id.ToLower().Contains("legs")).Count() > 1)
                     {
-                        thePlan = PlanPrepUIHelper.PromptForUserToSelectPlan(theCourse);
+                        thePlan = PromptForUserToSelectPlan(theCourse);
                     }
                     else thePlan = theCourse.ExternalPlanSetups.First();
                 }
@@ -52,6 +58,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return (thePlan, sb);
         }
 
+        /// <summary>
+        /// Helper method to prompt the user to select a VMAT plan that should be prepared for treatment
+        /// </summary>
+        /// <param name="theCourse"></param>
+        /// <returns></returns>
         public static ExternalPlanSetup PromptForUserToSelectPlan(Course theCourse)
         {
             StringBuilder sb = new StringBuilder();
@@ -64,6 +75,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return theCourse.ExternalPlanSetups.FirstOrDefault(x => string.Equals(x.Id, SIP.GetSelectedItem()));
         }
 
+        /// <summary>
+        /// Simple helper method to check if flash structures were added to the structure
+        /// </summary>
+        /// <param name="ss"></param>
+        /// <returns></returns>
         public static bool CheckForFlash(StructureSet ss)
         {
             //look in the structure set to see if any of the structures contain the string 'flash'. If so, return true indicating flash was included in this plan

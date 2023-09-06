@@ -4,6 +4,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public static class IsoNameHelper
     {
+        /// <summary>
+        /// Simple method to specify the isocenter names for VMAT CSI
+        /// </summary>
+        /// <param name="numVMATIsos"></param>
+        /// <returns></returns>
         public static List<string> GetCSIIsoNames(int numVMATIsos)
         {
             List<string> isoNames = new List<string> { };
@@ -16,6 +21,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return isoNames;
         }
 
+        /// <summary>
+        /// Helper method to specify the VMAT isocenter names based on the supplied number of vmat isos and total number of isos
+        /// </summary>
+        /// <param name="numVMATIsos"></param>
+        /// <param name="numIsos"></param>
+        /// <returns></returns>
         public static List<string> GetTBIVMATIsoNames(int numVMATIsos, int numIsos)
         {
             List<string> isoNames = new List<string> { };
@@ -54,6 +65,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return isoNames;
         }
 
+        /// <summary>
+        /// Helper method to specify the AP/PA isocenter names based on the supplied number of vmat isos and total number of isos
+        /// </summary>
+        /// <param name="numVMATIsos"></param>
+        /// <param name="numIsos"></param>
+        /// <returns></returns>
         public static List<string> GetTBIAPPAIsoNames(int numVMATIsos, int numIsos)
         {
             List<string> isoNames = new List<string> { };

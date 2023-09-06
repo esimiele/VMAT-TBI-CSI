@@ -119,7 +119,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             //load script configuration and display the settings
             List<string> configurationFiles = new List<string> { };
-            configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
             configurationFiles.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\VMAT_CSI_config.ini");
             foreach (string itr in configurationFiles) LoadConfigurationSettings(itr);
         }
@@ -127,7 +126,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private bool InitializeScript(List<string> args)
         {
             try { app = VMS.TPS.Common.Model.API.Application.CreateApplication(); }
-            catch (Exception e) { MessageBox.Show(String.Format("Warning! Could not generate Aria application instance because: {0}", e.Message)); }
+            catch (Exception e) { MessageBox.Show($"Warning! Could not generate Aria application instance because: {e.Message}"); }
             string mrn = "";
             string ss = "";
             if (args.Any())
@@ -137,6 +136,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
 
             IEData = new ImportExportDataStruct();
+            logPath = ConfigurationHelper.ReadLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
             log = new Logger(logPath, PlanType.VMAT_CSI, mrn);
             LoadDefaultConfigurationFiles();
             if (app != null)
@@ -146,7 +146,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
                 //check the version information of Eclipse installed on this machine. If it is older than version 15.6, let the user know that this script may not work properly on their system
                 if (!double.TryParse(app.ScriptEnvironment.VersionInfo.Substring(0, app.ScriptEnvironment.VersionInfo.LastIndexOf(".")), out double vinfo)) log.LogError("Warning! Could not parse Eclise version number! Proceed with caution!");
-                else if (vinfo < 15.6) log.LogError(String.Format("Warning! Detected Eclipse version: {0:0.0} is older than v15.6! Proceed with caution!", vinfo));
+                else if (vinfo < 15.6) log.LogError($"Warning! Detected Eclipse version: {vinfo} is older than v15.6! Proceed with caution!");
             }
 
             PlanTemplates = new ObservableCollection<CSIAutoPlanTemplate>() { new CSIAutoPlanTemplate("--select--") };
@@ -197,13 +197,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 foreach (StructureSet s in pi.StructureSets.OrderByDescending(x => x.HistoryDateTime)) SSID.Items.Add(s.Id);
                 //SSID default is the current structure set in the context
-                if (!string.IsNullOrEmpty(ss))
+                if (!string.IsNullOrEmpty(ss) && pi.StructureSets.Any(x => string.Equals(x.Id, ss)))
                 {
-                    selectedSS = pi.StructureSets.FirstOrDefault(x => string.Equals(x.Id, ss));
+                    selectedSS = pi.StructureSets.First(x => string.Equals(x.Id, ss));
                     SSID.Text = selectedSS.Id;
                 }
                 else log.LogError("Warning! No structure set in context! Please select a structure set at the top of the GUI!");
-                ExportCTUIHelper.PopulateCTImageSets(pi.StructureSets.Where(x => x != selectedSS).ToList(), selectedSS, CTimageSP);
+                PopulateExportCTTab();
                 patientMRNLabel.Content = pi.Id;
             }
             else log.LogError("Could not open patient!");
@@ -349,6 +349,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         #region ExportCT
+        private void PopulateExportCTTab()
+        {
+            VMS.TPS.Common.Model.API.Image theImage = null;
+            if (selectedSS != null) theImage = selectedSS.Image;
+            ExportCTUIHelper.PopulateCTImageSets(ExportCTUIHelper.GetAllCTImagesForPatient(pi).Where(x => x != theImage).ToList(), theImage, CTimageSP);
+        }
+
         //stuff related to Export CT tab
         private void ExportImgInfo_Click(object sender, RoutedEventArgs e)
         {
@@ -359,7 +366,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if (app == null || pi == null || imgExported) return;
             //CT image stack panel, patient structure set list, patient id, image export path, image export format
-            VMS.TPS.Common.Model.API.Image selectedImage = ExportCTUIHelper.GetSelectedImageForExport(CTimageSP, pi.StructureSets.ToList());
+            VMS.TPS.Common.Model.API.Image selectedImage = ExportCTUIHelper.GetSelectedImageForExport(CTimageSP, ExportCTUIHelper.GetAllCTImagesForPatient(pi));
             if(selectedImage != null)
             {
                 CTImageExport exporter = new CTImageExport(selectedImage, pi.Id, IEData, closePWOnFinish);
@@ -369,6 +376,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 if (result) return;
                 imgExported = true;
                 exportCTTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+                this.Close();
             }
             else log.LogError("No image selected for export!");
         }
@@ -671,13 +679,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
 
             targets = new List<Tuple<string, double, string>>(parsedTargets.Item1);
-            (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) parsedPrescriptions = TargetsHelper.GetPrescriptions(targets,
-                                                                                                                                      initDosePerFxTB.Text,
-                                                                                                                                      initNumFxTB.Text,
-                                                                                                                                      initRxTB.Text,
-                                                                                                                                      boostDosePerFxTB.Text,
-                                                                                                                                      boostNumFxTB.Text,
-                                                                                                                                      boostRxTB.Text);
+            (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) parsedPrescriptions = TargetsHelper.BuildPrescriptionList(targets,
+                                                                                                                                           initDosePerFxTB.Text,
+                                                                                                                                           initNumFxTB.Text,
+                                                                                                                                           initRxTB.Text,
+                                                                                                                                           boostDosePerFxTB.Text,
+                                                                                                                                           boostNumFxTB.Text,
+                                                                                                                                           boostRxTB.Text);
             if(!parsedPrescriptions.Item1.Any())
             {
                 log.LogError(parsedPrescriptions.Item2);
@@ -1394,8 +1402,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                                       closePWOnFinish);
 
             place.Initialize("VMAT CSI", prescriptions);
-            place.Execute();
+            bool result = place.Execute();
             log.AppendLogOutput("Plan generation and beam placement output:", place.GetLogOutput());
+            if (result) return;
             VMATplans = new List<ExternalPlanSetup>(place.GetGeneratedVMATPlans());
             if (!VMATplans.Any()) return;
 
@@ -2156,6 +2165,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (configFile != "") configTB.Text += $"Configuration file: {configFile}" + Environment.NewLine + Environment.NewLine;
             else configTB.Text += "Configuration file: none" + Environment.NewLine + Environment.NewLine;
             configTB.Text += $"Documentation path: {documentationPath}" + Environment.NewLine + Environment.NewLine;
+            configTB.Text += $"Log file path: {logPath}" + Environment.NewLine + Environment.NewLine;
             configTB.Text += $"Close progress windows on finish: {closePWOnFinish}" + Environment.NewLine + Environment.NewLine;
             configTB.Text += $"Import/export settings:" + Environment.NewLine;
             configTB.Text += $"Image export path: {IEData.WriteLocation}" + Environment.NewLine;
@@ -2294,12 +2304,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                 {
                                     string result = ConfigurationHelper.VerifyPathIntegrity(value);
                                     if (!string.IsNullOrEmpty(result)) documentationPath = result;
-                                    else log.LogError($"Warning! {value} does NOT exist!");
-                                }
-                                else if (parameter == "log file path")
-                                {
-                                    string result = ConfigurationHelper.VerifyPathIntegrity(value);
-                                    if (!string.IsNullOrEmpty(result)) logPath = result;
                                     else log.LogError($"Warning! {value} does NOT exist!");
                                 }
                                 else if (parameter == "close progress windows on finish")

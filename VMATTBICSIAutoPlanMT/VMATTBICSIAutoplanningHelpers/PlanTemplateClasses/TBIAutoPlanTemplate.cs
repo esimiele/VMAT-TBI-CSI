@@ -25,15 +25,26 @@ namespace VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses
         //structure, constraint type, dose cGy, volume %, priority
         private List<Tuple<string, OptimizationObjectiveType, double, double, int>> initOptConstraints = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
         public TBIAutoPlanTemplate()
         {
         }
 
+        /// <summary>
+        /// Overloaded constructor taking an int as input
+        /// </summary>
+        /// <param name="count"></param>
         public TBIAutoPlanTemplate(int count)
         {
             templateName = String.Format("Template: {0}", count);
         }
 
+        /// <summary>
+        /// Overloaded constructor taking a string as input
+        /// </summary>
+        /// <param name="name"></param>
         public TBIAutoPlanTemplate(string name)
         {
             templateName = name;

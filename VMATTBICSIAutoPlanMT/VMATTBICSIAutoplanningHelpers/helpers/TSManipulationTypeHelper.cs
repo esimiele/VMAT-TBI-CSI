@@ -4,6 +4,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public static class TSManipulationTypeHelper
     {
+        /// <summary>
+        /// Helper utility method to take the supplied string representation of the manipulation type and convert it to an enum
+        /// </summary>
+        /// <param name="manipulation"></param>
+        /// <returns></returns>
         public static TSManipulationType GetTSManipulationType(string manipulation)
         {
             manipulation = manipulation.Replace(" ", "").ToLower();

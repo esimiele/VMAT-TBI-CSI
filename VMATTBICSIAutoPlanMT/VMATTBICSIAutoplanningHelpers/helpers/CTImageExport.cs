@@ -20,10 +20,18 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public class CTImageExport : SimpleMTbase
     {
+        //data members
         private VMS.TPS.Common.Model.API.Image _image;
         private string _patID;
         private ImportExportDataStruct _data;
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="img"></param>
+        /// <param name="patientID"></param>
+        /// <param name="theData"></param>
+        /// <param name="closePW"></param>
         public CTImageExport(VMS.TPS.Common.Model.API.Image img, 
                              string patientID,
                              ImportExportDataStruct theData,
@@ -35,6 +43,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             SetCloseOnFinish(closePW, 3000);
         }
 
+        /// <summary>
+        /// Run control
+        /// </summary>
+        /// <returns></returns>
         public override bool Run()
         {
             try
@@ -68,6 +80,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return false;
         }
 
+        /// <summary>
+        /// Utility method to verify the supplied file path
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
         private bool VerifyPathIntegrity(string path)
         {
             if (string.IsNullOrEmpty(path))
@@ -79,12 +96,20 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         }
 
         #region PNG export
+        /// <summary>
+        /// Preliminary checks for exporting the data in PNG format
+        /// </summary>
+        /// <returns></returns>
         private bool PreliminaryChecksPNG()
         {
             UpdateUILabel("Preliminary checks:");
             return VerifyPathIntegrity(_data.WriteLocation);
         }
 
+        /// <summary>
+        /// Export the CT image data in PNG format
+        /// </summary>
+        /// <returns></returns>
         private bool ExportAsPNG()
         {
             UpdateUILabel("Exporting as PNG:");
@@ -105,7 +130,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             //}
             //catch (Exception e) { MessageBox.Show(e.StackTrace); return true; }
 
-            //the main limitation of this method is the maximum bit depth is limited to 8 (whereas CT data has a bit depth of 12)
+            //the main limitation of this method is the maximum bit depth is limited to 8 (whereas CT data has a bit depth of 12-16)
             try
             {
                 string ct_ID = _image.Id;
@@ -141,6 +166,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return false;
         }
 
+        /// <summary>
+        /// Utility method to take the int array of pixel values and convert them to an int16 array that will be converted to bmp format
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="sliceNum"></param>
+        /// <param name="writeLocation"></param>
         private void FromTwoDimIntArrayGray(Int32[,] data, int sliceNum, string writeLocation)
         {
             // Transform 2-dimensional Int32 array to 1-byte-per-pixel byte array
@@ -444,7 +475,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             ProvideUIUpdate("Waiting for response from AI contouring program");
             ProvideUIUpdate($"Approximate elapsed time:");
             //10 sec timeout
-            int timeout = 10000;
+            int timeout = 20000;
             int elapsedTime = 0;
             while (elapsedTime <= timeout)
             {

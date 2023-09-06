@@ -13,6 +13,12 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
     public static class OptimizationSetupUIHelper
     {
+        /// <summary>
+        /// Helper method to take the supplied plan and read the optimization constraints attached to the plan. Returns the list of 
+        /// optimization constraints
+        /// </summary>
+        /// <param name="plan"></param>
+        /// <returns></returns>
         public static List<Tuple<string, OptimizationObjectiveType, double, double, int>> ReadConstraintsFromPlan(ExternalPlanSetup plan)
         {
             //grab the optimization constraints in the existing VMAT TBI plan and display them to the user
@@ -37,8 +43,13 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return defaultList;
         }
 
-        
-
+        /// <summary>
+        /// Helper method to take the supplied optimization constraints and rescale the dose objectives by the ratio of the supplied prescription doses (new Rx/ old Rx)
+        /// </summary>
+        /// <param name="currentList"></param>
+        /// <param name="oldRx"></param>
+        /// <param name="newRx"></param>
+        /// <returns></returns>
         public static List<Tuple<string, OptimizationObjectiveType, double, double, int>> RescalePlanObjectivesToNewRx(List<Tuple<string, OptimizationObjectiveType, double, double, int>> currentList,
                                                                                                                        double oldRx,
                                                                                                                        double newRx)
@@ -51,6 +62,17 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return tmpList;
         }
 
+        /// <summary>
+        /// Helper method to control the flow of adding additional optimization constraints to the supplied list. Additional constraints are added for TS targets, TS manipulations, adding rings, and adding overlap junctions
+        /// </summary>
+        /// <param name="defaultListList"></param>
+        /// <param name="prescriptions"></param>
+        /// <param name="selectedTemplate"></param>
+        /// <param name="tsTargets"></param>
+        /// <param name="jnxs"></param>
+        /// <param name="targetManipulations"></param>
+        /// <param name="addedRings"></param>
+        /// <returns></returns>
         public static List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> UpdateOptObjectivesWithTsStructuresAndJnxs(List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> defaultListList,
                                                                                                                                                           List<Tuple<string, string, int, DoseValue, double>> prescriptions,
                                                                                                                                                           object selectedTemplate,
@@ -80,6 +102,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return defaultListList;
         }
 
+        /// <summary>
+        /// Simple helper method to remove all optimization constraints from the supplied plan
+        /// </summary>
+        /// <param name="plan"></param>
+        /// <returns></returns>
         public static bool RemoveOptimizationConstraintsFromPLan(ExternalPlanSetup plan)
         {
             if (plan.OptimizationSetup.Objectives.Count() > 0)
@@ -89,6 +116,12 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return false;
         }
 
+        /// <summary>
+        /// Helper method to add the supplied plan Id to preceed the header information in the Optimization Setup tab (useful for sequential boost CSI plans)
+        /// </summary>
+        /// <param name="theSP"></param>
+        /// <param name="id"></param>
+        /// <returns></returns>
         public static StackPanel AddPlanIdtoOptList(StackPanel theSP, string id)
         {
             StackPanel sp = new StackPanel
@@ -102,7 +135,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 
             Label strName = new Label
             {
-                Content = String.Format("Plan Id: {0}", id),
+                Content = $"Plan Id: {id}",
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Top,
                 Width = theSP.Width,
@@ -114,6 +147,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sp;
         }
 
+        /// <summary>
+        /// Helper method to build the header information for the Optimization Setup tab
+        /// </summary>
+        /// <param name="theWidth"></param>
+        /// <returns></returns>
         public static StackPanel GetOptHeader(double theWidth)
         {
             StackPanel sp = new StackPanel
@@ -180,7 +218,25 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sp;
         }
 
-        public static StackPanel AddOptVolume<T>(StackPanel theSP, StructureSet selectedSS, Tuple<string, OptimizationObjectiveType, double, double, T> listItem, string clearBtnNamePrefix, int clearOptBtnCounter, RoutedEventHandler e, bool addStructureEvenIfNotInSS = false)
+        /// <summary>
+        /// Helper method to add the optimization constraint item to the list on the Optimization Setup tab
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="theSP"></param>
+        /// <param name="selectedSS"></param>
+        /// <param name="listItem"></param>
+        /// <param name="clearBtnNamePrefix"></param>
+        /// <param name="clearOptBtnCounter"></param>
+        /// <param name="e"></param>
+        /// <param name="addStructureEvenIfNotInSS"></param>
+        /// <returns></returns>
+        public static StackPanel AddOptVolume<T>(StackPanel theSP, 
+                                                 StructureSet selectedSS, 
+                                                 Tuple<string, OptimizationObjectiveType, double, double, T> listItem, 
+                                                 string clearBtnNamePrefix, 
+                                                 int clearOptBtnCounter, 
+                                                 RoutedEventHandler e, 
+                                                 bool addStructureEvenIfNotInSS = false)
         {
             StackPanel sp = new StackPanel
             {
@@ -229,9 +285,9 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 VerticalAlignment = VerticalAlignment.Top,
                 Margin = new Thickness(5, 5, 0, 0)
             };
-            string[] types = new string[] { "--select--", "Upper", "Lower", "Mean", "Exact" };
-            foreach (string s in types) constraint_cb.Items.Add(s);
-            if (listItem.Item2 != OptimizationObjectiveType.None) constraint_cb.Text = listItem.Item2.ToString();
+            //add the possible optimization objective types to the combo box
+            foreach (OptimizationObjectiveType s in Enum.GetValues(typeof(OptimizationObjectiveType))) constraint_cb.Items.Add(s);
+            if ((int)listItem.Item2 <= constraint_cb.Items.Count && listItem.Item2 != OptimizationObjectiveType.None) constraint_cb.SelectedIndex = (int)listItem.Item2;
             else constraint_cb.SelectedIndex = 0;
             constraint_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
             sp.Children.Add(constraint_cb);
@@ -311,6 +367,12 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sp;
         }
 
+        /// <summary>
+        /// Helper method to parse the optimization constraints from the Optimization Setup tab. Works for both initial-only and sequential boost plans
+        /// </summary>
+        /// <param name="sp"></param>
+        /// <param name="checkInputIntegrity"></param>
+        /// <returns></returns>
         public static (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) ParseOptConstraints(StackPanel sp, bool checkInputIntegrity = true)
         {
             StringBuilder sb = new StringBuilder();
@@ -403,13 +465,24 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return (optParametersListList, sb);
         }
 
-        public static (bool, StringBuilder) AssignOptConstraints(List<Tuple<string, OptimizationObjectiveType, double, double, int>> parameters, ExternalPlanSetup VMATplan, bool useJawTracking, double NTOpriority)
+        /// <summary>
+        /// Helper method to take the supplied optimization constaints and assign them to the supplied plan. Jaw tracking and NTO priority are also assigned
+        /// </summary>
+        /// <param name="parameters"></param>
+        /// <param name="VMATplan"></param>
+        /// <param name="useJawTracking"></param>
+        /// <param name="NTOpriority"></param>
+        /// <returns></returns>
+        public static (bool, StringBuilder) AssignOptConstraints(List<Tuple<string, OptimizationObjectiveType, double, double, int>> parameters, 
+                                                                 ExternalPlanSetup VMATplan, 
+                                                                 bool useJawTracking, 
+                                                                 double NTOpriority)
         {
             bool isError = false;
             StringBuilder sb = new StringBuilder();
             foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in parameters)
             {
-                Structure s = VMATplan.StructureSet.Structures.First(x => x.Id == opt.Item1);
+                Structure s =StructureTuningHelper.GetStructureFromId(opt.Item1, VMATplan.StructureSet);
                 if (opt.Item2 != OptimizationObjectiveType.Mean) VMATplan.OptimizationSetup.AddPointObjective(s, OptimizationTypeHelper.GetObjectiveOperator(opt.Item2), new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item4, (double)opt.Item5);
                 else VMATplan.OptimizationSetup.AddMeanDoseObjective(s, new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), (double)opt.Item5);
             }
@@ -417,7 +490,8 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             try { VMATplan.OptimizationSetup.UseJawTracking = useJawTracking; }
             catch (Exception except) 
             { 
-                sb.AppendLine(String.Format("Warning! Could not set jaw tracking for VMAT plan because: {0}\nJaw tacking will have to be set manually!", except.Message)); 
+                sb.AppendLine($"Warning! Could not set jaw tracking for VMAT plan because: {except.Message}"); 
+                sb.AppendLine("Jaw tacking will have to be set manually!"); 
             }
             //set auto NTO priority to zero (i.e., shut it off). It has to be done this way because every plan created in ESAPI has an instance of an automatic NTO, which CAN'T be deleted.
             VMATplan.OptimizationSetup.AddAutomaticNormalTissueObjective(NTOpriority);

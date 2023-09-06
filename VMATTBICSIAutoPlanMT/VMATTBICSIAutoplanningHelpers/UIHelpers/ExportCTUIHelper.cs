@@ -4,24 +4,42 @@ using System.Windows.Controls;
 using System.Windows;
 using VMS.TPS.Common.Model.API;
 using System.Text;
+using Image = VMS.TPS.Common.Model.API.Image;
+using VMS.TPS.Common.Model.Types;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
     public static class ExportCTUIHelper
     {
+        /// <summary>
+        /// Simple method to print an info message about selecting a CT image for export
+        /// </summary>
         public static void PrintExportImgInfo()
         {
             MessageBox.Show("Select a CT image to export to the deep learning model (for autocontouring)");
         }
 
-        public static void PopulateCTImageSets(List<StructureSet> structureSets, StructureSet selectedSS, StackPanel theSP)
+        /// <summary>
+        /// Helper method to add all CT images to the UI for the user to select which image they want to export for auto contouring
+        /// </summary>
+        /// <param name="structureSets"></param>
+        /// <param name="selectedSS"></param>
+        /// <param name="theSP"></param>
+        public static void PopulateCTImageSets(List<Image> CTImages, Image selectedImage, StackPanel theSP)
         {
             //needed to allow automatic selection of CT image for selected CT structure set (nothing will be selected if no structure set is selected)
-            if (selectedSS != null)  structureSets.Insert(0, selectedSS);
-            foreach (StructureSet itr in structureSets) theSP.Children.Add(GetCTImageSets(theSP, itr.Image, itr == selectedSS ? true : false));
+            if (selectedImage != null)  CTImages.Insert(0, selectedImage);
+            foreach (Image itr in CTImages) theSP.Children.Add(AddCTImageSetToUI(theSP, itr, (itr == selectedImage || CTImages.Count == 1) ? true : false));
         }
 
-        private static StackPanel GetCTImageSets(StackPanel theSP, VMS.TPS.Common.Model.API.Image theImage, bool isFirst)
+        /// <summary>
+        /// Helper method to add a CT image to the UI with a check box next to it
+        /// </summary>
+        /// <param name="theSP"></param>
+        /// <param name="theImage"></param>
+        /// <param name="isFirst"></param>
+        /// <returns></returns>
+        private static StackPanel AddCTImageSetToUI(StackPanel theSP, Image theImage, bool isFirst)
         {
             StackPanel sp = new StackPanel
             {
@@ -91,6 +109,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return sp;
         }
 
+        /// <summary>
+        /// Helper method to read through the list of CT images in the UI and determine the last image that had the checkbox selected
+        /// </summary>
+        /// <param name="theSP"></param>
+        /// <returns></returns>
         public static string ParseSelectedCTImage(StackPanel theSP)
         {
             string theImageId = "";
@@ -118,13 +141,29 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             return theImageId;
         }
 
-        public static VMS.TPS.Common.Model.API.Image GetSelectedImageForExport(StackPanel theSP, List<StructureSet> structureSets)
+        /// <summary>
+        /// Helper method to retrieve the CT image that was selected for export to auto contouring
+        /// </summary>
+        /// <param name="theSP"></param>
+        /// <param name="structureSets"></param>
+        /// <returns></returns>
+        public static Image GetSelectedImageForExport(StackPanel theSP, List<Image> CTImages)
         {
             StringBuilder sb = new StringBuilder();
             string selectedCTID = ParseSelectedCTImage(theSP);
-            VMS.TPS.Common.Model.API.Image theImage = null;
-            if (!string.IsNullOrWhiteSpace(selectedCTID)) theImage = structureSets.FirstOrDefault(x => x.Image.Id == selectedCTID).Image;
-            return (theImage);
+            Image theImage = null;
+            if (!string.IsNullOrWhiteSpace(selectedCTID)) theImage = CTImages.FirstOrDefault(x => string.Equals(x.Id, selectedCTID));
+            return theImage;
+        }
+
+        /// <summary>
+        /// Helper method to return a list of all CT images for the patient
+        /// </summary>
+        /// <param name="pi"></param>
+        /// <returns></returns>
+        public static List<Image> GetAllCTImagesForPatient(Patient pi)
+        {
+            return pi.Studies.SelectMany(x => x.Series).Where(x => x.Modality == SeriesModality.CT).SelectMany(x => x.Images).Where(x => x.ZSize > 1).ToList();
         }
     }
 }

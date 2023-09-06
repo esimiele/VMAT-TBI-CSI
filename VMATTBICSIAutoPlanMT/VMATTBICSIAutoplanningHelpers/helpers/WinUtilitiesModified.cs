@@ -103,6 +103,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             SendMessage(hwnd, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
         }
 
+        /// <summary>
+        /// Utility class to launch a separate thread that listens for popup windows. If the pop up window contains any of the keywords listed, 
+        /// it is a warning window from eclipse and should be auto closed
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="fileName"></param>
         public static void LaunchWindowsClosingThread(CancellationToken token, string fileName)
         {
             Thread thread = new Thread(() =>
@@ -124,7 +130,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                         GetWindowThreadProcessId(x.Key, out uint windowPid);
                         if (windowPid == pid)
                         {
-                            //sb.AppendLine($"{pid} - {x.Value}: {string.Join(";",a.Select(y=> $"{y.Key}= {y.Value}"))}");
                             //only report errors once!
                             foreach (var item in a)
                             {
@@ -158,6 +163,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             thread.Start();
         }
 
+        /// <summary>
+        /// Helper method to update the error and warnings temp log file
+        /// </summary>
+        /// <param name="output"></param>
+        /// <param name="fileName"></param>
+        /// <returns></returns>
         private static bool UpdateErrorWarningsLog(string output, string fileName)
         {
             if (Directory.Exists(Path.GetDirectoryName(fileName)))
