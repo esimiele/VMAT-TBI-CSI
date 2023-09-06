@@ -411,11 +411,44 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         }
 
         /// <summary>
+        /// Overloaded method to account for the fact the Eclipse may or may not append numbers to the structure names (because it thinks the names are taken)
+        /// </summary>
+        /// <param name="structures"></param>
+        /// <param name="selectedSS"></param>
+        /// <param name="ProvideUIUpdate"></param>
+        /// <returns></returns>
+        public static bool CheckHighResolutionAndConvert(List<Structure> structures, StructureSet selectedSS, ProvideUIUpdateDelegate ProvideUIUpdate)
+        {
+            ProvideUIUpdate(0, "Checking for high res structures:");
+            foreach (Structure itr in structures)
+            {
+                ProvideUIUpdate(0, $"Checking if {itr.Id} is high resolution");
+                if (itr.IsHighResolution)
+                {
+                    string id = itr.Id;
+                    ProvideUIUpdate(0, $"{id} is high resolution. Converting to default resolution now");
+
+                    if (OverWriteHighResStructureWithLowResStructure(itr, selectedSS, ProvideUIUpdate))
+                    {
+                        ProvideUIUpdate(0, $"Error! Unable to overwrite existing high res structure {itr.Id} with default resolution structure! Exiting!", true);
+                        return true;
+                    }
+                    ProvideUIUpdate(0, $"{id} has been converted to low resolution");
+                }
+                else
+                {
+                    ProvideUIUpdate(0, $"{itr.Id} is already defualt resolution");
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
         /// Method to take a high resolution structure as input and overwrite it with a new structure that is default resolution
         /// </summary>
         /// <param name="theStructure"></param>
         /// <returns></returns>
-        public static bool OverWriteHighResStructureWithLowResStructure(Structure theStructure, StructureSet selectedSS, ProvideUIUpdateDelegate ProvideUIUpdate)
+        private static bool OverWriteHighResStructureWithLowResStructure(Structure theStructure, StructureSet selectedSS, ProvideUIUpdateDelegate ProvideUIUpdate)
         {
             ProvideUIUpdate(0,$"Retrieving all contour points for: {theStructure.Id}");
             int startSlice = CalculationHelper.ComputeSlice(theStructure.MeshGeometry.Positions.Min(p => p.Z), selectedSS);
@@ -440,7 +473,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="theStructure"></param>
         /// <returns></returns>
-        public static (bool, Structure) RemoveAndReAddStructure(Structure theStructure, StructureSet selectedSS, ProvideUIUpdateDelegate ProvideUIUpdate)
+        private static (bool, Structure) RemoveAndReAddStructure(Structure theStructure, StructureSet selectedSS, ProvideUIUpdateDelegate ProvideUIUpdate)
         {
             ProvideUIUpdate(0,"Removing and re-adding structure:");
             Structure newStructure = null;
@@ -477,7 +510,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="startSlice"></param>
         /// <param name="stopSlice"></param>
         /// <returns></returns>
-        public static bool ContourLowResStructure(VVector[][][] structurePoints, Structure lowResStructure, int startSlice, int stopSlice, ProvideUIUpdateDelegate ProvideUIUpdate)
+        private static bool ContourLowResStructure(VVector[][][] structurePoints, Structure lowResStructure, int startSlice, int stopSlice, ProvideUIUpdateDelegate ProvideUIUpdate)
         {
             ProvideUIUpdate(0, $"Contouring {lowResStructure.Id}:");
             //Write the high res contour points on the newly added low res structure

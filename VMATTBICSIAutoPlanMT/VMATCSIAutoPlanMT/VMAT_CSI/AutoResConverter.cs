@@ -27,6 +27,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private string stackTraceError;
         private Application app = null;
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="PID"></param>
+        /// <param name="id"></param>
         public AutoResConverter(string PID, string id)
         {
             mrn = PID;
@@ -58,6 +63,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         #endregion
 
         #region Generate Aria instance, prelim checks, and convert
+        /// <summary>
+        /// Helper method to create an aria instance, open the patient, and grab the structure set
+        /// </summary>
+        /// <returns></returns>
         private bool GenerateAriaInstance()
         {
             UpdateUILabel("Generating Aria instance:");
@@ -101,13 +110,22 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return fail;
         }
 
+        /// <summary>
+        /// Preliminary checks to run prior to downsampling the structures (basically make sure they exist and are not empty)
+        /// </summary>
+        /// <returns></returns>
         private bool PreliminaryChecks()
         {
             UpdateUILabel("Performing Preliminary Checks: ");
             //verify brain and spine structures are present
-            if (!StructureTuningHelper.DoesStructureExistInSS("brain", selectedSS, true) || !StructureTuningHelper.DoesStructureExistInSS(new List<string> { "spinal_cord", "spinalcord" }, selectedSS, true))
+            if (!selectedSS.Structures.Any(x => x.Id.ToLower().Contains("brain") && !x.Id.ToLower().Contains("brainstem") && !x.IsEmpty))
             {
-                ProvideUIUpdate("Missing brain and/or spine structures! Please add and try again!", true);
+                ProvideUIUpdate("Missing brain structure! Please add and try again!", true);
+                return true;
+            }
+            if (!selectedSS.Structures.Any(x => x.Id.ToLower().Contains("spinalcord") && !x.IsEmpty))
+            {
+                ProvideUIUpdate("Missing spinal cord structure! Please add and try again!", true);
                 return true;
             }
             ProvideUIUpdate("Brain and spinal cord structures exist");
@@ -117,11 +135,21 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             return false;
         }
 
+        /// <summary>
+        /// Downsample the brain and spinal cord structures
+        /// </summary>
+        /// <returns></returns>
         private bool ConvertHighToDefaultResolution()
         {
             UpdateUILabel("Converting to default res:");
             ProvideUIUpdate(0, $"Converting any critical high res structures to default resolution");
-            if (ContourHelper.CheckHighResolutionAndConvert(new List<string> { "brain", "spinal_cord", "spinalcord" }, selectedSS, PUUD)) return true;
+            List<Structure> theStructures = new List<Structure> { };
+            //already checked in preliminary checks if brain and spinal cord exist.
+            ProvideUIUpdate($"Adding brain structure to list");
+            theStructures.Add(selectedSS.Structures.First(x => x.Id.ToLower().Contains("brain") && !x.Id.ToLower().Contains("brainstem") && !x.IsEmpty));
+            ProvideUIUpdate($"Adding spinal cord structure to list");
+            theStructures.Add(selectedSS.Structures.First(x => x.Id.ToLower().Contains("spinalcord") && !x.IsEmpty));
+            if (ContourHelper.CheckHighResolutionAndConvert(theStructures, selectedSS, PUUD)) return true;
             isModified = true;
             ProvideUIUpdate(100, "Checked and converted any high res base targets");
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");

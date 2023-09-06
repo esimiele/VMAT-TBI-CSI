@@ -18,10 +18,6 @@ namespace VMATCSIAutoPlanMT
         /// <param name="e"></param>
         private void Application_Startup(object sender, StartupEventArgs e)
         {
-            //string[] dummyArgs = { "-d", "CSI55", "C230830_CSI" };
-            //List<string> theArguments = new List<string> { };
-            //for (int i = 0; i < dummyArgs.Length; i++) theArguments.Add(dummyArgs[i]);
-
             List<string> theArguments = new List<string> { };
             for (int i = 0; i < e.Args.Length; i++) theArguments.Add(e.Args[i]);
 

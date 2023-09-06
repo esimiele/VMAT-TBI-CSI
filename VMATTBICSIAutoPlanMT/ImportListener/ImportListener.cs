@@ -318,6 +318,7 @@ namespace ImportListener
             EvilDICOM.Network.SCUOps.CStorer storer = client.GetCStorer(ariaDBDaemon);
             ushort msgId = 1;
             DICOMObject dcm = DICOMObject.Read(theFile);
+            SSID = dcm.FindFirst(TagHelper.StructureSetLabel).DData as string;
 
             Console.WriteLine("Executing C-store operation now...");
             EvilDICOM.Network.DIMSE.CStoreResponse response = storer.SendCStore(dcm, ref msgId);
@@ -359,7 +360,6 @@ namespace ImportListener
                 Patient pi = app.OpenPatientById(mrn);
                 if (pi != null)
                 {
-                    SSID = dcm.FindFirst(TagHelper.StructureSetLabel).DData as string;
                     if (!string.IsNullOrEmpty(SSID))
                     {
                         if (pi.StructureSets.Any(x => string.Equals(SSID, x.Id)))
@@ -368,6 +368,7 @@ namespace ImportListener
                         }
                         else Console.WriteLine("Structure set not found in Aria!");
                     }
+                    else Console.WriteLine($"Error! Structure set id is null or empty!");
                 }
                 else
                 {
@@ -404,7 +405,7 @@ namespace ImportListener
                         if (pi.StructureSets.Count(x => string.Equals(SSID, x.Id)) == 1)
                         {
                             StructureSet ss = pi.StructureSets.First(x => string.Equals(SSID, x.Id));
-                            if(ss.Structures.Any(x => (string.Equals(x.Id.ToLower(), "spinalcord") && !x.IsEmpty && x.IsHighResolution)))
+                            if (ss.Structures.Any(x => (string.Equals(x.Id.ToLower(), "spinalcord") && !x.IsEmpty && x.IsHighResolution)))
                             {
                                 Console.WriteLine($"Spinal cord was imported as high resolution!");
                                 isHighRes = true;
@@ -417,6 +418,7 @@ namespace ImportListener
                         }
                         else Console.WriteLine("Structure set not found in Aria or more than one structure set found with the same Id! Check manually!");
                     }
+                    else Console.WriteLine($"Error! Structure set id is null or empty!");
                     app.ClosePatient();
                     app.Dispose();
                 }
