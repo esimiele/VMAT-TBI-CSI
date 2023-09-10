@@ -236,11 +236,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             bool fail = false;
             List<double> tmp = new List<double> { };
             VRect<double> jawPos = new VRect<double> { };
+            line = CropLine(line, "{");
             //second character should not be the end brace (indicates the last element in the array)
             while (line.Contains(","))
             {
                 tmp.Add(double.Parse(line.Substring(0, line.IndexOf(","))));
-                line = ConfigurationHelper.CropLine(line, ",");
+                line = CropLine(line, ",");
             }
             tmp.Add(double.Parse(line.Substring(0, line.IndexOf("}"))));
             if (tmp.Count != 4) fail = true;

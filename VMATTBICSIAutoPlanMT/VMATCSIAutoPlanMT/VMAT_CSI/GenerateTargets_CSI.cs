@@ -54,7 +54,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 if (CheckForTargetStructures()) return true;
                 if (missingTargets.Any())
                 {
-                    ProvideUIUpdate("Targets missing from the structure set! Creating them now!");
+                    ProvideUIUpdate("Preliminary Targets missing from the structure set! Creating them now!");
                     if (CreateMissingTargetStructures()) return true;
                 }
                 if (addedTargetIds.Any())
@@ -64,7 +64,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 }
 
                 UpdateUILabel("Finished!");
-                ProvideUIUpdate(100, "Finished Generating Preliminary Targets!");
+                ProvideUIUpdate(100, "Finished Preparing Structure Set for Targets!");
                 ProvideUIUpdate($"Run time: {GetElapsedTime()} (mm:ss)");
                 return false;
             }
@@ -97,7 +97,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ProvideUIUpdate(100 * ++counter / calcItems);
 
             //verify brain and spine structures are present
-            if (!StructureTuningHelper.DoesStructureExistInSS("brain", selectedSS, true) || !StructureTuningHelper.DoesStructureExistInSS(new List<string> { "spinal_cord", "spinalcord" }, selectedSS, true))
+            if (!StructureTuningHelper.DoesStructureExistInSS("brain", selectedSS, true) || !StructureTuningHelper.DoesStructureExistInSS("spinalcord", selectedSS, true))
             {
                 ProvideUIUpdate("Missing brain and/or spine structures! Please add and try again!", true);
                 return true;

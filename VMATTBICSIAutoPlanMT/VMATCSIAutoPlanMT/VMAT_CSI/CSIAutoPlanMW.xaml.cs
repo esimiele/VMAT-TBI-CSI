@@ -399,7 +399,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 foreach (string itr in prelimTargets.Select(x => x.Item2))
                 {
                     //needs to be present AND contoured
-                    if (!selectedSS.Structures.Any(x => string.Equals(x.Id, itr) && !x.IsEmpty))
+                    if (!StructureTuningHelper.DoesStructureExistInSS(itr, selectedSS, true))
                     {
                         missingPrelimTargets.Add(itr);
                     }
@@ -411,7 +411,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 foreach(Tuple<string,double,string> itr in selectedTemplate.GetTargets())
                 {
-                    if(selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), itr.Item1.ToLower()) && x.ApprovalHistory.First().ApprovalStatus == StructureApprovalStatus.Approved))
+                    if(selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), itr.Item1.ToLower()) && 
+                                                 !x.IsEmpty &&
+                                                 x.ApprovalHistory.First().ApprovalStatus == StructureApprovalStatus.Approved))
                     {
                         approvedTargets.Add(selectedSS.Structures.First(x => string.Equals(x.Id.ToLower(), itr.Item1.ToLower()) && x.ApprovalHistory.First().ApprovalStatus == StructureApprovalStatus.Approved).Id);
                     }
@@ -419,23 +421,38 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
 
             targetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
-            if (!approvedTargets.Any() && missingPrelimTargets.Any())
+            if (approvedTargets.Any())
             {
-                AddPrelimTargetVolumes(prelimTargets, PrelimTargetGenerationSP);
-                PrelimTargetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
-            }
-            else
-            {
+                //targets are present and approved
                 PrelimTargetsTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
                 setTargetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             }
+            else if (missingPrelimTargets.Any() || CheckIfBrainSpinalCordAreHighRes())
+            {
+                AddPrelimTargetVolumes(prelimTargets, PrelimTargetGenerationSP);
+                PrelimTargetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed; 
+            }
+        }
+
+        private bool CheckIfBrainSpinalCordAreHighRes()
+        {
+            bool isHighResOrMissing = true;
+            if(StructureTuningHelper.DoesStructureExistInSS("Brain", selectedSS, true) && 
+               StructureTuningHelper.DoesStructureExistInSS("spinalcord", selectedSS, true))
+            {
+                if(!StructureTuningHelper.GetStructureFromId("Brain", selectedSS).IsHighResolution &&
+                   !StructureTuningHelper.GetStructureFromId("SpinalCord", selectedSS).IsHighResolution)
+                {
+                    isHighResOrMissing = false;
+                }
+            }
+            return isHighResOrMissing;
         }
 
         private void CreatePrelimTargetsInfo_Click(object sender, RoutedEventArgs e)
         {
             StringBuilder message = new StringBuilder();
-            message.AppendLine("This will generate the preliminary targets that will be sent to the physician for review and modification. Included targets:");
-            foreach(string itr in prelimTargets.Select(x => x.Item2)) message.AppendLine(itr);
+            message.AppendLine("This tab will prepare the structure set for contouring of the final targets that will be used for planning. Specifically, it will ensure the brain and spinal cord are default resolution.");
             MessageBox.Show(message.ToString());
         }
 
@@ -443,7 +460,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if (selectedSS == null)
             {
-                log.LogError("Error! Please select a Structure Set before adding tuning structure manipulations!");
+                log.LogError("Error! Please select a Structure Set before adding items to the prepare structure set tab!");
                 return;
             }
             if (theSP.Children.Count == 0) theSP.Children.Add(StructureTuningUIHelper.AddTemplateTSHeader(theSP));
@@ -453,11 +470,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 counter++;
                 theSP.Children.Add(StructureTuningUIHelper.AddTSVolume(theSP,
-                                                       selectedSS,
-                                                       defaultList[i],
-                                                       clearBtnName,
-                                                       counter,
-                                                       new RoutedEventHandler(this.ClearPrelimTargetItem_Click)));
+                                                                       selectedSS,
+                                                                       defaultList[i],
+                                                                       clearBtnName,
+                                                                       counter,
+                                                                       new RoutedEventHandler(this.ClearPrelimTargetItem_Click)));
             }
         }
 
@@ -487,8 +504,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (result) return;
             log.AddedPrelimTargetsStructures = generateTargets.GetAddedTargetStructures();
             PrelimTargetsTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
-            MessageBox.Show("Preliminary targets ready for physician review and modification!");
             isModified = true;
+            MessageBox.Show("Structure set is prepared and ready for physician to contour targets!");
         }
         #endregion
 

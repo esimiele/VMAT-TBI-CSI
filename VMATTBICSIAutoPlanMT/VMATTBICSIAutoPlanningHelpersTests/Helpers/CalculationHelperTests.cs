@@ -1,10 +1,4 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using VMATTBICSIAutoPlanningHelpers.Helpers;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Telerik.JustMock;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
@@ -51,7 +45,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             Assert.AreEqual(expected, CalculationHelper.ComputeAverage(x, y));
         }
 
-        //untested
         [TestMethod()]
         public void ComputeSliceFailTest()
         {
@@ -66,7 +59,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             Assert.AreNotEqual(expected, CalculationHelper.ComputeSlice(z, ss));
         }
         
-        //untested
         [TestMethod()]
         public void ComputeSlicePassTest()
         {

@@ -1999,7 +1999,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                             else if (line.Contains("add jaw position"))
                             {
                                 //parse the default requested number of beams per isocenter
-                                line = ConfigurationHelper.CropLine(line, "{");
                                 (bool fail, VRect<double> parsedPositions) = ConfigurationHelper.ParseJawPositions(line);
                                 if (fail)
                                 {

@@ -89,6 +89,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Helpers\CalculationHelperTests.cs" />
+    <Compile Include="Helpers\ConfigurationHelperTests.cs" />
     <Compile Include="Helpers\ContourHelperTests.cs" />
     <Compile Include="Helpers\ExportFormatTypeHelperTests.cs" />
     <Compile Include="Helpers\IsoNameHelperTests.cs" />
