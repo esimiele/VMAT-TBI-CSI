@@ -11,7 +11,7 @@
 [Dd]ebug/
 [Rr]elease/
 x64/
-# [Bb]in/
+[Bb]in/
 [Oo]bj/
 
 # MSTest test Results
@@ -25,7 +25,7 @@ x64/
 *.meta
 *.obj
 *.pch
-# *.pdb
+*.pdb
 *.pgc
 *.pgd
 *.rsp
@@ -102,11 +102,11 @@ ClientBin/
 *.dbmdl
 *.[Pp]ublish.xml
 
-# *.publishsettings
-# *.lref
-# *.pdb
-# *.exe
-# *.exe.config
+*.publishsettings
+*.lref
+*.pdb
+*.exe
+*.exe.config
 
 
 # RIA/Silverlight projects
