@@ -20,7 +20,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\..\bin\</OutputPath>
+    <OutputPath>..\..\bin\VMAT-TBI-CSI\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -115,26 +115,23 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="Images\StanfordMedicine1.png" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\VMATTBICSIAutoplanningHelpers\VMATTBICSIAutoPlanningHelpers.csproj">
       <Project>{b3fbf7b5-9e18-43ba-b40f-144682a3956e}</Project>
       <Name>VMATTBICSIAutoPlanningHelpers</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\StanfordMedicine1.png" />
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>if NOT EXIST "$(ProjectDir)$(OutDir)\configuration\" (
-mkdir "$(ProjectDir)$(OutDir)\configuration\"
-)
-if NOT EXIST "$(ProjectDir)$(OutDir)templates\TBI\" (
+    <PreBuildEvent>if NOT EXIST "$(ProjectDir)$(OutDir)\templates\TBI\" (
 mkdir "$(ProjectDir)$(OutDir)\templates\TBI\"
-)</PreBuildEvent>
+)
+</PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PostBuildEvent>copy "$(SolutionDir)_configuration\*" "$(ProjectDir)$(OutDir)\configuration"
-copy "$(ProjectDir)Configuration\*" "$(ProjectDir)$(OutDir)\configuration"
+    <PostBuildEvent>copy "$(ProjectDir)Configuration\*" "$(ProjectDir)$(OutDir)\configuration"
 copy "$(ProjectDir)PlanTemplates\*" "$(ProjectDir)$(OutDir)\templates\TBI"</PostBuildEvent>
   </PropertyGroup>
 </Project>

@@ -64,7 +64,7 @@ namespace VMS.TPS
         /// <returns></returns>
         private string AppExePath(string exeName)
         {
-            return FirstExePathIn(Path.GetDirectoryName(GetSourceFilePath()), exeName);
+            return FirstExePathIn(Path.GetDirectoryName(GetSourceFilePath()) + @"\VMAT-TBI-CSI\", exeName);
         }
 
         /// <summary>

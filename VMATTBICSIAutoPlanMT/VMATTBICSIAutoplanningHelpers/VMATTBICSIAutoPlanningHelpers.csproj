@@ -17,7 +17,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>..\..\bin\VMAT-TBI-CSI\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -206,4 +206,19 @@
     </Page>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PreBuildEvent>if NOT EXIST "$(ProjectDir)$(OutDir)\configuration\" (
+mkdir "$(ProjectDir)$(OutDir)\configuration\"
+)
+if NOT EXIST "$(ProjectDir)$(OutDir)\logs\" (
+mkdir "$(ProjectDir)$(OutDir)\logs\"
+)
+if NOT EXIST "$(ProjectDir)$(OutDir)\documentation\" (
+mkdir "$(ProjectDir)$(OutDir)\documentation\"
+)</PreBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PostBuildEvent>copy "$(SolutionDir)_configuration\*" "$(ProjectDir)$(OutDir)\configuration"
+copy "$(SolutionDir)_documentation\*" "$(ProjectDir)$(OutDir)\documentation"</PostBuildEvent>
+  </PropertyGroup>
 </Project>

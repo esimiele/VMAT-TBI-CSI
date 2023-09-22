@@ -41,9 +41,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         bool contourOverlap = true;
         string contourFieldOverlapMargin = "1.0";
         //point this to the directory holding the documentation files
-        string documentationPath = @"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\Research\VMAT_TBI\documentation\";
+        string documentationPath = "";
         //log file path
-        string logPath = @"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\Research\VMAT-TBI-CSI\log_files\";
+        string logPath = "";
         //treatment units and associated photon beam energies
         List<string> linacs = new List<string> { "LA16", "LA17" };
         List<string> beamEnergies = new List<string> { "6X", "10X" };
@@ -134,7 +134,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 ss = args.ElementAt(1);
             }
 
-            logPath = ConfigurationHelper.ReadLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
+            AssignDefaultLogAndDocPaths();
+            string tmpLogPath = ConfigurationHelper.ReadLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
+            if (!string.IsNullOrEmpty(tmpLogPath)) logPath = tmpLogPath;
+            
             log = new Logger(logPath, PlanType.VMAT_TBI, mrn);
             LoadDefaultConfigurationFiles();
             if (app != null)
@@ -166,6 +169,12 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             DisplayConfigurationParameters();
             targetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             return false;
+        }
+
+        private void AssignDefaultLogAndDocPaths()
+        {
+            logPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\logs\\";
+            documentationPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\documentation\\";
         }
 
         private void LoadDefaultConfigurationFiles()
@@ -227,14 +236,14 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         private void HelpButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!File.Exists(documentationPath + "VMAT_TBI_guide.pdf")) MessageBox.Show("VMAT_TBI_guide PDF file does not exist!");
-            else Process.Start(documentationPath + "VMAT_TBI_guide.pdf");
+            if (!File.Exists(documentationPath + "VMAT-TBI_PrepScript_Guide.pdf")) MessageBox.Show("VMAT-TBI_PrepScript_Guide PDF file does not exist!");
+            else Process.Start(documentationPath + "VMAT-TBI_PrepScript_Guide.pdf");
         }
 
         private void QuickStart_Click(object sender, RoutedEventArgs e)
         {
-            if (!File.Exists(documentationPath + "TBI_plugIn_quickStart_guide.pdf")) MessageBox.Show("TBI_plugIn_quickStart_guide PDF file does not exist!");
-            else Process.Start(documentationPath + "TBI_plugIn_quickStart_guide.pdf");
+            if (!File.Exists(documentationPath + "VMAT-TBI_PrepScript_QuickStartGuide.pdf")) MessageBox.Show("VMAT-TBI_PrepScript_QuickStartGuide PDF file does not exist!");
+            else Process.Start(documentationPath + "VMAT-TBI_PrepScript_QuickStartGuide.pdf");
         }
 
         private void TargetMarginInfo_Click(object sender, RoutedEventArgs e)
@@ -1934,9 +1943,12 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                                 }
                                 else if (parameter == "documentation path")
                                 {
-                                    string path = ConfigurationHelper.VerifyPathIntegrity(value);
-                                    if (!string.IsNullOrEmpty(path)) documentationPath = path;
-                                    else log.LogError($"Warning! {value} does NOT exist!");
+                                    if(!string.IsNullOrEmpty(value))
+                                    {
+                                        string path = ConfigurationHelper.VerifyPathIntegrity(value);
+                                        if (!string.IsNullOrEmpty(path)) documentationPath = path;
+                                        else log.LogError($"Warning! {value} does NOT exist!");
+                                    }
                                 }
                                 else if (parameter == "close progress windows on finish")
                                 {
