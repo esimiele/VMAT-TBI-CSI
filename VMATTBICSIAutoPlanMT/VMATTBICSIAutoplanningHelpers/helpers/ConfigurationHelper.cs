@@ -40,7 +40,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                                 string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
                                 if (parameter == "log file path")
                                 {
-                                    logPath = VerifyPathIntegrity(value);
+                                    if(!string.IsNullOrEmpty(value)) logPath = VerifyPathIntegrity(value);
                                 }
                             }
                         }

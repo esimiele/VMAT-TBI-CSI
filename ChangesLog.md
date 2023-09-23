@@ -1,6 +1,12 @@
 # VMAT TBI and CSI autoplanning code
 
 ## updates
+update 9/23/23
+### general
+- fix for documentation buttons (targeting wrong pdf files)
+- changed structure of binaries per suggestion of crcrewso
+- minor change to build events
+
 update 4/14/23
 ### general
 - Major refactoring of code to simplify and improve efficiency

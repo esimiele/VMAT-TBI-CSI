@@ -20,7 +20,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\..\bin\</OutputPath>
+    <OutputPath>..\..\bin\VMAT-TBI-CSI\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -177,25 +177,21 @@
     <Resource Include="AutoPlan.ico" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="Images\StanfordMedicine1.png" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\VMATTBICSIAutoplanningHelpers\VMATTBICSIAutoPlanningHelpers.csproj">
       <Project>{b3fbf7b5-9e18-43ba-b40f-144682a3956e}</Project>
       <Name>VMATTBICSIAutoPlanningHelpers</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Images\StanfordMedicine1.png" />
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy "$(SolutionDir)_configuration\*" "$(ProjectDir)$(OutDir)\configuration"
-copy "$(ProjectDir)Configuration\*" "$(ProjectDir)$(OutDir)\configuration"
+    <PostBuildEvent>copy "$(ProjectDir)Configuration\*" "$(ProjectDir)$(OutDir)\configuration"
 copy "$(ProjectDir)PlanTemplates\*" "$(ProjectDir)$(OutDir)\templates\CSI"</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
-    <PreBuildEvent>if NOT EXIST "$(ProjectDir)$(OutDir)\configuration\" (
-mkdir "$(ProjectDir)$(OutDir)\configuration\"
-)
-if NOT EXIST "$(ProjectDir)$(OutDir)templates\CSI\" (
+    <PreBuildEvent>if NOT EXIST "$(ProjectDir)$(OutDir)\templates\CSI\" (
 mkdir "$(ProjectDir)$(OutDir)\templates\CSI\"
 )</PreBuildEvent>
   </PropertyGroup>

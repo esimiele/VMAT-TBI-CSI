@@ -21,6 +21,7 @@ using System.Reflection;
 using System.Text;
 using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
 using VMATTBICSIAutoPlanningHelpers.Logging;
+using System.Diagnostics;
 
 namespace VMATTBICSIOptLoopMT
 {
@@ -29,7 +30,7 @@ namespace VMATTBICSIOptLoopMT
         //configuration file
         string configFile = "";
         //point this to the directory holding the documentation files
-        string documentationPath = @"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\Research\VMAT_TBI\documentation\";
+        string documentationPath;
         //default number of optimizations to perform
         string defautlNumOpt = "3";
         //default plan normaliBzation (i.e., PTV100% = 90%) 
@@ -43,7 +44,7 @@ namespace VMATTBICSIOptLoopMT
         //is demo
         bool demo = false;
         //log file directory
-        string logFilePath = @"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\Research\VMAT_TBI\log_files";
+        string logFilePath;
         //decision threshold
         double threshold = 0.15;
         //lower dose limit
@@ -106,10 +107,9 @@ namespace VMATTBICSIOptLoopMT
             try { app = VMS.TPS.Common.Model.API.Application.CreateApplication(); }
             catch (Exception e) { MessageBox.Show($"Warning! Could not generate Aria application instance because: {e.Message}"); }
 
-            if (File.Exists(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini"))
-            {
-                logFilePath = ConfigurationHelper.ReadLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
-            }
+            AssignDefaultLogAndDocPaths();
+            string tmpLogPath = ConfigurationHelper.ReadLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
+            if (!string.IsNullOrEmpty(tmpLogPath)) logFilePath = tmpLogPath;
 
             PlanTemplates = new ObservableCollection<AutoPlanTemplateBase>() { };
             DataContext = this;
@@ -125,15 +125,23 @@ namespace VMATTBICSIOptLoopMT
             return false;
         }
 
+        private void AssignDefaultLogAndDocPaths()
+        {
+            logFilePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\logs\\";
+            documentationPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\documentation\\";
+        }
+
         #region help and info buttons
         private void Help_Click(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Process.Start(documentationPath + "VMAT_TBI_guide.pdf");
+            if (!File.Exists(documentationPath + "VMAT-TBI-CSI_OptLoop_Guide.pdf")) MessageBox.Show("VMAT-TBI-CSI_OptLoop_Guide PDF file does not exist!");
+            else Process.Start(documentationPath + "VMAT-TBI-CSI_OptLoop_Guide.pdf");
         }
 
         private void QuickStart_Click(object sender, RoutedEventArgs e)
         {
-            System.Diagnostics.Process.Start(documentationPath + "TBI_executable_quickStart_guide.pdf");
+            if (!File.Exists(documentationPath + "VMAT-TBI-CSI_OptLoop_QuickStartGuide.pdf")) MessageBox.Show("VMAT-TBI-CSI_OptLoop_QuickStartGuide PDF file does not exist!");
+            else Process.Start(documentationPath + "VMAT-TBI-CSI_OptLoop_QuickStartGuide.pdf");
         }
 
         private void targetNormInfo_Click(object sender, RoutedEventArgs e)
@@ -812,8 +820,11 @@ namespace VMATTBICSIOptLoopMT
                                 }
                                 else if (parameter == "documentation path")
                                 {
-                                    documentationPath = value;
-                                    if (documentationPath.LastIndexOf("\\") != documentationPath.Length - 1) documentationPath += "\\";
+                                    if (!string.IsNullOrEmpty(value))
+                                    {
+                                        string path = ConfigurationHelper.VerifyPathIntegrity(value);
+                                        if (!string.IsNullOrEmpty(path)) documentationPath = path;
+                                    }
                                 }
                                 else if (parameter == "demo") 
                                 { 
@@ -982,8 +993,11 @@ namespace VMATTBICSIOptLoopMT
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             //be sure to close the patient before closing the application. Not doing so will result in unclosed timestamps in eclipse
-            app.ClosePatient();
-            app.Dispose();
+            if(app != null)
+            {
+                app.ClosePatient();
+                app.Dispose();
+            }
         }
     }
 }
