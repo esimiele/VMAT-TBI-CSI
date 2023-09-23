@@ -44,6 +44,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         string documentationPath = "";
         //log file path
         string logPath = "";
+        //flag to see if user wants to check for potential couch collision (based on stanford experience)
+        bool checkTTCollision = false;
         //treatment units and associated photon beam energies
         List<string> linacs = new List<string> { "LA16", "LA17" };
         List<string> beamEnergies = new List<string> { "6X", "10X" };
@@ -1007,7 +1009,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         }
         #endregion
 
-        #region beam placement
+        #region Beam placement
         private void ContourOverlapInfo_Click(object sender, RoutedEventArgs e)
         {
             MessageBox.Show("Selecting this option will contour the overlap between fields in adjacent isocenters in the VMAT plan and assign the resulting structures as targets in the optimization.");
@@ -1084,18 +1086,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             string chosenLinac = parseSelections.Item1;
             string chosenEnergy = parseSelections.Item2;
             List<List<int>> numBeams = parseSelections.Item3;
-
-            //AP/PA stuff (THIS NEEDS TO GO AFTER THE ABOVE CHECKS!). Ask the user if they want to split the AP/PA isocenters into two plans if there are two AP/PA isocenters
-            //bool singleAPPAplan = true;
-            //if (numIsos - numVMATIsos == 2)
-            //{
-            //    string message = "What should I do with the AP/PA isocenters?" + Environment.NewLine + Environment.NewLine + Environment.NewLine + "Put them in:";
-            //    SelectItemPrompt SIP = new SelectItemPrompt(message, new List<string> { "One plane", "Separate plans"});
-            //    SIP.ShowDialog();
-            //    if (!SIP.GetSelection()) return;
-            //    //get the option the user chose from the combobox
-            //    if (string.Equals(SIP.GetSelectedItem(), "Separate plans")) singleAPPAplan = false;
-            //}
 
             //now that we have a list of plans each with a list of isocenter names, we want to make a new list of plans each with a list of tuples of isocenter names and beams per isocenter
             List<Tuple<string, List<Tuple<string, int>>>> planIsoBeamInfo = new List<Tuple<string, List<Tuple<string, int>>>> { };
@@ -1849,6 +1839,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             configTB.Text += $"Log file path: {logPath}" + Environment.NewLine + Environment.NewLine;
             configTB.Text += $"Close progress windows on finish: {closePWOnFinish}" + Environment.NewLine + Environment.NewLine;
             configTB.Text += "Default parameters:" + Environment.NewLine;
+            configTB.Text += $"Check for potential couch collision: {checkTTCollision}" + Environment.NewLine;
             configTB.Text += $"Contour field ovelap: {contourOverlap}" + Environment.NewLine;
             configTB.Text += $"Contour field overlap margin: {contourFieldOverlapMargin} cm" + Environment.NewLine;
             configTB.Text += "Available linacs:" + Environment.NewLine;
@@ -1982,6 +1973,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                                     }
                                     c.Add(double.Parse(line.Substring(0, line.IndexOf("}"))));
                                     for (int i = 0; i < c.Count(); i++) { if (i < 5) collRot[i] = c.ElementAt(i); }
+                                }
+                                else if (parameter == "check couch collision") 
+                                { 
+                                    if (!string.IsNullOrEmpty(value)) checkTTCollision = bool.Parse(value); 
                                 }
                                 else if (parameter == "use GPU for dose calculation") useGPUdose = value;
                                 else if (parameter == "use GPU for optimization") useGPUoptimization = value;
