@@ -57,6 +57,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         string useGPUoptimization = "false";
         //what MR level should the optimizer restart at following intermediate dose calculation
         string MRrestartLevel = "MR3";
+        //default course ID
+        string courseId = "VMAT TBI";
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         //data members
@@ -115,6 +117,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if(InitializeScript(args)) this.Close();
         }
 
+        #region Initialization
         private void LoadDefaultConfigurationFiles()
         {
             //load script configuration and display the settings
@@ -216,6 +219,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             else log.LogError("Could not open patient!");
         }
+        #endregion
 
         private void HelpButton_Click(object sender, RoutedEventArgs e)
         {
@@ -1426,7 +1430,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                                       contourOverlapMargin,
                                                       closePWOnFinish);
 
-            place.Initialize("VMAT CSI", prescriptions);
+            place.Initialize(courseId, prescriptions);
             bool result = place.Execute();
             log.AppendLogOutput("Plan generation and beam placement output:", place.GetLogOutput());
             if (result) return;
@@ -2220,6 +2224,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             configTB.Text += Environment.NewLine;
 
             configTB.Text += "Default parameters:" + Environment.NewLine;
+            configTB.Text += $"Course Id: {courseId}" + Environment.NewLine;
             configTB.Text += $"Contour field ovelap: {contourOverlap}" + Environment.NewLine;
             configTB.Text += $"Contour field overlap margin: {contourFieldOverlapMargin} cm" + Environment.NewLine;
             configTB.Text += "Available linacs:" + Environment.NewLine;
@@ -2403,6 +2408,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                         if (i < 5) collRot[i] = c.ElementAt(i); 
                                     }
                                 }
+                                else if (parameter == "course Id") courseId = value;
                                 else if (parameter == "use GPU for dose calculation") useGPUdose = value;
                                 else if (parameter == "use GPU for optimization") useGPUoptimization = value;
                                 else if (parameter == "MR level restart") MRrestartLevel = value;

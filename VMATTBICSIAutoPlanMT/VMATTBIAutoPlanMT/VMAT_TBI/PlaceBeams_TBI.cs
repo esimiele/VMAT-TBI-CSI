@@ -34,6 +34,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private int totalNumVMATBeams;
         protected double checkIsoPlacementLimit = 5.0;
         protected bool checkIsoPlacement = false;
+        private bool checkTTCollision = false;
 
         /// <summary>
         /// Constructor
@@ -52,6 +53,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         /// <param name="tgtMargin"></param>
         /// <param name="overlap"></param>
         /// <param name="overlapMargin"></param>
+        /// <param name="TTCollision"></param>
         /// <param name="closePW"></param>
         public PlaceBeams_TBI(StructureSet ss, 
                               List<Tuple<string, List<Tuple<string, int>>>> planInfo, 
@@ -67,6 +69,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                               double tgtMargin, 
                               bool overlap, 
                               double overlapMargin, 
+                              bool TTCollision,
                               bool closePW)
         {
             selectedSS = ss;
@@ -90,6 +93,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //user wants to contour the overlap between fields in adjacent VMAT isocenters
             contourOverlap = overlap;
             contourOverlapMargin = overlapMargin;
+            //check for potential collision between TT and gantry
+            checkTTCollision = TTCollision;
             SetCloseOnFinish(closePW, 3000);
         }
         
@@ -182,12 +187,14 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         /// <param name="supInfTargetMargin"></param>
         /// <param name="maxFieldYExtent"></param>
         /// <param name="minOverlap"></param>
+        /// <param name="offsetY"></param>
         /// <returns></returns>
         private List<Tuple<VVector, string, int>> CalculateVMATIsoPositions(double targetSupExtent, 
                                                                             double targetInfExtent, 
                                                                             double supInfTargetMargin, 
                                                                             double maxFieldYExtent, 
-                                                                            double minOverlap)
+                                                                            double minOverlap,
+                                                                            double offsetY)
         {
             int percentComplete = 0;
             int calcItems = 10;
@@ -200,7 +207,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             {
                 VVector v = new VVector();
                 v.x = userOrigin.x;
-                v.y = userOrigin.y;
+                v.y = userOrigin.y + offsetY;
                 //6-10-2020 EAS, want to count up from matchplane to ensure distance from matchplane is fixed at 190 mm
                 v.z = targetInfExtent + (numVMATIsos - i - 1) * isoSeparation + (maxFieldYExtent / 2 - supInfTargetMargin);
                 //round z position to the nearest integer
@@ -222,12 +229,14 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         /// <param name="maxFieldYExtent"></param>
         /// <param name="minOverlap"></param>
         /// <param name="lastVMATIsoZPosition"></param>
+        /// <param name="offsetY"></param>
         /// <returns></returns>
         private List<Tuple<VVector, string, int>> CalculateAPPAIsoPositions(double targetSupExtent, 
                                                                             double targetInfExtent, 
                                                                             double maxFieldYExtent, 
                                                                             double minOverlap, 
-                                                                            double lastVMATIsoZPosition)
+                                                                            double lastVMATIsoZPosition,
+                                                                            double offsetY)
         {
             int percentComplete = 0;
             int calcItems = 10;
@@ -236,15 +245,15 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             VVector userOrigin = _image.UserOrigin;
             double isoSeparation = CalculateIsocenterSeparation(targetSupExtent, targetInfExtent, maxFieldYExtent, minOverlap, totalNumIsos - numVMATIsos);
 
-            double offset = lastVMATIsoZPosition - targetSupExtent;
+            double offsetZ = lastVMATIsoZPosition - targetSupExtent;
             for (int i = 0; i < (totalNumIsos - numVMATIsos); i++)
             {
                 VVector v = new VVector();
                 v.x = userOrigin.x;
-                v.y = userOrigin.y;
+                v.y = userOrigin.y + offsetY;
                 //5-11-2020 update EAS (the first isocenter immediately inferior to the matchline is now a distance = offset away). This ensures the isocenters immediately inferior and superior to the 
                 //matchline are equidistant from the matchline
-                v.z = targetSupExtent - i * isoSeparation - offset;
+                v.z = targetSupExtent - i * isoSeparation - offsetZ;
 
                 v = RoundIsocenterPositions(v, legsPlan);
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated isocenter position {i + 1}");
@@ -301,21 +310,48 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             double targetSupExtent = target.MeshGeometry.Positions.Max(p => p.Z) - targetMargin;
             double targetInfExtent = target.MeshGeometry.Positions.Min(p => p.Z) + targetMargin;
 
+            double offsetY = 0.0;
+            if (checkTTCollision)
+            {
+                ProvideUIUpdate("Checking for potential couch collision");
+                if (StructureTuningHelper.DoesStructureExistInSS("couchsurface", selectedSS, true))
+                {
+                    double TT = 0;
+                    Structure couchSurface = selectedSS.Structures.FirstOrDefault(x => x.Id.ToLower() == "couchsurface");
+                    TT = (couchSurface.MeshGeometry.Positions.Min(p => p.Y) - userOrigin.y) / 10.0;
+
+                    ProvideUIUpdate("Couch surface structure retrieved");
+                    ProvideUIUpdate($"User origin to Table Top distance: {TT:0.0} cm");
+
+                    // if couch vertical is greater than 17.5 then assign vertical of 17.5 cm
+                    if (TT > 17.5)
+                    {
+                        ProvideUIUpdate($"Couch vertical ({TT:0.0} cm) is > 17.5 cm!");
+                        ProvideUIUpdate($"Overriding Ant-Post iso placement to achieve a couch vertical of 17.5 cm!");
+                        offsetY = (TT - 17.5) * 10;
+                        ProvideUIUpdate($"Required Y position offset = {offsetY / 10.0:0.0} cm");
+                    }
+                }
+                else ProvideUIUpdate("Warning! Couch surface structure not found! Skipping collision check!");
+            }
+            else ProvideUIUpdate($"Couch collision check NOT requested. Skipping");
+
             //matchline is present and not empty
             if (StructureTuningHelper.DoesStructureExistInSS("matchline",selectedSS,true))
             {
                 Structure matchline = StructureTuningHelper.GetStructureFromId("matchline", selectedSS);
-                tmp = CalculateVMATIsoPositions(targetSupExtent, matchline.CenterPoint.z, 10.0, 400.0, 20.0);
+                tmp = CalculateVMATIsoPositions(targetSupExtent, matchline.CenterPoint.z, 10.0, 400.0, 20.0, offsetY);
                 allIsocenters.Add(Tuple.Create(vmatPlan, new List<Tuple<VVector, string, int>>(tmp)));
                 allIsocenters.Add(Tuple.Create(legsPlan, new List<Tuple<VVector, string, int>>(CalculateAPPAIsoPositions(matchline.CenterPoint.z, 
                                                                                                                          targetInfExtent, 
                                                                                                                          400.0, 
                                                                                                                          20.0, 
-                                                                                                                         tmp.Last().Item1.z))));
+                                                                                                                         tmp.Last().Item1.z,
+                                                                                                                         offsetY))));
             }
             else
             {
-                tmp = CalculateVMATIsoPositions(targetSupExtent, targetInfExtent, 10.0, 400.0, 20.0);
+                tmp = CalculateVMATIsoPositions(targetSupExtent, targetInfExtent, 10.0, 400.0, 20.0, offsetY);
                 allIsocenters.Add(Tuple.Create(vmatPlan, new List<Tuple<VVector, string, int>>(tmp)));
             }
 
