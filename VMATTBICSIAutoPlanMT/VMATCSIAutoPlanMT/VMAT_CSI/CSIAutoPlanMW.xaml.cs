@@ -139,9 +139,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
 
             IEData = new ImportExportDataStruct();
-            AssignDefaultLogAndDocPaths();
-            string tmpLogPath = ConfigurationHelper.ReadLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
-            if (!string.IsNullOrEmpty(tmpLogPath)) logPath = tmpLogPath;
+            documentationPath = ConfigurationHelper.GetDefaultDocumentationPath();
+            logPath = ConfigurationHelper.ReadLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
+            //if the log file path in the configuration file is empty, use the default path
+            if (string.IsNullOrEmpty(logPath)) logPath = ConfigurationHelper.GetDefaultLogPath();
             log = new Logger(logPath, PlanType.VMAT_CSI, mrn);
             LoadDefaultConfigurationFiles();
             if (app != null)
@@ -162,12 +163,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             LoadPlanTemplates();
             DisplayConfigurationParameters();
             return false;
-        }
-
-        private void AssignDefaultLogAndDocPaths()
-        {
-            logPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\logs\\";
-            documentationPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\documentation\\";
         }
 
         private bool OpenPatient(string mrn)
