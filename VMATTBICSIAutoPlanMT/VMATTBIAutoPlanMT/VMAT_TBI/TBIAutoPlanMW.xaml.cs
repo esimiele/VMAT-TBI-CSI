@@ -138,10 +138,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 ss = args.ElementAt(1);
             }
 
-            AssignDefaultLogAndDocPaths();
-            string tmpLogPath = ConfigurationHelper.ReadLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
-            if (!string.IsNullOrEmpty(tmpLogPath)) logPath = tmpLogPath;
-            
+            documentationPath = ConfigurationHelper.GetDefaultDocumentationPath();
+            logPath = ConfigurationHelper.ReadLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
+            //if the log file path in the configuration file is empty, use the default path
+            if (string.IsNullOrEmpty(logPath)) logPath = ConfigurationHelper.GetDefaultLogPath();
             log = new Logger(logPath, PlanType.VMAT_TBI, mrn);
             LoadDefaultConfigurationFiles();
             if (app != null)
@@ -173,12 +173,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             DisplayConfigurationParameters();
             targetsTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             return false;
-        }
-
-        private void AssignDefaultLogAndDocPaths()
-        {
-            logPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\logs\\";
-            documentationPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\documentation\\";
         }
 
         private void LoadDefaultConfigurationFiles()

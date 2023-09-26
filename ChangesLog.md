@@ -1,6 +1,10 @@
 # VMAT TBI and CSI autoplanning code
 
 ## updates
+9/25/23
+### general
+- Hot fix for VMAT CSI import logic where the log file path was not being set correctly when the default log file path should be used
+
 ### general
 update 9/24/23
 - Implemented TBI TT collision check

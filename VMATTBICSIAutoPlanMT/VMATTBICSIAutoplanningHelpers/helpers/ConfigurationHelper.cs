@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Windows;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
@@ -11,6 +12,24 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public static class ConfigurationHelper
     {
+        /// <summary>
+        /// Set the default path for the log files (/bin/VMAT-TBI-CSI/logs)
+        /// </summary>
+        /// <returns></returns>
+        public static string GetDefaultLogPath()
+        {
+            return Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\logs\\";
+        }
+
+        /// <summary>
+        /// Set the default path for the documentation files (/bin/VMAT-TBI-CSI/documentation)
+        /// </summary>
+        /// <returns></returns>
+        public static string GetDefaultDocumentationPath()
+        {
+            return Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\documentation\\";
+        }
+
         /// <summary>
         /// Simple helper method to read the requested log file path from the log configuration file. Returns the parse path (empty string if it was unable to parse)
         /// </summary>
