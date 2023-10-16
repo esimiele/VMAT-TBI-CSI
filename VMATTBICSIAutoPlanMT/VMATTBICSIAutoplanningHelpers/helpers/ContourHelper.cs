@@ -26,7 +26,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             if(!string.IsNullOrEmpty(bodyId))
             {
                 Structure body = StructureTuningHelper.GetStructureFromId(bodyId, selectedSS);
-                if (body != null)
+                if (!ReferenceEquals(body, null))
                 {
                     if (marginInCm >= -5.0 && marginInCm <= 5.0) theStructure.SegmentVolume = theStructure.SegmentVolume.And(body.SegmentVolume.Margin(marginInCm * 10));
                     else
@@ -61,7 +61,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             StringBuilder sb = new StringBuilder();
             bool fail = false;
             //margin is in cm
-            if (structureToCrop != null && baseStructure != null)
+            if (!ReferenceEquals(structureToCrop, null) && !ReferenceEquals(baseStructure, null))
             {
                 if (marginInCm >= -5.0 && marginInCm <= 5.0) structureToCrop.SegmentVolume = structureToCrop.SegmentVolume.Sub(baseStructure.SegmentVolume.Margin(marginInCm * 10));
                 else 
@@ -90,7 +90,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             StringBuilder sb = new StringBuilder();
             bool fail = false;
             //margin is in cm
-            if (target != null && normal != null)
+            if (!ReferenceEquals(target,null) && !ReferenceEquals(normal,null))
             {
                 if (marginInCm >= -5.0 && marginInCm <= 5.0) normal.SegmentVolume = target.SegmentVolume.And(normal.SegmentVolume.Margin(marginInCm * 10));
                 else
@@ -119,7 +119,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             StringBuilder sb = new StringBuilder();
             bool fail = false;
             //margin is in cm
-            if (baseStructure != null && structureToUnion != null)
+            if (!ReferenceEquals(baseStructure, null) && !ReferenceEquals(structureToUnion,null))
             {
                 if (marginInCm >= -5.0 && marginInCm <= 5.0) structureToUnion.SegmentVolume = baseStructure.SegmentVolume.Or(structureToUnion.SegmentVolume.Margin(marginInCm * 10));
                 else
@@ -148,7 +148,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             bool fail = false;
             foreach(Structure itr in structuresToCombine)
             {
-                if (itr != null && structureToUnion != null)
+                if (!ReferenceEquals(itr, null) && !ReferenceEquals(structureToUnion, null))
                 {
                     structureToUnion.SegmentVolume = itr.SegmentVolume.Or(structureToUnion.SegmentVolume.Margin(0.0));
                 }
@@ -202,7 +202,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             StringBuilder sb = new StringBuilder();
             bool fail = false;
             Structure baseStructure = StructureTuningHelper.GetStructureFromId(baseStructureId, selectedSS);
-            if (baseStructure != null)
+            if (!ReferenceEquals(baseStructure,null))
             {
                 if (marginInCm >= -5.0 && marginInCm <= 5.0) PRVStructure.SegmentVolume = baseStructure.SegmentVolume.Margin(marginInCm * 10);
                 else
@@ -255,7 +255,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             StringBuilder sb = new StringBuilder();
             bool fail = false;
             //margin is in cm
-            if (target != null && normal != null)
+            if (!ReferenceEquals(target, null) && !ReferenceEquals(normal,null))
             {
                 if (marginInCm >= -5.0 && marginInCm <= 5.0)
                 {
