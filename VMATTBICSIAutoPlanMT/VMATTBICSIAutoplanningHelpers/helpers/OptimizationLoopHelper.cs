@@ -42,7 +42,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         public static (bool, double) CheckPlanHotspot(ExternalPlanSetup plan, double threshold)
         {
             double dmax = plan.Dose.DoseMax3D.Dose / plan.TotalDose.Dose;
-            if (plan.IsDoseValid && dmax > threshold) return (true, dmax);
+            if (dmax > threshold) return (true, dmax);
             return (false, dmax);
         }
 

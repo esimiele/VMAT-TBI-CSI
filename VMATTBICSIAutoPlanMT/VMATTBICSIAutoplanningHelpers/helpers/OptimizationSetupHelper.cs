@@ -226,7 +226,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="selectedTemplate"></param>
         /// <param name="planTargets"></param>
         /// <returns></returns>
-        private static List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> CreateOptimizationConstraintList(object selectedTemplate, List<Tuple<string,string>> planTargets)
+        public static List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> CreateOptimizationConstraintList(object selectedTemplate, List<Tuple<string,string>> planTargets)
         {
             List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> list = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
             //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose

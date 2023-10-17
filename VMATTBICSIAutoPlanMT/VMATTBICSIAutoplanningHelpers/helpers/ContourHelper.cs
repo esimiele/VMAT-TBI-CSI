@@ -305,16 +305,16 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="target"></param>
         /// <param name="v"></param>
         /// <returns></returns>
-        public static (double, StringBuilder) GetMaxLatProjectionDistance(Structure target, VVector v)
+        public static (double, StringBuilder) GetMaxLatProjectionDistance(Structure target, VVector isoPos)
         {
             StringBuilder sb = new StringBuilder();
             double maxDimension = 0;
             Point3DCollection pts = target.MeshGeometry.Positions;
-            if (Math.Abs(pts.Max(p => p.X) - v.x) > maxDimension) maxDimension = Math.Abs(pts.Max(p => p.X) - v.x);
-            if (Math.Abs(pts.Min(p => p.X) - v.x) > maxDimension) maxDimension = Math.Abs(pts.Min(p => p.X) - v.x);
-            if (Math.Abs(pts.Max(p => p.Y) - v.y) > maxDimension) maxDimension = Math.Abs(pts.Max(p => p.Y) - v.y);
-            if (Math.Abs(pts.Min(p => p.Y) - v.y) > maxDimension) maxDimension = Math.Abs(pts.Min(p => p.Y) - v.y);
-            sb.AppendLine($"Iso position: ({v.x:0.0}, {v.y:0.0}, {v.z:0.0}) mm");
+            if (Math.Abs(pts.Max(p => p.X) - isoPos.x) > maxDimension) maxDimension = Math.Abs(pts.Max(p => p.X) - isoPos.x);
+            if (Math.Abs(pts.Min(p => p.X) - isoPos.x) > maxDimension) maxDimension = Math.Abs(pts.Min(p => p.X) - isoPos.x);
+            if (Math.Abs(pts.Max(p => p.Y) - isoPos.y) > maxDimension) maxDimension = Math.Abs(pts.Max(p => p.Y) - isoPos.y);
+            if (Math.Abs(pts.Min(p => p.Y) - isoPos.y) > maxDimension) maxDimension = Math.Abs(pts.Min(p => p.Y) - isoPos.y);
+            sb.AppendLine($"Iso position: ({isoPos.x:0.0}, {isoPos.y:0.0}, {isoPos.z:0.0}) mm");
             sb.AppendLine($"Max lateral dimension: {maxDimension:0.0} mm");
             return (maxDimension, sb);
         }
@@ -325,15 +325,15 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="boundingBox"></param>
         /// <param name="v"></param>
         /// <returns></returns>
-        public static (double, StringBuilder) GetMaxLatProjectionDistance(VVector[] boundingBox, VVector v)
+        public static (double, StringBuilder) GetMaxLatProjectionDistance(VVector[] boundingBox, VVector isoPos)
         {
             StringBuilder sb = new StringBuilder();
             double maxDimension = 0;
-            if (Math.Abs(boundingBox.Max(p => p.x) - v.x) > maxDimension) maxDimension = Math.Abs(boundingBox.Max(p => p.x) - v.x);
-            if (Math.Abs(boundingBox.Min(p => p.x) - v.x) > maxDimension) maxDimension = Math.Abs(boundingBox.Min(p => p.x) - v.x);
-            if (Math.Abs(boundingBox.Max(p => p.y) - v.y) > maxDimension) maxDimension = Math.Abs(boundingBox.Max(p => p.y) - v.y);
-            if (Math.Abs(boundingBox.Min(p => p.y) - v.y) > maxDimension) maxDimension = Math.Abs(boundingBox.Min(p => p.y) - v.y);
-            sb.AppendLine($"Iso position: ({v.x:0.0}, {v.y:0.0}, {v.z:0.0}) mm");
+            if (Math.Abs(boundingBox.Max(p => p.x) - isoPos.x) > maxDimension) maxDimension = Math.Abs(boundingBox.Max(p => p.x) - isoPos.x);
+            if (Math.Abs(boundingBox.Min(p => p.x) - isoPos.x) > maxDimension) maxDimension = Math.Abs(boundingBox.Min(p => p.x) - isoPos.x);
+            if (Math.Abs(boundingBox.Max(p => p.y) - isoPos.y) > maxDimension) maxDimension = Math.Abs(boundingBox.Max(p => p.y) - isoPos.y);
+            if (Math.Abs(boundingBox.Min(p => p.y) - isoPos.y) > maxDimension) maxDimension = Math.Abs(boundingBox.Min(p => p.y) - isoPos.y);
+            sb.AppendLine($"Iso position: ({isoPos.x:0.0}, {isoPos.y:0.0}, {isoPos.z:0.0}) mm");
             sb.AppendLine($"Max lateral dimension: {maxDimension:0.0} mm");
             return (maxDimension, sb);
         }

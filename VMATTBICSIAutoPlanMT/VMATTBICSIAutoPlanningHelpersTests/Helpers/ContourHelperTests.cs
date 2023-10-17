@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Telerik.JustMock;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
+using System.Windows.Media.Media3D;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
 {
@@ -102,7 +103,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             //radius in mm
             double radius = 100.0 + addedMargin;
             VVector[] result = new VVector[36];
-            for(int i = 0; i < 36; i++)
+            for (int i = 0; i < 36; i++)
             {
                 result[i] = new VVector(radius * Math.Cos(i * 10), radius * Math.Sin(i * 10), 0.0);
             }
@@ -118,16 +119,135 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             VVector[] outputpts = ContourHelper.GenerateContourPoints(testpts, margin);
             //50 micron tolorerance due to rounding errors between the setup and test methods (tolerance doesn't need to be super tight for this method)
             double tolerance = 0.05;
-            List<bool> expected = new List<bool> { };
-            List<bool> result = new List<bool> { };
-            for(int i = 0; i < expectedpts.Count(); i++)
+            for (int i = 0; i < expectedpts.Count(); i++)
             {
-                expected.Add(true);
-                result.Add(CalculationHelper.AreEqual(expectedpts[i].x, outputpts[i].x, tolerance) && CalculationHelper.AreEqual(expectedpts[i].y, outputpts[i].y, tolerance));
+                Assert.AreEqual(expectedpts[i].x, outputpts[i].x, tolerance);
+                Assert.AreEqual(expectedpts[i].y, outputpts[i].y, tolerance);
                 //Console.WriteLine($"({expectedpts[i].x}, {expectedpts[i].y}) | ({outputpts[i].x}, {outputpts[i].y})");
                 //Console.WriteLine($"{CalculationHelper.AreEqual(expectedpts[i].x, outputpts[i].x, tolerance)}");
             }
-            CollectionAssert.AreEqual(expected, result);
+        }
+
+        public (Structure, VVector) MatLaxProjectionDistanceTestSetupStructure()
+        {
+            VVector iso = new VVector(0, 0, 0);
+            Structure target = Mock.Create<Structure>();
+            Mock.Arrange(() => target.Id).Returns("test");
+            MeshGeometry3D geo = new MeshGeometry3D();
+            //retangular grid from (20,10) to (-20,-10) with points every 5 mm in y and 10 mm in x
+            geo.Positions = new Point3DCollection
+            {
+                new Point3D(20,10,0),
+                new Point3D(20,5,0),
+                new Point3D(20,-5,0),
+                new Point3D(20,-10,0),
+                new Point3D(10,10,0),
+                new Point3D(10,5,0),
+                new Point3D(10,-5,0),
+                new Point3D(10,-10,0),
+                new Point3D(0,10,0),
+                new Point3D(0,5,0),
+                new Point3D(0,-5,0),
+                new Point3D(0,-10,0),
+                new Point3D(-10,10,0),
+                new Point3D(-10,5,0),
+                new Point3D(-10,-5,0),
+                new Point3D(-10,-10,0),
+                new Point3D(-20,10,0),
+                new Point3D(-20,5,0),
+                new Point3D(-20,-5,0),
+                new Point3D(-20,-10,0)
+            };
+            Mock.Arrange(() => target.MeshGeometry).Returns(geo);
+            return (target, iso);
+        }
+
+        public (VVector[], VVector) MatLaxProjectionDistanceTestSetupVVector()
+        {
+            VVector iso = new VVector(0, 0, 0);
+            //retangular grid from (20,10) to (-20,-10) with points every 5 mm in y and 10 mm in x
+            VVector[] positions = new VVector[]
+            {
+                new VVector(20,10,0),
+                new VVector(20,5,0),
+                new VVector(20,-5,0),
+                new VVector(20,-10,0),
+                new VVector(10,10,0),
+                new VVector(10,5,0),
+                new VVector(10,-5,0),
+                new VVector(10,-10,0),
+                new VVector(0,10,0),
+                new VVector(0,5,0),
+                new VVector(0,-5,0),
+                new VVector(0,-10,0),
+                new VVector(-10,10,0),
+                new VVector(-10,5,0),
+                new VVector(-10,-5,0),
+                new VVector(-10,-10,0),
+                new VVector(-20,10,0),
+                new VVector(-20,5,0),
+                new VVector(-20,-5,0),
+                new VVector(-20,-10,0)
+            };
+            return (positions, iso);
+        }
+
+        [TestMethod()]
+        public void GetMaxLatProjectionDistanceTestStructure()
+        {
+            (Structure target, VVector isoPos) = MatLaxProjectionDistanceTestSetupStructure();
+            double expectedDistance = 20.0;
+            StringBuilder expectedMessage = new StringBuilder();
+            expectedMessage.AppendLine($"Iso position: ({isoPos.x:0.0}, {isoPos.y:0.0}, {isoPos.z:0.0}) mm");
+            expectedMessage.AppendLine($"Max lateral dimension: {expectedDistance:0.0} mm");
+
+            (double resultDistance, StringBuilder resultMessage) = ContourHelper.GetMaxLatProjectionDistance(target, isoPos);
+
+            Assert.AreEqual(expectedDistance, resultDistance);
+            Assert.AreEqual(expectedMessage.ToString(), resultMessage.ToString());
+        }
+
+        [TestMethod()]
+        public void GetMaxLatProjectionDistanceTestVVector()
+        {
+            (VVector[] positions, VVector isoPos) = MatLaxProjectionDistanceTestSetupVVector();
+            double expectedDistance = 20.0;
+            StringBuilder expectedMessage = new StringBuilder();
+            expectedMessage.AppendLine($"Iso position: ({isoPos.x:0.0}, {isoPos.y:0.0}, {isoPos.z:0.0}) mm");
+            expectedMessage.AppendLine($"Max lateral dimension: {expectedDistance:0.0} mm");
+
+            (double resultDistance, StringBuilder resultMessage) = ContourHelper.GetMaxLatProjectionDistance(positions, isoPos);
+
+            Assert.AreEqual(expectedDistance, resultDistance);
+            Assert.AreEqual(expectedMessage.ToString(), resultMessage.ToString());
+        }
+
+        [TestMethod()]
+        public void GetLateralBoundingBoxForStructureTest()
+        {
+            (Structure target, VVector isoPos) = MatLaxProjectionDistanceTestSetupStructure();
+            VVector[] expectedPts = new VVector[]
+            {
+                new VVector(20,10,0),
+                new VVector(20,0,0),
+                new VVector(20,-10,0),
+                new VVector(0,-10,0),
+                new VVector(-20,-10,0),
+                new VVector(-20,0,0),
+                new VVector(-20,10,0),
+                new VVector(0,10,0),
+            };
+            StringBuilder expectedMessage = new StringBuilder();
+            expectedMessage.AppendLine($"Lateral bounding box for structure: test");
+            expectedMessage.AppendLine($"Added margin: {0.0} cm");
+            expectedMessage.AppendLine($" xMax: {expectedPts.Max(p => p.x)}");
+            expectedMessage.AppendLine($" xMin: {expectedPts.Min(p => p.x)}");
+            expectedMessage.AppendLine($" yMax: {expectedPts.Max(p => p.y)}");
+            expectedMessage.AppendLine($" yMin: {expectedPts.Min(p => p.y)}");
+
+            (VVector[] resultPts, StringBuilder resultMessage) = ContourHelper.GetLateralBoundingBoxForStructure(target, 0.0);
+            CollectionAssert.AreEqual(expectedPts, resultPts);
+            Assert.AreEqual(expectedMessage.ToString(), resultMessage.ToString());
         }
     }
 }
