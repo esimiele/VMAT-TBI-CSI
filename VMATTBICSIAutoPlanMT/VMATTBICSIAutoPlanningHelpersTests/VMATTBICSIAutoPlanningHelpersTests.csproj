@@ -100,6 +100,7 @@
     <Compile Include="Helpers\IsoNameHelperTests.cs" />
     <Compile Include="Helpers\OptimizationLoopHelperTests.cs" />
     <Compile Include="Helpers\OptimizationSetupHelperTests.cs" />
+    <Compile Include="Helpers\PlanObjectiveHelperTests.cs" />
     <Compile Include="Helpers\TargetsHelperTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

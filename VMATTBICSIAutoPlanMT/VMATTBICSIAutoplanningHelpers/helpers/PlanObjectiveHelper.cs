@@ -17,8 +17,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="tsTargets"></param>
         /// <returns></returns>
         public static List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> ConstructPlanObjectives(List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> obj,
-                                                                                                                              StructureSet selectedSS,
-                                                                                                                              List<Tuple<string,string>> tsTargets)
+                                                                                                                                    StructureSet selectedSS,
+                                                                                                                                    List<Tuple<string,string>> tsTargets)
         {
             List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> tmp = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> { };
             if (selectedSS != null)
