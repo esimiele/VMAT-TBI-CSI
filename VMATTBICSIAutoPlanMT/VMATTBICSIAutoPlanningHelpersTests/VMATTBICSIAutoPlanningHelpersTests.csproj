@@ -96,12 +96,16 @@
     <Compile Include="Helpers\CalculationHelperTests.cs" />
     <Compile Include="Helpers\ConfigurationHelperTests.cs" />
     <Compile Include="Helpers\ContourHelperTests.cs" />
+    <Compile Include="Helpers\CSITestBeamBuilder.cs" />
     <Compile Include="Helpers\ExportFormatTypeHelperTests.cs" />
     <Compile Include="Helpers\IsoNameHelperTests.cs" />
     <Compile Include="Helpers\OptimizationLoopHelperTests.cs" />
     <Compile Include="Helpers\OptimizationSetupHelperTests.cs" />
     <Compile Include="Helpers\PlanObjectiveHelperTests.cs" />
+    <Compile Include="Helpers\PlanPrepHelperTests.cs" />
+    <Compile Include="Helpers\StructureTuningHelperTests.cs" />
     <Compile Include="Helpers\TargetsHelperTests.cs" />
+    <Compile Include="Helpers\TBITestBeamBuilder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

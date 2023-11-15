@@ -23,13 +23,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             int numVMATIsos = isoPositions.Count;
             int numIsos = numVMATIsos;
 
-            if (appaPlan != null)
+            if (!ReferenceEquals(appaPlan,null))
             {
                 isoPositions.AddRange(ExtractIsoPositions(appaPlan));
                 numIsos = isoPositions.Count;
             }
             List<string> isoNames = new List<string>(IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos));
-            if (appaPlan != null) isoNames.AddRange(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos));
+            if (!ReferenceEquals(appaPlan,null)) isoNames.AddRange(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos));
 
             //vector to hold the x,y,z shifts from CT ref and the shifts between each adjacent iso for each axis (LR, AntPost, SupInf)
             (List<Tuple<double, double, double>> shiftsfromBBs, List<Tuple<double, double, double>> shiftsBetweenIsos) = CalculateShifts(isoPositions);
@@ -40,7 +40,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             if (StructureTuningHelper.DoesStructureExistInSS("couchsurface", vmatPlan.StructureSet, true))
             {
                 Structure couchSurface = StructureTuningHelper.GetStructureFromId("couchsurface", vmatPlan.StructureSet);
-                TT = (vmatPlan.Beams.First(x => !x.IsSetupField).IsocenterPosition.y- couchSurface.MeshGeometry.Positions.Min(p => p.Y)) / 10;
+                TT = (vmatPlan.Beams.First(x => !x.IsSetupField).IsocenterPosition.y - couchSurface.MeshGeometry.Positions.Min(p => p.Y)) / 10;
             }
 
             sb.Append(BuildTBIShiftNote(TT, isoNames, shiftsBetweenIsos, numVMATIsos, numIsos));
@@ -181,6 +181,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             {
                 VVector v = b.IsocenterPosition;
                 v = plan.StructureSet.Image.DicomToUser(v, plan);
+
                 if (!isoPositions.Any(k => CalculationHelper.AreEqual(k.Item3, v.z)))
                 {
                     isoPositions.Add(Tuple.Create(v.x, v.y, v.z));
