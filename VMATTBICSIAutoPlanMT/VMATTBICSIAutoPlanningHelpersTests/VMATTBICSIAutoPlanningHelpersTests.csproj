@@ -106,6 +106,7 @@
     <Compile Include="Helpers\StructureTuningHelperTests.cs" />
     <Compile Include="Helpers\TargetsHelperTests.cs" />
     <Compile Include="Helpers\TBITestBeamBuilder.cs" />
+    <Compile Include="Helpers\TSManipulationTypeHelperTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

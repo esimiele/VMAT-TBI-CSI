@@ -20,7 +20,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         {
             foreach (Tuple<string, TSManipulationType, double> s in templateManipulationList)
             {
-                if (s.Item1.ToLower() == "ovaries" || s.Item1.ToLower() == "testes")
+                if (string.Equals(s.Item1.ToLower(), "ovaries") || string.Equals(s.Item1.ToLower(), "testes"))
                 {
                     if ((sex == "Female" && s.Item1.ToLower() == "ovaries") || (sex == "Male" && s.Item1.ToLower() == "testes"))
                     {
@@ -47,7 +47,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             {
                 Structure RStruct = RStructs.FirstOrDefault(x => x.Id.Substring(0, x.Id.Length - 2) == itr.Id.Substring(0, itr.Id.Length - 2));
                 string newName = AddProperEndingToName(itr.Id.Substring(0, itr.Id.Length - 2).ToLower());
-                if (RStruct != null && !selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(),newName.ToLower()) && !x.IsEmpty))
+                if (!ReferenceEquals(RStruct,null) && !selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(),newName.ToLower()) && !x.IsEmpty))
                 {
                     structuresToUnion.Add(new Tuple<Structure, Structure, string>(itr, RStruct, newName));
                 }
