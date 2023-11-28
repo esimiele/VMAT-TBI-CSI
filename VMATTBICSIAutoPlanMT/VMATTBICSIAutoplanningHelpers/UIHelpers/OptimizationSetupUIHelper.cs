@@ -21,7 +21,6 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <returns></returns>
         public static List<Tuple<string, OptimizationObjectiveType, double, double, int>> ReadConstraintsFromPlan(ExternalPlanSetup plan)
         {
-            //grab the optimization constraints in the existing VMAT TBI plan and display them to the user
             List<Tuple<string, OptimizationObjectiveType, double, double, int>> defaultList = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
             foreach (OptimizationObjective itr in plan.OptimizationSetup.Objectives)
             {
@@ -107,13 +106,9 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// </summary>
         /// <param name="plan"></param>
         /// <returns></returns>
-        public static bool RemoveOptimizationConstraintsFromPLan(ExternalPlanSetup plan)
+        public static void RemoveOptimizationConstraintsFromPLan(ExternalPlanSetup plan)
         {
-            if (plan.OptimizationSetup.Objectives.Count() > 0)
-            {
-                foreach (OptimizationObjective o in plan.OptimizationSetup.Objectives) plan.OptimizationSetup.RemoveObjective(o);
-            }
-            return false;
+            foreach (OptimizationObjective o in plan.OptimizationSetup.Objectives) plan.OptimizationSetup.RemoveObjective(o);
         }
 
         /// <summary>

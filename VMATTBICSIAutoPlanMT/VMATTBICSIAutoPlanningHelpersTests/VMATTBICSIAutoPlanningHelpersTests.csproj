@@ -101,6 +101,7 @@
     <Compile Include="Helpers\IsoNameHelperTests.cs" />
     <Compile Include="Helpers\OptimizationLoopHelperTests.cs" />
     <Compile Include="Helpers\OptimizationSetupHelperTests.cs" />
+    <Compile Include="Helpers\OptimizationTypeHelperTests.cs" />
     <Compile Include="Helpers\PlanObjectiveHelperTests.cs" />
     <Compile Include="Helpers\PlanPrepHelperTests.cs" />
     <Compile Include="Helpers\StructureTuningHelperTests.cs" />
@@ -108,6 +109,7 @@
     <Compile Include="Helpers\TBITestBeamBuilder.cs" />
     <Compile Include="Helpers\TSManipulationTypeHelperTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="UIHelpers\OptimizationSetupUIHelperTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

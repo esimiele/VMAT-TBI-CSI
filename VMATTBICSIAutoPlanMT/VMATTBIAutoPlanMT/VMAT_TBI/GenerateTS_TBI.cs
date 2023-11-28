@@ -417,7 +417,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 else ProvideUIUpdate("No TS manipulations requested!");
                 if (string.Equals(itr.Item2.ToLower(), "ptv_body"))
                 {
-                    //ts_ptv_vmat needs to be handled AFTER ts manipulation because ptv_body itsself needs to be cropped from all the relevant structures
+                    //ts_ptv_vmat needs to be handled AFTER ts manipulation because ptv_body itself needs to be cropped from all the relevant structures
                     (bool fail, string tsPTVVMATId) = GenerateTSPTVBodyTarget(target, "TS_PTV_VMAT");
                     if (fail) return true;
                     tmpTSTargetList.Add(new Tuple<string, string>(itr.Item2, tsPTVVMATId));
