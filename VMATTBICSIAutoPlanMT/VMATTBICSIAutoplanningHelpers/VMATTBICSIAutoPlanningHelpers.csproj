@@ -123,6 +123,7 @@
     <Compile Include="Helpers\CalculationHelper.cs" />
     <Compile Include="Helpers\ExportFormatTypeHelper.cs" />
     <Compile Include="Helpers\FlashTypeHelper.cs" />
+    <Compile Include="Helpers\ImportListenerHelper.cs" />
     <Compile Include="Helpers\PlanObjectiveHelper.cs" />
     <Compile Include="Helpers\PlanPrepHelper.cs" />
     <Compile Include="Helpers\RingHelper.cs" />
@@ -162,6 +163,7 @@
     <Compile Include="UIHelpers\ExportCTUIHelper.cs" />
     <Compile Include="UIHelpers\GeneralUIHelper.cs" />
     <Compile Include="Helpers\IsoNameHelper.cs" />
+    <Compile Include="UIHelpers\ImportSSUIHelper.cs" />
     <Compile Include="UIHelpers\OptimizationLoopUIHelper.cs" />
     <Compile Include="UIHelpers\OptimizationSetupUIHelper.cs" />
     <Compile Include="UIHelpers\PlanPrepUIHelper.cs" />

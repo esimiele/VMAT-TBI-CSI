@@ -12,8 +12,6 @@ using EvilDICOM.Network.Enums;
 using SimpleProgressWindow;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Structs;
-using System.Diagnostics;
-using System.Reflection;
 using System.Threading;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
@@ -530,17 +528,16 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <returns></returns>
         private bool LaunchListener()
         {
-            string path = Assembly.GetExecutingAssembly().Location;
-            ProvideUIUpdate(path);
-            string listener = Directory.GetFiles(Path.GetDirectoryName(path), "*.exe").FirstOrDefault(x => x.Contains("ImportListener"));
-            if (!string.IsNullOrEmpty(listener))
+            ProvideUIUpdate("Launching import listener...");
+            string listener = ImportListenerHelper.GetImportListenerExePath();
+            ProvideUIUpdate($"Listener path: {listener}");
+
+            if (ImportListenerHelper.LaunchImportListener(listener, _data, _patID))
             {
-                ProvideUIUpdate(listener);
-                ProcessStartInfo p = new ProcessStartInfo(listener);
-                p.Arguments = $"{_data.ImportLocation} {_patID} {_data.AriaDBDaemon.Item1} {_data.AriaDBDaemon.Item2} {_data.AriaDBDaemon.Item3} {_data.LocalDaemon.Item1} {_data.LocalDaemon.Item3} {3600.0}";
-                Process.Start(p);
+                ProvideUIUpdate("Error! Could not find listener executable or could not launch executable! Exiting!");
+                return true;
             }
-            else ProvideUIUpdate("Error! Could not find listener executable! Exiting!");
+            else ProvideUIUpdate("Import listener launched succesfully!");
             return false;
         }
         #endregion

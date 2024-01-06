@@ -59,6 +59,7 @@
     {
         General,
         ExportCT,
+        ImportSS,
         GeneratePrelimTargets,
         PlanPrep,
         AutoConvertHighToDefaultRes

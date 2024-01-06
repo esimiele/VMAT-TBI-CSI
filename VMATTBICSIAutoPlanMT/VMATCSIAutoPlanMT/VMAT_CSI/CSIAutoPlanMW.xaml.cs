@@ -355,7 +355,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         }
 
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        #region ExportCT
+        #region Export/import
         private void PopulateExportCTTab()
         {
             VMS.TPS.Common.Model.API.Image theImage = null;
@@ -386,6 +386,29 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 this.Close();
             }
             else log.LogError("No image selected for export!");
+        }
+
+        private void ImportSSInfo_Click(object sender, RoutedEventArgs e)
+        {
+            ImportSSUIHelper.PrintImportSSInfo();
+        }
+
+        private void ImportSS_Click(object sender, RoutedEventArgs e)
+        {
+            if (app == null || pi == null || IEData == null) return;
+            //CT image stack panel, patient structure set list, patient id, image export path, image export format
+            if (Directory.GetFiles(IEData.ImportLocation, "*.dcm").Any())
+            {
+                string listener = ImportListenerHelper.GetImportListenerExePath();
+                if (ImportListenerHelper.LaunchImportListener(listener, IEData, pi.Id))
+                {
+                    log.LogError("Error! Could not find listener executable or could not launch executable! Exiting!");
+                    return;
+                }
+                log.OpType = ScriptOperationType.ImportSS;
+                this.Close();
+            }
+            else log.LogError($"No Structure set files found in import location: {IEData.ImportLocation}");
         }
         #endregion
 
