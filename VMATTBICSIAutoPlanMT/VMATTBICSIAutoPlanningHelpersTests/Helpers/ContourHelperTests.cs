@@ -9,6 +9,8 @@ using Telerik.JustMock;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using System.Windows.Media.Media3D;
+using Telerik.JustMock.AutoMock.Ninject.Planning.Targets;
+using VMATTBICSIAutoPlanningHelpers.Delegates;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
 {
@@ -248,6 +250,80 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             (VVector[] resultPts, StringBuilder resultMessage) = ContourHelper.GetLateralBoundingBoxForStructure(target, 0.0);
             CollectionAssert.AreEqual(expectedPts, resultPts);
             Assert.AreEqual(expectedMessage.ToString(), resultMessage.ToString());
+        }
+
+        [TestMethod()]
+        public void GetAllContourPointsTest()
+        {
+            Structure structure1 = Mock.Create<Structure>();
+            Mock.Arrange(() => structure1.Id).Returns("test1");
+            VVector[][][] expectedPoints = new VVector[5][][];
+            for(int i = 0; i < 5; i++)
+            {
+                VVector[][] contours = new VVector[][]
+                {
+                    new VVector[]
+                    {
+                        new VVector(20 - 5*i,10,i),
+                        new VVector(20 - 5*i,5,i),
+                        new VVector(20 - 5*i,-5,i),
+                        new VVector(20 - 5*i,-10,i),
+                    }
+                };
+                Mock.Arrange(() => structure1.GetContoursOnImagePlane(i)).Returns(contours);
+                expectedPoints[i] = contours;
+            };
+
+            MeshGeometry3D geo = new MeshGeometry3D();
+            //retangular grid from (20,10) to (-20,-10) with points every 5 mm in y and 10 mm in x
+            geo.Positions = new Point3DCollection
+            {
+                new Point3D(20,10,0),
+                new Point3D(20,5,0),
+                new Point3D(20,-5,0),
+                new Point3D(20,-10,0),
+                new Point3D(10,10,1),
+                new Point3D(10,5,1),
+                new Point3D(10,-5,1),
+                new Point3D(10,-10,1),
+                new Point3D(0,10,2),
+                new Point3D(0,5,2),
+                new Point3D(0,-5,2),
+                new Point3D(0,-10,2),
+                new Point3D(-10,10,3),
+                new Point3D(-10,5,3),
+                new Point3D(-10,-5,3),
+                new Point3D(-10,-10,3),
+                new Point3D(-20,10,4),
+                new Point3D(-20,5,4),
+                new Point3D(-20,-5,4),
+                new Point3D(-20,-10,4)
+            };
+            Mock.Arrange(() => structure1.MeshGeometry).Returns(geo);
+
+            StructureSet ss = Mock.Create<StructureSet>();
+            Image img = Mock.Create<Image>();
+            Mock.Arrange(() => img.Origin).Returns(new VVector(0, 0, 0));
+            Mock.Arrange(() => img.ZRes).Returns(1);
+            Mock.Arrange(() => ss.Image).Returns(img);
+
+            int startSlice = CalculationHelper.ComputeSlice(structure1.MeshGeometry.Positions.Min(p => p.Z), ss);
+            int stopSlice = CalculationHelper.ComputeSlice(structure1.MeshGeometry.Positions.Max(p => p.Z), ss);
+
+            Assert.AreEqual(startSlice, 0);
+            Assert.AreEqual(stopSlice, 4);
+
+            ProvideUIUpdateDelegate PUUD = ProvideUIUpdate;
+            VVector[][][] resultPoints = ContourHelper.GetAllContourPoints(structure1, startSlice, stopSlice, PUUD);
+            for(int i = 0; i < 5; i++)
+            {
+                CollectionAssert.AreEqual(expectedPoints[i], resultPoints[i]);
+            }
+        }
+
+        public void ProvideUIUpdate(int progress, string msg = "", bool fail = false)
+        {
+            Console.WriteLine(progress);
         }
     }
 }
