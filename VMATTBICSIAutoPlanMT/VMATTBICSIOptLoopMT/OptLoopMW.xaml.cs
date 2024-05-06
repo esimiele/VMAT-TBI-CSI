@@ -22,6 +22,7 @@ using System.Text;
 using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
 using VMATTBICSIAutoPlanningHelpers.Logging;
 using System.Diagnostics;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 
 namespace VMATTBICSIOptLoopMT
 {
@@ -55,7 +56,7 @@ namespace VMATTBICSIOptLoopMT
 
         //structure, constraint type, dose, relative volume, dose value presentation (unless otherwise specified)
         //note, if the constraint type is "mean", the relative volume value is ignored
-        public List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> planObj = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> { };
+        public List<PlanObjective> planObj = new List<PlanObjective> { };
 
         //ID, lower dose level, upper dose level, volume (%), priority, list of criteria that must be met to add the requested cooler/heater structures
         public List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>{ };
@@ -363,11 +364,11 @@ namespace VMATTBICSIOptLoopMT
             {
                 ClearAllItemsFromUIList(planObjectiveParamSP);
                 //requires a structure set to properly function
-                planObj = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>>(PlanObjectiveHelper.ConstructPlanObjectives(selectedTemplate.GetPlanObjectives(), selectedSS, tsTargets));
+                planObj = new List<PlanObjective>(PlanObjectiveHelper.ConstructPlanObjectives(selectedTemplate.PlanObjectives, selectedSS, tsTargets));
                 PopulatePlanObjectivesTab(planObjectiveParamSP);
                 planDoseInfo = new List<Tuple<string, string, double, string>>(selectedTemplate.GetRequestedPlanDoseInfo());
                 requestedTSstructures = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>(selectedTemplate.GetRequestedOptTSStructures());
-                if (selectedTemplate.GetPlanObjectives().Any())
+                if (selectedTemplate.PlanObjectives.Any())
                 {
                     planObjectiveHeader.Background = System.Windows.Media.Brushes.ForestGreen;
                     optimizationSetupHeader.Background = System.Windows.Media.Brushes.PaleVioletRed;
@@ -376,7 +377,7 @@ namespace VMATTBICSIOptLoopMT
             else
             {
                 templateList.UnselectAll();
-                planObj = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>>();
+                planObj = new List<PlanObjective>();
                 ClearAllItemsFromUIList(planObjectiveParamSP);
                 planDoseInfo = new List<Tuple<string, string, double, string>>();
                 requestedTSstructures = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>();
@@ -533,7 +534,7 @@ namespace VMATTBICSIOptLoopMT
             theSP.Children.Add(PlanObjectiveSetupUIHelper.GetObjHeader(theSP.Width));
         }
 
-        private void AddListItemsToUI<T>(List<Tuple<string, OptimizationObjectiveType, double, double, T>> defaultList, string planId, StackPanel theSP)
+        private void AddListItemsToUI<T>(List<T> defaultList, string planId, StackPanel theSP)
         {
             int counter = 0;
             string clearBtnNamePrefix;
@@ -881,7 +882,7 @@ namespace VMATTBICSIOptLoopMT
             {
                 MessageBox.Show($"Error could not load plan template file because: {e.Message}!");
             }
-            selectedTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.GetTemplateName(), selectedTemplateName));
+            selectedTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.TemplateName, selectedTemplateName));
             if (selectedTemplate != null) templateList.SelectedItem = selectedTemplate;
         }
 

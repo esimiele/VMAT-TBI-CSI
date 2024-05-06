@@ -6,6 +6,7 @@ using System.Linq;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 using System.Windows.Media.Media3D;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
@@ -24,7 +25,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="boostNumFxText"></param>
         /// <param name="boostRxText"></param>
         /// <returns></returns>
-        public static (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) BuildPrescriptionList(List<Tuple<string, double, string>> targets, 
+        public static (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) BuildPrescriptionList(List<PlanTarget> targets, 
                                                                                                                  string initDosePerFxText, 
                                                                                                                  string initNumFxText, 
                                                                                                                  string initRxText, 
@@ -71,7 +72,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     if (!double.TryParse(initDosePerFxText, out dosePerFx) || !int.TryParse(initNumFxText, out numFractions))
                     {
                         sb.AppendLine("Error! Could not parse dose per fx or number of fractions for initial plan! Exiting");
-                        targets = new List<Tuple<string, double, string>> { };
                         prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
                         return (prescriptions, sb);
                     }
@@ -81,7 +81,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     if (!double.TryParse(boostDosePerFxText, out dosePerFx) || !int.TryParse(boostNumFxText, out numFractions))
                     {
                         sb.AppendLine("Error! Could not parse dose per fx or number of fractions for boost plan! Exiting");
-                        targets = new List<Tuple<string, double, string>> { };
                         prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
                         return (prescriptions, sb);
                     }
@@ -147,22 +146,22 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="targets"></param>
         /// <returns></returns>
-        private static List<Tuple<string,List<Tuple<string,double>>>> GetPlanTargetRxDoseList(List<Tuple<string, double, string>> targets)
+        private static List<Tuple<string,List<Tuple<string,double>>>> GetPlanTargetRxDoseList(List<PlanTarget> targets)
         {
             List<Tuple<string, List<Tuple<string, double>>>> theList = new List<Tuple<string, List<Tuple<string, double>>>> { };
             List<Tuple<string, double>> tgtListTmp = new List<Tuple<string, double>> { };
-            List<Tuple<string, double, string>> tmpList = targets.OrderBy(x => x.Item2).ToList();
-            string tmpPlanId = tmpList.First().Item3;
-            foreach(Tuple<string, double, string> itr in tmpList)
+            List<PlanTarget> tmpList = targets.OrderBy(x => x.TargetRxDose).ToList();
+            string tmpPlanId = tmpList.First().PlanId;
+            foreach(PlanTarget itr in tmpList)
             {
-                if(!string.Equals(itr.Item3, tmpPlanId))
+                if(!string.Equals(itr.PlanId, tmpPlanId))
                 {
                     //new plan --> add the plan id and list of targets for that plan to the list
                     theList.Add(Tuple.Create(tmpPlanId, new List<Tuple<string, double>>(tgtListTmp)));
-                    tmpPlanId = itr.Item3;
+                    tmpPlanId = itr.PlanId;
                     tgtListTmp = new List<Tuple<string, double>> { };
                 }
-                tgtListTmp.Add(Tuple.Create(itr.Item1, itr.Item2));
+                tgtListTmp.Add(Tuple.Create(itr.TargetId, itr.TargetRxDose));
             }
             theList.Add(Tuple.Create(tmpPlanId, new List<Tuple<string, double>>(tgtListTmp)));
             return theList;
@@ -260,25 +259,25 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="targetList"></param>
         /// <returns></returns>
-        public static List<Tuple<string, string>> GetHighestRxPlanTargetList(List<Tuple<string, double, string>> targetList)
+        public static List<Tuple<string, string>> GetHighestRxPlanTargetList(List<PlanTarget> targetList)
         {
             //for this list, item1 is the target, item 2 is the cumulated dose (cGy), and item 3 is the plan
             List<Tuple<string, string>> plansTargets = new List<Tuple<string, string>> { };
             if (!targetList.Any()) return plansTargets;
             //sort by cumulative dose to targets
-            List<Tuple<string, double, string>> tmpList = targetList.OrderBy(x => x.Item2).ToList();
-            string tmpTarget = tmpList.First().Item1;
-            string tmpPlan = tmpList.First().Item3;
+            List<PlanTarget> tmpList = targetList.OrderBy(x => x.TargetRxDose).ToList();
+            string tmpTarget = tmpList.First().TargetId;
+            string tmpPlan = tmpList.First().PlanId;
 
-            foreach (Tuple<string, double, string> itr in tmpList)
+            foreach (PlanTarget itr in tmpList)
             {
                 //check if this is the start of a new plan, if so, the the previous target was the highest dose target in the previous plan
-                if (!string.Equals(itr.Item3, tmpPlan))
+                if (!string.Equals(itr.PlanId, tmpPlan))
                 {
                     plansTargets.Add(Tuple.Create<string, string>(tmpPlan, tmpTarget));
-                    tmpPlan = itr.Item3;
+                    tmpPlan = itr.PlanId;
                 }
-                tmpTarget = itr.Item1;
+                tmpTarget = itr.TargetId;
             }
             plansTargets.Add(Tuple.Create<string, string>(tmpPlan, tmpTarget));
             return plansTargets;

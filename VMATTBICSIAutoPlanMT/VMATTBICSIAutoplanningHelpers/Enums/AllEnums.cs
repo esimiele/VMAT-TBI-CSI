@@ -64,4 +64,13 @@
         PlanPrep,
         AutoConvertHighToDefaultRes
     };
+
+    public enum Units
+    {
+        cGy,
+        Gy,
+        cc,
+        Percent,
+        None
+    };
 }

@@ -38,7 +38,7 @@ namespace VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses
         /// <param name="count"></param>
         public TBIAutoPlanTemplate(int count)
         {
-            templateName = String.Format("Template: {0}", count);
+            TemplateName = String.Format("Template: {0}", count);
         }
 
         /// <summary>
@@ -47,7 +47,7 @@ namespace VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses
         /// <param name="name"></param>
         public TBIAutoPlanTemplate(string name)
         {
-            templateName = name;
+            TemplateName = name;
         }
     }
 }

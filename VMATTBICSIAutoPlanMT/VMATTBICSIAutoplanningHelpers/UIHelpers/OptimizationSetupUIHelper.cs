@@ -7,7 +7,9 @@ using System.Windows.Controls;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.Enums;
+using VMATTBICSIAutoPlanningHelpers.EnumTypeHelpers;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
@@ -227,7 +229,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <returns></returns>
         public static StackPanel AddOptVolume<T>(StackPanel theSP, 
                                                  StructureSet selectedSS, 
-                                                 Tuple<string, OptimizationObjectiveType, double, double, T> listItem, 
+                                                 T listItem, 
                                                  string clearBtnNamePrefix, 
                                                  int clearOptBtnCounter, 
                                                  RoutedEventHandler e, 
@@ -251,7 +253,26 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 Margin = new Thickness(5, 5, 0, 0)
             };
 
-            opt_str_cb.Items.Add("--select--");
+            string structure;
+            OptimizationObjectiveType constraintType;
+            double volume, dose;
+
+            if (listItem.GetType() == typeof(PlanObjective))
+            {
+                structure = (listItem as PlanObjective).StructureId;
+                constraintType = (listItem as PlanObjective).ConstraintType;
+                dose = (listItem as PlanObjective).QueryDose;
+                volume = (listItem as PlanObjective).QueryVolume;
+            }
+            else
+            {
+                structure = "";
+                constraintType = OptimizationObjectiveType.None;
+                volume = dose = 0.0;
+            }
+
+
+                opt_str_cb.Items.Add("--select--");
             //this code is used to fix the issue where the structure exists in the structure set, but doesn't populate as the default option in the combo box.
             int index = 0;
             //j is initially 1 because we already added "--select--" to the combo box 
@@ -259,12 +280,12 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             foreach (Structure s in selectedSS.Structures)
             {
                 opt_str_cb.Items.Add(s.Id);
-                if (s.Id.ToLower() == listItem.Item1.ToLower()) index = j;
+                if (s.Id.ToLower() == structure.ToLower()) index = j;
                 j++;
             }
-            if (addStructureEvenIfNotInSS && !selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), listItem.Item1.ToLower())))
+            if (addStructureEvenIfNotInSS && !selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), structure.ToLower())))
             {
-                opt_str_cb.Items.Add(listItem.Item1);
+                opt_str_cb.Items.Add(structure);
                 opt_str_cb.SelectedIndex = opt_str_cb.Items.Count - 1;
             }
             else opt_str_cb.SelectedIndex = index;
@@ -282,7 +303,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             };
             //add the possible optimization objective types to the combo box
             foreach (OptimizationObjectiveType s in Enum.GetValues(typeof(OptimizationObjectiveType))) constraint_cb.Items.Add(s);
-            if ((int)listItem.Item2 <= constraint_cb.Items.Count && listItem.Item2 != OptimizationObjectiveType.None) constraint_cb.SelectedIndex = (int)listItem.Item2;
+            if ((int)constraintType <= constraint_cb.Items.Count && constraintType != OptimizationObjectiveType.None) constraint_cb.SelectedIndex = (int)constraintType;
             else constraint_cb.SelectedIndex = 0;
             constraint_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
             sp.Children.Add(constraint_cb);
@@ -297,7 +318,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top,
                 Margin = new Thickness(5, 5, 0, 0),
-                Text = String.Format("{0:0.#}", listItem.Item4),
+                Text = String.Format("{0:0.#}", volume),
                 TextAlignment = TextAlignment.Center
             };
             sp.Children.Add(vol_tb);
@@ -310,27 +331,12 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top,
                 Margin = new Thickness(5, 5, 0, 0),
-                Text = String.Format("{0:0.#}", listItem.Item3),
+                Text = String.Format("{0:0.#}", dose),
                 TextAlignment = TextAlignment.Center
             };
             sp.Children.Add(dose_tb);
 
-            if(listItem.Item5.GetType() == typeof(int))
-            {
-                TextBox priority_tb = new TextBox
-                {
-                    Name = "priority_tb",
-                    Width = 65,
-                    Height = sp.Height - 5,
-                    HorizontalAlignment = HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Top,
-                    Margin = new Thickness(5, 5, 0, 0),
-                    Text = Convert.ToString(listItem.Item5),
-                    TextAlignment = TextAlignment.Center
-                };
-                sp.Children.Add(priority_tb);
-            }
-            else
+            if(listItem.GetType() == typeof(PlanObjective))
             {
                 TextBox dvPresentation_tb = new TextBox
                 {
@@ -340,10 +346,26 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Top,
                     Margin = new Thickness(5, 5, 0, 0),
-                    Text = Convert.ToString(listItem.Item5) == "Absolute" ? "cGy" : "%",
+                    Text = (listItem as PlanObjective).QueryDoseUnits.ToString(),
                     TextAlignment = TextAlignment.Center
                 };
-                sp.Children.Add(dvPresentation_tb);
+                sp.Children.Add(dvPresentation_tb); 
+            }
+            else
+            {
+                int priority = 0;
+                TextBox priority_tb = new TextBox
+                {
+                    Name = "priority_tb",
+                    Width = 65,
+                    Height = sp.Height - 5,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top,
+                    Margin = new Thickness(5, 5, 0, 0),
+                    Text = Convert.ToString(priority),
+                    TextAlignment = TextAlignment.Center
+                };
+                sp.Children.Add(priority_tb);
             }
 
             Button clearOptStructBtn = new Button

@@ -2,7 +2,7 @@
 using VMS.TPS.Common.Model.Types;
 using OptimizationObjectiveType = VMATTBICSIAutoPlanningHelpers.Enums.OptimizationObjectiveType;
 
-namespace VMATTBICSIAutoPlanningHelpers.Helpers
+namespace VMATTBICSIAutoPlanningHelpers.EnumTypeHelpers
 {
     public static class OptimizationTypeHelper
     {

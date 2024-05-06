@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using VMS.TPS.Common.Model.Types;
 using Telerik.JustMock;
 using VMS.TPS.Common.Model.API;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
 {
@@ -19,15 +20,15 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         public void ConstructPlanObjectivesTest()
         {
             //structure id, objective type, dose (% or cGy), volume (%), dose value presentation
-            List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> testPlanObj = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>>
+            List<PlanObjective> testPlanObj = new List<PlanObjective>
             {
-                Tuple.Create("PTV_Boost", OptimizationObjectiveType.Lower, 100.0, 95.0, DoseValuePresentation.Relative),
-                Tuple.Create("PTV_Boost", OptimizationObjectiveType.Upper, 110.0, 0.0, DoseValuePresentation.Relative),
-                Tuple.Create("PTV_CSI", OptimizationObjectiveType.Lower, 3600.0, 95.0, DoseValuePresentation.Absolute),
-                Tuple.Create("PTV_CSI", OptimizationObjectiveType.Upper, 3750.0, 0.0, DoseValuePresentation.Absolute),
-                Tuple.Create("Brainstem", OptimizationObjectiveType.Upper, 104.0, 0.0, DoseValuePresentation.Relative),
-                Tuple.Create("SpinalCord", OptimizationObjectiveType.Upper, 104.0, 0.0, DoseValuePresentation.Relative),
-                Tuple.Create("OpticNrvs", OptimizationObjectiveType.Upper, 104.0, 0.0, DoseValuePresentation.Relative)
+                new PlanObjective("PTV_Boost", OptimizationObjectiveType.Lower, 100.0, Units.cGy, 95.0, Units.Percent),
+                new PlanObjective("PTV_Boost", OptimizationObjectiveType.Upper, 110.0, Units.cGy, 0.0, Units.Percent),
+                new PlanObjective("PTV_CSI", OptimizationObjectiveType.Lower, 3600.0, Units.cGy, 95.0, Units.Percent),
+                new PlanObjective("PTV_CSI", OptimizationObjectiveType.Upper, 3750.0, Units.cGy, 0.0, Units.Percent),
+                new PlanObjective("Brainstem", OptimizationObjectiveType.Upper, 104.0, Units.cGy, 0.0, Units.Percent),
+                new PlanObjective("SpinalCord", OptimizationObjectiveType.Upper, 104.0, Units.cGy, 0.0, Units.Percent),
+                new PlanObjective("OpticNrvs", OptimizationObjectiveType.Upper, 104.0, Units.cGy, 0.0, Units.Percent)
             };
 
             List<Tuple<string, string>> testTSTargets = new List<Tuple<string, string>>
@@ -49,18 +50,18 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             StructureSet ss = Mock.Create<StructureSet>();
             Mock.Arrange(() => ss.Structures).Returns(new List<Structure> { tsPTVBoost, tsPTVCSI, brainstem, spinalcord, opticNrvs });
 
-            List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> expected = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>>
+            List<PlanObjective> expected = new List<PlanObjective>
             {
-                Tuple.Create("ts_PTV_Boost", OptimizationObjectiveType.Lower, 100.0, 95.0, DoseValuePresentation.Relative),
-                Tuple.Create("ts_PTV_Boost", OptimizationObjectiveType.Upper, 110.0, 0.0, DoseValuePresentation.Relative),
-                Tuple.Create("ts_PTV_CSI", OptimizationObjectiveType.Lower, 3600.0, 95.0, DoseValuePresentation.Absolute),
-                Tuple.Create("ts_PTV_CSI", OptimizationObjectiveType.Upper, 3750.0, 0.0, DoseValuePresentation.Absolute),
-                Tuple.Create("Brainstem", OptimizationObjectiveType.Upper, 104.0, 0.0, DoseValuePresentation.Relative),
-                Tuple.Create("SpinalCord", OptimizationObjectiveType.Upper, 104.0, 0.0, DoseValuePresentation.Relative),
-                Tuple.Create("OpticNrvs", OptimizationObjectiveType.Upper, 104.0, 0.0, DoseValuePresentation.Relative)
+                new PlanObjective("ts_PTV_Boost", OptimizationObjectiveType.Lower, 100.0, Units.cGy, 95.0, Units.Percent),
+                new PlanObjective("ts_PTV_Boost", OptimizationObjectiveType.Upper, 110.0, Units.cGy, 0.0, Units.Percent),
+                new PlanObjective("ts_PTV_CSI", OptimizationObjectiveType.Lower, 3600.0, Units.cGy,95.0, Units.Percent),
+                new PlanObjective("ts_PTV_CSI", OptimizationObjectiveType.Upper, 3750.0, Units.cGy,0.0, Units.Percent),
+                new PlanObjective("Brainstem", OptimizationObjectiveType.Upper, 104.0, Units.cGy,0.0, Units.Percent),
+                new PlanObjective("SpinalCord", OptimizationObjectiveType.Upper, 104.0, Units.cGy,0.0, Units.Percent),
+                new PlanObjective("OpticNrvs", OptimizationObjectiveType.Upper, 104.0, Units.cGy, 0.0, Units.Percent)
             };
 
-            List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> result = PlanObjectiveHelper.ConstructPlanObjectives(testPlanObj, ss, testTSTargets);
+            List<PlanObjective> result = PlanObjectiveHelper.ConstructPlanObjectives(testPlanObj, ss, testTSTargets);
 
             CollectionAssert.AreEqual(expected, result);
         }

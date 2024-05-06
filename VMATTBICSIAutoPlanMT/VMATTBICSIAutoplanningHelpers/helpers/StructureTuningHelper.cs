@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 using VMS.TPS.Common.Model.API;
 using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
 
@@ -16,13 +17,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="template"></param>
         /// <param name="sex"></param>
         /// <returns></returns>
-        public static List<Tuple<string, TSManipulationType, double>> AddTemplateSpecificStructureManipulations(List<Tuple<string, TSManipulationType, double>> templateManipulationList, List<Tuple<string, TSManipulationType, double>> manipulationListToUpdate, string sex)
+        public static List<RequestedTSManipulation> AddTemplateSpecificStructureManipulations(List<RequestedTSManipulation> templateManipulationList, List<RequestedTSManipulation> manipulationListToUpdate, string sex)
         {
-            foreach (Tuple<string, TSManipulationType, double> s in templateManipulationList)
+            foreach (RequestedTSManipulation s in templateManipulationList)
             {
-                if (string.Equals(s.Item1.ToLower(), "ovaries") || string.Equals(s.Item1.ToLower(), "testes"))
+                if (string.Equals(s.StructureId.ToLower(), "ovaries") || string.Equals(s.StructureId.ToLower(), "testes"))
                 {
-                    if ((sex == "Female" && s.Item1.ToLower() == "ovaries") || (sex == "Male" && s.Item1.ToLower() == "testes"))
+                    if ((sex == "Female" && s.StructureId.ToLower() == "ovaries") || (sex == "Male" && s.StructureId.ToLower() == "testes"))
                     {
                         manipulationListToUpdate.Add(s);
                     }

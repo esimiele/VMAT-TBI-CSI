@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 using VMS.TPS.Common.Model.Types;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
@@ -17,26 +18,26 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="oldBstRx"></param>
         /// <param name="newBstRx"></param>
         /// <returns></returns>
-        public static List<Tuple<string, double, double, double>> RescaleRingDosesToNewRx(List<Tuple<string, double, double, double>> existingRings,
-                                                                                          List<Tuple<string, string, int, DoseValue, double>> prescriptions,
-                                                                                          double oldInitRx,
-                                                                                          double newInitRx,
-                                                                                          double oldBstRx,
-                                                                                          double newBstRx)
+        public static List<TSRing> RescaleRingDosesToNewRx(List<TSRing> existingRings,
+                                                           List<Tuple<string, string, int, DoseValue, double>> prescriptions,
+                                                           double oldInitRx,
+                                                           double newInitRx,
+                                                           double oldBstRx,
+                                                           double newBstRx)
         {
-            List<Tuple<string, double, double, double>> scaledRings = new List<Tuple<string, double, double, double>> { };
+            List<TSRing> scaledRings = new List<TSRing> { };
             List<Tuple<string, double>> planIdRx = TargetsHelper.GetPlanIdHighesRxDoseFromPrescriptions(prescriptions);
             bool isInitPlan = true;
 
-            foreach (Tuple<string, double, double, double> itr in existingRings)
+            foreach (TSRing itr in existingRings)
             {
                 //match ring target to prescription target
-                if (prescriptions.Any(x => string.Equals(x.Item2, itr.Item1)))
+                if (prescriptions.Any(x => string.Equals(x.Item2, itr.TargetId)))
                 {
                     if (planIdRx.Count > 1)
                     {
                         //multiple plan entries in planIdRx --> need to determine if this target belongs to the initial plan or boost plan
-                        string planId = prescriptions.FirstOrDefault(x => string.Equals(x.Item2, itr.Item1)).Item1;
+                        string planId = prescriptions.FirstOrDefault(x => string.Equals(x.Item2, itr.TargetId)).Item1;
                         if (string.Equals(planId, planIdRx.Last().Item1))
                         {
                             //plan id for this target matches the last entry in planIdRx --> belongs to boost plan
@@ -56,7 +57,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                         scaleFactor = newBstRx / oldBstRx;
                     }
                     //scale ring dose by ratio of appropriate plan Rx doses
-                    scaledRings.Add(Tuple.Create(itr.Item1, itr.Item2, itr.Item3, itr.Item4 * scaleFactor));
+                    scaledRings.Add(new TSRing(itr.TargetId, itr.MarginFromTargetInCM, itr.RingThicknessInCM, itr.DoseLevel * scaleFactor));
                 }
             }
 

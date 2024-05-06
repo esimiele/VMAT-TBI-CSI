@@ -5,6 +5,8 @@ using System.Linq;
 using System.Reflection;
 using System.Windows;
 using VMATTBICSIAutoPlanningHelpers.Enums;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.EnumTypeHelpers;
 using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
 using VMS.TPS.Common.Model.Types;
 
@@ -95,15 +97,15 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                         if (line.Equals(":begin template case configuration:"))
                         {
                             //preparation
-                            List<Tuple<string, TSManipulationType, double>> TSManipulation_temp = new List<Tuple<string, TSManipulationType, double>> { };
-                            List<Tuple<string, string>> TSstructures_temp = new List<Tuple<string, string>> { };
-                            List<Tuple<string, double, double, double>> createRings_temp = new List<Tuple<string, double, double, double>> { };
+                            List<RequestedTSManipulation> TSManipulation_temp = new List<RequestedTSManipulation> { };
+                            List<RequestedTSStructure> TSstructures_temp = new List<RequestedTSStructure> { };
+                            List<TSRing> createRings_temp = new List<TSRing> { };
                             List<Tuple<string, OptimizationObjectiveType, double, double, int>> initOptConst_temp = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
                             List<Tuple<string, OptimizationObjectiveType, double, double, int>> bstOptConst_temp = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
-                            List<Tuple<string, double, string>> targets_temp = new List<Tuple<string, double, string>> { };
+                            List<PlanTarget> targets_temp = new List<PlanTarget> { };
                             List<string> cropAndContourOverlapStructures_temp = new List<string> { };
                             //optimization loop
-                            List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> planObj_temp = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> { };
+                            List<PlanObjective> planObj_temp = new List<PlanObjective> { };
                             List<Tuple<string, string, double, string>> planDoseInfo_temp = new List<Tuple<string, string, double, string>> { };
                             List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures_temp = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> { };
                             //parse the data specific to the myeloablative case setup
@@ -115,7 +117,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                                     {
                                         string parameter = line.Substring(0, line.IndexOf("="));
                                         string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
-                                        if (parameter == "template name") tempTemplate.SetTemplateName(value);
+                                        if (parameter == "template name") tempTemplate.TemplateName = value;
                                         else if (parameter == "initial dose per fraction")
                                         {
                                             if (double.TryParse(value, out double initDPF)) tempTemplate.SetInitRxDosePerFx(initDPF);
@@ -146,14 +148,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                                 }
                             }
 
-                            if (TSManipulation_temp.Any()) tempTemplate.SetTSManipulations(TSManipulation_temp);
-                            if (createRings_temp.Any()) tempTemplate.SetCreateRings(createRings_temp);
+                            if (TSManipulation_temp.Any()) tempTemplate.TSManipulations = new List<RequestedTSManipulation>(TSManipulation_temp);
+                            if (createRings_temp.Any()) tempTemplate.Rings = new List<TSRing>(createRings_temp);
                             if (cropAndContourOverlapStructures_temp.Any()) tempTemplate.SetCropAndOverlapStructures(cropAndContourOverlapStructures_temp);
-                            if (TSstructures_temp.Any()) tempTemplate.SetCreateTSStructures(TSstructures_temp);
+                            if (TSstructures_temp.Any()) tempTemplate.CreateTSStructures = TSstructures_temp;
                             if (initOptConst_temp.Any()) tempTemplate.SetInitOptimizationConstraints(initOptConst_temp);
                             if (bstOptConst_temp.Any()) tempTemplate.SetBoostOptimizationConstraints(bstOptConst_temp);
-                            if (targets_temp.Any()) tempTemplate.SetTargets(targets_temp);
-                            if (planObj_temp.Any()) tempTemplate.SetPlanObjectives(planObj_temp);
+                            if (targets_temp.Any()) tempTemplate.PlanTargets = new List<PlanTarget>(targets_temp);
+                            if (planObj_temp.Any()) tempTemplate.PlanObjectives = new List<PlanObjective>(planObj_temp);
                             if (requestedTSstructures_temp.Any()) tempTemplate.SetRequestedOptTSStructures(requestedTSstructures_temp);
                             if (planDoseInfo_temp.Any()) tempTemplate.SetRequestedPlanDoseInfo(planDoseInfo_temp);
                         }
@@ -183,12 +185,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                         if (line.Equals(":begin template case configuration:"))
                         {
                             //preparation
-                            List<Tuple<string, TSManipulationType, double>> TSManipulation_temp = new List<Tuple<string, TSManipulationType, double>> { };
-                            List<Tuple<string, string>> TSstructures_temp = new List<Tuple<string, string>> { };
+                            List<RequestedTSManipulation> TSManipulation_temp = new List<RequestedTSManipulation> { };
+                            List<RequestedTSStructure> TSstructures_temp = new List<RequestedTSStructure> { };
                             List<Tuple<string, OptimizationObjectiveType, double, double, int>> initOptConst_temp = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
-                            List<Tuple<string, double, string>> targets_temp = new List<Tuple<string, double, string>> { };
+                            List<PlanTarget> targets_temp = new List<PlanTarget> { };
                             //optimization loop
-                            List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> planObj_temp = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> { };
+                            List<PlanObjective> planObj_temp = new List<PlanObjective> { };
                             List<Tuple<string, string, double, string>> planDoseInfo_temp = new List<Tuple<string, string, double, string>> { };
                             List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures_temp = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> { };
                             //parse the data specific to the myeloablative case setup
@@ -200,7 +202,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                                     {
                                         string parameter = line.Substring(0, line.IndexOf("="));
                                         string value = line.Substring(line.IndexOf("=") + 1, line.Length - line.IndexOf("=") - 1);
-                                        if (parameter == "template name") tempTemplate.SetTemplateName(value);
+                                        if (parameter == "template name") tempTemplate.TemplateName = value;
                                         else if (parameter == "dose per fraction")
                                         {
                                             if (double.TryParse(value, out double initDPF)) tempTemplate.SetInitRxDosePerFx(initDPF);
@@ -220,11 +222,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                                 }
                             }
 
-                            if (TSManipulation_temp.Any()) tempTemplate.SetTSManipulations(TSManipulation_temp);
-                            if (TSstructures_temp.Any()) tempTemplate.SetCreateTSStructures(TSstructures_temp);
+                            if (TSManipulation_temp.Any()) tempTemplate.TSManipulations = new List<RequestedTSManipulation>(TSManipulation_temp);
+                            if (TSstructures_temp.Any()) tempTemplate.CreateTSStructures = TSstructures_temp;
                             if (initOptConst_temp.Any()) tempTemplate.SetInitOptimizationConstraints(initOptConst_temp);
-                            if (targets_temp.Any()) tempTemplate.SetTargets(targets_temp);
-                            if (planObj_temp.Any()) tempTemplate.SetPlanObjectives(planObj_temp);
+                            if (targets_temp.Any()) tempTemplate.PlanTargets = new List<PlanTarget>(targets_temp);
+                            if (planObj_temp.Any()) tempTemplate.PlanObjectives = new List<PlanObjective>(planObj_temp);
                             if (requestedTSstructures_temp.Any()) tempTemplate.SetRequestedOptTSStructures(requestedTSstructures_temp);
                             if (planDoseInfo_temp.Any()) tempTemplate.SetRequestedPlanDoseInfo(planDoseInfo_temp);
                         }
@@ -273,7 +275,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        public static Tuple<string, string> ParseCreateTS(string line)
+        public static RequestedTSStructure ParseCreateTS(string line)
         {
             //known array format --> can take shortcuts in parsing the data
             //structure id, sparing type, added margin in cm (ignored if sparing type is Dmax ~ Rx Dose)
@@ -283,7 +285,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             dicomType = line.Substring(0, line.IndexOf(","));
             line = CropLine(line, ",");
             TSstructure = line.Substring(0, line.IndexOf("}"));
-            return Tuple.Create(dicomType, TSstructure);
+            return new RequestedTSStructure(dicomType, TSstructure);
         }
 
         /// <summary>
@@ -310,7 +312,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        private static Tuple<string, double, double, double> ParseCreateRing(string line)
+        private static TSRing ParseCreateRing(string line)
         {
             string structure;
             double margin;
@@ -324,7 +326,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             thickness = double.Parse(line.Substring(0, line.IndexOf(",")));
             line = CropLine(line, ",");
             dose = double.Parse(line.Substring(0, line.IndexOf("}")));
-            return Tuple.Create(structure, margin, thickness, dose);
+            return new TSRing(structure, margin, thickness, dose);
         }
 
         /// <summary>
@@ -332,7 +334,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        private static Tuple<string, double, string> ParseTargets(string line)
+        private static PlanTarget ParseTargets(string line)
         {
             //known array format --> can take shortcuts in parsing the data
             //structure id, sparing type, added margin in cm (ignored if sparing type is Dmax ~ Rx Dose)
@@ -345,7 +347,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             rx = double.Parse(line.Substring(0, line.IndexOf(",")));
             line = CropLine(line, ",");
             planId = line.Substring(0, line.IndexOf("}"));
-            return Tuple.Create(structure, rx, planId);
+            return new PlanTarget(structure, rx, planId);
         }
 
         /// <summary>
@@ -353,7 +355,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        public static Tuple<string, TSManipulationType, double> ParseTSManipulation(string line)
+        public static RequestedTSManipulation ParseTSManipulation(string line)
         {
             //known array format --> can take shortcuts in parsing the data
             //structure id, sparing type, added margin in cm (ignored if sparing type is Dmax ~ Rx Dose)
@@ -366,7 +368,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             spareType = line.Substring(0, line.IndexOf(","));
             line = CropLine(line, ",");
             val = double.Parse(line.Substring(0, line.IndexOf("}")));
-            return Tuple.Create(structure, TSManipulationTypeHelper.GetTSManipulationType(spareType), val);
+            return new RequestedTSManipulation(structure, TSManipulationTypeHelper.GetTSManipulationType(spareType), val);
         }
 
         /// <summary>
@@ -536,7 +538,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        private static Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation> ParsePlanObjective(string line)
+        private static PlanObjective ParsePlanObjective(string line)
         {
             string structure;
             string constraintType;
@@ -554,7 +556,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             line = CropLine(line, ",");
             if (line.Contains("Relative")) dvp = DoseValuePresentation.Relative;
             else dvp = DoseValuePresentation.Absolute;
-            return Tuple.Create(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), doseVal, volumeVal, dvp);
+            return new PlanObjective(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), doseVal, Units.cGy, volumeVal, Units.Percent);
         }
 
         /// <summary>

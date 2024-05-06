@@ -11,6 +11,7 @@ using VMATTBICSIAutoPlanningHelpers.Helpers;
 using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
 using System.Text;
 using System.Runtime.ExceptionServices;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 
 namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
@@ -27,7 +28,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
         //plan id, structure id, num fx, dose per fx, cumulative dose
         private List<Tuple<string, string, int, DoseValue, double>> prescriptions;
-        private List<Tuple<string, string>> TS_structures;
+        private List<RequestedTSStructure> TS_structures;
         //plan id, list<original target id, ts target id>
         private List<Tuple<string, List<Tuple<string, string>>>> tsTargets = new List<Tuple<string, List<Tuple<string, string>>>> { };
         //plan id, normalization volume
@@ -53,14 +54,14 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         /// <param name="fSt"></param>
         /// <param name="fM"></param>
         /// <param name="closePW"></param>
-        public GenerateTS_TBI(List<Tuple<string, string>> ts, 
-                              List<Tuple<string, TSManipulationType, double>> list, 
+        public GenerateTS_TBI(List<RequestedTSStructure> ts, 
+                              List<RequestedTSManipulation> list, 
                               List<Tuple<string, string, int, DoseValue, double>> presc, 
                               StructureSet ss, double tm, bool flash, Structure fSt, double fM, bool closePW)
         {
             //overloaded constructor for the case where the user wants to include flash in the simulation
-            TS_structures = new List<Tuple<string, string>>(ts);
-            TSManipulationList = new List<Tuple<string, TSManipulationType, double>>(list);
+            TS_structures = new List<RequestedTSStructure>(ts);
+            TSManipulationList = new List<RequestedTSManipulation>(list);
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(presc);
             selectedSS = ss;
             targetMargin = tm;
@@ -314,9 +315,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             int counter = 0;
             int calcItems = TS_structures.Count;
 
-            foreach (Tuple<string, string> itr in TS_structures)
+            foreach (RequestedTSStructure itr in TS_structures)
             {
-                ProvideUIUpdate(100 * ++counter / calcItems, $"Adding {itr.Item2} to the structure set!");
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Adding {itr.StructureId} to the structure set!");
                 AddTSStructures(itr);
             }
 
@@ -408,7 +409,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (TSManipulationList.Any())
                 {
                     //perform all relevant TS manipulations for the specified target
-                    foreach (Tuple<string, TSManipulationType, double> itr1 in TSManipulationList)
+                    foreach (RequestedTSManipulation itr1 in TSManipulationList)
                     {
                         if (ManipulateTuningStructures(itr1, target)) return true;
                         ProvideUIUpdate(100 * ++counter / calcItems);
@@ -684,7 +685,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (GeneratePTVFromBody(ptvBodyFlash)) return true;
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Contoured {ptvBodyFlash.Id} structure from body structure");
 
-            foreach (Tuple<string, TSManipulationType, double> itr in TSManipulationList.Where(x => x.Item2 == TSManipulationType.ContourOverlapWithTarget || x.Item2 == TSManipulationType.CropTargetFromStructure))
+            foreach (RequestedTSManipulation itr in TSManipulationList.Where(x => x.ManipulationType == TSManipulationType.ContourOverlapWithTarget || x.ManipulationType == TSManipulationType.CropTargetFromStructure))
             {
                 ManipulateTuningStructures(itr, ptvBodyFlash);
                 ProvideUIUpdate(100 * ++percentComplete / calcItems);

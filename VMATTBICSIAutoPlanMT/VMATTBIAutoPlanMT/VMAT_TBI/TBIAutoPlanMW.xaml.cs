@@ -10,6 +10,7 @@ using System.IO;
 using System.Diagnostics;
 using Microsoft.Win32;
 using VMATTBICSIAutoPlanningHelpers.Enums;
+using VMATTBICSIAutoPlanningHelpers.EnumTypeHelpers;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using VMATTBICSIAutoPlanningHelpers.UIHelpers;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
@@ -18,6 +19,7 @@ using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
 using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
 using System.Collections.ObjectModel;
 using System.Text;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 
 namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
@@ -85,15 +87,15 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         public int clearOptBtnCounter = 0;
         public int clearTemplateOptBtnCounter = 0;
         //structure id, Rx dose, plan Id
-        List<Tuple<string, double, string>> targets = new List<Tuple<string, double, string>> { };
+        List<PlanTarget> targets = new List<PlanTarget> { };
         //ts target list
         //plan id, list<original target id, ts target id>
         List<Tuple<string, List<Tuple<string, string>>>> tsTargets = new List<Tuple<string, List<Tuple<string, string>>>> { };
         //general tuning structures to be added (if selected for sparing) to all case types
         //default general tuning structures to be added (specified in CSI_plugin_config.ini file)
-        List<Tuple<string, string>> defaultTSStructures = new List<Tuple<string, string>> { };
+        List<RequestedTSStructure> defaultTSStructures = new List<RequestedTSStructure> { };
         //default general tuning structure manipulations to be added (specified in CSI_plugin_config.ini file)
-        List<Tuple<string, TSManipulationType, double>> defaultTSStructureManipulations = new List<Tuple<string, TSManipulationType, double>> { };
+        List<RequestedTSManipulation> defaultTSStructureManipulations = new List<RequestedTSManipulation> { };
         //list to hold the current structure ids in the structure set in addition to the prospective ids after unioning the left and right structures together
         List<string> structureIdsPostUnion = new List<string> { };
         //list of junction structures (i.e., overlap regions between adjacent isocenters)
@@ -288,12 +290,12 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (selectedTemplate == null) return;
             dosePerFxTB.Text = "";
             numFxTB.Text = "";
-            if (selectedTemplate.GetTemplateName() != "--select--")
+            if (selectedTemplate.TemplateName != "--select--")
             {
                 SetPresciptionInfo(selectedTemplate.GetInitialRxDosePerFx(), selectedTemplate.GetInitialRxNumFx());
                 ClearAllCurrentParameters();
                 LoadTemplateDefaults();
-                log.Template = selectedTemplate.GetTemplateName();
+                log.Template = selectedTemplate.TemplateName;
             }
             else
             {
@@ -428,7 +430,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private void AddTarget_Click(object sender, RoutedEventArgs e)
         {
             (ScrollViewer, StackPanel) SVSP = GetSVAndSPTargetsTab(sender);
-            AddTargetVolumes(new List<Tuple<string, double, string>> { Tuple.Create("--select--", 0.0, "--select--") }, SVSP.Item2);
+            AddTargetVolumes(new List<PlanTarget> { new PlanTarget("--select--", 0.0, "--select--") }, SVSP.Item2);
             SVSP.Item1.ScrollToBottom();
         }
 
@@ -439,7 +441,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
                 return;
             }
-            List<Tuple<string, double,string>> targetList = new List<Tuple<string, double, string>>(TargetsUIHelper.AddTargetDefaults((templateList.SelectedItem as TBIAutoPlanTemplate)));
+            List<PlanTarget> targetList = new List<PlanTarget>(TargetsUIHelper.AddTargetDefaults((templateList.SelectedItem as TBIAutoPlanTemplate)));
             ClearAllTargetItems();
             AddTargetVolumes(targetList, targetsSP);
             targetsScroller.ScrollToBottom();
@@ -469,7 +471,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
         }
 
-        private void AddTargetVolumes(List<Tuple<string, double, string>> defaultList, StackPanel theSP)
+        private void AddTargetVolumes(List<PlanTarget> defaultList, StackPanel theSP)
         {
             int counter;
             string clearBtnNamePrefix;
@@ -484,21 +486,19 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 clearBtnNamePrefix = "templateClearTargetBtn";
             }
             if (theSP.Children.Count == 0) AddTargetHeader(theSP);
-            List<string> planIDs = new List<string> { };
             //assumes each target has a unique planID 
-            //TODO: add function to return unique list of planIDs sorted by Rx ascending
-            foreach (Tuple<string, double, string> itr in defaultList) planIDs.Add(itr.Item3);
+            List<string> planIDs = new List<string>(defaultList.Select(x => x.PlanId));
             planIDs.Add("--Add New--");
-            foreach (Tuple<string, double, string> itr in defaultList)
+            foreach (PlanTarget itr in defaultList)
             {
                 counter++;
                 theSP.Children.Add(TargetsUIHelper.AddTargetVolumes(theSP.Width,
-                                                           itr,
-                                                           clearBtnNamePrefix,
-                                                           counter,
-                                                           planIDs,
-                                                           (delegate (object sender, SelectionChangedEventArgs e) { TargetPlanId_SelectionChanged(theSP, sender, e); }),
-                                                           new RoutedEventHandler(this.ClearTargetItem_click)));
+                                                                    itr,
+                                                                    clearBtnNamePrefix,
+                                                                    counter,
+                                                                    planIDs,
+                                                                    (delegate (object sender, SelectionChangedEventArgs e) { TargetPlanId_SelectionChanged(theSP, sender, e); }),
+                                                                    new RoutedEventHandler(this.ClearTargetItem_click)));
             }
         }
 
@@ -553,7 +553,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
 
             //target id, target Rx, plan id
-            (List<Tuple<string, double, string>>, StringBuilder) parsedTargets = TargetsUIHelper.ParseTargets(targetsSP);
+            (List<PlanTarget>, StringBuilder) parsedTargets = TargetsUIHelper.ParseTargets(targetsSP);
             if (!parsedTargets.Item1.Any())
             {
                 log.LogError(parsedTargets.Item2);
@@ -566,7 +566,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 return;
             }
 
-            targets = new List<Tuple<string, double,string>>(parsedTargets.Item1);
+            targets = new List<PlanTarget>(parsedTargets.Item1);
             (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) parsedPrescriptions = TargetsHelper.BuildPrescriptionList(targets,
                                                                                                                                            dosePerFxTB.Text,
                                                                                                                                            numFxTB.Text,
@@ -584,13 +584,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             log.Prescriptions = prescriptions;
         }
 
-        private (bool, StringBuilder) VerifySelectedTargetsIntegrity(List<Tuple<string, double, string>> parsedTargets)
+        private (bool, StringBuilder) VerifySelectedTargetsIntegrity(List<PlanTarget> parsedTargets)
         {
             //verify selected targets are APPROVED
             bool fail = false;
             StringBuilder sb = new StringBuilder();
             //for tbi, we only want to make there is one plan (not configured for sequential boosts)
-            if(parsedTargets.Select(x => x.Item3).Distinct().Count() > 1)
+            if(parsedTargets.Select(x => x.PlanId).Distinct().Count() > 1)
             {
                 sb.AppendLine($"Error! Multiple plan Ids entered! This script is only configured to auto-plan one TBI plan!");
                 fail = true;
@@ -625,17 +625,16 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 theScroller = TSGenerationScroller;
                 theSP = TSGenerationSP;
             }
-            AddTuningStructureVolumes(new List<Tuple<string, string>> { Tuple.Create("--select--", "--select--") }, theSP);
+            AddTuningStructureVolumes(new List<RequestedTSStructure> { new RequestedTSStructure("--select--", "--select--") }, theSP);
             theScroller.ScrollToBottom();
         }
 
         private void AddDefaultTuningStructures_Click(object sender, RoutedEventArgs e)
         {
-            //List<Tuple<string, string>> tmp = new List<Tuple<string, string>>(defaultTSStructures);
-            List<Tuple<string, string>> tmp = new List<Tuple<string, string>>(defaultTSStructures);
+            List<RequestedTSStructure> tmp = new List<RequestedTSStructure>(defaultTSStructures);
             if (templateList.SelectedItem != null)
             {
-                foreach (Tuple<string, string> itr in ((TBIAutoPlanTemplate)templateList.SelectedItem).GetCreateTSStructures()) tmp.Add(itr);
+                foreach (RequestedTSStructure itr in ((TBIAutoPlanTemplate)templateList.SelectedItem).CreateTSStructures) tmp.Add(itr);
             }
             GeneralUIHelper.ClearList(TSGenerationSP);
             //populate the comboboxes
@@ -643,7 +642,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             TSGenerationScroller.ScrollToBottom();
         }
 
-        private void AddTuningStructureVolumes(List<Tuple<string, string>> defaultList, StackPanel theSP)
+        private void AddTuningStructureVolumes(List<RequestedTSStructure> defaultList, StackPanel theSP)
         {
             if (selectedSS == null)
             {
@@ -730,7 +729,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 theSP = structureManipulationSP;
             }
             //populate the comboboxes
-            AddStructureManipulationVolumes(new List<Tuple<string, TSManipulationType, double>> { Tuple.Create("--select--", TSManipulationType.None, 0.0) }, theSP);
+            AddStructureManipulationVolumes(new List<RequestedTSManipulation> { new RequestedTSManipulation("--select--", TSManipulationType.None, 0.0) }, theSP);
             theScroller.ScrollToBottom();
         }
 
@@ -747,11 +746,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 return;
             }
             //copy the sparing structures in the defaultSpareStruct list to a temporary vector
-            List<Tuple<string, TSManipulationType, double>> templateManipulationList = new List<Tuple<string, TSManipulationType, double>>(defaultTSStructureManipulations);
+            List<RequestedTSManipulation> templateManipulationList = new List<RequestedTSManipulation>(defaultTSStructureManipulations);
             //add the case-specific sparing structures to the temporary list
             if (templateList.SelectedItem != null)
             {
-                templateManipulationList = new List<Tuple<string, TSManipulationType, double>>(StructureTuningHelper.AddTemplateSpecificStructureManipulations((templateList.SelectedItem as TBIAutoPlanTemplate).GetTSManipulations(), templateManipulationList, pi.Sex));
+                templateManipulationList = new List<RequestedTSManipulation>(StructureTuningHelper.AddTemplateSpecificStructureManipulations((templateList.SelectedItem as TBIAutoPlanTemplate).TSManipulations, templateManipulationList, pi.Sex));
             }
             if (!templateManipulationList.Any())
             {
@@ -759,15 +758,15 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 return;
             }
 
-            (List<string> missingEmptyStructures, StringBuilder warnings) = StructureTuningUIHelper.VerifyTSManipulationIntputIntegrity(templateManipulationList.Select(x => x.Item1).Distinct().ToList(), structureIdsPostUnion, selectedSS);
+            (List<string> missingEmptyStructures, StringBuilder warnings) = StructureTuningUIHelper.VerifyTSManipulationIntputIntegrity(templateManipulationList.Select(x => x.StructureId).Distinct().ToList(), structureIdsPostUnion, selectedSS);
             if (missingEmptyStructures.Any()) log.LogError(warnings);
             
-            List<Tuple<string, TSManipulationType, double>> defaultList = new List<Tuple<string, TSManipulationType, double>> { };
-            foreach (Tuple<string, TSManipulationType, double> itr in templateManipulationList)
+            List<RequestedTSManipulation> defaultList = new List<RequestedTSManipulation> { };
+            foreach (RequestedTSManipulation itr in templateManipulationList)
             {
-                if (!missingEmptyStructures.Any(x => string.Equals(x, itr.Item1)))
+                if (!missingEmptyStructures.Any(x => string.Equals(x, itr.StructureId)))
                 {
-                    defaultList.Add(Tuple.Create(structureIdsPostUnion.First(x => x.ToLower() == itr.Item1.ToLower()), itr.Item2, itr.Item3));
+                    defaultList.Add(new RequestedTSManipulation(structureIdsPostUnion.First(x => x.ToLower() == itr.StructureId.ToLower()), itr.ManipulationType, itr.MarginInCM));
                 }
             }
 
@@ -776,7 +775,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         }
 
         //populate the structure sparing list. This method is called whether the add structure or add defaults buttons are hit (because a vector containing the list of structures is passed as an argument to this method)
-        private void AddStructureManipulationVolumes(List<Tuple<string, TSManipulationType, double>> defaultList, StackPanel theSP)
+        private void AddStructureManipulationVolumes(List<RequestedTSManipulation> defaultList, StackPanel theSP)
         {
             if (selectedSS == null)
             {
@@ -796,7 +795,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 clearBtnNamePrefix = "clearSpareStructBtn";
             }
             if (theSP.Children.Count == 0) theSP.Children.Add(StructureTuningUIHelper.GetTSManipulationHeader(theSP));
-            foreach (Tuple<string, TSManipulationType, double> itr in defaultList)
+            foreach (RequestedTSManipulation itr in defaultList)
             {
                 counter++;
                 theSP.Children.Add(StructureTuningUIHelper.AddTSManipulation(theSP,
@@ -945,11 +944,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             (bool targetParseFail, double targetMargin) = ParseTargetMargin();
             if (flashParseFail || targetParseFail) return;
 
-            List<Tuple<string, string>> createTSStructureList;
-            List<Tuple<string, TSManipulationType, double>> TSManipulationList;
+            List<RequestedTSStructure> createTSStructureList;
+            List<RequestedTSManipulation> TSManipulationList;
             //get sparing structure and tuning structure lists from the UI
-            (List<Tuple<string, string>>, StringBuilder) parseCreateTSList = StructureTuningUIHelper.ParseCreateTSStructureList(TSGenerationSP);
-            (List<Tuple<string, TSManipulationType, double>>, StringBuilder) parseTSManipulationList = StructureTuningUIHelper.ParseTSManipulationList(structureManipulationSP);
+            (List<RequestedTSStructure>, StringBuilder) parseCreateTSList = StructureTuningUIHelper.ParseCreateTSStructureList(TSGenerationSP);
+            (List<RequestedTSManipulation>, StringBuilder) parseTSManipulationList = StructureTuningUIHelper.ParseTSManipulationList(structureManipulationSP);
             if (!string.IsNullOrEmpty(parseCreateTSList.Item2.ToString()))
             {
                 log.LogError(parseCreateTSList.Item2);
@@ -960,8 +959,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 log.LogError(parseTSManipulationList.Item2);
                 return;
             }
-            createTSStructureList = new List<Tuple<string, string>>(parseCreateTSList.Item1);
-            TSManipulationList = new List<Tuple<string, TSManipulationType, double>>(parseTSManipulationList.Item1);
+            createTSStructureList = new List<RequestedTSStructure>(parseCreateTSList.Item1);
+            TSManipulationList = new List<RequestedTSManipulation>(parseTSManipulationList.Item1);
 
             //create an instance of the generateTS class, passing the structure sparing list vector, the selected structure set, and if this is the scleroderma trial treatment regiment
             //The scleroderma trial contouring/margins are specific to the trial, so this trial needs to be handled separately from the generic VMAT treatment type
@@ -1303,7 +1302,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     log.LogError("Template not found! Exiting!");
                     return;
                 }
-                selectedTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.GetTemplateName(), selectedTemplateId));
+                selectedTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.TemplateName, selectedTemplateId));
             }
             //get prescription
             double Rx = 0.1;
@@ -1649,26 +1648,26 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     log.LogError("Template not found! Exiting!");
                     return;
                 }
-                theTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.GetTemplateName(), selectedTemplateId));
+                theTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.TemplateName, selectedTemplateId));
                 //set name
-                templateNameTB.Text = theTemplate.GetTemplateName() + "_1";
+                templateNameTB.Text = theTemplate.TemplateName + "_1";
 
                 //setRx
                 templateInitPlanDosePerFxTB.Text = theTemplate.GetInitialRxDosePerFx().ToString();
                 templateInitPlanNumFxTB.Text = theTemplate.GetInitialRxNumFx().ToString();
 
                 //add targets
-                List<Tuple<string, double, string>> targetList = new List<Tuple<string, double, string>>(theTemplate.GetTargets());
+                List<PlanTarget> targetList = new List<PlanTarget>(theTemplate.PlanTargets);
                 ClearAllTargetItems(templateClearTargetList);
                 AddTargetVolumes(targetList, templateTargetsSP);
 
                 //add create TS structures
                 GeneralUIHelper.ClearList(templateTSSP);
-                if (theTemplate.GetCreateTSStructures().Any()) AddTuningStructureVolumes(theTemplate.GetCreateTSStructures(), templateTSSP);
+                if (theTemplate.CreateTSStructures.Any()) AddTuningStructureVolumes(theTemplate.CreateTSStructures, templateTSSP);
 
                 //add tuning structure manipulations sparing structures
                 ClearStructureManipulationsList(templateClearSpareStructuresBtn);
-                if (theTemplate.GetTSManipulations().Any()) AddStructureManipulationVolumes(theTemplate.GetTSManipulations(), templateStructuresSP);
+                if (theTemplate.TSManipulations.Any()) AddStructureManipulationVolumes(theTemplate.TSManipulations, templateStructuresSP);
 
                 //add optimization constraints
                 (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(theTemplate, targetList);
@@ -1682,14 +1681,14 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             else if (templateBuildOptionCB.SelectedItem.ToString().ToLower() == "current parameters")
             {
                 //add targets (checked first to ensure the user has actually input some parameters into the UI before trying to make a template based on the current settings)
-                (List<Tuple<string, double, string>> targetList, StringBuilder) parsedTargetList = TargetsUIHelper.ParseTargets(targetsSP);
+                (List<PlanTarget> targetList, StringBuilder) parsedTargetList = TargetsUIHelper.ParseTargets(targetsSP);
                 if (!parsedTargetList.targetList.Any())
                 {
                     log.LogError("Error! Enter parameters into the UI before trying to use them to make a new plan template!");
                     return;
                 }
                 ClearAllTargetItems(templateClearTargetList);
-                AddTargetVolumes(parsedTargetList.targetList.OrderBy(x => x.Item2).ToList(), templateTargetsSP);
+                AddTargetVolumes(parsedTargetList.targetList.OrderBy(x => x.TargetRxDose).ToList(), templateTargetsSP);
 
                 //set name
                 templateNameTB.Text = "--new template--";
@@ -1699,7 +1698,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 templateInitPlanNumFxTB.Text = numFxTB.Text;
 
                 //add create tuning structures structures
-                (List<Tuple<string, string>>, StringBuilder) parsedCreateTSList = StructureTuningUIHelper.ParseCreateTSStructureList(TSGenerationSP);
+                (List<RequestedTSStructure>, StringBuilder) parsedCreateTSList = StructureTuningUIHelper.ParseCreateTSStructureList(TSGenerationSP);
                 if (!string.IsNullOrEmpty(parsedCreateTSList.Item2.ToString()))
                 {
                     log.LogError(parsedCreateTSList.Item2);
@@ -1709,7 +1708,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 AddTuningStructureVolumes(parsedCreateTSList.Item1, templateTSSP);
 
                 //add tuning structure manipulations
-                (List<Tuple<string, TSManipulationType, double>>, StringBuilder) parsedTSManipulationList = StructureTuningUIHelper.ParseTSManipulationList(structureManipulationSP);
+                (List<RequestedTSManipulation>, StringBuilder) parsedTSManipulationList = StructureTuningUIHelper.ParseTSManipulationList(structureManipulationSP);
                 if (!string.IsNullOrEmpty(parsedTSManipulationList.Item2.ToString()))
                 {
                     log.LogError(parsedTSManipulationList.Item2);
@@ -1738,7 +1737,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 return;
             }
             prospectiveTemplate = new TBIAutoPlanTemplate();
-            prospectiveTemplate.SetTemplateName(templateNameTB.Text);
+            prospectiveTemplate.TemplateName = templateNameTB.Text;
 
             if (double.TryParse(templateInitPlanDosePerFxTB.Text, out double initDosePerFx))
             {
@@ -1760,9 +1759,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
 
             //sort targets by prescription dose (ascending order)
-            prospectiveTemplate.SetTargets(TargetsUIHelper.ParseTargets(templateTargetsSP).Item1.OrderBy(x => x.Item2).ToList());
-            prospectiveTemplate.SetCreateTSStructures(StructureTuningUIHelper.ParseCreateTSStructureList(templateTSSP).Item1);
-            prospectiveTemplate.SetTSManipulations(StructureTuningUIHelper.ParseTSManipulationList(templateStructuresSP).Item1);
+            prospectiveTemplate.PlanTargets = TargetsUIHelper.ParseTargets(templateTargetsSP).Item1.OrderBy(x => x.TargetRxDose).ToList();
+            prospectiveTemplate.CreateTSStructures = StructureTuningUIHelper.ParseCreateTSStructureList(templateTSSP).Item1;
+            prospectiveTemplate.TSManipulations = StructureTuningUIHelper.ParseTSManipulationList(templateStructuresSP).Item1;
             List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> templateOptParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(templateOptParamsSP).Item1;
             prospectiveTemplate.SetInitOptimizationConstraints(templateOptParametersListList.First().Item2);
 
@@ -1782,15 +1781,15 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 log.LogError("Error! Please preview the requested template before building!");
                 return;
             }
-            string fileName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\TBI\\TBI_" + prospectiveTemplate.GetTemplateName() + ".ini";
+            string fileName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\TBI\\TBI_" + prospectiveTemplate.TemplateName + ".ini";
             if (File.Exists(fileName))
             {
                 ConfirmPrompt CUI = new ConfirmPrompt("Warning! The requested template file already exists! Overwrite?");
                 CUI.ShowDialog();
                 if (!CUI.GetSelection()) return;
-                if (PlanTemplates.Any(x => string.Equals(x.GetTemplateName(), prospectiveTemplate.GetTemplateName())))
+                if (PlanTemplates.Any(x => string.Equals(x.TemplateName, prospectiveTemplate.TemplateName)))
                 {
-                    int index = PlanTemplates.IndexOf(PlanTemplates.FirstOrDefault(x => string.Equals(x.GetTemplateName(), prospectiveTemplate.GetTemplateName())));
+                    int index = PlanTemplates.IndexOf(PlanTemplates.FirstOrDefault(x => string.Equals(x.TemplateName, prospectiveTemplate.TemplateName)));
                     PlanTemplates.RemoveAt(index);
                 }
             }
@@ -1877,7 +1876,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             {
                 configTB.Text += "Requested general tuning structures:" + Environment.NewLine;
                 configTB.Text += String.Format(" {0, -10} | {1, -15} |", "DICOM type", "Structure Id") + Environment.NewLine;
-                foreach (Tuple<string, string> ts in defaultTSStructures) configTB.Text += String.Format(" {0, -10} | {1, -15} |" + Environment.NewLine, ts.Item1, ts.Item2);
+                foreach (RequestedTSStructure ts in defaultTSStructures) configTB.Text += String.Format(" {0, -10} | {1, -15} |" + Environment.NewLine, ts.DICOMType, ts.StructureId);
                 configTB.Text += Environment.NewLine;
             }
             else configTB.Text += "No general TS manipulations requested!" + Environment.NewLine + Environment.NewLine;
@@ -1886,7 +1885,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             {
                 configTB.Text += "Default TS manipulations:" + Environment.NewLine;
                 configTB.Text += String.Format(" {0, -15} | {1, -26} | {2, -11} |", "structure Id", "sparing type", "margin (cm)") + Environment.NewLine;
-                foreach (Tuple<string, TSManipulationType, double> itr in defaultTSStructureManipulations) configTB.Text += String.Format(" {0, -15} | {1, -26} | {2,-11:N1} |" + Environment.NewLine, itr.Item1, itr.Item2.ToString(), itr.Item3);
+                foreach (RequestedTSManipulation itr in defaultTSStructureManipulations) configTB.Text += String.Format(" {0, -15} | {1, -26} | {2,-11:N1} |" + Environment.NewLine, itr.StructureId, itr.ManipulationType, itr.MarginInCM);
                 configTB.Text += Environment.NewLine;
             }
             else configTB.Text += "No default TS manipulations to list" + Environment.NewLine + Environment.NewLine;
@@ -1909,8 +1908,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     List<string> linac_temp = new List<string> { };
                     List<string> energy_temp = new List<string> { };
                     List<VRect<double>> jawPos_temp = new List<VRect<double>> { };
-                    List<Tuple<string, TSManipulationType, double>> defaultTSManipulations_temp = new List<Tuple<string, TSManipulationType, double>> { };
-                    List<Tuple<string, string>> defaultTSstructures_temp = new List<Tuple<string, string>> { };
+                    List<RequestedTSManipulation> defaultTSManipulations_temp = new List<RequestedTSManipulation> { };
+                    List<RequestedTSStructure> defaultTSstructures_temp = new List<RequestedTSStructure> { };
 
                     while ((line = reader.ReadLine()) != null)
                     {
@@ -2019,8 +2018,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     if (linac_temp.Any()) linacs = new List<string>(linac_temp);
                     if (energy_temp.Any()) beamEnergies = new List<string>(energy_temp);
                     if (jawPos_temp.Any() && jawPos_temp.Count == 4) jawPos = new List<VRect<double>>(jawPos_temp);
-                    if (defaultTSManipulations_temp.Any()) defaultTSStructureManipulations = new List<Tuple<string, TSManipulationType, double>>(defaultTSManipulations_temp);
-                    if (defaultTSstructures_temp.Any()) defaultTSStructures = new List<Tuple<string, string>>(defaultTSstructures_temp);
+                    if (defaultTSManipulations_temp.Any()) defaultTSStructureManipulations = new List<RequestedTSManipulation>(defaultTSManipulations_temp);
+                    if (defaultTSstructures_temp.Any()) defaultTSStructures = new List<RequestedTSStructure>(defaultTSstructures_temp);
                 }
                 return false;
             }

@@ -1,6 +1,6 @@
 ﻿using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
 
-namespace VMATTBICSIAutoPlanningHelpers.Helpers
+namespace VMATTBICSIAutoPlanningHelpers.EnumTypeHelpers
 {
     public static class TSManipulationTypeHelper
     {

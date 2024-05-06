@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using VMS.TPS.Common.Model.Types;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
 {
@@ -69,7 +70,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         {
             string testCreateTS = "create TS{CONTROL,TS_Eyes}";
             Tuple<string, string> expected = Tuple.Create("CONTROL", "TS_Eyes");
-            Tuple<string,string> result = ConfigurationHelper.ParseCreateTS(testCreateTS);
+            RequestedTSStructure result = ConfigurationHelper.ParseCreateTS(testCreateTS);
             Assert.AreEqual(expected, result);
         }
 
@@ -78,7 +79,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         {
             string testCreateTS = "create TS{PTV,TS_Eyes}";
             Tuple<string, string> expected = Tuple.Create("CONTROL", "TS_Eyes");
-            Tuple<string, string> result = ConfigurationHelper.ParseCreateTS(testCreateTS);
+            RequestedTSStructure result = ConfigurationHelper.ParseCreateTS(testCreateTS);
             Assert.AreNotEqual(expected, result);
         }
 

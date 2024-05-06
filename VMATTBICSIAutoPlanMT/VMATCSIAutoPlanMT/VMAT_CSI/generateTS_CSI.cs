@@ -8,7 +8,7 @@ using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 
 namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
@@ -24,11 +24,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
         //dicom type, structure Id
-        private List<Tuple<string, string>> createTSStructureList;
+        private List<RequestedTSStructure> createTSStructureList;
         //plan id, structure id, num fx, dose per fx, cumulative dose
         private List<Tuple<string, string, int, DoseValue, double>> prescriptions;
         //target id, margin (cm), thickness (cm), dose (cGy)
-        private List<Tuple<string, double, double, double>> rings;
+        private List<TSRing> rings;
         //target id, ring id, dose (cGy)
         private List<Tuple<string, string, double>> addedRings = new List<Tuple<string, string, double>> { };
         //plan id, list<target id, ts target id>
@@ -51,11 +51,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         /// <param name="ss"></param>
         /// <param name="cropStructs"></param>
         /// <param name="closePW"></param>
-        public GenerateTS_CSI(List<Tuple<string, string>> ts, List<Tuple<string, TSManipulationType, double>> list, List<Tuple<string, double, double, double>> tgtRings, List<Tuple<string,string,int,DoseValue,double>> presc, StructureSet ss, List<string> cropStructs, bool closePW)
+        public GenerateTS_CSI(List<RequestedTSStructure> ts, List<RequestedTSManipulation> list, List<TSRing> tgtRings, List<Tuple<string,string,int,DoseValue,double>> presc, StructureSet ss, List<string> cropStructs, bool closePW)
         {
-            createTSStructureList = new List<Tuple<string, string>>(ts);
-            rings = new List<Tuple<string, double, double, double>>(tgtRings);
-            TSManipulationList = new List<Tuple<string, TSManipulationType, double>>(list);
+            createTSStructureList = new List<RequestedTSStructure>(ts);
+            rings = new List<TSRing>(tgtRings);
+            TSManipulationList = new List<RequestedTSManipulation>(list);
             prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(presc);
             selectedSS = ss;
             cropAndOverlapStructures = new List<string>(cropStructs);
@@ -151,35 +151,35 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 ProvideUIUpdate("Generating requested ring structures for targets!");
                 int percentCompletion = 0;
                 int calcItems = 3 * rings.Count();
-                foreach(Tuple<string,double,double,double> itr in rings)
+                foreach(TSRing itr in rings)
                 {
-                    Structure target = StructureTuningHelper.GetStructureFromId(itr.Item1, selectedSS);
+                    Structure target = StructureTuningHelper.GetStructureFromId(itr.TargetId, selectedSS);
                     if (target != null)
                     {
                         ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Retrieved target: {target.Id}");
-                        string ringName = $"TS_ring{itr.Item4}";
+                        string ringName = $"TS_ring{itr.DoseLevel}";
                         if(selectedSS.Structures.Any(x => string.Equals(x.Id, ringName)))
                         {
                             //name is taken, append a '1' to it
                             ringName += "1";
                         }
 
-                        Structure ring = AddTSStructures(new Tuple<string, string>("CONTROL", ringName));
+                        Structure ring = AddTSStructures(new RequestedTSStructure("CONTROL", ringName));
                         if (ring == null) return true;
                         ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Created empty ring: {ring.Id}");
 
                         ProvideUIUpdate($"Contouring ring: {ring.Id}");
-                        (bool fail, StringBuilder errorMessage) = ContourHelper.CreateRing(target, ring, selectedSS, itr.Item2, itr.Item3);
+                        (bool fail, StringBuilder errorMessage) = ContourHelper.CreateRing(target, ring, selectedSS, itr.MarginFromTargetInCM, itr.RingThicknessInCM);
                         if (fail)
                         {
                             ProvideUIUpdate(errorMessage.ToString());
                             return true;
                         }
 
-                        addedRings.Add(Tuple.Create(target.Id, ring.Id, itr.Item4));
+                        addedRings.Add(Tuple.Create(target.Id, ring.Id, itr.DoseLevel));
                         ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Finished contouring ring: {itr}");
                     }
-                    else ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Could NOT retrieve target: {itr.Item1}! Skipping ring: TS_ring{itr.Item4}");
+                    else ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Could NOT retrieve target: {itr.TargetId}! Skipping ring: TS_ring{itr.DoseLevel}");
                 }
             }
             else ProvideUIUpdate("No ring structures requested!");
@@ -361,15 +361,15 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             UpdateUILabel("Create TS Structures:");
             ProvideUIUpdate("Adding remaining tuning structures to stack!");
             //get all TS structures that do not contain 'ctv' or 'ptv' in the title
-            List<Tuple<string, string>> remainingTS = createTSStructureList.Where(x => !x.Item2.ToLower().Contains("ctv") && !x.Item2.ToLower().Contains("ptv")).ToList();
+            List<RequestedTSStructure> remainingTS = createTSStructureList.Where(x => !x.StructureId.ToLower().Contains("ctv") && !x.StructureId.ToLower().Contains("ptv")).ToList();
             int calcItems = remainingTS.Count;
             int counter = 0;
-            foreach (Tuple<string, string> itr in remainingTS)
+            foreach (RequestedTSStructure itr in remainingTS)
             {
                 //if those structures have NOT been added to the added structure list, go ahead and add them to stack
-                if (!addedStructures.Any(x => string.Equals(x.ToLower(), itr.Item2)))
+                if (!addedStructures.Any(x => string.Equals(x.ToLower(), itr.StructureId)))
                 {
-                    ProvideUIUpdate(100 * ++counter / calcItems, $"Adding TS to added structures: {itr.Item2}");
+                    ProvideUIUpdate(100 * ++counter / calcItems, $"Adding TS to added structures: {itr.StructureId}");
                     AddTSStructures(itr);
                 }
             }
@@ -564,7 +564,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 if (TSManipulationList.Any())
                 {
                     //normal structure id, manipulation type, added margin (if applicable)
-                    foreach (Tuple<string, TSManipulationType, double> itr1 in TSManipulationList)
+                    foreach (RequestedTSManipulation itr1 in TSManipulationList)
                     {
                         if (ManipulateTuningStructures(itr1, addedTSTarget)) return true;
                         ProvideUIUpdate(100 * ++counter / calcItems);
@@ -674,7 +674,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             Structure cropStructure;
             if (!string.Equals(cropName, target.Id))
             {
-                cropStructure = AddTSStructures(new Tuple<string, string>("CONTROL", cropName));
+                cropStructure = AddTSStructures(new RequestedTSStructure("CONTROL", cropName));
                 if (cropStructure == null)
                 {
                     ProvideUIUpdate($"Error! Could not create crop structure: {cropName}! Exiting", true);
@@ -709,7 +709,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 ProvideUIUpdate($"Warning! Ran out of characters for structure Id! Using structure Id: TS_overlap{prescriptionCount}");
                 overlapName = $"TS_overlap{prescriptionCount}";
             }
-            overlapStructure = AddTSStructures(new Tuple<string, string>("CONTROL", overlapName));
+            overlapStructure = AddTSStructures(new RequestedTSStructure("CONTROL", overlapName));
             if (overlapStructure == null)
             {
                 ProvideUIUpdate($"Error! Could not create overlap structure: {overlapName}! Exiting");

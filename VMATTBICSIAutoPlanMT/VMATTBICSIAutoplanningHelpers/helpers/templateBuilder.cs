@@ -4,6 +4,7 @@ using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using System.Text;
 using VMATTBICSIAutoPlanningHelpers.BaseClasses;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
@@ -18,7 +19,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         {
             StringBuilder output = new StringBuilder();
             output.AppendLine($" {DateTime.Now}");
-            output.AppendLine($" Template ID: {prospectiveTemplate.GetTemplateName()}");
+            output.AppendLine($" Template ID: {prospectiveTemplate.TemplateName}");
             output.AppendLine(PrintRxDosePerFxAndNumFx(prospectiveTemplate).ToString());
             output.AppendLine(PrintCommonTemplateSetupInfo(prospectiveTemplate).ToString());
             if (prospectiveTemplate is CSIAutoPlanTemplate) output.AppendLine(PrintCSIPlanSpecificInfo(prospectiveTemplate as CSIAutoPlanTemplate).ToString());
@@ -58,31 +59,31 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         private static StringBuilder PrintCommonTemplateSetupInfo(AutoPlanTemplateBase prospectiveTemplate)
         {
             StringBuilder output = new StringBuilder();
-            if (prospectiveTemplate.GetTargets().Any())
+            if (prospectiveTemplate.PlanTargets.Any())
             {
-                output.AppendLine($" Initial Dose per fraction: {prospectiveTemplate.GetTemplateName()} cGy");
+                output.AppendLine($" Initial Dose per fraction: {prospectiveTemplate.TemplateName} cGy");
                 output.AppendLine(String.Format("  {0, -15} | {1, -8} | {2, -14} |", "structure Id", "Rx (cGy)", "Num Fx", "Plan Id"));
-                foreach (Tuple<string, double, string> tgt in prospectiveTemplate.GetTargets()) output.AppendLine(String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |", tgt.Item1, tgt.Item2, tgt.Item3));
+                foreach (PlanTarget tgt in prospectiveTemplate.PlanTargets) output.AppendLine(String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |", tgt.TargetId, tgt.TargetRxDose, tgt.PlanId));
             }
-            else output.AppendLine($" No targets set for template: {prospectiveTemplate.GetTemplateName()}");
+            else output.AppendLine($" No targets set for template: {prospectiveTemplate.TemplateName}");
             output.AppendLine("");
 
-            if (prospectiveTemplate.GetCreateTSStructures().Any())
+            if (prospectiveTemplate.CreateTSStructures.Any())
             {
-                output.AppendLine($" Initial Dose per fraction: {prospectiveTemplate.GetTemplateName()} cGy");
+                output.AppendLine($" Initial Dose per fraction: {prospectiveTemplate.TemplateName} cGy");
                 output.AppendLine(String.Format("  {0, -10} | {1, -15} |", "DICOM type", "Structure Id"));
-                foreach (Tuple<string, string> ts in prospectiveTemplate.GetCreateTSStructures()) output.AppendLine(String.Format("  {0, -10} | {1, -15} |" + Environment.NewLine, ts.Item1, ts.Item2));
+                foreach (RequestedTSStructure ts in prospectiveTemplate.CreateTSStructures) output.AppendLine(String.Format("  {0, -10} | {1, -15} |" + Environment.NewLine, ts.DICOMType, ts.StructureId));
             }
-            else output.AppendLine($" No additional tuning structures for template: {prospectiveTemplate.GetTemplateName()}");
+            else output.AppendLine($" No additional tuning structures for template: {prospectiveTemplate.TemplateName}");
             output.AppendLine("");
 
-            if (prospectiveTemplate.GetTSManipulations().Any())
+            if (prospectiveTemplate.TSManipulations.Any())
             {
-                output.AppendLine($" {prospectiveTemplate.GetTemplateName()} additional tuning structure manipulations:");
+                output.AppendLine($" {prospectiveTemplate.TemplateName} additional tuning structure manipulations:");
                 output.AppendLine(String.Format("  {0, -15} | {1, -23} | {2, -11} |", "structure Id", "manipulation type", "margin (cm)"));
-                foreach (Tuple<string, TSManipulationType, double> spare in prospectiveTemplate.GetTSManipulations()) output.AppendLine(String.Format("  {0, -15} | {1, -23} | {2,-11:N1} |", spare.Item1, spare.Item2.ToString(), spare.Item3));
+                foreach (RequestedTSManipulation spare in prospectiveTemplate.TSManipulations) output.AppendLine(String.Format("  {0, -15} | {1, -23} | {2,-11:N1} |", spare.StructureId, spare.ManipulationType, spare.MarginInCM));
             }
-            else output.AppendLine($" No additional sparing structures for template: {prospectiveTemplate.GetTemplateName()}");
+            else output.AppendLine($" No additional sparing structures for template: {prospectiveTemplate.TemplateName}");
             output.AppendLine("");
 
             return output;
@@ -96,27 +97,27 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         private static StringBuilder PrintCSIPlanSpecificInfo(CSIAutoPlanTemplate prospectiveTemplate)
         {
             StringBuilder output = new StringBuilder();
-            if (prospectiveTemplate.GetCreateRings().Any())
+            if (prospectiveTemplate.Rings.Any())
             {
-                output.AppendLine($" {prospectiveTemplate.GetTemplateName()} ring structures:");
+                output.AppendLine($" {prospectiveTemplate.TemplateName} ring structures:");
                 output.AppendLine(String.Format("  {0, -15} | {1, -11} | {2, -14} | {3,-10} |", "target Id", "margin (cm)", "thickness (cm)", "dose (cGy)"));
-                foreach (Tuple<string, double, double, double> ring in prospectiveTemplate.GetCreateRings()) output.AppendLine(String.Format("  {0, -15} | {1, -11} | {2, -14} | {3,-10} |", ring.Item1, ring.Item2, ring.Item3, ring.Item4));
+                foreach (TSRing ring in prospectiveTemplate.Rings) output.AppendLine(String.Format("  {0, -15} | {1, -11} | {2, -14} | {3,-10} |", ring.TargetId, ring.MarginFromTargetInCM, ring.RingThicknessInCM, ring.DoseLevel));
             }
-            else output.AppendLine($" No requested ring structures for template: {prospectiveTemplate.GetTemplateName()}");
+            else output.AppendLine($" No requested ring structures for template: {prospectiveTemplate.TemplateName}");
             output.AppendLine("");
 
             if (prospectiveTemplate.GetCropAndOverlapStructures().Any())
             {
-                output.AppendLine($" {prospectiveTemplate.GetTemplateName()} requested structures for crop/overlap with targets:");
+                output.AppendLine($" {prospectiveTemplate.TemplateName} requested structures for crop/overlap with targets:");
                 output.AppendLine(String.Format("  {0, -15}", "structure Id"));
                 foreach (string cropOverlap in prospectiveTemplate.GetCropAndOverlapStructures()) output.AppendLine($"  {cropOverlap}");
             }
-            else output.AppendLine($" No structures requested for crop/overlap with targets for template: {prospectiveTemplate.GetTemplateName()}");
+            else output.AppendLine($" No structures requested for crop/overlap with targets for template: {prospectiveTemplate.TemplateName}");
             output.AppendLine("");
 
             if (prospectiveTemplate.GetInitOptimizationConstraints().Any())
             {
-                output.AppendLine($" Initial Dose per fraction: {prospectiveTemplate.GetTemplateName()} cGy");
+                output.AppendLine($" Initial Dose per fraction: {prospectiveTemplate.TemplateName} cGy");
                 output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority"));
                 foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in prospectiveTemplate.GetInitOptimizationConstraints()) output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5));
             }
@@ -125,11 +126,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 
             if (prospectiveTemplate.GetBoostOptimizationConstraints().Any())
             {
-                output.AppendLine($" Initial Dose per fraction: {prospectiveTemplate.GetTemplateName()} cGy");
+                output.AppendLine($" Initial Dose per fraction: {prospectiveTemplate.TemplateName} cGy");
                 output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority"));
                 foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in prospectiveTemplate.GetBoostOptimizationConstraints()) output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5));
             }
-            else output.AppendLine($" No boost plan optimization constraints for template: {prospectiveTemplate.GetTemplateName()}");
+            else output.AppendLine($" No boost plan optimization constraints for template: {prospectiveTemplate.TemplateName}");
             output.AppendLine("");
 
             return output;
@@ -145,11 +146,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             StringBuilder output = new StringBuilder();
             if (prospectiveTemplate.GetInitOptimizationConstraints().Any())
             {
-                output.AppendLine($" {prospectiveTemplate.GetTemplateName()} template initial plan optimization parameters:");
+                output.AppendLine($" {prospectiveTemplate.TemplateName} template initial plan optimization parameters:");
                 output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority"));
                 foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in prospectiveTemplate.GetInitOptimizationConstraints()) output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5));
             }
-            else output.AppendLine($" No iniital plan optimization constraints for template: {prospectiveTemplate.GetTemplateName()}");
+            else output.AppendLine($" No iniital plan optimization constraints for template: {prospectiveTemplate.TemplateName}");
             output.AppendLine("");
 
             return output;
@@ -167,7 +168,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             StringBuilder output = new StringBuilder();
             output.AppendLine(":begin template case configuration:");
             output.AppendLine("%template name");
-            output.AppendLine($"template name={prospectiveTemplate.GetTemplateName()}");
+            output.AppendLine($"template name={prospectiveTemplate.TemplateName}");
             if (prospectiveTemplate is CSIAutoPlanTemplate) output.Append(SerializeCSIRxTemplate(prospectiveTemplate as CSIAutoPlanTemplate));
             else output.Append(SerializeTBIRxTemplate(prospectiveTemplate as TBIAutoPlanTemplate));
             output.Append(SerializeCommonTemplateParameters(prospectiveTemplate));
@@ -187,9 +188,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         private static StringBuilder SerializeCSITemplateParameters(CSIAutoPlanTemplate prospectiveTemplate)
         {
             StringBuilder output = new StringBuilder();
-            if (prospectiveTemplate.GetCreateRings().Any())
+            if (prospectiveTemplate.Rings.Any())
             {
-                foreach (Tuple<string, double, double, double> itr in prospectiveTemplate.GetCreateRings()) output.AppendLine($"create ring{{{itr.Item1},{itr.Item2},{itr.Item3},{itr.Item4}}}");
+                foreach (TSRing itr in prospectiveTemplate.Rings) output.AppendLine($"create ring{{{itr.TargetId},{itr.MarginFromTargetInCM},{itr.RingThicknessInCM},{itr.DoseLevel}}}");
                 output.AppendLine("%");
                 output.AppendLine("%");
             }
@@ -247,25 +248,25 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         private static StringBuilder SerializeCommonTemplateParameters(AutoPlanTemplateBase prospectiveTemplate)
         {
             StringBuilder output = new StringBuilder();
-            if (prospectiveTemplate.GetTargets().Any())
+            if (prospectiveTemplate.PlanTargets.Any())
             {
-                foreach (Tuple<string, double, string> itr in prospectiveTemplate.GetTargets()) output.AppendLine($"add target{{{itr.Item1},{itr.Item2},{itr.Item3}}}");
+                foreach (PlanTarget itr in prospectiveTemplate.PlanTargets) output.AppendLine($"add target{{{itr.TargetId},{itr.TargetRxDose},{itr.PlanId}}}");
                 output.AppendLine("%");
                 output.AppendLine("%");
             }
             else output.AppendLine("%");
 
-            if (prospectiveTemplate.GetCreateTSStructures().Any())
+            if (prospectiveTemplate.CreateTSStructures.Any())
             {
-                foreach (Tuple<string, string> itr in prospectiveTemplate.GetCreateTSStructures()) output.AppendLine($"add TS{{{itr.Item1},{itr.Item2}}}");
+                foreach (RequestedTSStructure itr in prospectiveTemplate.CreateTSStructures) output.AppendLine($"add TS{{{itr.DICOMType},{itr.StructureId}}}");
                 output.AppendLine("%");
                 output.AppendLine("%");
             }
             else output.AppendLine("%");
 
-            if (prospectiveTemplate.GetTSManipulations().Any())
+            if (prospectiveTemplate.TSManipulations.Any())
             {
-                foreach (Tuple<string, TSManipulationType, double> itr in prospectiveTemplate.GetTSManipulations()) output.AppendLine($"add sparing structure{{{itr.Item1},{itr.Item2.ToString()},{itr.Item3}}}");
+                foreach (RequestedTSManipulation itr in prospectiveTemplate.TSManipulations) output.AppendLine($"add sparing structure{{{itr.StructureId},{itr.ManipulationType},{itr.MarginInCM}}}");
                 output.AppendLine("%");
                 output.AppendLine("%");
             }

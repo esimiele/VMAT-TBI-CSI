@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using SimpleProgressWindow;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 using VMATTBICSIAutoPlanningHelpers.Delegates;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
@@ -20,10 +21,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
         //Dicom type, structure Id
-        private List<Tuple<string, string>> createPrelimTargetList;
+        private List<RequestedTSStructure> createPrelimTargetList;
         private StructureSet selectedSS;
         //Dicom type, structure Id
-        private List<Tuple<string, string>> missingTargets = new List<Tuple<string, string>> { };
+        private List<RequestedTSStructure> missingTargets = new List<RequestedTSStructure> { };
         private List<string> addedTargetIds = new List<string> { };
         private string stackTraceError;
         private ProvideUIUpdateDelegate PUUD;
@@ -34,9 +35,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         /// <param name="tgts"></param>
         /// <param name="ss"></param>
         /// <param name="closePW"></param>
-        public GenerateTargets_CSI(List<Tuple<string, string>> tgts, StructureSet ss, bool closePW)
+        public GenerateTargets_CSI(List<RequestedTSStructure> tgts, StructureSet ss, bool closePW)
         {
-            createPrelimTargetList = new List<Tuple<string, string>>(tgts);
+            createPrelimTargetList = new List<RequestedTSStructure>(tgts);
             selectedSS = ss;
             SetCloseOnFinish(closePW, 3000);
         }
@@ -149,20 +150,20 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ProvideUIUpdate(0, "Checking for missing target structures!");
             int calcItems = createPrelimTargetList.Count;
             int counter = 0;
-            foreach (Tuple<string, string> itr in createPrelimTargetList)
+            foreach (RequestedTSStructure itr in createPrelimTargetList)
             {
-                Structure tmp = StructureTuningHelper.GetStructureFromId(itr.Item2, selectedSS);
+                Structure tmp = StructureTuningHelper.GetStructureFromId(itr.StructureId, selectedSS);
                 if (tmp == null)
                 {
-                    ProvideUIUpdate($"Target: {itr.Item2} is missing");
+                    ProvideUIUpdate($"Target: {itr.StructureId} is missing");
                     missingTargets.Add(itr);
                 }
                 else if (tmp.IsEmpty)
                 {
-                    ProvideUIUpdate($"Target: {itr.Item2} exists, but is empty");
+                    ProvideUIUpdate($"Target: {itr.StructureId} exists, but is empty");
                     addedTargetIds.Add(tmp.Id);
                 }
-                else ProvideUIUpdate($"Target: {itr.Item2} is exists and is contoured");
+                else ProvideUIUpdate($"Target: {itr.StructureId} is exists and is contoured");
                 ProvideUIUpdate(100 * ++counter / calcItems);
             }
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
@@ -181,17 +182,17 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //int calcItems = prospectiveTargets.Count;
             int calcItems = missingTargets.Count;
             int counter = 0;
-            foreach (Tuple<string, string> itr in missingTargets)
+            foreach (RequestedTSStructure itr in missingTargets)
             {
-                if (selectedSS.CanAddStructure(itr.Item1, itr.Item2))
+                if (selectedSS.CanAddStructure(itr.DICOMType, itr.StructureId))
                 {
-                    addedTargetIds.Add(itr.Item2);
-                    selectedSS.AddStructure(itr.Item1, itr.Item2);
-                    ProvideUIUpdate(100 * ++counter / calcItems, $"Added target: {itr.Item2}");
+                    addedTargetIds.Add(itr.StructureId);
+                    selectedSS.AddStructure(itr.DICOMType, itr.StructureId);
+                    ProvideUIUpdate(100 * ++counter / calcItems, $"Added target: {itr.StructureId}");
                 }
                 else
                 {
-                    ProvideUIUpdate($"Can't add {itr.Item2} to the structure set!", true);
+                    ProvideUIUpdate($"Can't add {itr.StructureId} to the structure set!", true);
                     return true;
                 }
             }
@@ -276,7 +277,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 if(ContourPTVCSI()) return true;
                 ProvideUIUpdate(100 * ++counter / calcItems, "PTV_CSI generated and contoured!");
             }
-            else if (createPrelimTargetList.Any(x => string.Equals(x.Item2.ToLower(), "ptv_csi")))
+            else if (createPrelimTargetList.Any(x => string.Equals(x.StructureId.ToLower(), "ptv_csi")))
             {
                 ProvideUIUpdate(100 * ++counter / calcItems, "PTV_CSI already exists in the structure set! Skipping!");
             }

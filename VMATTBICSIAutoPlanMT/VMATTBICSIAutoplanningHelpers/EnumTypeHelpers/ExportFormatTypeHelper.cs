@@ -1,6 +1,6 @@
 ﻿using VMATTBICSIAutoPlanningHelpers.Enums;
 
-namespace VMATTBICSIAutoPlanningHelpers.Helpers
+namespace VMATTBICSIAutoPlanningHelpers.EnumTypeHelpers
 {
     public static class ExportFormatTypeHelper
     {

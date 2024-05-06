@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMS.TPS.Common.Model.API;
 using Telerik.JustMock;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
 {
@@ -17,32 +18,32 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         [TestMethod()]
         public void AddTemplateSpecificStructureManipulationsTest()
         {
-            List<Tuple<string, TSManipulationType, double>> templateManipulationList = new List<Tuple<string, TSManipulationType, double>>
+            List<RequestedTSManipulation> templateManipulationList = new List<RequestedTSManipulation>
             {
-                Tuple.Create("Ovaries", TSManipulationType.CropTargetFromStructure, 0.1),
-                Tuple.Create("Testes", TSManipulationType.CropTargetFromStructure, 0.1),
-                Tuple.Create("Liver", TSManipulationType.CropTargetFromStructure, 0.0),
-                Tuple.Create("Lungs", TSManipulationType.ContourSubStructure, -1.0),
-                Tuple.Create("Lungs", TSManipulationType.ContourSubStructure, -1.5),
-                Tuple.Create("Liver", TSManipulationType.ContourSubStructure, -1.0),
-                Tuple.Create("Liver", TSManipulationType.ContourSubStructure, -2.0),
+                new RequestedTSManipulation("Ovaries", TSManipulationType.CropTargetFromStructure, 0.1),
+                new RequestedTSManipulation("Testes", TSManipulationType.CropTargetFromStructure, 0.1),
+                new RequestedTSManipulation("Liver", TSManipulationType.CropTargetFromStructure, 0.0),
+                new RequestedTSManipulation("Lungs", TSManipulationType.ContourSubStructure, -1.0),
+                new RequestedTSManipulation("Lungs", TSManipulationType.ContourSubStructure, -1.5),
+                new RequestedTSManipulation("Liver", TSManipulationType.ContourSubStructure, -1.0),
+                new RequestedTSManipulation("Liver", TSManipulationType.ContourSubStructure, -2.0),
             };
-            List<Tuple<string, TSManipulationType, double>> defaultManipulationList = new List<Tuple<string, TSManipulationType, double>> { };
+            List<RequestedTSManipulation> defaultManipulationList = new List<RequestedTSManipulation> { };
 
             string sex = "Female";
-            List<Tuple<string, TSManipulationType, double>> expected = new List<Tuple<string, TSManipulationType, double>>
+            List<RequestedTSManipulation> expected = new List<RequestedTSManipulation>
             {
-                Tuple.Create("Ovaries", TSManipulationType.CropTargetFromStructure, 0.1),
-                Tuple.Create("Liver", TSManipulationType.CropTargetFromStructure, 0.0),
-                Tuple.Create("Lungs", TSManipulationType.ContourSubStructure, -1.0),
-                Tuple.Create("Lungs", TSManipulationType.ContourSubStructure, -1.5),
-                Tuple.Create("Liver", TSManipulationType.ContourSubStructure, -1.0),
-                Tuple.Create("Liver", TSManipulationType.ContourSubStructure, -2.0),
+                new RequestedTSManipulation("Ovaries", TSManipulationType.CropTargetFromStructure, 0.1),
+                new RequestedTSManipulation("Liver", TSManipulationType.CropTargetFromStructure, 0.0),
+                new RequestedTSManipulation("Lungs", TSManipulationType.ContourSubStructure, -1.0),
+                new RequestedTSManipulation("Lungs", TSManipulationType.ContourSubStructure, -1.5),
+                new RequestedTSManipulation("Liver", TSManipulationType.ContourSubStructure, -1.0),
+                new RequestedTSManipulation("Liver", TSManipulationType.ContourSubStructure, -2.0),
             };
 
-            List<Tuple<string, TSManipulationType, double>> result = StructureTuningHelper.AddTemplateSpecificStructureManipulations(templateManipulationList,
-                                                                                                                                     defaultManipulationList,
-                                                                                                                                     sex);
+            List<RequestedTSManipulation> result = StructureTuningHelper.AddTemplateSpecificStructureManipulations(templateManipulationList,
+                                                                                                                  defaultManipulationList,
+                                                                                                                  sex);
 
             CollectionAssert.AreEqual(expected, result);
         }
