@@ -41,7 +41,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         public List<string> PlanUIDs { set => planUIDs = new List<string>(value); }
         //optimization setup
         //plan ID, <structure, constraint type, dose cGy, volume %, priority>
-        public List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> OptimizationConstraints { set => optimizationConstraints = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>(value); }
+        public List<Tuple<string, List<OptimizationConstraint>>> OptimizationConstraints { get; set; } = new List<Tuple<string, List<OptimizationConstraint>>>();
         public ScriptOperationType OpType { set => opType = value; }
         #endregion
 
@@ -63,7 +63,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         private List<Tuple<string, string>> normVolumes;
         private List<Tuple<string, List<string>>> isoNames;
         private List<string> planUIDs;
-        private List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> optimizationConstraints;
         private ScriptOperationType opType = ScriptOperationType.General;
 
         /// <summary>
@@ -86,7 +85,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             normVolumes = new List<Tuple<string, string>> { };
             isoNames = new List<Tuple<string, List<string>>> { };
             planUIDs = new List<string> { };
-            optimizationConstraints = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
             _logFromOperations = new StringBuilder();
             _logFromErrors = new StringBuilder();
         }
@@ -267,12 +265,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             sb.AppendLine("");
 
             sb.AppendLine("Optimization constraints:");
-            foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in optimizationConstraints)
+            foreach (Tuple<string, List<OptimizationConstraint>> itr in OptimizationConstraints)
             {
                 sb.AppendLine($"    {itr.Item1}");
-                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> itr1 in itr.Item2)
+                foreach (OptimizationConstraint itr1 in itr.Item2)
                 {
-                    sb.AppendLine($"        {{{itr1.Item1},{itr1.Item2},{itr1.Item3},{itr1.Item4},{itr1.Item5}}}");
+                    sb.AppendLine($"        {{{itr1.StructureId},{itr1.ConstraintType},{itr1.QueryDose},{itr1.QueryVolume},{itr1.Priority}}}");
                 }
             }
             sb.AppendLine("");

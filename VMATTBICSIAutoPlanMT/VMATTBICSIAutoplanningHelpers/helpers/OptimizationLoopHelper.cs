@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using VMATTBICSIAutoPlanningHelpers.Enums;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 using VMS.TPS.Common.Model.API;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
@@ -54,14 +55,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="sumTotalDose"></param>
         /// <param name="originalConstraints"></param>
         /// <returns></returns>
-        public static List<Tuple<string, OptimizationObjectiveType, double, double, int>> ScaleHeaterCoolerOptConstraints(double planTotalDose, 
+        public static List<OptimizationConstraint> ScaleHeaterCoolerOptConstraints(double planTotalDose, 
                                                                                                                           double sumTotalDose, 
-                                                                                                                          List<Tuple<string, OptimizationObjectiveType, double, double, int>> originalConstraints)
+                                                                                                                          List<OptimizationConstraint> originalConstraints)
         {
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> updatedOpt = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
-            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> itr in originalConstraints)
+            List<OptimizationConstraint> updatedOpt = new List<OptimizationConstraint> { };
+            foreach (OptimizationConstraint itr in originalConstraints)
             {
-                updatedOpt.Add(Tuple.Create(itr.Item1, itr.Item2, itr.Item3 * planTotalDose / sumTotalDose, itr.Item4, itr.Item5));
+                updatedOpt.Add(new OptimizationConstraint(itr.StructureId, itr.ConstraintType, itr.QueryDose * planTotalDose / sumTotalDose, Units.cGy, itr.QueryVolume, itr.Priority));
             }
             return updatedOpt;
         }
@@ -71,17 +72,17 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="updatedOpt"></param>
         /// <returns></returns>
-        public static List<Tuple<string, OptimizationObjectiveType, double, double, int>> IncreaseOptConstraintPrioritiesForFinalOpt(List<Tuple<string, OptimizationObjectiveType, double, double, int>> updatedOpt)
+        public static List<OptimizationConstraint> IncreaseOptConstraintPrioritiesForFinalOpt(List<OptimizationConstraint> updatedOpt)
         {
             //go through the current list of optimization objects and add all of them to finalObj vector. ADD COMMENTS!
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> finalObj = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
-            double maxPriority = (double)updatedOpt.Max(x => x.Item5);
-            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> itr in updatedOpt)
+            List<OptimizationConstraint> finalObj = new List<OptimizationConstraint> { };
+            double maxPriority = (double)updatedOpt.Max(x => x.Priority);
+            foreach (OptimizationConstraint itr in updatedOpt)
             {
                 //get maximum priority and assign it to the cooler structure to really push the hotspot down. Also lower dose objective
-                if (itr.Item1.ToLower().Contains("ts_cooler"))
+                if (itr.StructureId.ToLower().Contains("ts_cooler"))
                 {
-                    finalObj.Add(new Tuple<string, OptimizationObjectiveType, double, double, int>(itr.Item1, itr.Item2, 0.98 * itr.Item3, itr.Item4, Math.Max(itr.Item5, (int)(0.9 * maxPriority))));
+                    finalObj.Add(new OptimizationConstraint(itr.StructureId, itr.ConstraintType, 0.98 * itr.QueryDose, Units.cGy, itr.QueryVolume, Math.Max(itr.Priority, (int)(0.9 * maxPriority))));
                 }
                 else finalObj.Add(itr);
             }

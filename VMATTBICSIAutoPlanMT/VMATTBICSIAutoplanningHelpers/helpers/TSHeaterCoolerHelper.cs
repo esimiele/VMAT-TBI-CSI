@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using VMATTBICSIAutoPlanningHelpers.Enums;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 
@@ -20,12 +21,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="name"></param>
         /// <param name="priority"></param>
         /// <returns></returns>
-        public static (string, Tuple<string, OptimizationObjectiveType, double, double, int>) GenerateCooler(ExternalPlanSetup plan, double doseLevel, double requestedDoseConstraint, double volume, string name, int priority)
+        public static (string, OptimizationConstraint) GenerateCooler(ExternalPlanSetup plan, double doseLevel, double requestedDoseConstraint, double volume, string name, int priority)
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine($"Generating cooler structure: {name} now");
             //create an empty optiization objective
-            Tuple<string, OptimizationObjectiveType, double, double, int> cooler = null;
+            OptimizationConstraint cooler = null;
             StructureSet ss = plan.StructureSet;
             //grab the relevant dose, dose leve, priority, etc. parameters
             PlanningItemDose d = plan.Dose;
@@ -40,7 +41,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     sb.AppendLine($"Cooler structure ({name}) is empty! Attempting to remove.");
                     if (ss.CanRemoveStructure(coolerStructure)) ss.RemoveStructure(coolerStructure);
                 }
-                else cooler = Tuple.Create(name, OptimizationObjectiveType.Upper, requestedDoseConstraint * plan.TotalDose.Dose, volume, priority);
+                else cooler = new OptimizationConstraint(name, OptimizationObjectiveType.Upper, requestedDoseConstraint * plan.TotalDose.Dose, Units.cGy, volume, priority, Units.Percent);
             }
             return (sb.ToString(), cooler);
         }
@@ -56,12 +57,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="name"></param>
         /// <param name="priority"></param>
         /// <returns></returns>
-        public static (string, Tuple<string, OptimizationObjectiveType, double, double, int>) GenerateHeater(ExternalPlanSetup plan, Structure target, double doseLevelLow, double doseLevelHigh, double volume, string name, int priority)
+        public static (string, OptimizationConstraint) GenerateHeater(ExternalPlanSetup plan, Structure target, double doseLevelLow, double doseLevelHigh, double volume, string name, int priority)
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine($"Generating heater structure: {name} now");
             //similar to the generateCooler method
-            Tuple<string, OptimizationObjectiveType, double, double, int> heater = null;
+            OptimizationConstraint heater = null;
             StructureSet ss = plan.StructureSet;
             PlanningItemDose d = plan.Dose;
             DoseValue dv = new DoseValue(doseLevelLow * plan.TotalDose.Dose, DoseValue.DoseUnit.cGy);
@@ -88,7 +89,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 else
                 {
                     //heaters generally need to increase the dose to regions of the target NOT receiving the Rx dose --> always set the dose objective to the Rx dose
-                    heater = Tuple.Create(name, OptimizationObjectiveType.Lower, plan.TotalDose.Dose, volume, priority);
+                    heater = new OptimizationConstraint(name, OptimizationObjectiveType.Lower, plan.TotalDose.Dose, Units.cGy, volume, priority, Units.Percent);
                 }
             }
             return (sb.ToString(), heater);

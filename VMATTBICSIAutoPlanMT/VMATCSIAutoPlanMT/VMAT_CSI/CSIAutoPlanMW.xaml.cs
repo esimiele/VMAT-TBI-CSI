@@ -1475,15 +1475,15 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         #region OptimizationSetup
         //stuff related to optimization setup tab
-        private void PopulateOptimizationTab(StackPanel theSP, List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> tmpList = null, bool checkIfStructurePresentInSS = true, bool updateTsStructureJnxObjectives = false)
+        private void PopulateOptimizationTab(StackPanel theSP, List<Tuple<string, List<OptimizationConstraint>>> tmpList = null, bool checkIfStructurePresentInSS = true, bool updateTsStructureJnxObjectives = false)
         {
-            List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> defaultListList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
+            List<Tuple<string, List<OptimizationConstraint>>> defaultListList = new List<Tuple<string, List<OptimizationConstraint>>> { };
             if(tmpList == null)
             {
                 //tmplist is empty indicating that no optimization constraints were present on the UI when this method was called
                 updateTsStructureJnxObjectives = true;
                 //retrieve constraints from template
-                (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(templateList.SelectedItem as CSIAutoPlanTemplate, prescriptions);
+                (List<Tuple<string, List<OptimizationConstraint>>> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(templateList.SelectedItem as CSIAutoPlanTemplate, prescriptions);
                 if(!parsedConstraints.constraints.Any())
                 {
                     log.LogError(parsedConstraints.errorMessage);
@@ -1494,29 +1494,29 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             if(checkIfStructurePresentInSS)
             {
-                foreach (Tuple<string,List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in tmpList)
+                foreach (Tuple<string,List<OptimizationConstraint>> itr in tmpList)
                 {
-                    List<Tuple<string, OptimizationObjectiveType, double, double, int>> defaultList = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
-                    foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in itr.Item2)
+                    List<OptimizationConstraint> defaultList = new List<OptimizationConstraint> { };
+                    foreach (OptimizationConstraint opt in itr.Item2)
                     {
                         //always add PTV objectives to optimization objectives list
-                        if (opt.Item1.Contains("--select--") || opt.Item1.Contains("PTV")) defaultList.Add(opt);
+                        if (opt.StructureId.Contains("--select--") || opt.StructureId.Contains("PTV")) defaultList.Add(opt);
                         //only add template optimization objectives for each structure to default list if that structure is present in the selected structure set and contoured
                         //12-22-2020 coded added to account for the situation where the structure selected for sparing had to be converted to a low resolution structure
-                        else if (StructureTuningHelper.DoesStructureExistInSS(opt.Item1 + "_lowRes", selectedSS, true))
+                        else if (StructureTuningHelper.DoesStructureExistInSS(opt.StructureId + "_lowRes", selectedSS, true))
                         {
-                            string lowResStructure = opt.Item1 + "_lowRes";
-                            defaultList.Add(Tuple.Create(StructureTuningHelper.GetStructureFromId(lowResStructure, selectedSS).Id, opt.Item2, opt.Item3, opt.Item4, opt.Item5));
+                            string lowResStructure = opt.StructureId + "_lowRes";
+                            defaultList.Add(new OptimizationConstraint(StructureTuningHelper.GetStructureFromId(lowResStructure, selectedSS).Id, opt.ConstraintType, opt.QueryDose, Units.cGy, opt.QueryVolume, opt.Priority));
                         }
-                        else if (StructureTuningHelper.DoesStructureExistInSS(opt.Item1, selectedSS, true)) defaultList.Add(opt);
+                        else if (StructureTuningHelper.DoesStructureExistInSS(opt.StructureId, selectedSS, true)) defaultList.Add(opt);
                     }
-                    defaultListList.Add(Tuple.Create(itr.Item1, new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(defaultList)));
+                    defaultListList.Add(Tuple.Create(itr.Item1, new List<OptimizationConstraint>(defaultList)));
                 }
             }
             else
             {
                 //do NOT check to ensure structures in optimization constraint list are present in structure set before adding them to the UI list
-                defaultListList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> (tmpList);
+                defaultListList = new List<Tuple<string, List<OptimizationConstraint>>> (tmpList);
             }
 
             if (updateTsStructureJnxObjectives)
@@ -1530,7 +1530,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                                                                                        addedRings);
             }
 
-            foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in defaultListList) AddOptimizationConstraintItems(itr.Item2, itr.Item1, theSP);
+            foreach (Tuple<string, List<OptimizationConstraint>> itr in defaultListList) AddOptimizationConstraintItems(itr.Item2, itr.Item1, theSP);
         }
 
         private void AddDefaultOptimizationConstraints_Click(object sender, RoutedEventArgs e)
@@ -1581,7 +1581,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 log.LogError("Warning! Entered boost plan prescription is not valid! \nCannot verify template Rx vs entered Rx! Exiting!");
                 return;
             }
-            (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(selectedTemplate, prescriptions);
+            (List<Tuple<string, List<OptimizationConstraint>>> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(selectedTemplate, prescriptions);
             if (!parsedConstraints.constraints.Any())
             {
                 log.LogError(parsedConstraints.errorMessage);
@@ -1596,7 +1596,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             else
             {
                 //entered prescription differs from prescription in template --> need to rescale all objectives by ratio of prescriptions
-                List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> scaledConstraints = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>
+                List<Tuple<string, List<OptimizationConstraint>>> scaledConstraints = new List<Tuple<string, List<OptimizationConstraint>>>
                 {
                     Tuple.Create(parsedConstraints.constraints.First().Item1, OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.First().Item2, selectedTemplate.GetInitialRxDosePerFx() * selectedTemplate.GetInitialRxNumFx(), initRx))
                 };
@@ -1610,7 +1610,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
         private void AssignOptimizationConstraints_Click(object sender, RoutedEventArgs e)
         {
-            (List<Tuple<string,List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optParametersSP);
+            (List<Tuple<string,List<OptimizationConstraint>>>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optParametersSP);
             if (!parsedOptimizationConstraints.Item1.Any())
             {
                 log.LogError(parsedOptimizationConstraints.Item2);
@@ -1623,7 +1623,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 theCourse = pi.Courses.FirstOrDefault(x => x.Id.ToLower() == "vmat csi");
                 pi.BeginModifications();
             }
-            foreach (Tuple<string,List<Tuple<string, OptimizationObjectiveType, double,double,int>>> itr in parsedOptimizationConstraints.Item1)
+            foreach (Tuple<string,List<OptimizationConstraint>> itr in parsedOptimizationConstraints.Item1)
             {
                 ExternalPlanSetup plan = null;
                 
@@ -1702,24 +1702,24 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             int index = prescriptions.IndexOf(prescriptions.FirstOrDefault(x => x.Item1 == thePlan.Id));
             if(index != -1)
             {
-                List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> tmpListList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
-                List<Tuple<string, OptimizationObjectiveType, double, double, int>> tmp = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+                List<Tuple<string, List<OptimizationConstraint>>> tmpListList = new List<Tuple<string, List<OptimizationConstraint>>> { };
+                List<OptimizationConstraint> tmp = new List<OptimizationConstraint> { };
                 if (theSP.Children.Count > 0)
                 {
                     //read list of current objectives
-                    (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(theSP, false);
+                    (List<Tuple<string, List<OptimizationConstraint>>>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(theSP, false);
                     if(!parsedOptimizationConstraints.Item1.Any())
                     {
                         log.LogError(parsedOptimizationConstraints.Item2);
                         return;
                     }
-                    foreach(Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in parsedOptimizationConstraints.Item1)
+                    foreach(Tuple<string, List<OptimizationConstraint>> itr in parsedOptimizationConstraints.Item1)
                     {
                         if (itr.Item1 == thePlan.Id)
                         {
-                            tmp = new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(itr.Item2)
+                            tmp = new List<OptimizationConstraint>(itr.Item2)
                             {
-                                Tuple.Create("--select--", OptimizationObjectiveType.None, 0.0, 0.0, 0)
+                                new OptimizationConstraint("--select--", OptimizationObjectiveType.None, 0.0, Units.cGy, 0.0, 0)
                             };
                             tmpListList.Add(Tuple.Create(itr.Item1,tmp));
                         }
@@ -1735,22 +1735,22 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                         //this is a bit of a mess
                         if(index == 0)
                         {
-                            if (selectedTemplate.GetInitOptimizationConstraints().Any()) tmp = new List<Tuple<string, OptimizationObjectiveType, double,double,int>>(selectedTemplate.GetInitOptimizationConstraints());
-                            tmp.Add(Tuple.Create("--select--", OptimizationObjectiveType.None, 0.0, 0.0, 0));
+                            if (selectedTemplate.InitialOptimizationConstraints.Any()) tmp = new List<OptimizationConstraint>(selectedTemplate.InitialOptimizationConstraints);
+                            tmp.Add(new OptimizationConstraint("--select--", OptimizationObjectiveType.None, 0.0, Units.cGy, 0.0, 0));
                             tmpListList.Add(Tuple.Create(thePlan.Id,tmp));
-                            if (selectedTemplate.GetBoostOptimizationConstraints().Any()) tmpListList.Add(Tuple.Create(prescriptions.FirstOrDefault(x => x.Item1 != thePlan.Id).Item1, selectedTemplate.GetBoostOptimizationConstraints()));
+                            if (selectedTemplate.BoostOptimizationConstraints.Any()) tmpListList.Add(Tuple.Create(prescriptions.FirstOrDefault(x => x.Item1 != thePlan.Id).Item1, selectedTemplate.BoostOptimizationConstraints));
                         }
                         else
                         {
-                            if (selectedTemplate.GetInitOptimizationConstraints().Any()) tmpListList.Add(Tuple.Create(prescriptions.FirstOrDefault(x => x.Item1 != thePlan.Id).Item1, selectedTemplate.GetInitOptimizationConstraints()));
+                            if (selectedTemplate.InitialOptimizationConstraints.Any()) tmpListList.Add(Tuple.Create(prescriptions.FirstOrDefault(x => x.Item1 != thePlan.Id).Item1, selectedTemplate.InitialOptimizationConstraints));
                             else
                             {
                                 log.LogError("Error! There should not be a boost plan with no initial plan!");
                                 return;
                             }
 
-                            if (selectedTemplate.GetBoostOptimizationConstraints().Any()) tmp = new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(selectedTemplate.GetBoostOptimizationConstraints());
-                            tmp.Add(Tuple.Create("--select--", OptimizationObjectiveType.None, 0.0, 0.0, 0));
+                            if (selectedTemplate.BoostOptimizationConstraints.Any()) tmp = new List<OptimizationConstraint>(selectedTemplate.BoostOptimizationConstraints);
+                            tmp.Add(new OptimizationConstraint("--select--", OptimizationObjectiveType.None, 0.0, Units.cGy, 0.0, 0));
                             tmpListList.Add(Tuple.Create(thePlan.Id, tmp));
                         }
                     }
@@ -1765,7 +1765,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             theSP.Children.Add(OptimizationSetupUIHelper.GetOptHeader(theSP.Width));
         }
 
-        private void AddOptimizationConstraintItems(List<Tuple<string, OptimizationObjectiveType, double, double, int>> defaultList, string planId, StackPanel theSP)
+        private void AddOptimizationConstraintItems(List<OptimizationConstraint> defaultList, string planId, StackPanel theSP)
         {
             if (selectedSS == null) 
             { 
@@ -1786,12 +1786,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             theSP.Children.Add(OptimizationSetupUIHelper.AddPlanIdtoOptList(theSP, planId));
             AddOptimizationConstraintsHeader(theSP);
-            for (int i = 0; i < defaultList.Count; i++)
+            foreach(OptimizationConstraint itr in defaultList)
             {
                 counter++;
                 theSP.Children.Add(OptimizationSetupUIHelper.AddOptVolume(theSP, 
                                                                           selectedSS, 
-                                                                          defaultList[i], 
+                                                                          itr, 
                                                                           clearBtnNamePrefix, 
                                                                           counter, 
                                                                           new RoutedEventHandler(this.ClearOptimizationConstraint_Click), 
@@ -2023,7 +2023,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 if (theTemplate.TSManipulations.Any()) AddStructureManipulationVolumes(theTemplate.TSManipulations, templateStructuresSP);
 
                 //add optimization constraints
-                (List<Tuple<string,List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(theTemplate, targetList);
+                (List<Tuple<string,List<OptimizationConstraint>>>, StringBuilder) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(theTemplate, targetList);
                 if(!parsedConstraints.Item1.Any())
                 {
                     log.LogError(parsedConstraints.Item2);
@@ -2094,7 +2094,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 AddStructureManipulationVolumes(parsedTSManipulationList.Item1, templateStructuresSP);
 
                 //add optimization constraints
-                (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optParametersSP);
+                (List<Tuple<string, List<OptimizationConstraint>>>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optParametersSP);
                 if(parsedOptimizationConstraints.Item1.Any())
                 {
                     log.LogError(parsedOptimizationConstraints.Item2);
@@ -2158,9 +2158,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             prospectiveTemplate.Rings = RingUIHelper.ParseCreateRingList(templateCreateRingsSP).Item1;
             prospectiveTemplate.SetCropAndOverlapStructures(CropOverlapOARUIHelper.ParseCropOverlapOARList(templateCropOverlapOARsSP).Item1);
             prospectiveTemplate.TSManipulations = StructureTuningUIHelper.ParseTSManipulationList(templateStructuresSP).Item1;
-            List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> templateOptParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(templateOptParamsSP).Item1;
-            prospectiveTemplate.SetInitOptimizationConstraints(templateOptParametersListList.First().Item2);
-            prospectiveTemplate.SetBoostOptimizationConstraints(templateOptParametersListList.Last().Item2);
+            List<Tuple<string, List<OptimizationConstraint>>> templateOptParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(templateOptParamsSP).Item1;
+            prospectiveTemplate.InitialOptimizationConstraints = new List<OptimizationConstraint>(templateOptParametersListList.First().Item2);
+            prospectiveTemplate.BoostOptimizationConstraints = new List<OptimizationConstraint>(templateOptParametersListList.Last().Item2);
 
             templatePreviewTB.Text = TemplateBuilder.GenerateTemplatePreviewText(prospectiveTemplate).ToString();
             templatePreviewScroller.ScrollToTop();

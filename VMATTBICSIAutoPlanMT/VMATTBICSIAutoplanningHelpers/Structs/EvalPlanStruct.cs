@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 using VMS.TPS.Common.Model.API;
 using OptimizationObjectiveType = VMATTBICSIAutoPlanningHelpers.Enums.OptimizationObjectiveType;
 
@@ -15,7 +16,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Structs
         //same for plan objectives
         public List<Tuple<Structure, DVHData, double, double>> diffPlanObj;
         //vector to hold the updated optimization objectives (to be assigned to the plan)
-        public List<Tuple<string, OptimizationObjectiveType, double, double, int>> updatedObj;
+        public List<OptimizationConstraint> updatedObj;
         //the total cost sum(dose diff^2 * priority) for all structures in the optimization objective vector list
         public double totalCostPlanOpt;
         //same for plan objective vector
@@ -33,7 +34,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Structs
             //vector to hold the results from the optimization for a particular PLAN objective
             diffPlanObj = new List<Tuple<Structure, DVHData, double, double>> { };
             //vector to hold the updated optimization objectives (following adjustment in the evaluateAndUpdatePlan method)
-            updatedObj = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+            updatedObj = new List<OptimizationConstraint> { };
             allObjectivesMet = false;
             wasKilled = false;
         }

@@ -7,6 +7,7 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
@@ -61,14 +62,14 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// </summary>
         /// <param name="planObj"></param>
         /// <returns></returns>
-        public static string PrintPlanObjectives(List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> planObj)
+        public static string PrintPlanObjectives(List<PlanObjective> planObj)
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine(GetPlanObjectivesHeader());
-            foreach (Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation> itr in planObj)
+            foreach (PlanObjective itr in planObj)
             {
                 //"structure Id", "constraint type", "dose (cGy or %)", "volume (%)", "Dose display (absolute or relative)"
-                sb.AppendLine(String.Format("{0, -16} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-9} |", itr.Item1, itr.Item2.ToString(), itr.Item3, itr.Item4, itr.Item5));
+                sb.AppendLine(String.Format("{0, -16} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-9} |", itr.StructureId, itr.ConstraintType, itr.QueryDose, itr.QueryVolume, itr.QueryDoseUnits));
             }
             sb.Append(Environment.NewLine);
             return sb.ToString();
@@ -230,13 +231,13 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <param name="planId"></param>
         /// <param name="constraints"></param>
         /// <returns></returns>
-        public static string PrintPlanOptimizationConstraints(string planId, List<Tuple<string, OptimizationObjectiveType, double, double, int>> constraints)
+        public static string PrintPlanOptimizationConstraints(string planId, List<OptimizationConstraint> constraints)
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine(GetOptimizationObjectivesHeader(planId));
-            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> itr in constraints)
+            foreach (OptimizationConstraint itr in constraints)
             {
-                sb.AppendLine(String.Format("{0, -16} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", itr.Item1, itr.Item2.ToString(), itr.Item3, itr.Item4, itr.Item5));
+                sb.AppendLine(String.Format("{0, -16} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", itr.StructureId, itr.ConstraintType, itr.QueryDose, itr.QueryVolume, itr.Priority));
             }
             return sb.ToString();
         }
@@ -250,7 +251,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <param name="totalCostPlanOpt"></param>
         /// <returns></returns>
         public static string PrintPlanOptimizationResultVsConstraints(ExternalPlanSetup plan, 
-                                                                      List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams, 
+                                                                      List<OptimizationConstraint> optParams, 
                                                                       List<Tuple<Structure, DVHData, double, double, double, int>> diffPlanOpt, 
                                                                       double totalCostPlanOpt)
         {
@@ -263,7 +264,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             {
                 //"structure Id", "constraint type", "dose diff^2 (cGy^2)", "current priority", "cost", "cost (%)"
                 sb.AppendLine(String.Format("{0, -16} | {1, -16} | {2, -20:N1} | {3, -16} | {4, -12:N1} | {5, -9:N1} |",
-                                                itr.Item1.Id, optParams.ElementAt(index).Item2.ToString(), itr.Item4, itr.Item6, itr.Item5, 100 * itr.Item5 / totalCostPlanOpt));
+                                                itr.Item1.Id, optParams.ElementAt(index).ConstraintType.ToString(), itr.Item4, itr.Item6, itr.Item5, 100 * itr.Item5 / totalCostPlanOpt));
                 index++;
             }
             return sb.ToString();

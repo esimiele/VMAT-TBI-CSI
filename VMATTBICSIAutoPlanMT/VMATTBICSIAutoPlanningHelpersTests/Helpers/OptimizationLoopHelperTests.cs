@@ -9,6 +9,7 @@ using Telerik.JustMock;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.Enums;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
 {
@@ -37,57 +38,57 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             Assert.AreNotEqual(expected, result2);
         }
 
-        public List<Tuple<string, OptimizationObjectiveType, double, double, int>> SetupDummyOptObjList()
+        public List<OptimizationConstraint> SetupDummyOptObjList()
         {
             //rx = 3600
-            return new List<Tuple<string, OptimizationObjectiveType, double, double, int>>
+            return new List<OptimizationConstraint>
             {
-                new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_cooler120", OptimizationObjectiveType.Upper, 3888.0, 0.0, 80),
-                new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_cooler110", OptimizationObjectiveType.Upper, 3888.0, 0.0, 80),
-                new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_cooler105", OptimizationObjectiveType.Upper, 3636.0, 0.0, 70),
-                new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_cooler107", OptimizationObjectiveType.Upper, 3672.0, 0.0, 80)
+                new OptimizationConstraint("TS_cooler120", OptimizationObjectiveType.Upper, 3888.0, Units.cGy, 0.0, 80),
+                new OptimizationConstraint("TS_cooler110", OptimizationObjectiveType.Upper, 3888.0, Units.cGy, 0.0, 80),
+                new OptimizationConstraint ("TS_cooler105", OptimizationObjectiveType.Upper, 3636.0, Units.cGy, 0.0, 70),
+                new OptimizationConstraint ("TS_cooler107", OptimizationObjectiveType.Upper, 3672.0, Units.cGy, 0.0, 80)
             };
         }
 
         [TestMethod()]
         public void ScaleHeaterCoolerOptConstraintsTest()
         {
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> dummyList = SetupDummyOptObjList();
+            List<OptimizationConstraint> dummyList = SetupDummyOptObjList();
             double planDose = 3600.0;
             double sumDose = 5400.0;
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> expected = new List<Tuple<string, OptimizationObjectiveType, double, double, int>>
+            List<OptimizationConstraint> expected = new List<OptimizationConstraint>
             {
-                new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_cooler120", OptimizationObjectiveType.Upper, 2592.0, 0.0, 80),
-                new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_cooler110", OptimizationObjectiveType.Upper, 2592.0, 0.0, 80),
-                new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_cooler105", OptimizationObjectiveType.Upper, 2424.0, 0.0, 70),
-                new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_cooler107", OptimizationObjectiveType.Upper, 2448.0, 0.0, 80)
+                new OptimizationConstraint("TS_cooler120", OptimizationObjectiveType.Upper, 2592.0, Units.cGy,0.0, 80),
+                new OptimizationConstraint("TS_cooler110", OptimizationObjectiveType.Upper, 2592.0, Units.cGy,0.0, 80),
+                new OptimizationConstraint("TS_cooler105", OptimizationObjectiveType.Upper, 2424.0, Units.cGy,0.0, 70),
+                new OptimizationConstraint("TS_cooler107", OptimizationObjectiveType.Upper, 2448.0, Units.cGy,0.0, 80)
             };
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> result = OptimizationLoopHelper.ScaleHeaterCoolerOptConstraints(planDose, sumDose, dummyList);
+            List<OptimizationConstraint> result = OptimizationLoopHelper.ScaleHeaterCoolerOptConstraints(planDose, sumDose, dummyList);
             CollectionAssert.AreEqual(expected, result);
         }
 
         [TestMethod()]
         public void IncreaseOptConstraintPrioritiesForFinalOptTest()
         {
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> dummyList = SetupDummyOptObjList();
-            dummyList.Add(Tuple.Create("TS_PTV_CSI", OptimizationObjectiveType.Lower, 3600.0, 0.0, 120));
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> expected = new List<Tuple<string, OptimizationObjectiveType, double, double, int>>
+            List<OptimizationConstraint> dummyList = SetupDummyOptObjList();
+            dummyList.Add(new OptimizationConstraint("TS_PTV_CSI", OptimizationObjectiveType.Lower, 3600.0, Units.cGy, 0.0, 120));
+            List<OptimizationConstraint> expected = new List<OptimizationConstraint>
             {
-                new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_cooler120", OptimizationObjectiveType.Upper, 3810.24, 0.0, 108),
-                new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_cooler110", OptimizationObjectiveType.Upper, 3810.24, 0.0, 108),
-                new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_cooler105", OptimizationObjectiveType.Upper, 3563.28, 0.0, 108),
-                new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_cooler107", OptimizationObjectiveType.Upper, 3598.56, 0.0, 108),
-                new Tuple<string, OptimizationObjectiveType, double, double, int>("TS_PTV_CSI", OptimizationObjectiveType.Lower, 3600.0, 0.0, 120)
+                new OptimizationConstraint("TS_cooler120", OptimizationObjectiveType.Upper, 3810.24, Units.cGy,0.0, 108),
+                new OptimizationConstraint("TS_cooler110", OptimizationObjectiveType.Upper, 3810.24, Units.cGy,0.0, 108),
+                new OptimizationConstraint("TS_cooler105", OptimizationObjectiveType.Upper, 3563.28, Units.cGy,0.0, 108),
+                new OptimizationConstraint("TS_cooler107", OptimizationObjectiveType.Upper, 3598.56, Units.cGy,0.0, 108),
+                new OptimizationConstraint("TS_PTV_CSI", OptimizationObjectiveType.Lower, 3600.0, Units.cGy,0.0, 120)
             };
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> result = OptimizationLoopHelper.IncreaseOptConstraintPrioritiesForFinalOpt(dummyList);
+            List<OptimizationConstraint> result = OptimizationLoopHelper.IncreaseOptConstraintPrioritiesForFinalOpt(dummyList);
             int count = 0;
-            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> itr in result)
+            foreach (OptimizationConstraint itr in result)
             {
-                Tuple<string, OptimizationObjectiveType, double, double, int> exp = expected.ElementAtOrDefault(count++);
+                OptimizationConstraint exp = expected.ElementAtOrDefault(count++);
                 //tolerance of 0.01 cGy (for some reason, just mock says the result and expected are different, but I can't see any difference in the output. Must be rounding)
-                Assert.AreEqual(itr.Item3, exp.Item3, 0.01);
-                Assert.AreEqual(itr.Item5, exp.Item5);
-                //Console.WriteLine($"{itr.Item1}, {itr.Item2}, {itr.Item3}, {itr.Item4}, {itr.Item5} | {exp.Item1}, {exp.Item2}, {exp.Item3}, {exp.Item4}, {exp.Item5} ");
+                Assert.AreEqual(itr.QueryDose, exp.QueryDose, 0.01);
+                Assert.AreEqual(itr.Priority, exp.Priority);
+                Console.WriteLine($"{itr.StructureId}, {itr.ConstraintType}, {itr.QueryDose}, {itr.QueryVolume}, {itr.Priority} | {exp.StructureId}, {exp.ConstraintType}, {exp.QueryDose}, {exp.QueryVolume}, {exp.Priority} ");
             }
         }
 

@@ -100,8 +100,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                             List<RequestedTSManipulation> TSManipulation_temp = new List<RequestedTSManipulation> { };
                             List<RequestedTSStructure> TSstructures_temp = new List<RequestedTSStructure> { };
                             List<TSRing> createRings_temp = new List<TSRing> { };
-                            List<Tuple<string, OptimizationObjectiveType, double, double, int>> initOptConst_temp = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
-                            List<Tuple<string, OptimizationObjectiveType, double, double, int>> bstOptConst_temp = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+                            List<OptimizationConstraint> initOptConst_temp = new List<OptimizationConstraint> { };
+                            List<OptimizationConstraint> bstOptConst_temp = new List<OptimizationConstraint> { };
                             List<PlanTarget> targets_temp = new List<PlanTarget> { };
                             List<string> cropAndContourOverlapStructures_temp = new List<string> { };
                             //optimization loop
@@ -152,8 +152,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                             if (createRings_temp.Any()) tempTemplate.Rings = new List<TSRing>(createRings_temp);
                             if (cropAndContourOverlapStructures_temp.Any()) tempTemplate.SetCropAndOverlapStructures(cropAndContourOverlapStructures_temp);
                             if (TSstructures_temp.Any()) tempTemplate.CreateTSStructures = TSstructures_temp;
-                            if (initOptConst_temp.Any()) tempTemplate.SetInitOptimizationConstraints(initOptConst_temp);
-                            if (bstOptConst_temp.Any()) tempTemplate.SetBoostOptimizationConstraints(bstOptConst_temp);
+                            if (initOptConst_temp.Any()) tempTemplate.InitialOptimizationConstraints = new List<OptimizationConstraint>(initOptConst_temp);
+                            if (bstOptConst_temp.Any()) tempTemplate.BoostOptimizationConstraints = new List<OptimizationConstraint>(bstOptConst_temp);
                             if (targets_temp.Any()) tempTemplate.PlanTargets = new List<PlanTarget>(targets_temp);
                             if (planObj_temp.Any()) tempTemplate.PlanObjectives = new List<PlanObjective>(planObj_temp);
                             if (requestedTSstructures_temp.Any()) tempTemplate.SetRequestedOptTSStructures(requestedTSstructures_temp);
@@ -187,7 +187,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                             //preparation
                             List<RequestedTSManipulation> TSManipulation_temp = new List<RequestedTSManipulation> { };
                             List<RequestedTSStructure> TSstructures_temp = new List<RequestedTSStructure> { };
-                            List<Tuple<string, OptimizationObjectiveType, double, double, int>> initOptConst_temp = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+                            List<OptimizationConstraint> initOptConst_temp = new List<OptimizationConstraint> { };
                             List<PlanTarget> targets_temp = new List<PlanTarget> { };
                             //optimization loop
                             List<PlanObjective> planObj_temp = new List<PlanObjective> { };
@@ -224,7 +224,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 
                             if (TSManipulation_temp.Any()) tempTemplate.TSManipulations = new List<RequestedTSManipulation>(TSManipulation_temp);
                             if (TSstructures_temp.Any()) tempTemplate.CreateTSStructures = TSstructures_temp;
-                            if (initOptConst_temp.Any()) tempTemplate.SetInitOptimizationConstraints(initOptConst_temp);
+                            if (initOptConst_temp.Any()) tempTemplate.InitialOptimizationConstraints = new List<OptimizationConstraint>(initOptConst_temp);
                             if (targets_temp.Any()) tempTemplate.PlanTargets = new List<PlanTarget>(targets_temp);
                             if (planObj_temp.Any()) tempTemplate.PlanObjectives = new List<PlanObjective>(planObj_temp);
                             if (requestedTSstructures_temp.Any()) tempTemplate.SetRequestedOptTSStructures(requestedTSstructures_temp);
@@ -389,7 +389,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        public static Tuple<string, OptimizationObjectiveType, double, double, int> ParseOptimizationConstraint(string line)
+        public static OptimizationConstraint ParseOptimizationConstraint(string line)
         {
             //known array format --> can take shortcuts in parsing the data
             //structure id, constraint type, dose (cGy), volume (%), priority
@@ -408,7 +408,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             volumeVal = double.Parse(line.Substring(0, line.IndexOf(",")));
             line = CropLine(line, ",");
             priorityVal = int.Parse(line.Substring(0, line.IndexOf("}")));
-            return Tuple.Create(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), doseVal, volumeVal, priorityVal);
+            return new OptimizationConstraint(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), doseVal, Units.cGy, volumeVal, priorityVal);
         }
 
         /// <summary>
@@ -556,7 +556,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             line = CropLine(line, ",");
             if (line.Contains("Relative")) dvp = DoseValuePresentation.Relative;
             else dvp = DoseValuePresentation.Absolute;
-            return new PlanObjective(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), doseVal, Units.cGy, volumeVal, Units.Percent);
+            return new PlanObjective(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), doseVal, dvp == DoseValuePresentation.Absolute ? Units.cGy : Units.Percent, volumeVal, Units.Percent);
         }
 
         /// <summary>

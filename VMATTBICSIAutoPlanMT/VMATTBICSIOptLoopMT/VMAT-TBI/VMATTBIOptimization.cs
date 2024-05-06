@@ -10,6 +10,7 @@ using VMATTBICSIAutoPlanningHelpers.Structs;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
 using System.Text;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 
 namespace VMATTBICSIOptLoopMT.VMAT_TBI
 {
@@ -194,19 +195,19 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
         {
             ProvideUIUpdate("Running coverage check..." + Environment.NewLine);
             //zero all optimization objectives except those in the target
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> targetOnlyObj = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+            List<OptimizationConstraint> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
+            List<OptimizationConstraint> targetOnlyObj = new List<OptimizationConstraint> { };
 
             ProvideUIUpdate(OptimizationLoopUIHelper.GetOptimizationObjectivesHeader(plan.Id));
             int percentCompletion = 0;
             int calcItems = 5;
-            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in optParams)
+            foreach (OptimizationConstraint opt in optParams)
             {
                 int priority = 0;
-                if (opt.Item1.ToLower().Contains("ptv") || opt.Item1.ToLower().Contains("ts_jnx")) priority = opt.Item5;
-                targetOnlyObj.Add(Tuple.Create(opt.Item1, opt.Item2, opt.Item3, opt.Item4, priority));
+                if (opt.StructureId.ToLower().Contains("ptv") || opt.StructureId.ToLower().Contains("ts_jnx")) priority = opt.Priority;
+                targetOnlyObj.Add(new OptimizationConstraint(opt.StructureId, opt.ConstraintType, opt.QueryDose, Units.cGy, opt.QueryVolume, priority));
                 //record the optimization constraints for each structure after zero-ing the priorities. This information will be reported to the user in a progress update
-                ProvideUIUpdate(String.Format("{0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, priority));
+                ProvideUIUpdate(String.Format("{0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.StructureId, opt.ConstraintType, opt.QueryDose, opt.QueryVolume, priority));
             }
             //update the constraints and provide an update to the user
             UpdateConstraints(targetOnlyObj, plan);

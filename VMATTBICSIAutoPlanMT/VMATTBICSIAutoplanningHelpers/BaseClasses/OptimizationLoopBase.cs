@@ -12,6 +12,7 @@ using VMATTBICSIAutoPlanningHelpers.UIHelpers;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
 using OptimizationProgressWindow;
 using System.Text;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 
 namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 {
@@ -611,21 +612,21 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         protected virtual bool InitializeOptimizationConstriants(ExternalPlanSetup plan)
         {
             int percentComplete = 0;
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> originalOptObj = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
+            List<OptimizationConstraint> originalOptObj = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
             int calcItems = originalOptObj.Count();
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> optObj = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+            List<OptimizationConstraint> optObj = new List<OptimizationConstraint> { };
             int priority;
             
             UpdateUILabel("Initialize constraints:");
             ProvideUIUpdate(OptimizationLoopUIHelper.GetOptimizationObjectivesHeader(plan.Id));
-            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in originalOptObj)
+            foreach (OptimizationConstraint opt in originalOptObj)
             {
                 //leave the PTV priorities at their original values (i.e., 100)
-                if (opt.Item1.ToLower().Contains("ptv") || opt.Item1.ToLower().Contains("ts_jnx")) priority = opt.Item5;
+                if (opt.StructureId.ToLower().Contains("ptv") || opt.StructureId.ToLower().Contains("ts_jnx")) priority = opt.Priority;
                 //start OAR structure priorities at 2/3 of the values the user specified so there is some wiggle room for adjustment
-                else priority = (int)Math.Ceiling(((double)opt.Item5 * 2) / 3);
-                optObj.Add(Tuple.Create(opt.Item1, opt.Item2, opt.Item3, opt.Item4, priority));
-                ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("{0, -16} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, priority));
+                else priority = (int)Math.Ceiling(((double)opt.Priority * 2) / 3);
+                optObj.Add(new OptimizationConstraint(opt.StructureId, opt.ConstraintType, opt.QueryDose, Units.cGy, opt.QueryVolume, priority));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, String.Format("{0, -16} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.StructureId, opt.ConstraintType, opt.QueryDose, opt.QueryVolume, priority));
             }
             ProvideUIUpdate(" ");
             UpdateConstraints(optObj, plan);
@@ -634,7 +635,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             return false;
         }
 
-        protected bool UpdateConstraints(List<Tuple<string, OptimizationObjectiveType, double, double, int>> obj, ExternalPlanSetup plan)
+        protected bool UpdateConstraints(List<OptimizationConstraint> obj, ExternalPlanSetup plan)
         {
             int percentComplete = 0;
             int calcItems = plan.OptimizationSetup.Objectives.Count() + obj.Count();
@@ -648,10 +649,22 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 
             UpdateUILabel("Assign updated constraints:");
             //assign the new optimization constraints (passed as an argument to this method)
-            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in obj)
+            foreach (OptimizationConstraint opt in obj)
             {
-                if (opt.Item2 != OptimizationObjectiveType.Mean) plan.OptimizationSetup.AddPointObjective(StructureTuningHelper.GetStructureFromId(opt.Item1, plan.StructureSet), OptimizationTypeHelper.GetObjectiveOperator(opt.Item2), new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item4, opt.Item5);
-                else plan.OptimizationSetup.AddMeanDoseObjective(StructureTuningHelper.GetStructureFromId(opt.Item1, plan.StructureSet), new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item5);
+                if (opt.ConstraintType != OptimizationObjectiveType.Mean)
+                {
+                    plan.OptimizationSetup.AddPointObjective(StructureTuningHelper.GetStructureFromId(opt.StructureId, plan.StructureSet),
+                                                             OptimizationTypeHelper.GetObjectiveOperator(opt.ConstraintType),
+                                                             new DoseValue(opt.QueryDose, opt.QueryDoseUnits != Units.Percent ? DoseValue.DoseUnit.cGy : DoseValue.DoseUnit.Percent),
+                                                             opt.QueryVolume,
+                                                             opt.Priority);
+                }
+                else
+                {
+                    plan.OptimizationSetup.AddMeanDoseObjective(StructureTuningHelper.GetStructureFromId(opt.StructureId, plan.StructureSet), 
+                                                                new DoseValue(opt.QueryDose, opt.QueryDoseUnits != Units.Percent ? DoseValue.DoseUnit.cGy : DoseValue.DoseUnit.Percent), 
+                                                                opt.Priority);
+                }
                 ProvideUIUpdate(100 * ++percentComplete / calcItems);
             }
             UpdateOverallProgress(100 * ++overallPercentCompletion / overallCalcItems);
@@ -723,7 +736,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="finalOptimization"></param>
         /// <returns></returns>
         protected EvalPlanStruct EvaluateAndUpdatePlan(ExternalPlanSetup plan, 
-                                                       List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> planObj, 
+                                                       List<PlanObjective> planObj, 
                                                        bool finalOptimization)
         {
             UpdateUILabel($"Plan evaluation: {plan.Id}");
@@ -733,7 +746,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             e.Construct();
 
             ProvideUIUpdate($"Parsing optimization objectives from plan: {plan.Id}");
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
+            List<OptimizationConstraint> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
             //get current optimization objectives from plan (we could use the optParams list, but we want the actual instances of the OptimizationObjective class so we can get the results from each objective)
             (int numComparison, int numPass, double totalCostPlanObj, List<Tuple<Structure, DVHData, double, double>> differenceFromPlanObj) = EvaluateResultVsPlanObjectives(plan, planObj, optParams);
             if (GetAbortStatus())
@@ -771,7 +784,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 return e;
             }
 
-            (bool wasKilled, List<Tuple<string, OptimizationObjectiveType, double, double, int>> updatedOptConstraints) = UpdateHeaterCoolerStructures(plan, finalOptimization, _data.requestedTSstructures);
+            (bool wasKilled, List<OptimizationConstraint> updatedOptConstraints) = UpdateHeaterCoolerStructures(plan, finalOptimization, _data.requestedTSstructures);
 
             //did the user abort the program while updating the heater and cooler structures
             if(wasKilled)
@@ -795,8 +808,8 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="optParams"></param>
         /// <returns></returns>
         protected (int, int, double, List<Tuple<Structure, DVHData, double, double>>) EvaluateResultVsPlanObjectives(ExternalPlanSetup plan, 
-                                                                                                                     List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> planObj, 
-                                                                                                                     List<Tuple<string, OptimizationObjectiveType, double,double,int>> optParams)
+                                                                                                                     List<PlanObjective> planObj, 
+                                                                                                                     List<OptimizationConstraint> optParams)
         {
             ProvideUIUpdate("Evluating optimization result vs plan objectives");
             int percentComplete = 0;
@@ -810,17 +823,17 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             //loop through all the plan objectives for this case and compare the actual dose to the dose in the plan objective.
             //If we met the constraint, increment numPass. At the end of the loop, if numPass == the number of plan objectives
             //then we have achieved the desired plan quality and can stop the optimization loop
-            foreach (Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation> itr in planObj)
+            foreach (PlanObjective itr in planObj)
             {
                 ProvideUIUpdate(100 * ++percentComplete / calcItems);
                 //used to account for the case where there is a template plan objective that is not included in the current case (e.g., testes are not always spared)
-                if (StructureTuningHelper.DoesStructureExistInSS(itr.Item1, plan.StructureSet, true))
+                if (StructureTuningHelper.DoesStructureExistInSS(itr.StructureId, plan.StructureSet, true))
                 {
                     //similar to code to the foreach loop used to cycle through the optimization parameters
-                    Structure s = StructureTuningHelper.GetStructureFromId(itr.Item1, plan.StructureSet);;
+                    Structure s = StructureTuningHelper.GetStructureFromId(itr.StructureId, plan.StructureSet);;
                     //this statement is difference from the dvh statement in the previous foreach loop because the dose is always expressed as an absolute value in the optimization objectives, but can be either relative or absolute in the plan objectives
                     //(itr.Item5 is the dose representation for this objective)
-                    DVHData dvh = plan.GetDVHCumulativeData(s, itr.Item5, VolumePresentation.Relative, 0.1);
+                    DVHData dvh = plan.GetDVHCumulativeData(s, itr.QueryDoseUnits == Units.Percent ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute, VolumePresentation.Relative, 0.1);
                     double diff = 0.0;
                     double cost = 0.0;
                     int optPriority = 0;
@@ -829,16 +842,16 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                     //structure for this plan and we should increment the number of comparisons counter. In addition, we need to copy the objective priority from the optimization objective if there is one
                     //If so, do a three-way comparison to find the correct optimization objective for this plan objective (compare based structureId, constraint type, and constraint volume). These three objectives will remain constant
                     //throughout the optimization process whereas the dose constraint will vary
-                    List<Tuple<string, OptimizationObjectiveType, double, double, int>> copyOpt = (from p in optParams
-                                                                                             where p.Item1.ToLower() == s.Id.ToLower()
-                                                                                             where p.Item2 == itr.Item2
-                                                                                             where p.Item4 == itr.Item4
-                                                                                             select p).ToList();
+                    List<OptimizationConstraint> copyOpt = (from p in optParams
+                                                            where p.StructureId.ToLower() == s.Id.ToLower()
+                                                            where p.ConstraintType == itr.ConstraintType
+                                                            where p.QueryVolume == itr.QueryVolume
+                                                            select p).ToList();
 
                     //If the appropriate constraint was found, calculate the cost as the (dose diff)^2 * priority 
                     if (copyOpt.Any())
                     {
-                        optPriority = copyOpt.First().Item5;
+                        optPriority = copyOpt.First().Priority;
                         //ProvideUIUpdate(String.Format("Corresponding optimization objective found for plan objective: ({0},{1},{2},{3},{4})", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5.ToString()));
                         //increment the number of comparisons since an optimization constraint was found
                         numComparisons++;
@@ -849,13 +862,13 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                     if (diff <= 0.0)
                     {
                         //objective was met. Increment the counter for the number of objecives met
-                        ProvideUIUpdate($"Plan objective met for: ({itr.Item1},{itr.Item2},{itr.Item3},{itr.Item4},{itr.Item5})");
+                        ProvideUIUpdate($"Plan objective met for: ({itr.StructureId},{itr.ConstraintType},{itr.QueryDose} {itr.QueryDoseUnits}, {itr.QueryVolume} {itr.QueryVolumeUnits})");
                         numPass++;
                     }
                     else
                     {
                         cost = diff * diff * optPriority;
-                        ProvideUIUpdate($"Plan objective NOT met for: ({itr.Item1},{itr.Item2},{itr.Item3},{itr.Item4},{itr.Item5})");
+                        ProvideUIUpdate($"Plan objective NOT met for: ({itr.StructureId},{itr.ConstraintType},{itr.QueryDose} {itr.QueryDoseUnits}, {itr.QueryVolume} {itr.QueryVolumeUnits})");
                     }
 
                     //add this comparison to the list and increment the running total of the cost for the plan objectives
@@ -874,7 +887,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="optParams"></param>
         /// <returns></returns>
         protected (double, List<Tuple<Structure, DVHData, double, double, double, int>>) EvaluateResultVsOptimizationConstraints(ExternalPlanSetup plan, 
-                                                                                                                                 List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams)
+                                                                                                                                 List<OptimizationConstraint> optParams)
         {
             ProvideUIUpdate("Evaluating optimization result vs optimization constraints:");
             //since we didn't meet all of the plan objectives, we now need to evaluate how well the plan compared to the desired plan objectives
@@ -883,20 +896,20 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             double totalCostPlanOpt = 0;
             int percentComplete = 0;
             int calcItems = 1 + optParams.Count();
-            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> itr in optParams)
+            foreach (OptimizationConstraint itr in optParams)
             {
                 ProvideUIUpdate(100 * ++percentComplete / calcItems);
                 //get the structure for each optimization object in optParams and its associated DVH
-                Structure s = StructureTuningHelper.GetStructureFromId(itr.Item1, _data.selectedSS);
+                Structure s = StructureTuningHelper.GetStructureFromId(itr.StructureId, _data.selectedSS);
                 //dose representation in optimization objectives is always absolute!
                 DVHData dvh = plan.GetDVHCumulativeData(s, DoseValuePresentation.Absolute, VolumePresentation.Relative, 0.1);
                 double diff = PlanEvaluationHelper.GetDifferenceFromGoal(plan, itr, s, dvh);
 
                 //calculate the cost for this constraint as the dose difference squared times the constraint priority
-                double cost = diff * diff * itr.Item5;
+                double cost = diff * diff * itr.Priority;
 
                 //structure, dvh data, current dose obj, dose diff^2, cost, current priority
-                differenceFromOptConstraints.Add(Tuple.Create(s, dvh, itr.Item3, diff * diff, cost, itr.Item5));
+                differenceFromOptConstraints.Add(Tuple.Create(s, dvh, itr.QueryDose, diff * diff, cost, itr.Priority));
                 //add the cost for this constraint to the running total
                 totalCostPlanOpt += cost;
             }
@@ -913,15 +926,15 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="totalCostOptimizationConstraints"></param>
         /// <param name="optParams"></param>
         /// <returns></returns>
-        protected virtual List<Tuple<string, OptimizationObjectiveType, double, double, int>> DetermineNewOptimizationObjectives(ExternalPlanSetup plan, 
-                                                                                                                                 List<Tuple<Structure, DVHData, double, double, double, int>> diffPlanOpt, 
-                                                                                                                                 double totalCostOptimizationConstraints, 
-                                                                                                                                 List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams)
+        protected virtual List<OptimizationConstraint> DetermineNewOptimizationObjectives(ExternalPlanSetup plan, 
+                                                                                          List<Tuple<Structure, DVHData, double, double, double, int>> diffPlanOpt, 
+                                                                                          double totalCostOptimizationConstraints, 
+                                                                                          List<OptimizationConstraint> optParams)
         {
             ProvideUIUpdate("Determining new optimization objectives for next iteration");
             //not all plan objectives were met and now we need to do some investigative work to find out what failed and by how much
             //update optimization parameters based on how each of the structures contained in diffPlanOpt performed
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> updatedOptimizationConstraints = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+            List<OptimizationConstraint> updatedOptimizationConstraints = new List<OptimizationConstraint> { };
             int percentComplete = 0;
             int calcItems = 1 + diffPlanOpt.Count();
             int count = 0;
@@ -961,9 +974,9 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 }
 
                 //do NOT update the cooler and heater structure objectives (these will be removed, re-contoured, and re-assigned optimization objectives in the below statements)
-                if (!optParams.ElementAt(count).Item1.ToLower().Contains("ts_heater") && !optParams.ElementAt(count).Item1.ToLower().Contains("ts_cooler"))
+                if (!optParams.ElementAt(count).StructureId.ToLower().Contains("ts_heater") && !optParams.ElementAt(count).StructureId.ToLower().Contains("ts_cooler"))
                 {
-                    updatedOptimizationConstraints.Add(Tuple.Create(optParams.ElementAt(count).Item1, optParams.ElementAt(count).Item2, newDose, optParams.ElementAt(count).Item4, newPriority));
+                    updatedOptimizationConstraints.Add(new OptimizationConstraint(optParams.ElementAt(count).StructureId, optParams.ElementAt(count).ConstraintType, newDose, Units.cGy, optParams.ElementAt(count).QueryVolume, newPriority));
                 }
                 count++;
             }
@@ -981,7 +994,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="requestedTSStructures"></param>
         /// <param name="removeExistingHeaterCoolerStructures"></param>
         /// <returns></returns>
-        protected virtual (bool, List<Tuple<string, OptimizationObjectiveType, double, double, int>>) UpdateHeaterCoolerStructures(ExternalPlanSetup plan, 
+        protected virtual (bool, List<OptimizationConstraint>) UpdateHeaterCoolerStructures(ExternalPlanSetup plan, 
                                                                                                                                    bool isFinalOptimization, 
                                                                                                                                    List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSStructures, 
                                                                                                                                    bool removeExistingHeaterCoolerStructures = true)
@@ -995,7 +1008,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             if(removeExistingHeaterCoolerStructures) RemoveCoolHeatStructures(plan);
 
             //list to hold info related to optimization constraints for any added heater and cooler structures
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> heaterCoolerOptConstraints = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan).Where(x => x.Item1.ToLower().Contains("cooler") || x.Item1.ToLower().Contains("heater")).ToList();
+            List<OptimizationConstraint> heaterCoolerOptConstraints = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan).Where(x => x.StructureId.ToLower().Contains("cooler") || x.StructureId.ToLower().Contains("heater")).ToList();
             //now create new cooler and heating structures
             ProvideUIUpdate($"Retrieving target structure for plan: {plan.Id}");
             List<Tuple<string, string>> plansTargets = TargetsHelper.GetHighestRxPlanTargetList(_data.prescriptions);
@@ -1022,7 +1035,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             foreach (Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>> itr in requestedTSStructures)
             {
                 ProvideUIUpdate(100 * ++percentComplete / calcItems);
-                Tuple<string, OptimizationObjectiveType, double, double, int> TSstructure = null;
+                OptimizationConstraint TSstructure = null;
                 //does it have constraints that need to be met before adding the TS structure?
                 if (TSHeaterCoolerHelper.AllHeaterCoolerTSConstraintsMet(plan, target, itr.Item6, isFinalOptimization))
                 {
@@ -1030,14 +1043,14 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                     if (itr.Item1.Contains("cooler"))
                     {
                         //cooler
-                        (string update, Tuple<string, OptimizationObjectiveType, double, double, int> cooler) = TSHeaterCoolerHelper.GenerateCooler(plan, itr.Item2 / 100, itr.Item3 / 100, itr.Item4, itr.Item1, itr.Item5);
+                        (string update, OptimizationConstraint cooler) = TSHeaterCoolerHelper.GenerateCooler(plan, itr.Item2 / 100, itr.Item3 / 100, itr.Item4, itr.Item1, itr.Item5);
                         ProvideUIUpdate(update);
                         TSstructure = cooler;
                     }
                     else
                     {
                         //heater
-                        (string update, Tuple<string, OptimizationObjectiveType, double, double, int> heater) = TSHeaterCoolerHelper.GenerateHeater(plan, target, itr.Item2 / 100, itr.Item3 / 100, itr.Item4, itr.Item1, itr.Item5);
+                        (string update, OptimizationConstraint heater) = TSHeaterCoolerHelper.GenerateHeater(plan, target, itr.Item2 / 100, itr.Item3 / 100, itr.Item4, itr.Item1, itr.Item5);
                         ProvideUIUpdate(update);
                         TSstructure = heater;
                     }

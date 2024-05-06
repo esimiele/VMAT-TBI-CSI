@@ -115,20 +115,20 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             else output.AppendLine($" No structures requested for crop/overlap with targets for template: {prospectiveTemplate.TemplateName}");
             output.AppendLine("");
 
-            if (prospectiveTemplate.GetInitOptimizationConstraints().Any())
+            if (prospectiveTemplate.InitialOptimizationConstraints.Any())
             {
                 output.AppendLine($" Initial Dose per fraction: {prospectiveTemplate.TemplateName} cGy");
                 output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority"));
-                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in prospectiveTemplate.GetInitOptimizationConstraints()) output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5));
+                foreach (OptimizationConstraint opt in prospectiveTemplate.InitialOptimizationConstraints) output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.StructureId, opt.ConstraintType, opt.QueryDose, opt.QueryVolume, opt.Priority));
             }
             else output.AppendLine(" No iniital plan optimization constraints for template: {prospectiveTemplate.GetTemplateName()}");
             output.AppendLine("");
 
-            if (prospectiveTemplate.GetBoostOptimizationConstraints().Any())
+            if (prospectiveTemplate.BoostOptimizationConstraints.Any())
             {
                 output.AppendLine($" Initial Dose per fraction: {prospectiveTemplate.TemplateName} cGy");
                 output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority"));
-                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in prospectiveTemplate.GetBoostOptimizationConstraints()) output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5));
+                foreach (OptimizationConstraint opt in prospectiveTemplate.BoostOptimizationConstraints) output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.StructureId, opt.ConstraintType, opt.QueryDose, opt.QueryVolume, opt.Priority));
             }
             else output.AppendLine($" No boost plan optimization constraints for template: {prospectiveTemplate.TemplateName}");
             output.AppendLine("");
@@ -144,11 +144,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         private static StringBuilder PrintTBIPlanSpecificInfo(TBIAutoPlanTemplate prospectiveTemplate)
         {
             StringBuilder output = new StringBuilder();
-            if (prospectiveTemplate.GetInitOptimizationConstraints().Any())
+            if (prospectiveTemplate.InitialOptimizationConstraints.Any())
             {
                 output.AppendLine($" {prospectiveTemplate.TemplateName} template initial plan optimization parameters:");
                 output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority"));
-                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in prospectiveTemplate.GetInitOptimizationConstraints()) output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5));
+                foreach (OptimizationConstraint opt in prospectiveTemplate.InitialOptimizationConstraints) output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.StructureId, opt.ConstraintType, opt.QueryDose, opt.QueryVolume, opt.Priority));
             }
             else output.AppendLine($" No iniital plan optimization constraints for template: {prospectiveTemplate.TemplateName}");
             output.AppendLine("");
@@ -204,17 +204,17 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             }
             else output.AppendLine("%");
 
-            if (prospectiveTemplate.GetInitOptimizationConstraints().Any())
+            if (prospectiveTemplate.InitialOptimizationConstraints.Any())
             {
-                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> itr in prospectiveTemplate.GetInitOptimizationConstraints()) output.AppendLine($"add init opt constraint{{{itr.Item1},{itr.Item2.ToString()},{itr.Item3},{itr.Item4},{itr.Item5}}}");
+                foreach (OptimizationConstraint itr in prospectiveTemplate.InitialOptimizationConstraints) output.AppendLine($"add init opt constraint{{{itr.StructureId},{itr.ConstraintType},{itr.QueryDose},{itr.QueryVolume},{itr.Priority}}}");
                 output.AppendLine("%");
                 output.AppendLine("%");
             }
             else output.AppendLine("%");
 
-            if (prospectiveTemplate.GetBoostOptimizationConstraints().Any())
+            if (prospectiveTemplate.BoostOptimizationConstraints.Any())
             {
-                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> itr in prospectiveTemplate.GetBoostOptimizationConstraints()) output.AppendLine($"add boost opt constraint{{{itr.Item1},{itr.Item2.ToString()},{itr.Item3},{itr.Item4},{itr.Item5}}}");
+                foreach (OptimizationConstraint itr in prospectiveTemplate.BoostOptimizationConstraints) output.AppendLine($"add boost opt constraint{{{itr.StructureId},{itr.ConstraintType},{itr.QueryDose},{itr.QueryVolume},{itr.Priority}}}");
                 output.AppendLine("%");
                 output.AppendLine("%");
             }
@@ -230,9 +230,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         private static StringBuilder SerializeTBITemplateParameters(TBIAutoPlanTemplate prospectiveTemplate)
         {
             StringBuilder output = new StringBuilder();
-            if (prospectiveTemplate.GetInitOptimizationConstraints().Any())
+            if (prospectiveTemplate.InitialOptimizationConstraints.Any())
             {
-                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> itr in prospectiveTemplate.GetInitOptimizationConstraints()) output.AppendLine($"add init opt constraint{{{itr.Item1},{itr.Item2.ToString()},{itr.Item3},{itr.Item4},{itr.Item5}}}");
+                foreach (OptimizationConstraint itr in prospectiveTemplate.InitialOptimizationConstraints) output.AppendLine($"add init opt constraint{{{itr.StructureId},{itr.ConstraintType},{itr.QueryDose},{itr.QueryVolume},{itr.Priority}}}");
                 output.AppendLine("%");
                 output.AppendLine("%");
             }

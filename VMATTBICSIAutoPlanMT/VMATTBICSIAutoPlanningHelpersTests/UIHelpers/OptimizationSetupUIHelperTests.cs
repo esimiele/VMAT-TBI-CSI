@@ -10,6 +10,7 @@ using Telerik.JustMock;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using Telerik.JustMock.AutoMock.Ninject.Planning;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers.Tests
 {
@@ -46,18 +47,18 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers.Tests
             return testMeanObj;
         }
 
-        public List<Tuple<string, OptimizationObjectiveType, double, double, int>> BuildExpectedObjectiveList()
+        public List<OptimizationConstraint> BuildExpectedObjectiveList()
         {
-            return new List<Tuple<string, OptimizationObjectiveType, double, double, int>>
+            return new List<OptimizationConstraint>
             {
-                Tuple.Create("0", OptimizationObjectiveType.Upper, 0.0, 0.0, 0),
-                Tuple.Create("1", OptimizationObjectiveType.Lower, 10.0, 100.0, 1),
-                Tuple.Create("2", OptimizationObjectiveType.Upper, 20.0, 200.0, 2),
-                Tuple.Create("3", OptimizationObjectiveType.Lower, 30.0, 300.0, 3),
-                Tuple.Create("4", OptimizationObjectiveType.Upper, 40.0, 400.0, 4),
-                Tuple.Create("0", OptimizationObjectiveType.Mean, 0.0, 0.0, 0),
-                Tuple.Create("1", OptimizationObjectiveType.Mean, 10.0, 0.0, 1),
-                Tuple.Create("2", OptimizationObjectiveType.Mean, 20.0, 0.0, 2),
+                new OptimizationConstraint("0", OptimizationObjectiveType.Upper, 0.0, Units.cGy, 0.0, 0),
+                new OptimizationConstraint("1", OptimizationObjectiveType.Lower, 10.0, Units.cGy, 100.0, 1),
+                new OptimizationConstraint("2", OptimizationObjectiveType.Upper, 20.0, Units.cGy, 200.0, 2),
+                new OptimizationConstraint("3", OptimizationObjectiveType.Lower, 30.0, Units.cGy, 300.0, 3),
+                new OptimizationConstraint("4", OptimizationObjectiveType.Upper, 40.0, Units.cGy, 400.0, 4),
+                new OptimizationConstraint("0", OptimizationObjectiveType.Mean, 0.0, Units.cGy, 0.0, 0),
+                new OptimizationConstraint("1", OptimizationObjectiveType.Mean, 10.0, Units.cGy, 0.0, 1),
+                new OptimizationConstraint("2", OptimizationObjectiveType.Mean, 20.0, Units.cGy, 0.0, 2),
             };
         }
 
@@ -72,12 +73,12 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers.Tests
             Mock.Arrange(() => setup.Objectives).Returns(testObj);
             Mock.Arrange(() => plan.OptimizationSetup).Returns(setup);
 
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> expected = BuildExpectedObjectiveList();
+            List<OptimizationConstraint> expected = BuildExpectedObjectiveList();
 
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> result = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
-            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> itr in result)
+            List<OptimizationConstraint> result = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
+            foreach (OptimizationConstraint itr in result)
             {
-                Console.WriteLine($"{itr.Item1}, {itr.Item2}, {itr.Item3}, {itr.Item4}, {itr.Item5}");
+                Console.WriteLine($"{itr.StructureId}, {itr.ConstraintType}, {itr.QueryDose}, {itr.QueryVolume}, {itr.Priority}");
             }
 
             CollectionAssert.AreEqual(expected, result);
@@ -86,25 +87,25 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers.Tests
         [TestMethod()]
         public void RescalePlanObjectivesToNewRxTest()
         {
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> initialList = BuildExpectedObjectiveList();
+            List<OptimizationConstraint> initialList = BuildExpectedObjectiveList();
             double oldRx = 800.0;
             double newRx = 1200.0;
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> expected = new List<Tuple<string, OptimizationObjectiveType, double, double, int>>
+            List<OptimizationConstraint> expected = new List<OptimizationConstraint>
             {
-                Tuple.Create("0", OptimizationObjectiveType.Upper, 0.0, 0.0, 0),
-                Tuple.Create("1", OptimizationObjectiveType.Lower, 15.0, 100.0, 1),
-                Tuple.Create("2", OptimizationObjectiveType.Upper, 30.0, 200.0, 2),
-                Tuple.Create("3", OptimizationObjectiveType.Lower, 45.0, 300.0, 3),
-                Tuple.Create("4", OptimizationObjectiveType.Upper, 60.0, 400.0, 4),
-                Tuple.Create("0", OptimizationObjectiveType.Mean, 0.0, 0.0, 0),
-                Tuple.Create("1", OptimizationObjectiveType.Mean, 15.0, 0.0, 1),
-                Tuple.Create("2", OptimizationObjectiveType.Mean, 30.0, 0.0, 2),
+                new OptimizationConstraint("0", OptimizationObjectiveType.Upper, 0.0, Units.cGy, 0.0, 0),
+                new OptimizationConstraint("1", OptimizationObjectiveType.Lower, 15.0, Units.cGy,100.0, 1),
+                new OptimizationConstraint("2", OptimizationObjectiveType.Upper, 30.0, Units.cGy,200.0, 2),
+                new OptimizationConstraint("3", OptimizationObjectiveType.Lower, 45.0, Units.cGy,300.0, 3),
+                new OptimizationConstraint("4", OptimizationObjectiveType.Upper, 60.0, Units.cGy,400.0, 4),
+                new OptimizationConstraint("0", OptimizationObjectiveType.Mean, 0.0, Units.cGy,0.0, 0),
+                new OptimizationConstraint("1", OptimizationObjectiveType.Mean, 15.0, Units.cGy,0.0, 1),
+                new OptimizationConstraint("2", OptimizationObjectiveType.Mean, 30.0, Units.cGy,0.0, 2),
             };
 
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> result = OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(initialList, oldRx, newRx);
-            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> itr in result)
+            List<OptimizationConstraint> result = OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(initialList, oldRx, newRx);
+            foreach (OptimizationConstraint itr in result)
             {
-                Console.WriteLine($"{itr.Item1}, {itr.Item2}, {itr.Item3}, {itr.Item4}, {itr.Item5}");
+                Console.WriteLine($"{itr.StructureId}, {itr.ConstraintType}, {itr.QueryDose}, {itr.QueryVolume}, {itr.Priority}");
             }
 
             CollectionAssert.AreEqual(expected, result);

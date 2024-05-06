@@ -126,6 +126,8 @@
     <Compile Include="Helpers\ImportListenerHelper.cs" />
     <Compile Include="Helpers\PlanObjectiveHelper.cs" />
     <Compile Include="Helpers\PlanPrepHelper.cs" />
+    <Compile Include="Interfaces\IPlanConstraint.cs" />
+    <Compile Include="UtilityClasses\OptimizationConstraint.cs" />
     <Compile Include="UtilityClasses\PlanObjective.cs" />
     <Compile Include="UtilityClasses\PlanTarget.cs" />
     <Compile Include="UtilityClasses\RequestedTSStructure.cs" />

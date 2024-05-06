@@ -62,20 +62,20 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 }
                 else sb.AppendLine(String.Format(" No structures requested for crop/overlap with targets for template: {0}", itr.TemplateName));
 
-                if (itr.GetInitOptimizationConstraints().Any())
+                if (itr.InitialOptimizationConstraints.Any())
                 {
                     sb.AppendLine($" {itr.TemplateName} template initial plan optimization parameters:");
                     sb.AppendLine(String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority"));
-                    foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in itr.GetInitOptimizationConstraints()) sb.AppendLine(String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5));
+                    foreach (OptimizationConstraint opt in itr.InitialOptimizationConstraints) sb.AppendLine(String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.StructureId, opt.ConstraintType, opt.QueryDose, opt.QueryVolume, opt.Priority));
                     sb.AppendLine(Environment.NewLine);
                 }
                 else sb.AppendLine($" No iniital plan optimization constraints for template: {itr.TemplateName}");
 
-                if (itr.GetBoostOptimizationConstraints().Any())
+                if (itr.BoostOptimizationConstraints.Any())
                 {
                     sb.AppendLine($" {itr.TemplateName} template boost plan optimization parameters:");
                     sb.AppendLine(String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority"));
-                    foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in itr.GetBoostOptimizationConstraints()) sb.AppendLine(String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5));
+                    foreach (OptimizationConstraint opt in itr.BoostOptimizationConstraints) sb.AppendLine(String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.StructureId, opt.ConstraintType, opt.QueryDose, opt.QueryVolume, opt.Priority));
                     sb.AppendLine(Environment.NewLine);
                 }
                 else sb.AppendLine($" No boost plan optimization constraints for template: {itr.TemplateName}");
@@ -103,11 +103,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 
                 sb.Append(PrintTargetsTSParameters(itr));
 
-                if (itr.GetInitOptimizationConstraints().Any())
+                if (itr.InitialOptimizationConstraints.Any())
                 {
                     sb.AppendLine($" {itr.TemplateName} template initial plan optimization parameters:");
                     sb.AppendLine(String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority"));
-                    foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in itr.GetInitOptimizationConstraints()) sb.AppendLine(String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.Item1, opt.Item2.ToString(), opt.Item3, opt.Item4, opt.Item5));
+                    foreach (OptimizationConstraint opt in itr.InitialOptimizationConstraints) sb.AppendLine(String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.StructureId, opt.ConstraintType, opt.QueryDose, opt.QueryVolume, opt.Priority));
                     sb.AppendLine(Environment.NewLine);
                 }
                 else sb.AppendLine($" No iniital plan optimization constraints for template: {itr.TemplateName}");

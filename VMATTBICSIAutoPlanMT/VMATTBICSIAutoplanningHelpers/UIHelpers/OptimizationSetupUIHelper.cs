@@ -10,6 +10,7 @@ using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.EnumTypeHelpers;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Interfaces;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
@@ -21,9 +22,9 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// </summary>
         /// <param name="plan"></param>
         /// <returns></returns>
-        public static List<Tuple<string, OptimizationObjectiveType, double, double, int>> ReadConstraintsFromPlan(ExternalPlanSetup plan)
+        public static List<OptimizationConstraint> ReadConstraintsFromPlan(ExternalPlanSetup plan)
         {
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> defaultList = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+            List<OptimizationConstraint> defaultList = new List<OptimizationConstraint> { };
             foreach (OptimizationObjective itr in plan.OptimizationSetup.Objectives)
             {
                 //do NOT include any cooler or heater tuning structures in the list
@@ -32,12 +33,12 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                     if (itr.GetType() == typeof(OptimizationPointObjective))
                     {
                         OptimizationPointObjective pt = (itr as OptimizationPointObjective);
-                        defaultList.Add(Tuple.Create(pt.StructureId, OptimizationTypeHelper.GetObjectiveType(pt), pt.Dose.Dose, pt.Volume, (int)pt.Priority));
+                        defaultList.Add(new OptimizationConstraint(pt.StructureId, OptimizationTypeHelper.GetObjectiveType(pt), pt.Dose.Dose, Units.cGy, pt.Volume, (int)pt.Priority, Units.Percent));
                     }
                     else if (itr.GetType() == typeof(OptimizationMeanDoseObjective))
                     {
                         OptimizationMeanDoseObjective mean = (itr as OptimizationMeanDoseObjective);
-                        defaultList.Add(Tuple.Create(mean.StructureId, OptimizationObjectiveType.Mean, mean.Dose.Dose, 0.0, (int)mean.Priority));
+                        defaultList.Add(new OptimizationConstraint(mean.StructureId, OptimizationObjectiveType.Mean, mean.Dose.Dose, Units.cGy, 0.0, (int)mean.Priority));
                     }
                 }
             }
@@ -51,14 +52,14 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <param name="oldRx"></param>
         /// <param name="newRx"></param>
         /// <returns></returns>
-        public static List<Tuple<string, OptimizationObjectiveType, double, double, int>> RescalePlanObjectivesToNewRx(List<Tuple<string, OptimizationObjectiveType, double, double, int>> currentList,
+        public static List<OptimizationConstraint> RescalePlanObjectivesToNewRx(List<OptimizationConstraint> currentList,
                                                                                                                        double oldRx,
                                                                                                                        double newRx)
         {
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> tmpList = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
-            foreach(Tuple<string, OptimizationObjectiveType, double, double, int> itr in currentList)
+            List<OptimizationConstraint> tmpList = new List<OptimizationConstraint> { };
+            foreach(OptimizationConstraint itr in currentList)
             {
-                tmpList.Add(new Tuple<string, OptimizationObjectiveType, double, double, int>(itr.Item1, itr.Item2, itr.Item3 * newRx / oldRx, itr.Item4, itr.Item5));
+                tmpList.Add(new OptimizationConstraint(itr.StructureId, itr.ConstraintType, itr.QueryDose * newRx / oldRx, Units.cGy, itr.QueryVolume, itr.Priority));
             }
             return tmpList;
         }
@@ -74,7 +75,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <param name="targetManipulations"></param>
         /// <param name="addedRings"></param>
         /// <returns></returns>
-        public static List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> UpdateOptObjectivesWithTsStructuresAndJnxs(List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> defaultListList,
+        public static List<Tuple<string, List<OptimizationConstraint>>> UpdateOptObjectivesWithTsStructuresAndJnxs(List<Tuple<string, List<OptimizationConstraint>>> defaultListList,
                                                                                                                                                           List<Tuple<string, string, int, DoseValue, double>> prescriptions,
                                                                                                                                                           object selectedTemplate,
                                                                                                                                                           List<Tuple<string, List<Tuple<string, string>>>> tsTargets,
@@ -218,7 +219,6 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <summary>
         /// Helper method to add the optimization constraint item to the list on the Optimization Setup tab
         /// </summary>
-        /// <typeparam name="T"></typeparam>
         /// <param name="theSP"></param>
         /// <param name="selectedSS"></param>
         /// <param name="listItem"></param>
@@ -227,9 +227,9 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <param name="e"></param>
         /// <param name="addStructureEvenIfNotInSS"></param>
         /// <returns></returns>
-        public static StackPanel AddOptVolume<T>(StackPanel theSP, 
+        public static StackPanel AddOptVolume(StackPanel theSP, 
                                                  StructureSet selectedSS, 
-                                                 T listItem, 
+                                                 IPlanConstraint listItem, 
                                                  string clearBtnNamePrefix, 
                                                  int clearOptBtnCounter, 
                                                  RoutedEventHandler e, 
@@ -253,26 +253,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 Margin = new Thickness(5, 5, 0, 0)
             };
 
-            string structure;
-            OptimizationObjectiveType constraintType;
-            double volume, dose;
-
-            if (listItem.GetType() == typeof(PlanObjective))
-            {
-                structure = (listItem as PlanObjective).StructureId;
-                constraintType = (listItem as PlanObjective).ConstraintType;
-                dose = (listItem as PlanObjective).QueryDose;
-                volume = (listItem as PlanObjective).QueryVolume;
-            }
-            else
-            {
-                structure = "";
-                constraintType = OptimizationObjectiveType.None;
-                volume = dose = 0.0;
-            }
-
-
-                opt_str_cb.Items.Add("--select--");
+            opt_str_cb.Items.Add("--select--");
             //this code is used to fix the issue where the structure exists in the structure set, but doesn't populate as the default option in the combo box.
             int index = 0;
             //j is initially 1 because we already added "--select--" to the combo box 
@@ -280,12 +261,12 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             foreach (Structure s in selectedSS.Structures)
             {
                 opt_str_cb.Items.Add(s.Id);
-                if (s.Id.ToLower() == structure.ToLower()) index = j;
+                if (s.Id.ToLower() == listItem.StructureId.ToLower()) index = j;
                 j++;
             }
-            if (addStructureEvenIfNotInSS && !selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), structure.ToLower())))
+            if (addStructureEvenIfNotInSS && !selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), listItem.StructureId.ToLower())))
             {
-                opt_str_cb.Items.Add(structure);
+                opt_str_cb.Items.Add(listItem.StructureId);
                 opt_str_cb.SelectedIndex = opt_str_cb.Items.Count - 1;
             }
             else opt_str_cb.SelectedIndex = index;
@@ -303,7 +284,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             };
             //add the possible optimization objective types to the combo box
             foreach (OptimizationObjectiveType s in Enum.GetValues(typeof(OptimizationObjectiveType))) constraint_cb.Items.Add(s);
-            if ((int)constraintType <= constraint_cb.Items.Count && constraintType != OptimizationObjectiveType.None) constraint_cb.SelectedIndex = (int)constraintType;
+            if ((int)listItem.ConstraintType <= constraint_cb.Items.Count && listItem.ConstraintType != OptimizationObjectiveType.None) constraint_cb.SelectedIndex = (int)listItem.ConstraintType;
             else constraint_cb.SelectedIndex = 0;
             constraint_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
             sp.Children.Add(constraint_cb);
@@ -318,7 +299,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top,
                 Margin = new Thickness(5, 5, 0, 0),
-                Text = String.Format("{0:0.#}", volume),
+                Text = String.Format("{0:0.#}", listItem.QueryVolume),
                 TextAlignment = TextAlignment.Center
             };
             sp.Children.Add(vol_tb);
@@ -331,7 +312,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top,
                 Margin = new Thickness(5, 5, 0, 0),
-                Text = String.Format("{0:0.#}", dose),
+                Text = String.Format("{0:0.#}", listItem.QueryDose),
                 TextAlignment = TextAlignment.Center
             };
             sp.Children.Add(dose_tb);
@@ -353,7 +334,6 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             }
             else
             {
-                int priority = 0;
                 TextBox priority_tb = new TextBox
                 {
                     Name = "priority_tb",
@@ -362,7 +342,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                     HorizontalAlignment = HorizontalAlignment.Left,
                     VerticalAlignment = VerticalAlignment.Top,
                     Margin = new Thickness(5, 5, 0, 0),
-                    Text = Convert.ToString(priority),
+                    Text = Convert.ToString((listItem as OptimizationConstraint).Priority),
                     TextAlignment = TextAlignment.Center
                 };
                 sp.Children.Add(priority_tb);
@@ -390,18 +370,18 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <param name="sp"></param>
         /// <param name="checkInputIntegrity"></param>
         /// <returns></returns>
-        public static (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) ParseOptConstraints(StackPanel sp, bool checkInputIntegrity = true)
+        public static (List<Tuple<string, List<OptimizationConstraint>>>, StringBuilder) ParseOptConstraints(StackPanel sp, bool checkInputIntegrity = true)
         {
             StringBuilder sb = new StringBuilder();
             if (sp.Children.Count == 0)
             {
                 sb.AppendLine("No optimization parameters present to assign to plans!");
-                return (new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>(), sb);
+                return (new List<Tuple<string, List<OptimizationConstraint>>>(), sb);
             }
 
             //get constraints
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParametersList = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
-            List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> optParametersListList = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
+            List<OptimizationConstraint> optParametersList = new List<OptimizationConstraint> { };
+            List<Tuple<string, List<OptimizationConstraint>>> optParametersListList = new List<Tuple<string, List<OptimizationConstraint>>> { };
             string structure = "";
             string constraintType = "";
             double dose = -1.0;
@@ -448,8 +428,8 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 {
                     if (optParametersList.Any())
                     {
-                        optParametersListList.Add(new Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>(planId, new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(optParametersList)));
-                        optParametersList = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+                        optParametersListList.Add(new Tuple<string, List<OptimizationConstraint>>(planId, new List<OptimizationConstraint>(optParametersList)));
+                        optParametersList = new List<OptimizationConstraint> { };
                     }
                     string planIdHeader = (copyObj as Label).Content.ToString();
                     planId = planIdHeader.Substring(planIdHeader.IndexOf(":") + 2, planIdHeader.Length - planIdHeader.IndexOf(":") - 2);
@@ -460,15 +440,15 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                     if (checkInputIntegrity && (structure == "--select--" || constraintType == "--select--"))
                     {
                         sb.AppendLine("Error! \nStructure or Sparing Type not selected! \nSelect an option and try again");
-                        return (new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>(), sb);
+                        return (new List<Tuple<string, List<OptimizationConstraint>>>(), sb);
                     }
                     else if (checkInputIntegrity && (dose == -1.0 || vol == -1.0 || priority == -1.0))
                     {
                         sb.AppendLine("Error! \nDose, volume, or priority values are invalid! \nEnter new values and try again");
-                        return (new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>(), sb);
+                        return (new List<Tuple<string, List<OptimizationConstraint>>>(), sb);
                     }
                     //if the row of data passes the above checks, add it the optimization parameter list
-                    else optParametersList.Add(Tuple.Create(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), Math.Round(dose, 3, MidpointRounding.AwayFromZero), Math.Round(vol, 3, MidpointRounding.AwayFromZero), priority));
+                    else optParametersList.Add(new OptimizationConstraint(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), Math.Round(dose, 3, MidpointRounding.AwayFromZero), Units.cGy, Math.Round(vol, 3, MidpointRounding.AwayFromZero), priority));
                     //reset the values of the variables used to parse the data
                     firstCombo = true;
                     txtBxNum = 1;
@@ -478,7 +458,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 }
                 numElementsPerRow = 0;
             }
-            optParametersListList.Add(new Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>(planId, new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(optParametersList)));
+            optParametersListList.Add(new Tuple<string, List<OptimizationConstraint>>(planId, new List<OptimizationConstraint>(optParametersList)));
             return (optParametersListList, sb);
         }
 
@@ -490,18 +470,24 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <param name="useJawTracking"></param>
         /// <param name="NTOpriority"></param>
         /// <returns></returns>
-        public static (bool, StringBuilder) AssignOptConstraints(List<Tuple<string, OptimizationObjectiveType, double, double, int>> parameters, 
+        public static (bool, StringBuilder) AssignOptConstraints(List<OptimizationConstraint> parameters, 
                                                                  ExternalPlanSetup VMATplan, 
                                                                  bool useJawTracking, 
                                                                  double NTOpriority)
         {
             bool isError = false;
             StringBuilder sb = new StringBuilder();
-            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> opt in parameters)
+            foreach (OptimizationConstraint opt in parameters)
             {
-                Structure s =StructureTuningHelper.GetStructureFromId(opt.Item1, VMATplan.StructureSet);
-                if (opt.Item2 != OptimizationObjectiveType.Mean) VMATplan.OptimizationSetup.AddPointObjective(s, OptimizationTypeHelper.GetObjectiveOperator(opt.Item2), new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), opt.Item4, (double)opt.Item5);
-                else VMATplan.OptimizationSetup.AddMeanDoseObjective(s, new DoseValue(opt.Item3, DoseValue.DoseUnit.cGy), (double)opt.Item5);
+                Structure s =StructureTuningHelper.GetStructureFromId(opt.StructureId, VMATplan.StructureSet);
+                if (opt.ConstraintType != OptimizationObjectiveType.Mean) VMATplan.OptimizationSetup.AddPointObjective(s, 
+                                                                                                                       OptimizationTypeHelper.GetObjectiveOperator(opt.ConstraintType), 
+                                                                                                                       new DoseValue(opt.QueryDose, opt.QueryDoseUnits == Units.Percent ? DoseValue.DoseUnit.Percent : DoseValue.DoseUnit.cGy), 
+                                                                                                                       opt.QueryVolume, 
+                                                                                                                       (double)opt.Priority);
+                else VMATplan.OptimizationSetup.AddMeanDoseObjective(s, 
+                                                                     new DoseValue(opt.QueryDose, opt.QueryDoseUnits == Units.Percent ? DoseValue.DoseUnit.Percent : DoseValue.DoseUnit.cGy), 
+                                                                     (double)opt.Priority);
             }
             //turn on/turn off jaw tracking
             try { VMATplan.OptimizationSetup.UseJawTracking = useJawTracking; }

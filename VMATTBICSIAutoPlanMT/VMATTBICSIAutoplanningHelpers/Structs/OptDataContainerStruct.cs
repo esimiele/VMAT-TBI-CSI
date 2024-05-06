@@ -5,6 +5,7 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
 using OptimizationObjectiveType = VMATTBICSIAutoPlanningHelpers.Enums.OptimizationObjectiveType;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 
 namespace VMATTBICSIAutoPlanningHelpers.Structs
 {
@@ -27,7 +28,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Structs
         public bool useFlash;
         public List<Tuple<string, string, int, DoseValue, double>> prescriptions;
         public List<Tuple<string, string>> normalizationVolumes;
-        public List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> planObj;
+        public List<PlanObjective> planObj;
         public List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures;
         public List<Tuple<string, string, double, string>> requestedPlanDoseInfo;
         public double threshold;
@@ -40,7 +41,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Structs
         public void Construct(List<ExternalPlanSetup> p, 
                               List<Tuple<string, string, int, DoseValue, double>> presc,
                               List<Tuple<string,string>> normVols,
-                              List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> objectives, 
+                              List<PlanObjective> objectives, 
                               List<Tuple<string, double, double, double, int, 
                               List<Tuple<string, double, string, double>>>> RTS,
                               List<Tuple<string,string,double,string>> info,
