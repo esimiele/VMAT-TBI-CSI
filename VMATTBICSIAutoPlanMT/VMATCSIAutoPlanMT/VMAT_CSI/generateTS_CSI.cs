@@ -18,7 +18,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         public List<Tuple<string, string, List<Tuple<string, string>>>> GetTargetCropOverlapManipulations() { return targetManipulations; }
         public List<Tuple<string, List<Tuple<string, string>>>> GetTsTargets() { return tsTargets; }
         public List<Tuple<string, string>> GetNormalizationVolumes() { return normVolumes; }
-        public List<Tuple<string, string, double>> GetAddedRings() { return addedRings; }
+        public List<Tuple<string,string,double>> GetAddedRings() { return addedRings; }
 
         //DICOM types
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
@@ -160,8 +160,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                         string ringName = $"TS_ring{itr.DoseLevel}";
                         if(selectedSS.Structures.Any(x => string.Equals(x.Id, ringName)))
                         {
-                            //name is taken, append a '1' to it
-                            ringName += "1";
+                            ProvideUIUpdate($"Error! Structure Id is taken {ringName}! Exiting!", true);
+                            return true;
                         }
 
                         Structure ring = AddTSStructures(new RequestedTSStructure("CONTROL", ringName));
@@ -176,7 +176,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                             return true;
                         }
 
-                        addedRings.Add(Tuple.Create(target.Id, ring.Id, itr.DoseLevel));
                         ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Finished contouring ring: {itr}");
                     }
                     else ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Could NOT retrieve target: {itr.TargetId}! Skipping ring: TS_ring{itr.DoseLevel}");

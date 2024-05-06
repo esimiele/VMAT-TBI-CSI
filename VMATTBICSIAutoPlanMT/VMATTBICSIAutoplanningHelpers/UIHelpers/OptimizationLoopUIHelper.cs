@@ -8,6 +8,7 @@ using VMS.TPS.Common.Model.Types;
 using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.EnumTypeHelpers;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
@@ -119,64 +120,66 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <param name="plan"></param>
         /// <param name="normalizationVolumes"></param>
         /// <returns></returns>
-        public static string PrintAdditionalPlanDoseInfo(List<Tuple<string, string, double, string>> requestedInfo, 
+        public static string PrintAdditionalPlanDoseInfo(List<RequestedPlanMetric> requestedInfo, 
                                                          ExternalPlanSetup plan, 
                                                          List<Tuple<string, string>> normalizationVolumes)
         {
             StringBuilder sb = new StringBuilder();
 
             sb.AppendLine(Environment.NewLine + $"Additional infomation for plan: {plan.Id}");
-            foreach (Tuple<string, string, double, string> itr in requestedInfo)
+            foreach (RequestedPlanMetric itr in requestedInfo)
             {
-                if (itr.Item1.Contains("<plan>"))
+                if (itr.StructureId.Contains("<plan>"))
                 {
-                    if (itr.Item2 == "Dmax") sb.AppendLine($"Plan global Dmax = {100 * (plan.Dose.DoseMax3D.Dose / plan.TotalDose.Dose):0.0}%");
-                    else sb.AppendLine($"Cannot retrive metric ({itr.Item1},{itr.Item2},{itr.Item3},{itr.Item4})! Skipping!");
+                    if (itr.DVHMetric == DVHMetric.Dmax) sb.AppendLine($"Plan global Dmax = {100 * (plan.Dose.DoseMax3D.Dose / plan.TotalDose.Dose):0.0}%");
+                    else sb.AppendLine($"Cannot retrive metric ({itr.StructureId},{itr.DVHMetric},{itr.QueryResultUnits})! Skipping!");
                 }
                 else
                 {
                     string structureId;
-                    if (itr.Item1.Contains("<target>"))
+                    if (itr.StructureId.Contains("<target>"))
                     {
                         structureId = OptimizationLoopHelper.GetNormaliztionVolumeIdForPlan(plan.Id, normalizationVolumes);
                     }
-                    else structureId = itr.Item1;
+                    else structureId = itr.StructureId;
                     Structure structure = StructureTuningHelper.GetStructureFromId(structureId, plan.StructureSet);
                     if (structure != null)
                     {
-                        if (itr.Item2.Contains("max") || itr.Item2.Contains("min"))
+                        if (itr.DVHMetric == DVHMetric.Dmax || itr.DVHMetric == DVHMetric.Dmin)
                         {
                             sb.AppendLine(String.Format("{0} {1} = {2:0.0}{3}",
                                             structure.Id,
-                                            itr.Item2,
-                                            plan.GetDoseAtVolume(structure, itr.Item2 == "Dmax" ? 0.0 : 100.0, VolumePresentation.Relative, itr.Item4 == "Relative" ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute).Dose,
-                                            itr.Item4 == "Relative" ? "%" : "cGy"));
+                                            itr.DVHMetric,
+                                            plan.GetDoseAtVolume(structure, itr.DVHMetric == DVHMetric.Dmax ? 0.0 : 100.0, VolumePresentation.Relative, itr.QueryResultUnits == Units.Percent ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute).Dose,
+                                            itr.QueryResultUnits));
                         }
                         else
                         {
-                            if (itr.Item2 == "D")
+                            if (itr.DVHMetric == DVHMetric.DoseAtVolume)
                             {
                                 //dose at specified volume requested
-                                sb.AppendLine(String.Format("{0} {1}{2}% = {3:0.0}{4}",
+                                sb.AppendLine(String.Format("{0} {1}{2}{3} = {4:0.0}{5}",
                                             structure.Id,
-                                            itr.Item2,
-                                            itr.Item3,
-                                            plan.GetDoseAtVolume(structure, itr.Item3, VolumePresentation.Relative, itr.Item4 == "Relative" ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute).Dose,
-                                            itr.Item4 == "Relative" ? "%" : "cGy"));
+                                            itr.DVHMetric,
+                                            itr.QueryValue,
+                                            itr.QueryUnits,
+                                            plan.GetDoseAtVolume(structure, itr.QueryValue, itr.QueryUnits == Units.Percent ? VolumePresentation.Relative : VolumePresentation.AbsoluteCm3, itr.QueryResultUnits == Units.Percent ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute).Dose,
+                                            itr.QueryResultUnits));
                             }
                             else
                             {
                                 //volume at specified dose requested
-                                sb.AppendLine(String.Format("{0} {1}{2}% = {3:0.0}{4}",
+                                sb.AppendLine(String.Format("{0} {1}{2}{3} = {4:0.0}{5}",
                                             structure.Id,
-                                            itr.Item2,
-                                            itr.Item3,
-                                            plan.GetVolumeAtDose(structure, new DoseValue(itr.Item3, DoseValue.DoseUnit.Percent), itr.Item4 == "Relative" ? VolumePresentation.Relative : VolumePresentation.AbsoluteCm3),
-                                            itr.Item4 == "Relative" ? "%" : "cc"));
+                                            itr.DVHMetric,
+                                            itr.QueryValue,
+                                            itr.QueryUnits,
+                                            plan.GetVolumeAtDose(structure, new DoseValue(itr.QueryValue, UnitsTypeHelper.GetDoseUnit(itr.QueryUnits)), itr.QueryResultUnits == Units.Percent ? VolumePresentation.Relative : VolumePresentation.AbsoluteCm3),
+                                            itr.QueryResultUnits));
                             }
                         }
                     }
-                    else sb.AppendLine($"Cannot retrive metric ({itr.Item1},{itr.Item2},{itr.Item3},{itr.Item4})! Skipping!");
+                    else sb.AppendLine($"Cannot retrive metric ({itr.StructureId},{itr.DVHMetric},{itr.QueryValue},{itr.QueryUnits})! Skipping!");
                 }
             }
             return sb.ToString();

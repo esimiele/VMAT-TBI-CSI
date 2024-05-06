@@ -63,7 +63,7 @@ namespace VMATTBICSIOptLoopMT
         public List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>{ };
 
         //structure id(or can put '<plan>' to get the plan dose value), metric requested(Dmax, Dmin, D<vol %>, V<dose %>), query value, return value representation(dose or volume as absolute or relative)
-        public List<Tuple<string, string, double, string>> planDoseInfo = new List<Tuple<string, string, double, string>> { };
+        public List<RequestedPlanMetric> planDoseInfo = new List<RequestedPlanMetric> { };
 
         private VMS.TPS.Common.Model.API.Application app = null;
 
@@ -367,7 +367,7 @@ namespace VMATTBICSIOptLoopMT
                 //requires a structure set to properly function
                 planObj = new List<PlanObjective>(PlanObjectiveHelper.ConstructPlanObjectives(selectedTemplate.PlanObjectives, selectedSS, tsTargets));
                 PopulatePlanObjectivesTab(planObjectiveParamSP);
-                planDoseInfo = new List<Tuple<string, string, double, string>>(selectedTemplate.GetRequestedPlanDoseInfo());
+                planDoseInfo = new List<RequestedPlanMetric>(selectedTemplate.RequestedPlanMetrics);
                 requestedTSstructures = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>(selectedTemplate.GetRequestedOptTSStructures());
                 if (selectedTemplate.PlanObjectives.Any())
                 {
@@ -380,7 +380,7 @@ namespace VMATTBICSIOptLoopMT
                 templateList.UnselectAll();
                 planObj = new List<PlanObjective>();
                 ClearAllItemsFromUIList(planObjectiveParamSP);
-                planDoseInfo = new List<Tuple<string, string, double, string>>();
+                planDoseInfo = new List<RequestedPlanMetric>();
                 requestedTSstructures = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>();
                 planObjectiveHeader.Background = System.Windows.Media.Brushes.PaleVioletRed;
                 optimizationSetupHeader.Background = System.Windows.Media.Brushes.DarkGray;

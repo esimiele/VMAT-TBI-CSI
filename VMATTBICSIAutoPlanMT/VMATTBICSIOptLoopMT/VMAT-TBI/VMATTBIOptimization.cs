@@ -235,7 +235,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             ProvideUIUpdate(100 * ++percentCompletion / calcItems, "Plan normalized!");
 
             //print useful info about target coverage and global dmax
-            ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, plan, _data.normalizationVolumes));
+            ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanMetrics, plan, _data.normalizationVolumes));
 
             //calculate global Dmax expressed as a percent of the prescription dose (if dose has been calculated)
             if (plan.IsDoseValid && ((plan.Dose.DoseMax3D.Dose / plan.TotalDose.Dose) > 1.40))

@@ -119,6 +119,8 @@
     <Compile Include="BaseClasses\AutoPlanTemplateBase.cs" />
     <Compile Include="Delegates\AllDelegates.cs" />
     <Compile Include="Enums\AllEnums.cs" />
+    <Compile Include="EnumTypeHelpers\DVHMetricTypeHelper.cs" />
+    <Compile Include="EnumTypeHelpers\UnitsTypeHelper.cs" />
     <Compile Include="Helpers\AppClosingHelper.cs" />
     <Compile Include="Helpers\CalculationHelper.cs" />
     <Compile Include="EnumTypeHelpers\ExportFormatTypeHelper.cs" />
@@ -130,6 +132,7 @@
     <Compile Include="UtilityClasses\OptimizationConstraint.cs" />
     <Compile Include="UtilityClasses\PlanObjective.cs" />
     <Compile Include="UtilityClasses\PlanTarget.cs" />
+    <Compile Include="UtilityClasses\RequestedPlanMetric.cs" />
     <Compile Include="UtilityClasses\RequestedTSStructure.cs" />
     <Compile Include="UtilityClasses\RequestedTSManipulation.cs" />
     <Compile Include="UtilityClasses\TSRing.cs" />

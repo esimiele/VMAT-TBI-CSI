@@ -73,4 +73,13 @@
         Percent,
         None
     };
+
+    public enum DVHMetric
+    {
+        Dmax,
+        Dmin,
+        DoseAtVolume,
+        VolumeAtDose,
+        None
+    };
 }

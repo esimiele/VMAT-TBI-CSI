@@ -429,7 +429,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 ProvideUIUpdate($"{itr.Id} normalized!");
 
                 //print requested additional info about the plan
-                ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, itr, _data.normalizationVolumes));
+                ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanMetrics, itr, _data.normalizationVolumes));
             }
             return false;
         }
@@ -497,7 +497,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 if (!_data.isDemo && _data.copyAndSavePlanItr && (_data.oneMoreOpt || ((count + 1) != _data.numOptimizations))) CopyAndSavePlan(plan, count);
 
                 ProvideUIUpdate(OptimizationLoopUIHelper.PrintPlanOptimizationResultVsConstraints(plan, OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan), e.diffPlanOpt, e.totalCostPlanOpt));
-                ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, plan, _data.normalizationVolumes));
+                ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanMetrics, plan, _data.normalizationVolumes));
 
                 //really crank up the priority and lower the dose objective on the cooler on the last iteration of the optimization loop
                 //this is basically here to avoid having to call op.updateConstraints a second time (if this batch of code was placed outside of the loop)

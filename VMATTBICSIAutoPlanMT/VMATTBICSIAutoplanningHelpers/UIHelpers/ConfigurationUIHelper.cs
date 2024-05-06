@@ -162,15 +162,15 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         private static StringBuilder PrintPlanObjRequestedInfo(AutoPlanTemplateBase itr)
         {
             StringBuilder sb = new StringBuilder();
-            if (itr.GetRequestedPlanDoseInfo().Any())
+            if (itr.RequestedPlanMetrics.Any())
             {
                 sb.AppendLine($" {itr.TemplateName} template requested dosimetric info after each iteration:");
                 sb.AppendLine(String.Format(" {0, -15} | {1, -6} | {2, -9} |", "structure Id", "metric", "dose type"));
 
-                foreach (Tuple<string, string, double, string> info in itr.GetRequestedPlanDoseInfo())
+                foreach (RequestedPlanMetric info in itr.RequestedPlanMetrics)
                 {
-                    if (info.Item2.Contains("max") || info.Item2.Contains("min")) sb.AppendLine(String.Format(" {0, -15} | {1, -6} | {2, -9} |", info.Item1, info.Item2, info.Item4));
-                    else sb.AppendLine(String.Format(" {0, -15} | {1, -6} | {2, -9} |", info.Item1, $"{info.Item2}{info.Item3}%", info.Item4));
+                    if (info.DVHMetric == DVHMetric.Dmax || info.DVHMetric == DVHMetric.Dmin) sb.AppendLine(String.Format(" {0, -15} | {1, -6} | {2, -9} |", info.StructureId, info.DVHMetric, info.QueryResultUnits));
+                    else sb.AppendLine(String.Format(" {0, -15} | {1, -6} | {2, -9} |", info.StructureId, $"{info.DVHMetric} {info.QueryValue} {info.QueryUnits}", info.QueryResultUnits));
                 }
                 sb.AppendLine(Environment.NewLine);
             }

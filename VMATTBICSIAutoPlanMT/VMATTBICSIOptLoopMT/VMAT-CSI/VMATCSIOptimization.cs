@@ -231,7 +231,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
 
                     UpdateUILabel("Create plan sum:");
                     if (BuildPlanSum(evalPlan, plans)) return true;
-                    ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, evalPlan, _data.normalizationVolumes));
+                    ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanMetrics, evalPlan, _data.normalizationVolumes));
                 }
             }
             return false;
@@ -348,7 +348,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 }
                 
                 if (BuildPlanSum(evalPlan, plans)) return true;
-                ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, evalPlan, _data.normalizationVolumes));
+                ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanMetrics, evalPlan, _data.normalizationVolumes));
 
                 if (EvaluatePlanSumQuality(evalPlan, _data.planObj))
                 {
@@ -375,7 +375,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                         if (e.wasKilled) return true;
 
                         ProvideUIUpdate(OptimizationLoopUIHelper.PrintPlanOptimizationResultVsConstraints(itr, optParams, e.diffPlanOpt, e.totalCostPlanOpt));
-                        ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, itr, _data.normalizationVolumes));
+                        ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanMetrics, itr, _data.normalizationVolumes));
 
                         ProvideUIUpdate($"Scaling optimization parameters for heater cooler structures for plan: {itr.Id}!");
                         e.updatedObj.AddRange(OptimizationLoopHelper.ScaleHeaterCoolerOptConstraints(itr.TotalDose.Dose, evalPlan.TotalDose.Dose, updatedHeaterCoolerConstraints));
