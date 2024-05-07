@@ -56,8 +56,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="originalConstraints"></param>
         /// <returns></returns>
         public static List<OptimizationConstraint> ScaleHeaterCoolerOptConstraints(double planTotalDose, 
-                                                                                                                          double sumTotalDose, 
-                                                                                                                          List<OptimizationConstraint> originalConstraints)
+                                                                                   double sumTotalDose, 
+                                                                                   List<OptimizationConstraint> originalConstraints)
         {
             List<OptimizationConstraint> updatedOpt = new List<OptimizationConstraint> { };
             foreach (OptimizationConstraint itr in originalConstraints)

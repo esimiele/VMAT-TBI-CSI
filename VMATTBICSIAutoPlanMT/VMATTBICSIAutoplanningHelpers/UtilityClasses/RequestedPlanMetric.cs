@@ -15,6 +15,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UtilityClasses
         public Units QueryUnits { get; set; } = Units.None;
         public Units QueryResultUnits { get; set; } = Units.None;
 
+        public RequestedPlanMetric() { }
         public RequestedPlanMetric(string structureId, DVHMetric dVHMetric, double queryVal, Units queryUnits, Units resultUnits)
         {
             StructureId = structureId;

@@ -138,6 +138,8 @@
     <Compile Include="UtilityClasses\RequestedPlanMetric.cs" />
     <Compile Include="UtilityClasses\RequestedTSStructure.cs" />
     <Compile Include="UtilityClasses\RequestedTSManipulation.cs" />
+    <Compile Include="UtilityClasses\TSCooler.cs" />
+    <Compile Include="UtilityClasses\TSHeater.cs" />
     <Compile Include="UtilityClasses\TSRing.cs" />
     <Compile Include="Helpers\RingHelper.cs" />
     <Compile Include="PlanTemplateClasses\TBIAutoPlanTemplate.cs" />

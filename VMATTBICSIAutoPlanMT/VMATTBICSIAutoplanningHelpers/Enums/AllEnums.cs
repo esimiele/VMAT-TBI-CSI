@@ -82,4 +82,14 @@
         VolumeAtDose,
         None
     };
+
+    public enum InequalityOperator
+    {
+        GreaterThan,
+        LessThan,
+        GreaterThanOrEqualTo,
+        LessThanOrEqualTo,
+        Equal,
+        None
+    };
 }
