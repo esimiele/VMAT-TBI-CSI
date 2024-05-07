@@ -130,8 +130,11 @@
     <Compile Include="Helpers\PlanPrepHelper.cs" />
     <Compile Include="Interfaces\IPlanConstraint.cs" />
     <Compile Include="UtilityClasses\OptimizationConstraint.cs" />
+    <Compile Include="UtilityClasses\OptTSCreationCriteria.cs" />
     <Compile Include="UtilityClasses\PlanObjective.cs" />
     <Compile Include="UtilityClasses\PlanTarget.cs" />
+    <Compile Include="UtilityClasses\Prescription.cs" />
+    <Compile Include="UtilityClasses\RequestedOptimizationTSStructure.cs" />
     <Compile Include="UtilityClasses\RequestedPlanMetric.cs" />
     <Compile Include="UtilityClasses\RequestedTSStructure.cs" />
     <Compile Include="UtilityClasses\RequestedTSManipulation.cs" />

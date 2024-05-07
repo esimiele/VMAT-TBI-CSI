@@ -106,11 +106,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             else output.AppendLine($" No requested ring structures for template: {prospectiveTemplate.TemplateName}");
             output.AppendLine("");
 
-            if (prospectiveTemplate.GetCropAndOverlapStructures().Any())
+            if (prospectiveTemplate.CropAndOverlapStructures.Any())
             {
                 output.AppendLine($" {prospectiveTemplate.TemplateName} requested structures for crop/overlap with targets:");
                 output.AppendLine(String.Format("  {0, -15}", "structure Id"));
-                foreach (string cropOverlap in prospectiveTemplate.GetCropAndOverlapStructures()) output.AppendLine($"  {cropOverlap}");
+                foreach (string cropOverlap in prospectiveTemplate.CropAndOverlapStructures) output.AppendLine($"  {cropOverlap}");
             }
             else output.AppendLine($" No structures requested for crop/overlap with targets for template: {prospectiveTemplate.TemplateName}");
             output.AppendLine("");
@@ -196,9 +196,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             }
             else output.AppendLine("%");
 
-            if (prospectiveTemplate.GetCropAndOverlapStructures().Any())
+            if (prospectiveTemplate.CropAndOverlapStructures.Any())
             {
-                foreach (string itr in prospectiveTemplate.GetCropAndOverlapStructures()) output.AppendLine($"crop and contour overlap with targets{{{itr}}}");
+                foreach (string itr in prospectiveTemplate.CropAndOverlapStructures) output.AppendLine($"crop and contour overlap with targets{{{itr}}}");
                 output.AppendLine("%");
                 output.AppendLine("%");
             }

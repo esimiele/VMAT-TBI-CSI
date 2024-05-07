@@ -19,7 +19,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="newBstRx"></param>
         /// <returns></returns>
         public static List<TSRing> RescaleRingDosesToNewRx(List<TSRing> existingRings,
-                                                           List<Tuple<string, string, int, DoseValue, double>> prescriptions,
+                                                           List<Prescription> prescriptions,
                                                            double oldInitRx,
                                                            double newInitRx,
                                                            double oldBstRx,
@@ -32,12 +32,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             foreach (TSRing itr in existingRings)
             {
                 //match ring target to prescription target
-                if (prescriptions.Any(x => string.Equals(x.Item2, itr.TargetId)))
+                if (prescriptions.Any(x => string.Equals(x.TargetId, itr.TargetId)))
                 {
                     if (planIdRx.Count > 1)
                     {
                         //multiple plan entries in planIdRx --> need to determine if this target belongs to the initial plan or boost plan
-                        string planId = prescriptions.FirstOrDefault(x => string.Equals(x.Item2, itr.TargetId)).Item1;
+                        string planId = prescriptions.FirstOrDefault(x => string.Equals(x.TargetId, itr.TargetId)).PlanId;
                         if (string.Equals(planId, planIdRx.Last().Item1))
                         {
                             //plan id for this target matches the last entry in planIdRx --> belongs to boost plan

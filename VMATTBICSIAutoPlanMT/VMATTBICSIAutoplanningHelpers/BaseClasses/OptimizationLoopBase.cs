@@ -79,10 +79,10 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="ss"></param>
         /// <param name="targetIDs"></param>
         /// <returns></returns>
-        protected bool PreliminaryChecksSSAndImage(StructureSet ss, List<string> targetIDs)
+        protected bool PreliminaryChecksSSAndImage(StructureSet ss, IEnumerable<string> targetIDs)
         {
             int percentComplete = 0;
-            int calcItems = 2 + targetIDs.Count;
+            int calcItems = 2 + targetIDs.Count();
 
             //check if the user assigned the imaging device Id. If not, the optimization will crash with no error
             if (string.IsNullOrEmpty(ss.Image.Series.ImagingDeviceId))

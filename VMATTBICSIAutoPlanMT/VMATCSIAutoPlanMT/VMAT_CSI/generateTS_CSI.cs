@@ -16,8 +16,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
     {
         //get methods
         public List<Tuple<string, string, List<Tuple<string, string>>>> GetTargetCropOverlapManipulations() { return targetManipulations; }
-        public List<Tuple<string, List<Tuple<string, string>>>> GetTsTargets() { return tsTargets; }
-        public List<Tuple<string, string>> GetNormalizationVolumes() { return normVolumes; }
+        public List<Tuple<string, Dictionary<string,string>>> GetTsTargets() { return tsTargets; }
+        public Dictionary<string,string> GetNormalizationVolumes() { return normVolumes; }
         public List<Tuple<string,string,double>> GetAddedRings() { return addedRings; }
 
         //DICOM types
@@ -26,17 +26,17 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //dicom type, structure Id
         private List<RequestedTSStructure> createTSStructureList;
         //plan id, structure id, num fx, dose per fx, cumulative dose
-        private List<Tuple<string, string, int, DoseValue, double>> prescriptions;
+        private List<Prescription> prescriptions;
         //target id, margin (cm), thickness (cm), dose (cGy)
         private List<TSRing> rings;
         //target id, ring id, dose (cGy)
         private List<Tuple<string, string, double>> addedRings = new List<Tuple<string, string, double>> { };
         //plan id, list<target id, ts target id>
-        private List<Tuple<string, List<Tuple<string, string>>>> tsTargets = new List<Tuple<string, List<Tuple<string, string>>>> { };
+        private List<Tuple<string, Dictionary<string,string>>> tsTargets = new List<Tuple<string, Dictionary<string, string>>> { };
         //planId, lower dose target id, list<manipulation target id, operation>
         private List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations = new List<Tuple<string, string, List<Tuple<string, string>>>> { };
         //plan id, normalization volume
-        private List<Tuple<string, string>> normVolumes = new List<Tuple<string, string>> { };
+        private Dictionary<string,string> normVolumes = new Dictionary<string, string> { };
         //structure id of oars requested for crop/overlap eval with targets
         private List<string> cropAndOverlapStructures = new List<string> { };
         private int numVMATIsos;
@@ -51,12 +51,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         /// <param name="ss"></param>
         /// <param name="cropStructs"></param>
         /// <param name="closePW"></param>
-        public GenerateTS_CSI(List<RequestedTSStructure> ts, List<RequestedTSManipulation> list, List<TSRing> tgtRings, List<Tuple<string,string,int,DoseValue,double>> presc, StructureSet ss, List<string> cropStructs, bool closePW)
+        public GenerateTS_CSI(List<RequestedTSStructure> ts, List<RequestedTSManipulation> list, List<TSRing> tgtRings, List<Prescription> presc, StructureSet ss, List<string> cropStructs, bool closePW)
         {
             createTSStructureList = new List<RequestedTSStructure>(ts);
             rings = new List<TSRing>(tgtRings);
             TSManipulationList = new List<RequestedTSManipulation>(list);
-            prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(presc);
+            prescriptions = new List<Prescription>(presc);
             selectedSS = ss;
             cropAndOverlapStructures = new List<string>(cropStructs);
             SetCloseOnFinish(closePW, 3000);
@@ -261,7 +261,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             //grab the highest Rx target for the initial CSI plan (should be PTV_CSI)
             //6/11/23 THIS CODE WILL NEED TO BE MODIFIED FOR SIB PLANS
-            string initTargetId = TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, prescriptions.First().Item1);
+            string initTargetId = TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, prescriptions.First().PlanId);
 
             if (!StructureTuningHelper.DoesStructureExistInSS(initTargetId, selectedSS, true))
             {
@@ -531,25 +531,25 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             UpdateUILabel("Perform TS Manipulations: ");
             int counter = 0;
             int calcItems = TSManipulationList.Count * prescriptions.Count;
-            string tmpPlanId = prescriptions.First().Item1;
-            List<Tuple<string, string>> tmpTSTargetList = new List<Tuple<string, string>> { };
+            string tmpPlanId = prescriptions.First().PlanId;
+            Dictionary<string,string> tmpTSTargetList = new Dictionary<string, string> { };
             string prevTargetId = "";
             //prescriptions are inherently sorted by increasing cumulative Rx to targets
-            foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
+            foreach (Prescription itr in prescriptions)
             {
-                if(!string.Equals(itr.Item1, tmpPlanId))
+                if(!string.Equals(itr.PlanId, tmpPlanId))
                 {
                     //new plan
-                    tsTargets.Add(new Tuple<string, List<Tuple<string, string>>>(tmpPlanId, new List<Tuple<string, string>>(tmpTSTargetList)));
+                    tsTargets.Add(new Tuple<string, Dictionary<string,string>>(tmpPlanId, new Dictionary<string, string>(tmpTSTargetList)));
                     //last target id represents highest Rx target for previous plan
-                    normVolumes.Add(Tuple.Create(tmpPlanId, prevTargetId));
-                    tmpTSTargetList = new List<Tuple<string, string>> { };
-                    tmpPlanId = itr.Item1;
+                    normVolumes.Add(tmpPlanId, prevTargetId);
+                    tmpTSTargetList = new Dictionary<string, string> { };
+                    tmpPlanId = itr.PlanId;
                 }
                 //create a new TS target for optimization and copy the original target structure onto the new TS structure
-                Structure addedTSTarget = GetTSTarget(itr.Item2);
+                Structure addedTSTarget = GetTSTarget(itr.TargetId);
                 prevTargetId = addedTSTarget.Id;
-                tmpTSTargetList.Add(new Tuple<string, string>(itr.Item2, addedTSTarget.Id));
+                tmpTSTargetList.Add(itr.TargetId, addedTSTarget.Id);
 
                 //ensure the target is cropped 3mm from body
                 ProvideUIUpdate($"Cropping TS target from body with {3.0} mm inner margin");
@@ -572,8 +572,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 else ProvideUIUpdate("No TS manipulations requested!");
             }
             //iterated through entire prescription list, need to add final values to normVolumes and tsTargets
-            normVolumes.Add(Tuple.Create(tmpPlanId, prevTargetId));
-            tsTargets.Add(new Tuple<string, List<Tuple<string, string>>>(tmpPlanId, new List<Tuple<string, string>>(tmpTSTargetList)));
+            normVolumes.Add(tmpPlanId, prevTargetId);
+            tsTargets.Add(new Tuple<string, Dictionary<string, string>>(tmpPlanId, new Dictionary<string, string>(tmpTSTargetList)));
             ProvideUIUpdate("Finished performing TS manipulations");
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
@@ -735,7 +735,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             int calcItems = 1 + (3 + 3 * cropAndOverlapStructures.Count) * prescriptions.Count();
 
             //sort by cumulative Rx to the targets (item 5)
-            List<Tuple<string, string, int, DoseValue, double>> sortedPrescriptions = prescriptions.OrderBy(x => x.Item5).ToList();
+            List<Prescription> sortedPrescriptions = prescriptions.OrderBy(x => x.CumulativeDoseToTarget).ToList();
             ProvideUIUpdate(100 * ++percentComplete / calcItems, "Sorted prescriptions by cumulative dose");
 
             if (cropAndOverlapStructures.Any())
@@ -745,7 +745,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 for (int i = 0; i < sortedPrescriptions.Count(); i++)
                 {
                     List<Tuple<string, string>> tmp = new List<Tuple<string, string>> { };
-                    string targetId = $"TS_{sortedPrescriptions.ElementAt(i).Item2}";
+                    string targetId = $"TS_{sortedPrescriptions.ElementAt(i).TargetId}";
                     if (StructureTuningHelper.DoesStructureExistInSS(targetId, selectedSS, true))
                     {
                         Structure target = StructureTuningHelper.GetStructureFromId(targetId, selectedSS);
@@ -787,8 +787,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                 return true;
                             }
                         }
-                        normVolumes.Add(Tuple.Create(sortedPrescriptions.ElementAt(i).Item1, cropResult.Item2.Id));
-                        targetManipulations.Add(Tuple.Create(sortedPrescriptions.ElementAt(i).Item1, target.Id, tmp));
+                        normVolumes.Add(sortedPrescriptions.ElementAt(i).PlanId, cropResult.Item2.Id);
+                        targetManipulations.Add(Tuple.Create(sortedPrescriptions.ElementAt(i).PlanId, target.Id, tmp));
                     }
                     else ProvideUIUpdate($"Could not retrieve ts target: {targetId}");
                 }
@@ -840,7 +840,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             cutSlice = CalculationHelper.ComputeSlice(cutPos, selectedSS);
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Z cut slice: {cutSlice}");
 
-            Structure csiInitTarget = StructureTuningHelper.GetStructureFromId(TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, prescriptions.First().Item1), selectedSS);
+            Structure csiInitTarget = StructureTuningHelper.GetStructureFromId(TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, prescriptions.First().PlanId), selectedSS);
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved structure: {csiInitTarget.Id}");
 
             //stop slice for ptv spine is the cut plane
@@ -983,7 +983,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
                 //If the target ID is PTV_CSI, calculate the number of isocenters based on PTV_spine and add one iso for the brain
                 //planId, target list
-                if (string.Equals(longestTargetInPlan.Id, TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, prescriptions.First().Item1)))
+                if (string.Equals(longestTargetInPlan.Id, TargetsHelper.GetHighestRxTargetIdForPlan(prescriptions, prescriptions.First().PlanId)))
                 {
                     calcItems += 1;
                     //special rules for initial plan,

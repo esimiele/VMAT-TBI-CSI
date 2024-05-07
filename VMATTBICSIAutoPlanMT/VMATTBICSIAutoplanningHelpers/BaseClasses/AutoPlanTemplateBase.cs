@@ -17,6 +17,8 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 
         public List<PlanObjective> PlanObjectives { get; set; } = new List<PlanObjective> { };
         public List<RequestedPlanMetric> RequestedPlanMetrics { get; set; } = new List<RequestedPlanMetric> { };
+
+        public List<RequestedOptimizationTSStructure> RequestedOptimizationTSStructure { get; set; } = new List<RequestedOptimizationTSStructure> { };
         public List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> GetRequestedOptTSStructures() { return requestedOptTSStructures; }
         #endregion
 

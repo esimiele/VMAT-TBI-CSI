@@ -445,7 +445,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             bool initCSIPlan = false;
             //if the plan id is equal to the plan Id in the first entry in the prescriptions, then this is the initial plan
             //--> use special rules to fit fields
-            if (string.Equals(iso.Item1.Id, prescriptions.First().Item1)) initCSIPlan = true;
+            if (string.Equals(iso.Item1.Id, prescriptions.First().PlanId)) initCSIPlan = true;
             //DRR parameters (dummy parameters to generate DRRs for each field)
             DRRCalculationParameters DRR = GenerateDRRParameters();
             ProvideUIUpdate(100 * ++percentComplete / calcItems, "Created default DRR parameters");

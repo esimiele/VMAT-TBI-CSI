@@ -26,8 +26,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Structs
         public bool oneMoreOpt;
         public bool copyAndSavePlanItr;
         public bool useFlash;
-        public List<Tuple<string, string, int, DoseValue, double>> prescriptions;
-        public List<Tuple<string, string>> normalizationVolumes;
+        public List<Prescription> prescriptions;
+        public Dictionary<string, string> normalizationVolumes;
         public List<PlanObjective> planObj;
         public List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures;
         public List<RequestedPlanMetric> requestedPlanMetrics;
@@ -39,8 +39,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Structs
 
         //simple method to automatically assign/initialize the above data members
         public void Construct(List<ExternalPlanSetup> p, 
-                              List<Tuple<string, string, int, DoseValue, double>> presc,
-                              List<Tuple<string,string>> normVols,
+                              List<Prescription> presc,
+                              Dictionary<string,string> normVols,
                               List<PlanObjective> objectives, 
                               List<Tuple<string, double, double, double, int, 
                               List<Tuple<string, double, string, double>>>> RTS,

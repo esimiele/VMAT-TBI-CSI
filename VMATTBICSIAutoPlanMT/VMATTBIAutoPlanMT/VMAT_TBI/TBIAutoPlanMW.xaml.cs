@@ -90,7 +90,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         List<PlanTarget> targets = new List<PlanTarget> { };
         //ts target list
         //plan id, list<original target id, ts target id>
-        List<Tuple<string, List<Tuple<string, string>>>> tsTargets = new List<Tuple<string, List<Tuple<string, string>>>> { };
+        List<Tuple<string, Dictionary<string,string>>> tsTargets = new List<Tuple<string, Dictionary<string, string>>> { };
         //general tuning structures to be added (if selected for sparing) to all case types
         //default general tuning structures to be added (specified in CSI_plugin_config.ini file)
         List<RequestedTSStructure> defaultTSStructures = new List<RequestedTSStructure> { };
@@ -106,7 +106,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         //plan Id, list of isocenter names for this plan
         public List<Tuple<string, List<string>>> isoNames = new List<Tuple<string, List<string>>> { };
         //plan ID, target Id, numFx, dosePerFx, cumulative dose
-        List<Tuple<string, string, int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+        List<Prescription> prescriptions = new List<Prescription> { };
         bool useFlash = false;
         FlashType flashType = FlashType.Global;
         Structure flashStructure = null;
@@ -567,16 +567,16 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
 
             targets = new List<PlanTarget>(parsedTargets.Item1);
-            (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) parsedPrescriptions = TargetsHelper.BuildPrescriptionList(targets,
-                                                                                                                                           dosePerFxTB.Text,
-                                                                                                                                           numFxTB.Text,
-                                                                                                                                           RxTB.Text);
+            (List<Prescription>, StringBuilder) parsedPrescriptions = TargetsHelper.BuildPrescriptionList(targets,
+                                                                                                          dosePerFxTB.Text,
+                                                                                                          numFxTB.Text,
+                                                                                                          RxTB.Text);
             if (!parsedPrescriptions.Item1.Any())
             {
                 log.LogError(parsedPrescriptions.Item2);
                 return;
             }
-            prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(parsedPrescriptions.Item1);
+            prescriptions = new List<Prescription>(parsedPrescriptions.Item1);
             targetsTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             structureTuningTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             TSManipulationTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
@@ -998,7 +998,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             beamPlacementTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             log.AddedStructures = generate.GetAddedStructures();
             log.StructureManipulations = TSManipulationList;
-            log.TSTargets = generate.GetTsTargets().SelectMany(x => x.Item2).ToList();
+            log.TSTargets = generate.GetTsTargets().SelectMany(x => x.Item2).ToDictionary(x => x.Key, x => x.Value);
             log.NormalizationVolumes = generate.GetNormalizationVolumes();
             log.IsoNames = isoNames;
         }
@@ -1056,7 +1056,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 numIsos += tmp - numVMATIsos;
                 numVMATIsos = tmp;
                 isoNames.Clear();
-                isoNames = new List<Tuple<string, List<string>>> { Tuple.Create(prescriptions.First().Item1, new List<string>(IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos)))};
+                isoNames = new List<Tuple<string, List<string>>> { Tuple.Create(prescriptions.First().PlanId, new List<string>(IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos)))};
                 if(numIsos > numVMATIsos) isoNames.Add(Tuple.Create("_Legs", new List<string>(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos))));
                 log.IsoNames = isoNames;
                 PopulateBeamsTab();
@@ -1439,7 +1439,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                         tmp = new List<OptimizationConstraint>(selectedTemplate.InitialOptimizationConstraints);
                     }
                     else tmp.Add(new OptimizationConstraint("--select--", OptimizationObjectiveType.None, 0.0, Units.cGy, 0.0, 0));
-                    tmpListList.Add(Tuple.Create(prescriptions.First().Item1, tmp));
+                    tmpListList.Add(Tuple.Create(prescriptions.First().PlanId, tmp));
                 }
                 else
                 {

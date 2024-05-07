@@ -8,6 +8,7 @@ using VMATTBICSIAutoPlanningHelpers.Prompts;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using SimpleProgressWindow;
 using System.Reflection;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 
 namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 {
@@ -24,7 +25,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         protected Course theCourse;
         protected StructureSet selectedSS;
         //plan ID, target Id, numFx, dosePerFx, cumulative dose
-        protected List<Tuple<string, string, int, DoseValue, double>> prescriptions;
+        protected List<Prescription> prescriptions;
         protected string calculationModel = "";
         protected string optimizationModel = "";
         protected string useGPUdose = "";
@@ -45,14 +46,14 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             int numExistingPlans = 0;
             int calcItems = prescriptions.Count;
             int counter = 0;
-            foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
+            foreach (Prescription itr in prescriptions)
             {
-                if (theCourse.ExternalPlanSetups.Where(x => string.Equals(x.Id, itr.Item1)).Any())
+                if (theCourse.ExternalPlanSetups.Where(x => string.Equals(x.Id, itr.PlanId)).Any())
                 {
                     numExistingPlans++;
-                    ProvideUIUpdate(100 * ++counter / calcItems, $"Plan {itr.Item1} EXISTS in course {courseId}");
+                    ProvideUIUpdate(100 * ++counter / calcItems, $"Plan {itr.PlanId} EXISTS in course {courseId}");
                 }
-                else ProvideUIUpdate(100 * ++counter / calcItems, $"Plan {itr.Item1} does not exist in course {courseId}");
+                else ProvideUIUpdate(100 * ++counter / calcItems, $"Plan {itr.PlanId} does not exist in course {courseId}");
             }
             if (numExistingPlans > 0)
             {
@@ -93,10 +94,10 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// </summary>
         /// <param name="cId"></param>
         /// <param name="presc"></param>
-        public void Initialize(string cId, List<Tuple<string, string, int, DoseValue, double>> presc)
+        public void Initialize(string cId, List<Prescription> presc)
         {
             courseId = cId;
-            prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(presc);
+            prescriptions = new List<Prescription>(presc);
         }
 
         /// <summary>
@@ -156,19 +157,19 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         protected bool CreateVMATPlans()
         {
             UpdateUILabel("Creating VMAT plans: ");
-            foreach (Tuple<string, string, int, DoseValue, double> itr in TargetsHelper.GetHighestRxPrescriptionForEachPlan(prescriptions))
+            foreach (Prescription itr in TargetsHelper.GetHighestRxPrescriptionForEachPlan(prescriptions))
             {
                 int counter = 0;
                 int calcItems = 5;
-                ProvideUIUpdate(0, $"Creating plan {itr.Item1}");
+                ProvideUIUpdate(0, $"Creating plan {itr.PlanId}");
                 ExternalPlanSetup thePlan = theCourse.AddExternalPlanSetup(selectedSS);
-                ProvideUIUpdate(100 * ++counter / calcItems, $"Created plan {itr.Item1}");
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Created plan {itr.PlanId}");
 
                 //100% dose prescribed in plan and plan ID is in the prescriptions
-                thePlan.SetPrescription(itr.Item3, itr.Item4, 1.0);
-                ProvideUIUpdate(100 * ++counter / calcItems, $"Set prescription for plan {itr.Item1}");
+                thePlan.SetPrescription(itr.NumberOfFractions, itr.DoseValue, 1.0);
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Set prescription for plan {itr.PlanId}");
 
-                string planName = itr.Item1;
+                string planName = itr.PlanId;
                 thePlan.Id = planName;
                 ProvideUIUpdate(100 * ++counter / calcItems, $"Set plan Id for {planName}");
 
@@ -201,7 +202,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 //plan.TargetVolumeID = selectedSS.Structures.First(x => x.Id == "xx");
                 //plan.PrimaryReferencePoint = plan.ReferencePoints.Fisrt(x => x.Id == "xx");
                 vmatPlans.Add(thePlan);
-                ProvideUIUpdate(100 * ++counter / calcItems, $"Added plan {itr.Item1} to stack!");
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Added plan {itr.PlanId} to stack!");
             }
             ProvideUIUpdate(100, "Finished creating and initializing plans!");
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
@@ -300,12 +301,12 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             int percentCompletion = 0;
             int calcItems = 3 + 7 * isoLocations.Item2.Count - 1;
             //grab target Id for this prescription item
-            if(!prescriptions.Any(x => string.Equals(x.Item1, isoLocations.Item1.Id)))
+            if(!prescriptions.Any(x => string.Equals(x.PlanId, isoLocations.Item1.Id)))
             {
                 ProvideUIUpdate($"Error! No matching prescrition found for iso plan name {isoLocations.Item1.Id}", true);
                 return true;
             }
-            string targetId = prescriptions.First(x => string.Equals(x.Item1, isoLocations.Item1.Id)).Item2;
+            string targetId = prescriptions.First(x => string.Equals(x.PlanId, isoLocations.Item1.Id)).TargetId;
 
             if(!StructureTuningHelper.DoesStructureExistInSS(targetId, selectedSS, true))
             {

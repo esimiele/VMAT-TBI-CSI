@@ -16,7 +16,7 @@ namespace VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses
         public int GetBoostRxNumFx() { return boostRxNumFx; }
 
         public List<TSRing> Rings { get; set; } = new List<TSRing>();
-        public List<string> GetCropAndOverlapStructures() { return cropAndOverlapStructures; }
+        public List<string> CropAndOverlapStructures { get; set; } = new List<string> { };
         public List<OptimizationConstraint> InitialOptimizationConstraints { get; set; } = new List<OptimizationConstraint> { };
         public List<OptimizationConstraint> BoostOptimizationConstraints { get; set; } = new List<OptimizationConstraint> { };
         #endregion
@@ -26,7 +26,6 @@ namespace VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses
         public void SetInitialRxNumFx(int value) { initialRxNumFx = value; }
         public void SetBoostRxDosePerFx(double value) { boostRxDosePerFx = value; }
         public void SetBoostRxNumFx(int value) { boostRxNumFx = value; }
-        public void SetCropAndOverlapStructures(List<string> value) { cropAndOverlapStructures = new List<string>(value); }
         #endregion
 
         private double initialRxDosePerFx = 0.1;
@@ -34,10 +33,6 @@ namespace VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses
         private double boostRxDosePerFx = 0.1;
         private int boostRxNumFx = 1;
         
-        //list of structures that should be cropped from targets and overlap with targets also contoured. these manipulations will be used to update the optimization constraints for all targets
-        private List<string> cropAndOverlapStructures = new List<string> { };
-        //structure, constraint type, dose cGy, volume %, priority
-
         /// <summary>
         /// Constructor
         /// </summary>

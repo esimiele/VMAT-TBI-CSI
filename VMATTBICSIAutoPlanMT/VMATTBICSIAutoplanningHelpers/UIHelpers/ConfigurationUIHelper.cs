@@ -53,11 +53,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 }
                 else sb.AppendLine(String.Format(" No requested ring structures for template: {0}", itr.TemplateName));
 
-                if (itr.GetCropAndOverlapStructures().Any())
+                if (itr.CropAndOverlapStructures.Any())
                 {
                     sb.AppendLine(String.Format(" {0} requested structures for crop/overlap with targets:", itr.TemplateName));
                     sb.AppendLine(String.Format("  {0, -15}", "structure Id"));
-                    foreach (string cropOverlap in itr.GetCropAndOverlapStructures()) sb.AppendLine(String.Format("  {0}", cropOverlap));
+                    foreach (string cropOverlap in itr.CropAndOverlapStructures) sb.AppendLine(String.Format("  {0}", cropOverlap));
                     sb.AppendLine(Environment.NewLine);
                 }
                 else sb.AppendLine(String.Format(" No structures requested for crop/overlap with targets for template: {0}", itr.TemplateName));

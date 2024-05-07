@@ -81,7 +81,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         List<PlanTarget> targets = new List<PlanTarget> { };
         //ts target list
         //plan id, list<original target id, ts target id>
-        List<Tuple<string, List<Tuple<string, string>>>> tsTargets = new List<Tuple<string, List<Tuple<string, string>>>> { };
+        List<Tuple<string, Dictionary<string,string>>> tsTargets = new List<Tuple<string, Dictionary<string, string>>> { };
         //planId, lower dose target id, list<manipulation target id, operation>
         List<Tuple<string, string, List<Tuple<string, string>>>> targetCropOverlapManipulations = new List<Tuple<string, string, List<Tuple<string, string>>>> { };
         //target id, ring id, dose (cGy)
@@ -99,7 +99,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //plan Id, list of isocenter names for this plan
         public List<Tuple<string,List<string>>> isoNames = new List<Tuple<string, List<string>>> { };
         //plan ID, target Id, numFx, dosePerFx, cumulative dose
-        List<Tuple<string, string, int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+        List<Prescription> prescriptions = new List<Prescription> { };
         //list of junction structures (i.e., overlap regions between adjacent isocenters)
         List<Tuple<ExternalPlanSetup, List<Structure>>> jnxs = new List<Tuple<ExternalPlanSetup, List<Structure>>> { };
         private VMS.TPS.Common.Model.API.Application app = null;
@@ -726,19 +726,19 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
 
             targets = new List<PlanTarget>(parsedTargets.Item1);
-            (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) parsedPrescriptions = TargetsHelper.BuildPrescriptionList(targets,
-                                                                                                                                           initDosePerFxTB.Text,
-                                                                                                                                           initNumFxTB.Text,
-                                                                                                                                           initRxTB.Text,
-                                                                                                                                           boostDosePerFxTB.Text,
-                                                                                                                                           boostNumFxTB.Text,
-                                                                                                                                           boostRxTB.Text);
+            (List<Prescription>, StringBuilder) parsedPrescriptions = TargetsHelper.BuildPrescriptionList(targets,
+                                                                                                          initDosePerFxTB.Text,
+                                                                                                          initNumFxTB.Text,
+                                                                                                          initRxTB.Text,
+                                                                                                          boostDosePerFxTB.Text,
+                                                                                                          boostNumFxTB.Text,
+                                                                                                          boostRxTB.Text);
             if(!parsedPrescriptions.Item1.Any())
             {
                 log.LogError(parsedPrescriptions.Item2);
                 return;
             }
-            prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(parsedPrescriptions.Item1);
+            prescriptions = new List<Prescription>(parsedPrescriptions.Item1);
             log.Prescriptions = prescriptions;
 
             //need targets to be assigned prior to populating the tuning structure tabs
@@ -1061,7 +1061,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (templateList.SelectedItem != null)
             {
                 GeneralUIHelper.ClearList(cropOverlapOARsSP);
-                AddCropOverlapOARs((templateList.SelectedItem as CSIAutoPlanTemplate).GetCropAndOverlapStructures(), cropOverlapOARsSP);
+                AddCropOverlapOARs((templateList.SelectedItem as CSIAutoPlanTemplate).CropAndOverlapStructures, cropOverlapOARsSP);
                 cropOverlapOARsScroller.ScrollToBottom();
             }
         }
@@ -1347,7 +1347,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             TSManipulationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             beamPlacementTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             log.AddedStructures = generate.GetAddedStructures();
-            log.TSTargets = generate.GetTsTargets().SelectMany(x => x.Item2).ToList();
+            log.TSTargets = generate.GetTsTargets().SelectMany(x => x.Item2).ToDictionary(x => x.Key, x => x.Value);
             log.StructureManipulations = TSManipulationList;
             log.NormalizationVolumes = generate.GetNormalizationVolumes();
             log.IsoNames = isoNames;
@@ -1699,7 +1699,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 }
             }
             else thePlan = VMATplans.First();
-            int index = prescriptions.IndexOf(prescriptions.FirstOrDefault(x => x.Item1 == thePlan.Id));
+            int index = prescriptions.IndexOf(prescriptions.FirstOrDefault(x => x.PlanId == thePlan.Id));
             if(index != -1)
             {
                 List<Tuple<string, List<OptimizationConstraint>>> tmpListList = new List<Tuple<string, List<OptimizationConstraint>>> { };
@@ -1738,11 +1738,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                             if (selectedTemplate.InitialOptimizationConstraints.Any()) tmp = new List<OptimizationConstraint>(selectedTemplate.InitialOptimizationConstraints);
                             tmp.Add(new OptimizationConstraint("--select--", OptimizationObjectiveType.None, 0.0, Units.cGy, 0.0, 0));
                             tmpListList.Add(Tuple.Create(thePlan.Id,tmp));
-                            if (selectedTemplate.BoostOptimizationConstraints.Any()) tmpListList.Add(Tuple.Create(prescriptions.FirstOrDefault(x => x.Item1 != thePlan.Id).Item1, selectedTemplate.BoostOptimizationConstraints));
+                            if (selectedTemplate.BoostOptimizationConstraints.Any()) tmpListList.Add(Tuple.Create(prescriptions.FirstOrDefault(x => x.PlanId != thePlan.Id).PlanId, selectedTemplate.BoostOptimizationConstraints));
                         }
                         else
                         {
-                            if (selectedTemplate.InitialOptimizationConstraints.Any()) tmpListList.Add(Tuple.Create(prescriptions.FirstOrDefault(x => x.Item1 != thePlan.Id).Item1, selectedTemplate.InitialOptimizationConstraints));
+                            if (selectedTemplate.InitialOptimizationConstraints.Any()) tmpListList.Add(Tuple.Create(prescriptions.FirstOrDefault(x => x.PlanId != thePlan.Id).PlanId, selectedTemplate.InitialOptimizationConstraints));
                             else
                             {
                                 log.LogError("Error! There should not be a boost plan with no initial plan!");
@@ -2016,7 +2016,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 if (theTemplate.Rings.Any()) AddRingStructures(theTemplate.Rings, templateCreateRingsSP);
 
                 GeneralUIHelper.ClearList(templateCropOverlapOARsSP);
-                if (theTemplate.GetCropAndOverlapStructures().Any()) AddCropOverlapOARs(theTemplate.GetCropAndOverlapStructures(), templateCropOverlapOARsSP);
+                if (theTemplate.CropAndOverlapStructures.Any()) AddCropOverlapOARs(theTemplate.CropAndOverlapStructures, templateCropOverlapOARsSP);
 
                 //add tuning structure manipulations sparing structures
                 ClearStructureManipulationsList(templateClearSpareStructuresBtn);
@@ -2156,7 +2156,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             prospectiveTemplate.PlanTargets = TargetsUIHelper.ParseTargets(templateTargetsSP).Item1.OrderBy(x => x.TargetRxDose).ToList();
             prospectiveTemplate.CreateTSStructures = StructureTuningUIHelper.ParseCreateTSStructureList(templateTSSP).Item1;
             prospectiveTemplate.Rings = RingUIHelper.ParseCreateRingList(templateCreateRingsSP).Item1;
-            prospectiveTemplate.SetCropAndOverlapStructures(CropOverlapOARUIHelper.ParseCropOverlapOARList(templateCropOverlapOARsSP).Item1);
+            prospectiveTemplate.CropAndOverlapStructures = new List<string>(CropOverlapOARUIHelper.ParseCropOverlapOARList(templateCropOverlapOARsSP).Item1);
             prospectiveTemplate.TSManipulations = StructureTuningUIHelper.ParseTSManipulationList(templateStructuresSP).Item1;
             List<Tuple<string, List<OptimizationConstraint>>> templateOptParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(templateOptParamsSP).Item1;
             prospectiveTemplate.InitialOptimizationConstraints = new List<OptimizationConstraint>(templateOptParametersListList.First().Item2);

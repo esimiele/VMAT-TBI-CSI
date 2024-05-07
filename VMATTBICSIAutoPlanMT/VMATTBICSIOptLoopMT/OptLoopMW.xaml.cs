@@ -83,11 +83,11 @@ namespace VMATTBICSIOptLoopMT
         PlanType planType;
         List<string> planUIDs = new List<string> { };
         //plan id, target id, num fx, dose per fx, cumulative rx for this target
-        List<Tuple<string, string, int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+        List<Prescription> prescriptions = new List<Prescription> { };
         //plan id, volume id
-        List<Tuple<string, string>> normalizationVolumes = new List<Tuple<string, string>> { };
+        Dictionary<string, string> normalizationVolumes = new Dictionary<string, string> { };
         //list<original target id, ts target id>
-        private List<Tuple<string, string>> tsTargets = new List<Tuple<string, string>> { };
+        private Dictionary<string, string> tsTargets = new Dictionary<string, string> { };
 
         /// <summary>
         /// Constructor
@@ -502,8 +502,8 @@ namespace VMATTBICSIOptLoopMT
             }
             if (normalizationVolumes.Any())
             {
-                initNormVolume.Text = normalizationVolumes.First().Item2;
-                if(normalizationVolumes.Count > 1) bstNormVolume.Text = normalizationVolumes.Last().Item2;
+                initNormVolume.Text = normalizationVolumes.First().Value;
+                if(normalizationVolumes.Count > 1) bstNormVolume.Text = normalizationVolumes.Last().Value;
             }
         }
 
@@ -939,14 +939,16 @@ namespace VMATTBICSIOptLoopMT
                             {
                                 while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {
-                                    tsTargets.Add(LogHelper.ParseKeyValuePairFromLogFile(line));
+                                    KeyValuePair<string, string> tsTGT = LogHelper.ParseKeyValuePairFromLogFile(line);
+                                    tsTargets.Add(tsTGT.Key, tsTGT.Value);
                                 }
                             }
                             else if (line.Contains("Normalization volumes:"))
                             {
                                 while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {
-                                    normalizationVolumes.Add(LogHelper.ParseKeyValuePairFromLogFile(line));
+                                    KeyValuePair<string, string> normVol = LogHelper.ParseKeyValuePairFromLogFile(line);
+                                    normalizationVolumes.Add(normVol.Key, normVol.Value);
                                 }
                             }
                             else if (line.Contains("Optimization constraints:"))

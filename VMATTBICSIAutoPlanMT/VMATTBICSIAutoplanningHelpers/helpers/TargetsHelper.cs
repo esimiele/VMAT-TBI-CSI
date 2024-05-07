@@ -25,16 +25,16 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="boostNumFxText"></param>
         /// <param name="boostRxText"></param>
         /// <returns></returns>
-        public static (List<Tuple<string, string, int, DoseValue, double>>, StringBuilder) BuildPrescriptionList(List<PlanTarget> targets, 
-                                                                                                                 string initDosePerFxText, 
-                                                                                                                 string initNumFxText, 
-                                                                                                                 string initRxText, 
-                                                                                                                 string boostDosePerFxText = "", 
-                                                                                                                 string boostNumFxText = "", 
-                                                                                                                 string boostRxText = "")
+        public static (List<Prescription>, StringBuilder) BuildPrescriptionList(List<PlanTarget> targets, 
+                                                                                string initDosePerFxText, 
+                                                                                string initNumFxText, 
+                                                                                string initRxText, 
+                                                                                string boostDosePerFxText = "", 
+                                                                                string boostNumFxText = "", 
+                                                                                string boostRxText = "")
         {
             StringBuilder sb = new StringBuilder();
-            List<Tuple<string, string, int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+            List<Prescription> prescriptions = new List<Prescription> { };
             double dosePerFx = 0.0;
             int numFractions = 0;
             double boostRxDose = 0.0;
@@ -72,7 +72,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     if (!double.TryParse(initDosePerFxText, out dosePerFx) || !int.TryParse(initNumFxText, out numFractions))
                     {
                         sb.AppendLine("Error! Could not parse dose per fx or number of fractions for initial plan! Exiting");
-                        prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+                        prescriptions = new List<Prescription> { };
                         return (prescriptions, sb);
                     }
                 }
@@ -81,26 +81,27 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     if (!double.TryParse(boostDosePerFxText, out dosePerFx) || !int.TryParse(boostNumFxText, out numFractions))
                     {
                         sb.AppendLine("Error! Could not parse dose per fx or number of fractions for boost plan! Exiting");
-                        prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+                        prescriptions = new List<Prescription> { };
                         return (prescriptions, sb);
                     }
                 }
                 foreach(Tuple<string,double> itr1 in itr.Item2)
                 {
-                    prescriptions.Add(Tuple.Create(itr.Item1, itr1.Item1, numFractions, new DoseValue((itr1.Item2 - priorRxDoses) / numFractions, DoseValue.DoseUnit.cGy), itr1.Item2));
+                    prescriptions.Add(new Prescription(itr.Item1, itr1.Item1, numFractions, new DoseValue((itr1.Item2 - priorRxDoses) / numFractions, DoseValue.DoseUnit.cGy), itr1.Item2));
                 }
                 priorRxDoses += rx;
             }
-            
+
             //sort the prescription list by the cumulative rx dose
-            prescriptions.Sort(delegate (Tuple<string, string, int, DoseValue, double> x, Tuple<string, string, int, DoseValue, double> y) { return x.Item5.CompareTo(y.Item5); });
+            prescriptions.Sort((x, y) => x.CumulativeDoseToTarget.CompareTo(y.CumulativeDoseToTarget));
+            //prescriptions.Sort(delegate (Tuple<string, string, int, DoseValue, double> x, Tuple<string, string, int, DoseValue, double> y) { return x.Item5.CompareTo(y.Item5); });
 
             StringBuilder msg = new StringBuilder();
             msg.AppendLine("Targets set successfully!" + Environment.NewLine);
             msg.AppendLine("Prescriptions:");
-            foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
+            foreach (Prescription itr in prescriptions)
             {
-                msg.AppendLine($"{itr.Item1}, {itr.Item2}, {itr.Item3}, {itr.Item4.Dose}, {itr.Item5}");
+                msg.AppendLine($"{itr.PlanId}, {itr.TargetId}, {itr.NumberOfFractions}, {itr.DoseValue.Dose}, {itr.CumulativeDoseToTarget}");
             }
             MessageBox.Show(msg.ToString());
             return (prescriptions, sb);
@@ -207,20 +208,20 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="prescriptions"></param>
         /// <returns></returns>
-        public static List<Tuple<string,List<string>>> GetTargetListForEachPlan(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
+        public static List<Tuple<string,List<string>>> GetTargetListForEachPlan(List<Prescription> prescriptions)
         {
             List<Tuple<string, List<string>>> planIdTargets = new List<Tuple<string, List<string>>> { };
-            string tmpPlanId = prescriptions.First().Item1;
+            string tmpPlanId = prescriptions.First().PlanId;
             List<string> targs = new List<string> { };
-            foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
+            foreach (Prescription itr in prescriptions)
             {
-                if (itr.Item1 != tmpPlanId)
+                if (itr.PlanId != tmpPlanId)
                 {
                     planIdTargets.Add(new Tuple<string, List<string>>(tmpPlanId, new List<string>(targs)));
-                    tmpPlanId = itr.Item1;
-                    targs = new List<string> { itr.Item2 };
+                    tmpPlanId = itr.PlanId;
+                    targs = new List<string> { itr.TargetId };
                 }
-                else targs.Add(itr.Item2);
+                else targs.Add(itr.TargetId);
             }
             planIdTargets.Add(new Tuple<string, List<string>>(tmpPlanId, new List<string>(targs)));
             return planIdTargets;
@@ -231,24 +232,24 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="prescriptions"></param>
         /// <returns></returns>
-        public static List<Tuple<string, string>> GetHighestRxPlanTargetList(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
+        public static List<Tuple<string, string>> GetHighestRxPlanTargetList(List<Prescription> prescriptions)
         {
             List<Tuple<string, string>> plansTargets = new List<Tuple<string, string>> { };
             if (!prescriptions.Any()) return plansTargets;
             //sort by cumulative dose to targets
-            List<Tuple<string, string, int, DoseValue, double>> tmpList = prescriptions.OrderBy(x => x.Item5).ToList();
-            string tmpPlan = tmpList.First().Item1;
-            string tmpTarget = tmpList.First().Item2;
+            List<Prescription> tmpList = prescriptions.OrderBy(x => x.CumulativeDoseToTarget).ToList();
+            string tmpPlan = tmpList.First().PlanId;
+            string tmpTarget = tmpList.First().TargetId;
 
-            foreach (Tuple<string, string, int, DoseValue, double> itr in tmpList)
+            foreach (Prescription itr in tmpList)
             {
                 //check if this is the start of a new plan, if so, the the previous target was the highest dose target in the previous plan
-                if (!string.Equals(itr.Item1, tmpPlan))
+                if (!string.Equals(itr.PlanId, tmpPlan))
                 {
                     plansTargets.Add(Tuple.Create<string, string>(tmpPlan, tmpTarget));
-                    tmpPlan = itr.Item1;
+                    tmpPlan = itr.PlanId;
                 }
-                tmpTarget = itr.Item2;
+                tmpTarget = itr.TargetId;
             }
             plansTargets.Add(Tuple.Create<string, string>(tmpPlan, tmpTarget));
             return plansTargets;
@@ -289,14 +290,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="prescriptions"></param>
         /// <param name="plandId"></param>
         /// <returns></returns>
-        public static double GetHighestRxForPlan(List<Tuple<string, string, int, DoseValue, double>> prescriptions, string plandId)
+        public static double GetHighestRxForPlan(List<Prescription> prescriptions, string plandId)
         {
             double dose = 0.0;
-            List<Tuple<string, string, int, DoseValue, double>> tmpList = prescriptions.OrderBy(x => x.Item5).ToList();
-            if (tmpList.Any(x => string.Equals(x.Item1.ToLower(), plandId.ToLower())))
+            List<Prescription> tmpList = prescriptions.OrderBy(x => x.CumulativeDoseToTarget).ToList();
+            if (tmpList.Any(x => string.Equals(x.PlanId.ToLower(), plandId.ToLower())))
             {
-                Tuple<string, string, int, DoseValue, double> rx = tmpList.Last(x => string.Equals(x.Item1.ToLower(), plandId.ToLower()));
-                dose = rx.Item3 * rx.Item4.Dose;
+                Prescription rx = tmpList.Last(x => string.Equals(x.PlanId.ToLower(), plandId.ToLower()));
+                dose = rx.NumberOfFractions * rx.DoseValue.Dose;
             }
             return dose;
         }
@@ -307,14 +308,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="prescriptions"></param>
         /// <param name="plandId"></param>
         /// <returns></returns>
-        public static string GetHighestRxTargetIdForPlan(List<Tuple<string, string, int, DoseValue, double>> prescriptions, string plandId)
+        public static string GetHighestRxTargetIdForPlan(List<Prescription> prescriptions, string plandId)
         {
             string targetId = "";
-            List<Tuple<string, string, int, DoseValue, double>> tmpList = prescriptions.OrderBy(x => x.Item5).ToList();
-            if (tmpList.Any(x => string.Equals(x.Item1.ToLower(), plandId.ToLower())))
+            List<Prescription> tmpList = prescriptions.OrderBy(x => x.CumulativeDoseToTarget).ToList();
+            if (tmpList.Any(x => string.Equals(x.PlanId.ToLower(), plandId.ToLower())))
             {
-                Tuple<string, string, int, DoseValue, double> rx = tmpList.Last(x => string.Equals(x.Item1.ToLower(), plandId.ToLower()));
-                targetId = rx.Item2;
+                Prescription rx = tmpList.Last(x => string.Equals(x.PlanId.ToLower(), plandId.ToLower()));
+                targetId = rx.TargetId;
             }
             return targetId;
         }
@@ -324,16 +325,16 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="prescriptions"></param>
         /// <returns></returns>
-        public static List<Tuple<string, double>> GetSortedTargetIdsByRxDose(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
+        public static List<Tuple<string, double>> GetSortedTargetIdsByRxDose(List<Prescription> prescriptions)
         {
             List<Tuple<string, double>> sortedTargets = new List<Tuple<string, double>> { };
             if (!prescriptions.Any()) return sortedTargets;
             //sort by cumulative dose to targets
-            List<Tuple<string, string, int, DoseValue, double>> tmpList = prescriptions.OrderBy(x => x.Item5).ToList();
+            List<Prescription> tmpList = prescriptions.OrderBy(x => x.CumulativeDoseToTarget).ToList();
 
-            foreach (Tuple<string, string, int, DoseValue, double> itr in tmpList)
+            foreach (Prescription itr in tmpList)
             {
-                sortedTargets.Add(Tuple.Create(itr.Item2, itr.Item5));
+                sortedTargets.Add(Tuple.Create(itr.TargetId, itr.CumulativeDoseToTarget));
             }
             return sortedTargets;
         }
@@ -343,9 +344,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="prescriptions"></param>
         /// <returns></returns>
-        public static List<string> GetAllTargetIds(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
+        public static IEnumerable<string> GetAllTargetIds(List<Prescription> prescriptions)
         {
-            return prescriptions.Select(x => x.Item2).ToList();
+            return prescriptions.Select(x => x.TargetId);
         }
 
         /// <summary>
@@ -384,12 +385,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="targetId"></param>
         /// <param name="prescriptions"></param>
         /// <returns></returns>
-        public static string GetPlanIdFromTargetId(string targetId, List<Tuple<string, string, int, DoseValue, double>> prescriptions)
+        public static string GetPlanIdFromTargetId(string targetId, List<Prescription> prescriptions)
         {
             string planId = "";
-            if(prescriptions.Any(x => string.Equals(x.Item2,targetId)))
+            if(prescriptions.Any(x => string.Equals(x.TargetId,targetId)))
             {
-                planId = prescriptions.First(x => string.Equals(x.Item2, targetId)).Item1;
+                planId = prescriptions.First(x => string.Equals(x.TargetId, targetId)).PlanId;
             }
             return planId;
         }
@@ -399,15 +400,15 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="prescriptions"></param>
         /// <returns></returns>
-        public static List<Tuple<string,double>> GetPlanIdHighesRxDoseFromPrescriptions(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
+        public static List<Tuple<string,double>> GetPlanIdHighesRxDoseFromPrescriptions(List<Prescription> prescriptions)
         {
             List<Tuple<string, double>> planIdRx = new List<Tuple<string, double>> { };
             if(!prescriptions.Any()) return planIdRx;
-            List<Tuple<string, string, int, DoseValue, double>> tmpList = prescriptions.OrderBy(x => x.Item5).ToList();
-            planIdRx.Add(Tuple.Create(tmpList.First().Item1, GetHighestRxForPlan(prescriptions, tmpList.First().Item1)));
-            if(tmpList.Any(x => !string.Equals(x.Item1, planIdRx.First().Item1)))
+            List<Prescription> tmpList = prescriptions.OrderBy(x => x.CumulativeDoseToTarget).ToList();
+            planIdRx.Add(Tuple.Create(tmpList.First().PlanId, GetHighestRxForPlan(prescriptions, tmpList.First().PlanId)));
+            if(tmpList.Any(x => !string.Equals(x.PlanId, planIdRx.First().Item1)))
             {
-                planIdRx.Add(Tuple.Create(tmpList.Last().Item1, GetHighestRxForPlan(prescriptions, tmpList.Last().Item1)));
+                planIdRx.Add(Tuple.Create(tmpList.Last().PlanId, GetHighestRxForPlan(prescriptions, tmpList.Last().PlanId)));
             }
             return planIdRx;
         }
@@ -418,18 +419,18 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="prescriptions"></param>
         /// <returns></returns>
-        public static List<Tuple<string, string, int, DoseValue, double>> GetHighestRxPrescriptionForEachPlan(List<Tuple<string, string, int, DoseValue, double>> prescriptions)
+        public static List<Prescription> GetHighestRxPrescriptionForEachPlan(List<Prescription> prescriptions)
         {
-            List<Tuple<string, string, int, DoseValue, double>> highestRxPrescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+            List<Prescription> highestRxPrescriptions = new List<Prescription> { };
             //sort prescriptions by cumulative Rx
-            List<Tuple<string, string, int, DoseValue, double>> tmpList = prescriptions.OrderBy(x => x.Item5).ToList();
+            List<Prescription> tmpList = prescriptions.OrderBy(x => x.CumulativeDoseToTarget).ToList();
 
             //add the last item in the prescription list where the plan id matches the plan id in the first entry in the sorted prescription list
-            highestRxPrescriptions.Add(tmpList.Last(x => string.Equals(x.Item1, tmpList.First().Item1)));
-            if (tmpList.Any(x => !string.Equals(x.Item1, tmpList.First().Item1)))
+            highestRxPrescriptions.Add(tmpList.Last(x => string.Equals(x.PlanId, tmpList.First().PlanId)));
+            if (tmpList.Any(x => !string.Equals(x.PlanId, tmpList.First().PlanId)))
             {
                 //add the last item in the prescription list where the plan id DOES NOT match the plan id in the first entry in the sorted prescription list
-                highestRxPrescriptions.Add(tmpList.Last(x => !string.Equals(x.Item1, tmpList.First().Item1)));
+                highestRxPrescriptions.Add(tmpList.Last(x => !string.Equals(x.PlanId, tmpList.First().PlanId)));
             }
             return highestRxPrescriptions;
         }

@@ -19,7 +19,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <returns></returns>
         public static List<PlanObjective> ConstructPlanObjectives(List<PlanObjective> obj,
                                                                   StructureSet selectedSS,
-                                                                  List<Tuple<string,string>> tsTargets)
+                                                                  Dictionary<string,string> tsTargets)
         {
             List<PlanObjective> tmp = new List<PlanObjective> { };
             if (selectedSS != null)
@@ -27,11 +27,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 foreach (PlanObjective itr in obj)
                 {
                     string volume = itr.StructureId;
-                    if (tsTargets.Any(x => string.Equals(x.Item1, itr.StructureId)))
+                    if (tsTargets.Any(x => string.Equals(x.Key, itr.StructureId)))
                     {
                         //volume is a target and has a corresponding ts target
                         //update volume with ts target id
-                        volume = tsTargets.First(x => string.Equals(x.Item1, itr.StructureId)).Item2;
+                        volume = tsTargets.First(x => string.Equals(x.Key, itr.StructureId)).Value;
                     }
                     if (StructureTuningHelper.DoesStructureExistInSS(volume, selectedSS, true))
                     {

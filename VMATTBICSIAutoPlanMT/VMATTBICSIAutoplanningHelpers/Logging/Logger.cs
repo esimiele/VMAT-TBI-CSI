@@ -25,16 +25,16 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         public string User { set => userId = value; }
         public string LogPath { get { return logPath; } set { logPath = value; } }
         //plan ID, target Id, numFx, dosePerFx, cumulative dose
-        public List<Tuple<string, string, int, DoseValue, double>> Prescriptions { set => prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(value); }
+        public List<Prescription> Prescriptions { set => prescriptions = new List<Prescription>(value); }
         public List<string> AddedPrelimTargetsStructures { set => addedPrelimTargets = new List<string>(value); }
         //ts generation and manipulation
         public List<string> AddedStructures { set => addedStructures = new List<string>(value); }
         public List<RequestedTSManipulation> StructureManipulations { get; set; } = new List<RequestedTSManipulation>();
      
         //plan id, list<original target id, ts target id>
-        public List<Tuple<string, string>> TSTargets { set => tsTargets = new List<Tuple<string, string>>(value); }
+        public Dictionary<string, string> TSTargets { set => tsTargets = new Dictionary<string, string>(value); }
         //plan id, normalization volume for plan
-        public List<Tuple<string, string>> NormalizationVolumes { set => normVolumes = new List<Tuple<string, string>>(value); }
+        public Dictionary<string,string> NormalizationVolumes { set => normVolumes = new Dictionary<string,string>(value); }
         //plan Id, list of isocenter names for this plan
         public List<Tuple<string, List<string>>> IsoNames { set => isoNames = new List<Tuple<string, List<string>>>(value); }
         //plan generation and beam placement
@@ -56,11 +56,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         private string template;
         private string selectedSS;
         bool changesSaved = false;
-        List<Tuple<string, string, int, DoseValue, double>> prescriptions;
+        List<Prescription> prescriptions;
         private List<string> addedPrelimTargets;
         private List<string> addedStructures;
-        private List<Tuple<string, string>> tsTargets;
-        private List<Tuple<string, string>> normVolumes;
+        private Dictionary<string, string> tsTargets;
+        private Dictionary<string, string> normVolumes;
         private List<Tuple<string, List<string>>> isoNames;
         private List<string> planUIDs;
         private ScriptOperationType opType = ScriptOperationType.General;
@@ -78,11 +78,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             mrn = patient;
 
             selectedSS = "";
-            prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+            prescriptions = new List<Prescription> { };
             addedPrelimTargets = new List<string> { };
             addedStructures = new List<string> { };
-            tsTargets = new List<Tuple<string, string>> { };
-            normVolumes = new List<Tuple<string, string>> { };
+            tsTargets = new Dictionary<string, string> { };
+            normVolumes = new Dictionary<string, string> { };
             isoNames = new List<Tuple<string, List<string>>> { };
             planUIDs = new List<string> { };
             _logFromOperations = new StringBuilder();
@@ -221,7 +221,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             sb.AppendLine($"Template={template}");
             sb.AppendLine("");
             sb.AppendLine("Prescriptions:");
-            foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions) sb.AppendLine($"    {{{itr.Item1},{itr.Item2},{itr.Item3},{itr.Item4.Dose},{itr.Item5}}}");
+            foreach (Prescription itr in prescriptions) sb.AppendLine($"    {{{itr.PlanId},{itr.TargetId},{itr.NumberOfFractions},{itr.DoseValue.Dose},{itr.CumulativeDoseToTarget}}}");
             sb.AppendLine("");
 
             sb.AppendLine("Added TS structures:");
@@ -251,16 +251,16 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             sb.AppendLine("");
 
             sb.AppendLine("TS Targets:");
-            foreach (Tuple<string, string> itr in tsTargets)
+            foreach (KeyValuePair<string,string> itr in tsTargets)
             {
-                sb.AppendLine($"    {{{itr.Item1},{itr.Item2}}}");
+                sb.AppendLine($"    {{{itr.Key},{itr.Value}}}");
             }
             sb.AppendLine("");
 
             sb.AppendLine("Normalization volumes:");
-            foreach (Tuple<string, string> itr in normVolumes)
+            foreach (KeyValuePair<string, string> itr in normVolumes)
             {
-                sb.AppendLine($"    {{{itr.Item1},{itr.Item2}}}");
+                sb.AppendLine($"    {{{itr.Key},{itr.Value}}}");
             }
             sb.AppendLine("");
 

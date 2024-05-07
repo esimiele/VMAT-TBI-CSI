@@ -96,12 +96,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         public void GetNormaliztionVolumeIdForPlanTest()
         {
             string planId = "testPlan4";
-            List<Tuple<string, string>> testNormVolumes = new List<Tuple<string, string>>
+            Dictionary<string, string> testNormVolumes = new Dictionary<string, string>
             {
-                Tuple.Create("testPlan1","testVol1"),
-                Tuple.Create("testPlan2","testVol2"),
-                Tuple.Create("testPlan3","testVol3"),
-                Tuple.Create("testPlan4","testVol4")
+                { "testPlan1","testVol1" },
+                { "testPlan2","testVol2" },
+                { "testPlan3","testVol3" },
+                { "testPlan4","testVol4" },
             };
             string expected = "testVol4";
             Assert.AreEqual(expected, OptimizationLoopHelper.GetNormaliztionVolumeIdForPlan(planId, testNormVolumes));

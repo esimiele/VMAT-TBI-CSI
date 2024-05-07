@@ -95,14 +95,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="planId"></param>
         /// <param name="normalizationVolumes"></param>
         /// <returns></returns>
-        public static string GetNormaliztionVolumeIdForPlan(string planId, List<Tuple<string,string>> normalizationVolumes)
+        public static string GetNormaliztionVolumeIdForPlan(string planId, Dictionary<string, string> normalizationVolumes)
         {
             string normStructureId = "";
             if (normalizationVolumes.Any())
             {
-                if (normalizationVolumes.Any(x => string.Equals(x.Item1, planId)))
+                if (normalizationVolumes.Any(x => string.Equals(x.Key, planId)))
                 {
-                    normStructureId = normalizationVolumes.FirstOrDefault(x => string.Equals(x.Item1, planId)).Item2;
+                    normStructureId = normalizationVolumes.FirstOrDefault(x => string.Equals(x.Key, planId)).Value;
                 }
             }
             return normStructureId;

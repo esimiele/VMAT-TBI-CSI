@@ -31,10 +31,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
                 new PlanObjective("OpticNrvs", OptimizationObjectiveType.Upper, 104.0, Units.cGy, 0.0, Units.Percent)
             };
 
-            List<Tuple<string, string>> testTSTargets = new List<Tuple<string, string>>
+            Dictionary<string, string> testTSTargets = new Dictionary<string, string>
             {
-                Tuple.Create("PTV_Boost", "ts_PTV_Boost"),
-                Tuple.Create("PTV_CSI", "ts_PTV_CSI"),
+                {"PTV_Boost", "ts_PTV_Boost" },
+                { "PTV_CSI", "ts_PTV_CSI" }
             };
 
             Structure tsPTVBoost = Mock.Create<Structure>();

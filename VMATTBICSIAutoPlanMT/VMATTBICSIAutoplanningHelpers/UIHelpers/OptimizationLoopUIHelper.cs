@@ -122,7 +122,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <returns></returns>
         public static string PrintAdditionalPlanDoseInfo(List<RequestedPlanMetric> requestedInfo, 
                                                          ExternalPlanSetup plan, 
-                                                         List<Tuple<string, string>> normalizationVolumes)
+                                                         Dictionary<string, string> normalizationVolumes)
         {
             StringBuilder sb = new StringBuilder();
 

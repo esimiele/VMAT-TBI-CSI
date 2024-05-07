@@ -150,7 +150,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 
                             if (TSManipulation_temp.Any()) tempTemplate.TSManipulations = new List<RequestedTSManipulation>(TSManipulation_temp);
                             if (createRings_temp.Any()) tempTemplate.Rings = new List<TSRing>(createRings_temp);
-                            if (cropAndContourOverlapStructures_temp.Any()) tempTemplate.SetCropAndOverlapStructures(cropAndContourOverlapStructures_temp);
+                            if (cropAndContourOverlapStructures_temp.Any()) tempTemplate.CropAndOverlapStructures = new List<string>(cropAndContourOverlapStructures_temp);
                             if (TSstructures_temp.Any()) tempTemplate.CreateTSStructures = TSstructures_temp;
                             if (initOptConst_temp.Any()) tempTemplate.InitialOptimizationConstraints = new List<OptimizationConstraint>(initOptConst_temp);
                             if (bstOptConst_temp.Any()) tempTemplate.BoostOptimizationConstraints = new List<OptimizationConstraint>(bstOptConst_temp);

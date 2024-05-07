@@ -7,6 +7,7 @@ using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using System.Runtime.ExceptionServices;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 
 namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
@@ -170,9 +171,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Set plan Id for {legsPlan.Id}");
 
             //grab the highest Rx prescription for this plan (should only be one entry since no boost plans are permitted for TBI)
-            List<Tuple<string, string, int, DoseValue, double>> rx = TargetsHelper.GetHighestRxPrescriptionForEachPlan(prescriptions);
+            List<Prescription> rx = TargetsHelper.GetHighestRxPrescriptionForEachPlan(prescriptions);
             //100% dose prescribed in plan
-            legsPlan.SetPrescription(rx.First().Item3, rx.First().Item4, 1.0);
+            legsPlan.SetPrescription(rx.First().NumberOfFractions, rx.First().DoseValue, 1.0);
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Set prescription for plan {legsPlan.Id}");
             legsPlan.SetCalculationModel(CalculationType.PhotonVolumeDose, calculationModel);
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Set calculation model to {calculationModel}");

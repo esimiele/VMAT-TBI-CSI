@@ -76,9 +76,9 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <param name="addedRings"></param>
         /// <returns></returns>
         public static List<Tuple<string, List<OptimizationConstraint>>> UpdateOptObjectivesWithTsStructuresAndJnxs(List<Tuple<string, List<OptimizationConstraint>>> defaultListList,
-                                                                                                                                                          List<Tuple<string, string, int, DoseValue, double>> prescriptions,
+                                                                                                                                                          List<Prescription> prescriptions,
                                                                                                                                                           object selectedTemplate,
-                                                                                                                                                          List<Tuple<string, List<Tuple<string, string>>>> tsTargets,
+                                                                                                                                                          List<Tuple<string, Dictionary<string,string>>> tsTargets,
                                                                                                                                                           List<Tuple<ExternalPlanSetup, List<Structure>>> jnxs,
                                                                                                                                                           List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations = null,
                                                                                                                                                           List<Tuple<string, string, double>> addedRings = null)
