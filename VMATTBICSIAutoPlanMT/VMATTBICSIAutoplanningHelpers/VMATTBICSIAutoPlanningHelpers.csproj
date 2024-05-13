@@ -120,6 +120,7 @@
     <Compile Include="Delegates\AllDelegates.cs" />
     <Compile Include="Enums\AllEnums.cs" />
     <Compile Include="EnumTypeHelpers\DVHMetricTypeHelper.cs" />
+    <Compile Include="EnumTypeHelpers\InequalityOperatorHelper.cs" />
     <Compile Include="EnumTypeHelpers\UnitsTypeHelper.cs" />
     <Compile Include="Helpers\AppClosingHelper.cs" />
     <Compile Include="Helpers\CalculationHelper.cs" />

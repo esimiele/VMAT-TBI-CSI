@@ -29,7 +29,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Structs
         public List<Prescription> prescriptions;
         public Dictionary<string, string> normalizationVolumes;
         public List<PlanObjective> planObj;
-        public List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures;
+        //public List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures;
+        public List<RequestedOptimizationTSStructure> requestedTSStructures;
         public List<RequestedPlanMetric> requestedPlanMetrics;
         public double threshold;
         public double lowDoseLimit;
@@ -42,8 +43,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Structs
                               List<Prescription> presc,
                               Dictionary<string,string> normVols,
                               List<PlanObjective> objectives, 
-                              List<Tuple<string, double, double, double, int, 
-                              List<Tuple<string, double, string, double>>>> RTS,
+                              List<RequestedOptimizationTSStructure> RTS,
                               List<RequestedPlanMetric> info,
                               PlanType type,
                               double targetNorm, 
@@ -88,7 +88,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Structs
             prescriptions = presc;
             normalizationVolumes = normVols;
             planObj = objectives;
-            requestedTSstructures = RTS;
+            requestedTSStructures = RTS;
             requestedPlanMetrics = info;
         }
     }

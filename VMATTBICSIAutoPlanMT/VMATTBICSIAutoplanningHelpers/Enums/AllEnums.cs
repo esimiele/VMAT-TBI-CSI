@@ -78,6 +78,7 @@
     {
         Dmax,
         Dmin,
+        Dmean,
         DoseAtVolume,
         VolumeAtDose,
         None

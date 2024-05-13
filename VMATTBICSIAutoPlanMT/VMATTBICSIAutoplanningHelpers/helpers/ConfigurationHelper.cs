@@ -9,6 +9,9 @@ using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 using VMATTBICSIAutoPlanningHelpers.EnumTypeHelpers;
 using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
 using VMS.TPS.Common.Model.Types;
+using EvilDICOM.Core.Helpers;
+using static System.Windows.Forms.AxHost;
+using VMATTBICSIAutoPlanningHelpers.Logging;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
@@ -107,7 +110,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                             //optimization loop
                             List<PlanObjective> planObj_temp = new List<PlanObjective> { };
                             List<RequestedPlanMetric> planDoseInfo_temp = new List<RequestedPlanMetric> { };
-                            List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures_temp = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> { };
+                            List<RequestedOptimizationTSStructure> requestedTSstructures_temp = new List<RequestedOptimizationTSStructure> { };
+                            //List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures_temp = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> { };
                             //parse the data specific to the myeloablative case setup
                             while (!(line = reader.ReadLine()).Equals(":end template case configuration:"))
                             {
@@ -156,7 +160,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                             if (bstOptConst_temp.Any()) tempTemplate.BoostOptimizationConstraints = new List<OptimizationConstraint>(bstOptConst_temp);
                             if (targets_temp.Any()) tempTemplate.PlanTargets = new List<PlanTarget>(targets_temp);
                             if (planObj_temp.Any()) tempTemplate.PlanObjectives = new List<PlanObjective>(planObj_temp);
-                            if (requestedTSstructures_temp.Any()) tempTemplate.SetRequestedOptTSStructures(requestedTSstructures_temp);
+                            if (requestedTSstructures_temp.Any()) tempTemplate.RequestedOptimizationTSStructures = new List<RequestedOptimizationTSStructure>(requestedTSstructures_temp);
                             if (planDoseInfo_temp.Any()) tempTemplate.RequestedPlanMetrics = new List<RequestedPlanMetric>(planDoseInfo_temp);
                         }
                     }
@@ -192,7 +196,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                             //optimization loop
                             List<PlanObjective> planObj_temp = new List<PlanObjective> { };
                             List<RequestedPlanMetric> planDoseInfo_temp = new List<RequestedPlanMetric> { };
-                            List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures_temp = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> { };
+
+                            List<RequestedOptimizationTSStructure> requestedTSstructures_temp = new List<RequestedOptimizationTSStructure> { };
+                            //List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures_temp = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> { };
                             //parse the data specific to the myeloablative case setup
                             while (!(line = reader.ReadLine()).Equals(":end template case configuration:"))
                             {
@@ -227,7 +233,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                             if (initOptConst_temp.Any()) tempTemplate.InitialOptimizationConstraints = new List<OptimizationConstraint>(initOptConst_temp);
                             if (targets_temp.Any()) tempTemplate.PlanTargets = new List<PlanTarget>(targets_temp);
                             if (planObj_temp.Any()) tempTemplate.PlanObjectives = new List<PlanObjective>(planObj_temp);
-                            if (requestedTSstructures_temp.Any()) tempTemplate.SetRequestedOptTSStructures(requestedTSstructures_temp);
+                            if (requestedTSstructures_temp.Any()) tempTemplate.RequestedOptimizationTSStructures = new List<RequestedOptimizationTSStructure>(requestedTSstructures_temp);
                             if (planDoseInfo_temp.Any()) tempTemplate.RequestedPlanMetrics = new List<RequestedPlanMetric>(planDoseInfo_temp);
                         }
                     }
@@ -440,88 +446,177 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             }
         }
 
+        public static List<OptTSCreationCriteria> ParseOptTSCreationCriteria(string line)
+        {
+            List<OptTSCreationCriteria> constraints = new List<OptTSCreationCriteria> { };
+            line = line.Trim('{', '}');
+            if (string.IsNullOrEmpty(line)) return constraints;
+            List<string> splitStr = line.Split(',').ToList();
+            foreach(string itr in splitStr)
+            {
+                string itrTrim = itr.Trim();
+                if (string.Equals(itrTrim, "finalopt", StringComparison.OrdinalIgnoreCase))
+                {
+                    constraints.Add(new OptTSCreationCriteria(true));
+                }
+                else
+                {
+                    List<string> splitConstraint = itrTrim.Split(' ').ToList();
+                    string stat = splitConstraint.ElementAt(0);
+                    if (string.Equals(stat, "dmax", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(stat, "dmin", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(stat, "dmean", StringComparison.OrdinalIgnoreCase))
+                    {
+                        DVHMetric metric = DVHMetricTypeHelper.GetDVHMetricType(stat);
+                        InequalityOperator op = InequalityOperatorHelper.GetInequalityOperator(splitConstraint.ElementAt(1));
+                        if (double.TryParse(splitConstraint.ElementAt(2), out double limit))
+                        {
+                            Units resultUnits = UnitsTypeHelper.GetUnitsType(splitConstraint.ElementAt(3));
+                            constraints.Add(new OptTSCreationCriteria(metric, op, limit, resultUnits));
+                        }
+                    }
+                    else
+                    {
+                        DVHMetric metric = DVHMetric.None;
+                        if (string.Equals(stat, "d", StringComparison.OrdinalIgnoreCase))
+                        {
+                            metric = DVHMetric.DoseAtVolume;
+                        }
+                        else if (string.Equals(stat, "v", StringComparison.OrdinalIgnoreCase))
+                        {
+                            metric = DVHMetric.VolumeAtDose;
+                        }
+                        if (metric != DVHMetric.None && double.TryParse(splitConstraint.ElementAt(1), out double queryVal))
+                        {
+                            Units queryUnits = UnitsTypeHelper.GetUnitsType(splitConstraint.ElementAt(2));
+                            InequalityOperator op = InequalityOperatorHelper.GetInequalityOperator(splitConstraint.ElementAt(3));
+                            if (double.TryParse(splitConstraint.ElementAt(4), out double limit))
+                            {
+                                Units resultUnits = UnitsTypeHelper.GetUnitsType(splitConstraint.ElementAt(5));
+                                constraints.Add(new OptTSCreationCriteria(metric, queryVal, queryUnits, op, limit, resultUnits));
+                            }
+                        }
+                    }
+                }
+
+            }
+            
+            return constraints;
+        }
+
+        private static RequestedOptimizationTSStructure ParseOptimizationTSstructure(string line)
+        {
+            string structure;
+            double lowDoseLevel;
+            double upperDoseLevel;
+            double volumeVal;
+            int priority;
+            line = CropLine(line, "{");
+            structure = line.Substring(0, line.IndexOf(","));
+            line = CropLine(line, ",");
+            lowDoseLevel = double.Parse(line.Substring(0, line.IndexOf(",")));
+            line = CropLine(line, ",");
+            upperDoseLevel = double.Parse(line.Substring(0, line.IndexOf(",")));
+            line = CropLine(line, ",");
+            volumeVal = double.Parse(line.Substring(0, line.IndexOf(",")));
+            line = CropLine(line, ",");
+            priority = int.Parse(line.Substring(0, line.IndexOf(",")));
+            List<OptTSCreationCriteria> creationCriteria = ParseOptTSCreationCriteria(line);
+            RequestedOptimizationTSStructure requestedOptimizationTSStructure;
+            if (structure.ToLower().Contains("heater"))
+            {
+                requestedOptimizationTSStructure = new TSHeater(structure, lowDoseLevel, upperDoseLevel, priority);
+            }
+            else if (structure.ToLower().Contains("cooler"))
+            {
+                requestedOptimizationTSStructure = new TSCooler(structure, lowDoseLevel, upperDoseLevel, priority);
+            }
+            else return null;
+            requestedOptimizationTSStructure.CreationCriteria = new List<OptTSCreationCriteria>(creationCriteria);
+            return requestedOptimizationTSStructure;
+        }
+
         /// <summary>
         /// Helper method to parse a requested heater or cooler tuning structure that should be created after each iteration of the optimization loop
         /// provded certain conditions are met
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        private static Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>> ParseOptimizationTSstructure(string line)
-        {
-            //type (Dmax or V), dose value for volume constraint (N/A for Dmax), equality or inequality, volume (%) or dose (%)
-            List<Tuple<string, double, string, double>> constraints = new List<Tuple<string, double, string, double>> { };
-            string structure;
-            double lowDoseLevel;
-            double upperDoseLevel;
-            double volumeVal;
-            int priority;
-            try
-            {
-                line = CropLine(line, "{");
-                structure = line.Substring(0, line.IndexOf(","));
-                line = CropLine(line, ",");
-                lowDoseLevel = double.Parse(line.Substring(0, line.IndexOf(",")));
-                line = CropLine(line, ",");
-                upperDoseLevel = double.Parse(line.Substring(0, line.IndexOf(",")));
-                line = CropLine(line, ",");
-                volumeVal = double.Parse(line.Substring(0, line.IndexOf(",")));
-                line = CropLine(line, ",");
-                priority = int.Parse(line.Substring(0, line.IndexOf(",")));
-                line = CropLine(line, "{");
+        //private static Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>> ParseOptimizationTSstructure(string line)
+        //{
+        //    //type (Dmax or V), dose value for volume constraint (N/A for Dmax), equality or inequality, volume (%) or dose (%)
+        //    List<Tuple<string, double, string, double>> constraints = new List<Tuple<string, double, string, double>> { };
+        //    string structure;
+        //    double lowDoseLevel;
+        //    double upperDoseLevel;
+        //    double volumeVal;
+        //    int priority;
+        //    try
+        //    {
+        //        line = CropLine(line, "{");
+        //        structure = line.Substring(0, line.IndexOf(","));
+        //        line = CropLine(line, ",");
+        //        lowDoseLevel = double.Parse(line.Substring(0, line.IndexOf(",")));
+        //        line = CropLine(line, ",");
+        //        upperDoseLevel = double.Parse(line.Substring(0, line.IndexOf(",")));
+        //        line = CropLine(line, ",");
+        //        volumeVal = double.Parse(line.Substring(0, line.IndexOf(",")));
+        //        line = CropLine(line, ",");
+        //        priority = int.Parse(line.Substring(0, line.IndexOf(",")));
 
-                while (!string.IsNullOrEmpty(line) && line.Substring(0, 1) != "}")
-                {
-                    string constraintType = "";
-                    double doseVal = 0.0;
-                    string inequality = "";
-                    double queryVal = 0.0;
-                    if (line.Substring(0, 1) == "f")
-                    {
-                        //only add for final optimization (i.e., one more optimization requested where current calculated dose is used as intermediate)
-                        constraintType = "finalOpt";
-                        if (!line.Contains(",")) line = CropLine(line, "}");
-                        else line = CropLine(line, ",");
-                    }
-                    else
-                    {
-                        if (line.Substring(0, 1) == "V")
-                        {
-                            constraintType = "V";
-                            line = CropLine(line, "V");
-                            int index = 0;
-                            while (line.ElementAt(index).ToString() != ">" && line.ElementAt(index).ToString() != "<") index++;
-                            doseVal = double.Parse(line.Substring(0, index));
-                            line = line.Substring(index, line.Length - index);
-                        }
-                        else
-                        {
-                            constraintType = "Dmax";
-                            line = CropLine(line, "x");
-                        }
-                        inequality = line.Substring(0, 1);
+        //        while (!string.IsNullOrEmpty(line) && line.Substring(0, 1) != "}")
+        //        {
+        //            string constraintType = "";
+        //            double doseVal = 0.0;
+        //            string inequality = "";
+        //            double queryVal = 0.0;
+        //            if (line.Substring(0, 1) == "f")
+        //            {
+        //                //only add for final optimization (i.e., one more optimization requested where current calculated dose is used as intermediate)
+        //                constraintType = "finalOpt";
+        //                if (!line.Contains(",")) line = CropLine(line, "}");
+        //                else line = CropLine(line, ",");
+        //            }
+        //            else
+        //            {
+        //                if (line.Substring(0, 1) == "V")
+        //                {
+        //                    constraintType = "V";
+        //                    line = CropLine(line, "V");
+        //                    int index = 0;
+        //                    while (line.ElementAt(index).ToString() != ">" && line.ElementAt(index).ToString() != "<") index++;
+        //                    doseVal = double.Parse(line.Substring(0, index));
+        //                    line = line.Substring(index, line.Length - index);
+        //                }
+        //                else
+        //                {
+        //                    constraintType = "Dmax";
+        //                    line = CropLine(line, "x");
+        //                }
+        //                inequality = line.Substring(0, 1);
 
-                        if (!line.Contains(","))
-                        {
-                            queryVal = double.Parse(line.Substring(1, line.IndexOf("}") - 1));
-                            line = CropLine(line, "}");
-                        }
-                        else
-                        {
-                            queryVal = double.Parse(line.Substring(1, line.IndexOf(",") - 1));
-                            line = CropLine(line, ",");
-                        }
-                    }
-                    constraints.Add(Tuple.Create(constraintType, doseVal, inequality, queryVal));
-                }
+        //                if (!line.Contains(","))
+        //                {
+        //                    queryVal = double.Parse(line.Substring(1, line.IndexOf("}") - 1));
+        //                    line = CropLine(line, "}");
+        //                }
+        //                else
+        //                {
+        //                    queryVal = double.Parse(line.Substring(1, line.IndexOf(",") - 1));
+        //                    line = CropLine(line, ",");
+        //                }
+        //            }
+        //            constraints.Add(Tuple.Create(constraintType, doseVal, inequality, queryVal));
+        //        }
 
-                return Tuple.Create(structure, lowDoseLevel, upperDoseLevel, volumeVal, priority, new List<Tuple<string, double, string, double>>(constraints));
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show($"Error could not parse TS structure: {line}\nBecause: {e.Message}");
-                return Tuple.Create("", 0.0, 0.0, 0.0, 0, new List<Tuple<string, double, string, double>> { });
-            }
-        }
+        //        return Tuple.Create(structure, lowDoseLevel, upperDoseLevel, volumeVal, priority, new List<Tuple<string, double, string, double>>(constraints));
+        //    }
+        //    catch (Exception e)
+        //    {
+        //        MessageBox.Show($"Error could not parse TS structure: {line}\nBecause: {e.Message}");
+        //        return Tuple.Create("", 0.0, 0.0, 0.0, 0, new List<Tuple<string, double, string, double>> { });
+        //    }
+        //}
 
         /// <summary>
         /// Helper method to parse a plan objective from a plan template file

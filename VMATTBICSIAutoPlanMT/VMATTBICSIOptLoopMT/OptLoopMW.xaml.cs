@@ -60,7 +60,8 @@ namespace VMATTBICSIOptLoopMT
         public List<PlanObjective> planObj = new List<PlanObjective> { };
 
         //ID, lower dose level, upper dose level, volume (%), priority, list of criteria that must be met to add the requested cooler/heater structures
-        public List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>{ };
+        //public List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>{ };
+        public List<RequestedOptimizationTSStructure> requestedTSstructures = new List<RequestedOptimizationTSStructure>();
 
         //structure id(or can put '<plan>' to get the plan dose value), metric requested(Dmax, Dmin, D<vol %>, V<dose %>), query value, return value representation(dose or volume as absolute or relative)
         public List<RequestedPlanMetric> planDoseInfo = new List<RequestedPlanMetric> { };
@@ -368,7 +369,7 @@ namespace VMATTBICSIOptLoopMT
                 planObj = new List<PlanObjective>(PlanObjectiveHelper.ConstructPlanObjectives(selectedTemplate.PlanObjectives, selectedSS, tsTargets));
                 PopulatePlanObjectivesTab(planObjectiveParamSP);
                 planDoseInfo = new List<RequestedPlanMetric>(selectedTemplate.RequestedPlanMetrics);
-                requestedTSstructures = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>(selectedTemplate.GetRequestedOptTSStructures());
+                requestedTSstructures = new List<RequestedOptimizationTSStructure>(selectedTemplate.RequestedOptimizationTSStructures);
                 if (selectedTemplate.PlanObjectives.Any())
                 {
                     planObjectiveHeader.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -381,7 +382,7 @@ namespace VMATTBICSIOptLoopMT
                 planObj = new List<PlanObjective>();
                 ClearAllItemsFromUIList(planObjectiveParamSP);
                 planDoseInfo = new List<RequestedPlanMetric>();
-                requestedTSstructures = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>();
+                requestedTSstructures = new List<RequestedOptimizationTSStructure> { };
                 planObjectiveHeader.Background = System.Windows.Media.Brushes.PaleVioletRed;
                 optimizationSetupHeader.Background = System.Windows.Media.Brushes.DarkGray;
             }

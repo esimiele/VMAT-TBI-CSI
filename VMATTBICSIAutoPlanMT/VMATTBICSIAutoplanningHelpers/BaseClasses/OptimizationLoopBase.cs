@@ -68,7 +68,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         {
             ProvideUIUpdate(OptimizationLoopUIHelper.GetRunSetupInfoHeader(_data.plans, _data.planType, _data.runCoverageCheck, _data.numOptimizations, _data.oneMoreOpt, _data.copyAndSavePlanItr, _data.targetVolCoverage));
             ProvideUIUpdate(OptimizationLoopUIHelper.PrintPlanObjectives(_data.planObj));
-            ProvideUIUpdate(OptimizationLoopUIHelper.PrintRequestedTSStructures(_data.requestedTSstructures));
+            ProvideUIUpdate(OptimizationLoopUIHelper.PrintRequestedTSStructures(_data.requestedTSStructures));
         }
         #endregion
 
@@ -784,7 +784,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 return e;
             }
 
-            (bool wasKilled, List<OptimizationConstraint> updatedOptConstraints) = UpdateHeaterCoolerStructures(plan, finalOptimization, _data.requestedTSstructures);
+            (bool wasKilled, List<OptimizationConstraint> updatedOptConstraints) = UpdateHeaterCoolerStructures(plan, finalOptimization, _data.requestedTSStructures);
 
             //did the user abort the program while updating the heater and cooler structures
             if(wasKilled)
@@ -995,15 +995,15 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="removeExistingHeaterCoolerStructures"></param>
         /// <returns></returns>
         protected virtual (bool, List<OptimizationConstraint>) UpdateHeaterCoolerStructures(ExternalPlanSetup plan, 
-                                                                                                                                   bool isFinalOptimization, 
-                                                                                                                                   List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSStructures, 
-                                                                                                                                   bool removeExistingHeaterCoolerStructures = true)
+                                                                                            bool isFinalOptimization, 
+                                                                                            List<RequestedOptimizationTSStructure> requestedTSStructures, 
+                                                                                            bool removeExistingHeaterCoolerStructures = true)
         {
             UpdateUILabel("Update TS heaters & coolers:");
             bool wasKilled = false;
             ProvideUIUpdate("Updating heater and cooler tuning structures for next iteration");
             int percentComplete = 0;
-            int calcItems = 2 +_data.requestedTSstructures.Count();
+            int calcItems = 2 +_data.requestedTSStructures.Count();
             //first remove existing structures
             if(removeExistingHeaterCoolerStructures) RemoveCoolHeatStructures(plan);
 
@@ -1032,31 +1032,27 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             }
 
             //iterate through the list of requested optimization tuning structures
-            foreach (Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>> itr in requestedTSStructures)
+            foreach (RequestedOptimizationTSStructure itr in requestedTSStructures)
             {
                 ProvideUIUpdate(100 * ++percentComplete / calcItems);
-                OptimizationConstraint TSstructure = null;
                 //does it have constraints that need to be met before adding the TS structure?
-                if (TSHeaterCoolerHelper.AllHeaterCoolerTSConstraintsMet(plan, target, itr.Item6, isFinalOptimization))
+                if(itr.AllCriteriaMet(isFinalOptimization))
                 {
-                    ProvideUIUpdate($"All conditions met for: {itr.Item1}! Adding to structure set!");
-                    if (itr.Item1.Contains("cooler"))
+                    ProvideUIUpdate($"All conditions met for: {itr.TSStructureId}! Adding to structure set!");
+                    if (itr.GetType() == typeof(TSCooler))
                     {
                         //cooler
-                        (string update, OptimizationConstraint cooler) = TSHeaterCoolerHelper.GenerateCooler(plan, itr.Item2 / 100, itr.Item3 / 100, itr.Item4, itr.Item1, itr.Item5);
-                        ProvideUIUpdate(update);
-                        TSstructure = cooler;
+                        ProvideUIUpdate(TSHeaterCoolerHelper.GenerateCooler(plan, (itr as TSCooler)));
                     }
                     else
                     {
                         //heater
-                        (string update, OptimizationConstraint heater) = TSHeaterCoolerHelper.GenerateHeater(plan, target, itr.Item2 / 100, itr.Item3 / 100, itr.Item4, itr.Item1, itr.Item5);
-                        ProvideUIUpdate(update);
-                        TSstructure = heater;
+                        ProvideUIUpdate(TSHeaterCoolerHelper.GenerateHeater(plan, target, (itr as TSHeater)));
                     }
-                    if (TSstructure != null) heaterCoolerOptConstraints.Add(TSstructure);
+                    heaterCoolerOptConstraints.AddRange(itr.Constraints);
                 }
-                else ProvideUIUpdate($"All conditions NOT met for: {itr.Item1}! Skipping!");
+                else ProvideUIUpdate($"All conditions NOT met for: {itr.TSStructureId}! Skipping!");
+                
                 if(GetAbortStatus())
                 {
                     wasKilled = true;

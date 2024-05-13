@@ -188,30 +188,32 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             }
             else sb.AppendLine($" No plan objectives for template: {itr.TemplateName}");
 
-            if (itr.GetRequestedOptTSStructures().Any())
+            if (itr.RequestedOptimizationTSStructures.Any())
             {
                 sb.AppendLine($" {itr.TemplateName} template requested tuning structures:");
                 sb.AppendLine(String.Format(" {0, -15} | {1, -9} | {2, -10} | {3, -5} | {4, -8} | {5, -10} |", "structure Id", "low D (%)", "high D (%)", "V (%)", "priority", "constraint"));
-                foreach (Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>> ts in itr.GetRequestedOptTSStructures())
+                foreach (RequestedOptimizationTSStructure ts in itr.RequestedOptimizationTSStructures)
                 {
-                    sb.Append(String.Format(" {0, -15} | {1, -9:N1} | {2,-10:N1} | {3,-5:N1} | {4,-8} |", ts.Item1, ts.Item2, ts.Item3, ts.Item4, ts.Item5));
-                    if (!ts.Item6.Any()) sb.AppendLine(String.Format(" {0,-10} |", "none"));
+                    if(ts.GetType() == typeof(TSCooler)) sb.Append(String.Format(" {0, -15} | {1, -9:N1} | {2,-10:N1} | {3,-5:N1} | {4,-8} |", ts.TSStructureId, "", (ts as TSCooler).UpperDoseValue, ts.Constraints.First().QueryVolume, ts.Constraints.First().Priority));
+                    else sb.Append(String.Format(" {0, -15} | {1, -9:N1} | {2,-10:N1} | {3,-5:N1} | {4,-8} |", ts.TSStructureId, (ts as TSHeater).LowerDoseValue, (ts as TSHeater).UpperDoseValue, ts.Constraints.First().QueryVolume, ts.Constraints.First().Priority));
+                    
+                    if (!ts.CreationCriteria.Any()) sb.AppendLine(String.Format(" {0,-10} |", "none"));
                     else
                     {
                         int count = 0;
-                        foreach (Tuple<string, double, string, double> ts1 in ts.Item6)
+                        foreach (OptTSCreationCriteria ts1 in ts.CreationCriteria)
                         {
                             if (count == 0)
                             {
-                                if (ts1.Item1.Contains("Dmax")) sb.AppendLine(String.Format(" {0,-10} |", $"{ts1.Item1}{ts1.Item3}{ts1.Item4}%"));
-                                else if (ts1.Item1.Contains("V")) sb.AppendLine(String.Format(" {0,-10} |", $"{ts1.Item1}{ts1.Item2}%{ts1.Item3}{ts1.Item4}%"));
-                                else sb.AppendLine(String.Format(" {0,-10} |", $"{ts1.Item1}"));
+                                if (ts1.DVHMetric == DVHMetric.DoseAtVolume || ts1.DVHMetric == DVHMetric.VolumeAtDose) sb.AppendLine(String.Format(" {0,-10} |", $"{ts1.DVHMetric}{ts1.QueryValue}{ts1.QueryUnits} {ts1.Operator} {ts1.Limit}{ts1.QueryResultUnits}"));
+                                else if (ts1.CreateForFinalOptimization) sb.AppendLine(String.Format(" {0,-10} |", $"FinalOpt")); 
+                                else sb.AppendLine(String.Format(" {0,-10} |", $"{ts1.DVHMetric} {ts1.Operator} {ts1.Limit}{ts1.QueryResultUnits}"));
                             }
                             else
                             {
-                                if (ts1.Item1.Contains("Dmax")) sb.AppendLine(String.Format(" {0,-59} | {1,-10} |", " ", $"{ts1.Item1}{ts1.Item3}{ts1.Item4}%"));
-                                else if (ts1.Item1.Contains("V")) sb.AppendLine(String.Format(" {0,-59} | {1,-10} |", " ", $"{ts1.Item1}{ts1.Item2}%{ts1.Item3}{ts1.Item4}%"));
-                                else sb.AppendLine(String.Format(" {0,-59} | {1,-10} |", " ", $"{ts1.Item1}"));
+                                if (ts1.DVHMetric == DVHMetric.DoseAtVolume || ts1.DVHMetric == DVHMetric.VolumeAtDose) sb.AppendLine(String.Format(" {0,-59} | {1,-10} |", " ", $"{ts1.DVHMetric}{ts1.QueryValue}{ts1.QueryUnits} {ts1.Operator} {ts1.Limit}{ts1.QueryResultUnits}"));
+                                else if (ts1.CreateForFinalOptimization) sb.AppendLine(String.Format(" {0,-59} | {1,-10} |", " ", $"FinalOpt")); 
+                                else sb.AppendLine(String.Format(" {0,-59} | {1,-10} |", " ", $"{ts1.DVHMetric} {ts1.Operator} {ts1.Limit}{ts1.QueryResultUnits}"));
                             }
                             count++;
                         }

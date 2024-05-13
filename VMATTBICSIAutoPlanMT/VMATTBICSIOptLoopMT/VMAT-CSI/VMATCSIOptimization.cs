@@ -250,9 +250,9 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
 
             int percentComplete = 0;
             int calcItems = 4;
-            List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> theList = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>
+            List<RequestedOptimizationTSStructure> theList = new List<RequestedOptimizationTSStructure>
                         {
-                            new Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>("TS_cooler101",107.0,101.0,0.0,100, new List<Tuple<string, double, string, double>>{ })
+                            new TSCooler("TS_cooler101",107.0,101.0,100, 0.0)
                         };
             (bool fail, List<OptimizationConstraint> addedTSCoolerConstraint) = UpdateHeaterCoolerStructures(initialPlan, true, theList, false);
             if (fail)
@@ -358,7 +358,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 else
                 {
                     ProvideUIUpdate("All plan objectives NOT met! Updating heater and cooler structures!");
-                    (bool fail, List<OptimizationConstraint> updatedHeaterCoolerConstraints) = UpdateHeaterCoolerStructures(evalPlan, oneMoreOptNextItr, _data.requestedTSstructures);
+                    (bool fail, List<OptimizationConstraint> updatedHeaterCoolerConstraints) = UpdateHeaterCoolerStructures(evalPlan, oneMoreOptNextItr, _data.requestedTSStructures);
                     //did the user abort the program while updating the heater and cooler structures
                     if (fail)
                     {

@@ -9,25 +9,33 @@ namespace VMATTBICSIAutoPlanningHelpers.UtilityClasses
         public double Limit { get; set; } = double.NaN;
         public InequalityOperator Operator { get; set; } = InequalityOperator.None;
         public double QueryResult { get; set; } = double.NaN;
-        public OptTSCreationCriteria(string structureId, DVHMetric dVHMetric, double queryVal, Units queryUnits, Units resultUnits) 
+        public OptTSCreationCriteria(bool finalOpt) 
         {
-            StructureId = structureId;
+            CreateForFinalOptimization = finalOpt;
+        }
+
+        public OptTSCreationCriteria(DVHMetric dVHMetric, double queryVal, Units queryUnits, InequalityOperator op, double lim, Units resultUnits) 
+        {
             DVHMetric = dVHMetric;
             QueryValue = queryVal;
             QueryUnits = queryUnits;
             QueryResultUnits = resultUnits;
-        }
-
-        public OptTSCreationCriteria(string structureId, DVHMetric dVHMetric, Units resultUnits)
-        {
-            StructureId = structureId;
-            DVHMetric = dVHMetric;
+            Limit = lim;
             QueryResultUnits = resultUnits;
         }
 
-        public bool CriteriaMet()
+        public OptTSCreationCriteria(DVHMetric dVHMetric, InequalityOperator op, double lim, Units resultUnits)
+        {
+            DVHMetric = dVHMetric;
+            Operator = op;
+            Limit = lim;
+            QueryResultUnits = resultUnits;
+        }
+
+        public bool CriteriaMet(bool isFinalOpt)
         {
             if(double.IsNaN(Limit) || double.IsNaN(QueryResult) || Operator == InequalityOperator.None) return false;
+            if(CreateForFinalOptimization && isFinalOpt) return true;
             if (Operator == InequalityOperator.Equal) return CalculationHelper.AreEqual(QueryResult, Limit);
             else if (Operator == InequalityOperator.GreaterThan) return QueryResult > Limit;
             else if (Operator == InequalityOperator.LessThan) return QueryResult < Limit;
