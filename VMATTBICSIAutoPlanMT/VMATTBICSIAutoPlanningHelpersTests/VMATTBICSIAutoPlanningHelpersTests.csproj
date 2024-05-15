@@ -70,25 +70,20 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Progress\Telerik JustMock\Libraries\Telerik.JustMock.dll</HintPath>
     </Reference>
-    <Reference Include="VMS.TPS.Common.BusinessLogic.Interface, Version=1.0.300.11, Culture=neutral, PublicKeyToken=305b81e210ec4b89, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\VMS_TPS_resources\15.6\VMS.TPS.Common.BusinessLogic.Interface.dll</HintPath>
+    <Reference Include="VMS.TPS.Common.BusinessLogic.Interface">
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\16.1\VMS.TPS.Common.BusinessLogic.Interface.dll</HintPath>
     </Reference>
-    <Reference Include="VMS.TPS.Common.Calculation.Interface, Version=1.0.300.11, Culture=neutral, PublicKeyToken=305b81e210ec4b89, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\VMS_TPS_resources\15.6\VMS.TPS.Common.Calculation.Interface.dll</HintPath>
+    <Reference Include="VMS.TPS.Common.Calculation.Interface">
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\16.1\VMS.TPS.Common.Calculation.Interface.dll</HintPath>
     </Reference>
-    <Reference Include="VMS.TPS.Common.Model.API, Version=1.0.450.29, Culture=neutral, PublicKeyToken=305b81e210ec4b89, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\VMS_TPS_resources\15.6\VMS.TPS.Common.Model.API.dll</HintPath>
+    <Reference Include="VMS.TPS.Common.Model.API">
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\16.1\VMS.TPS.Common.Model.API.dll</HintPath>
     </Reference>
-    <Reference Include="VMS.TPS.Common.Model.Interface, Version=1.0.300.11, Culture=neutral, PublicKeyToken=305b81e210ec4b89, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\VMS_TPS_resources\15.6\VMS.TPS.Common.Model.Interface.dll</HintPath>
+    <Reference Include="VMS.TPS.Common.Model.Interface">
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\16.1\VMS.TPS.Common.Model.Interface.dll</HintPath>
     </Reference>
-    <Reference Include="VMS.TPS.Common.Model.Types, Version=1.0.450.29, Culture=neutral, PublicKeyToken=305b81e210ec4b89, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\VMS_TPS_resources\15.6\VMS.TPS.Common.Model.Types.dll</HintPath>
+    <Reference Include="VMS.TPS.Common.Model.Types">
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\16.1\VMS.TPS.Common.Model.Types.dll</HintPath>
     </Reference>
     <Reference Include="WindowsBase" />
   </ItemGroup>

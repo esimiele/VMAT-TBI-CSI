@@ -227,7 +227,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="selectedTemplate"></param>
         /// <param name="planTargets"></param>
         /// <returns></returns>
-        public static List<Tuple<string, List<OptimizationConstraint>>> CreateOptimizationConstraintList(object selectedTemplate, List<Tuple<string,string>> planTargets)
+        public static List<Tuple<string, List<OptimizationConstraint>>> CreateOptimizationConstraintList(object selectedTemplate, Dictionary<string,string> planTargets)
         {
             List<Tuple<string, List<OptimizationConstraint>>> list = new List<Tuple<string, List<OptimizationConstraint>>> { };
             //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose
@@ -239,10 +239,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 {
                     if(isCSIplan)
                     {
-                        if ((selectedTemplate as CSIAutoPlanTemplate).InitialOptimizationConstraints.Any()) list.Add(Tuple.Create(planTargets.ElementAt(0).Item1, (selectedTemplate as CSIAutoPlanTemplate).InitialOptimizationConstraints));
-                        if (planTargets.Count > 1 && (selectedTemplate as CSIAutoPlanTemplate).BoostOptimizationConstraints.Any()) list.Add(Tuple.Create(planTargets.ElementAt(1).Item1, (selectedTemplate as CSIAutoPlanTemplate).BoostOptimizationConstraints));
+                        if ((selectedTemplate as CSIAutoPlanTemplate).InitialOptimizationConstraints.Any()) list.Add(Tuple.Create(planTargets.ElementAt(0).Key, (selectedTemplate as CSIAutoPlanTemplate).InitialOptimizationConstraints));
+                        if (planTargets.Count > 1 && (selectedTemplate as CSIAutoPlanTemplate).BoostOptimizationConstraints.Any()) list.Add(Tuple.Create(planTargets.ElementAt(1).Key, (selectedTemplate as CSIAutoPlanTemplate).BoostOptimizationConstraints));
                     }
-                    else if ((selectedTemplate as TBIAutoPlanTemplate).InitialOptimizationConstraints.Any()) list.Add(Tuple.Create(planTargets.ElementAt(0).Item1, (selectedTemplate as TBIAutoPlanTemplate).InitialOptimizationConstraints));
+                    else if ((selectedTemplate as TBIAutoPlanTemplate).InitialOptimizationConstraints.Any()) list.Add(Tuple.Create(planTargets.ElementAt(0).Key, (selectedTemplate as TBIAutoPlanTemplate).InitialOptimizationConstraints));
                 }
                 else
                 {

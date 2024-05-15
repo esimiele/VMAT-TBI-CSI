@@ -1011,7 +1011,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             List<OptimizationConstraint> heaterCoolerOptConstraints = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan).Where(x => x.StructureId.ToLower().Contains("cooler") || x.StructureId.ToLower().Contains("heater")).ToList();
             //now create new cooler and heating structures
             ProvideUIUpdate($"Retrieving target structure for plan: {plan.Id}");
-            List<Tuple<string, string>> plansTargets = TargetsHelper.GetHighestRxPlanTargetList(_data.prescriptions);
+            Dictionary<string, string> plansTargets = TargetsHelper.GetHighestRxPlanTargetList(_data.prescriptions);
             if (!plansTargets.Any())
             {
                 ProvideUIUpdate("Error! Could not retrieve list of plans and associated targets! Exiting", true);
@@ -1020,7 +1020,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             }
 
             string targetId = "";
-            if (plansTargets.Any(x => string.Equals(x.Item1, plan.Id))) targetId = plansTargets.First(x => string.Equals(x.Item1, plan.Id)).Item2;
+            if (plansTargets.Any(x => string.Equals(x.Key, plan.Id))) targetId = plansTargets.First(x => string.Equals(x.Key, plan.Id)).Value;
 
             Structure target = TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, targetId, _data.useFlash, _data.planType);
             ProvideUIUpdate($"Retrieved target: {target.Id} for plan: {plan.Id} to evaluate requested heater/cooler structures");
@@ -1035,6 +1035,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             foreach (RequestedOptimizationTSStructure itr in requestedTSStructures)
             {
                 ProvideUIUpdate(100 * ++percentComplete / calcItems);
+                TSHeaterCoolerHelper.EvaluateHeaterCoolerCreationCriteria(plan, target, itr.CreationCriteria);
                 //does it have constraints that need to be met before adding the TS structure?
                 if(itr.AllCriteriaMet(isFinalOptimization))
                 {

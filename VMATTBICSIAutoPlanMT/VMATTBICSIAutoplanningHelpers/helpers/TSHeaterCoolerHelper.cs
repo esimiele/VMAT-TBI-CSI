@@ -126,7 +126,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         //    return true;
         //}
 
-        public static void EvaluateHeaterCoolerCreationCriteria(ExternalPlanSetup plan, Structure target, List<OptTSCreationCriteria> criteria, bool isFinalOptimization)
+        public static void EvaluateHeaterCoolerCreationCriteria(ExternalPlanSetup plan, Structure target, List<OptTSCreationCriteria> criteria)
         {
             if(criteria.Any())
             {
@@ -139,14 +139,30 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                         if (itr.QueryResultUnits == Units.Percent) itr.QueryResult *= (100 / plan.TotalDose.Dose);
                         else if (itr.QueryResultUnits == Units.Gy) itr.QueryResult /= 100;
                     }
+                    else if (itr.DVHMetric == DVHMetric.Dmean)
+                    {
+                        itr.QueryResult = plan.GetDVHCumulativeData(target, 
+                                                                    itr.QueryResultUnits == Units.Percent ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute, 
+                                                                    VolumePresentation.Relative, 0.1).MeanDose.Dose;
+                    }
+                    else if (itr.DVHMetric == DVHMetric.Dmin)
+                    {
+                        itr.QueryResult = plan.GetDVHCumulativeData(target, 
+                                                                    itr.QueryResultUnits == Units.Percent ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute, 
+                                                                    VolumePresentation.Relative, 0.1).MinDose.Dose;
+                    }
                     else if (itr.DVHMetric == DVHMetric.VolumeAtDose)
                     {
-                        itr.QueryResult = plan.GetVolumeAtDose(target, new DoseValue(itr.QueryValue, UnitsTypeHelper.GetDoseUnit(itr.QueryUnits)), VolumePresentation.Relative);
+                        itr.QueryResult = plan.GetVolumeAtDose(target, 
+                                                               new DoseValue(itr.QueryValue, UnitsTypeHelper.GetDoseUnit(itr.QueryUnits)), 
+                                                               itr.QueryResultUnits == Units.Percent ? VolumePresentation.Relative : VolumePresentation.AbsoluteCm3);
                     }
                     else if (itr.DVHMetric == DVHMetric.DoseAtVolume)
                     {
-                        itr.QueryResult = plan.GetDoseAtVolume(target, itr.QueryValue, VolumePresentation.Relative, DoseValuePresentation.Relative).Dose;
-
+                        itr.QueryResult = plan.GetDoseAtVolume(target, 
+                                                               itr.QueryValue, 
+                                                               itr.QueryUnits == Units.Percent ? VolumePresentation.Relative : VolumePresentation.AbsoluteCm3, 
+                                                               itr.QueryResultUnits == Units.Percent ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute).Dose;
                     }
                 }
             }

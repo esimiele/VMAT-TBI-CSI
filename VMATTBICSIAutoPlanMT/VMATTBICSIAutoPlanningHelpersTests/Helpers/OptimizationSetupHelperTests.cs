@@ -28,12 +28,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         }
 
         //plan id, highest Rx target for this plan id
-        public List<Tuple<string,string>> CreateDummyCSIPlanTargetsList()
+        public Dictionary<string, string> CreateDummyCSIPlanTargetsList()
         {
-            return new List<Tuple<string, string>>
+            return new Dictionary<string, string>
             {
-                Tuple.Create("initial", "PTV_CSI"),
-                Tuple.Create("boost", "PTV_Boost"),
+                {"initial", "PTV_CSI" },
+                { "boost", "PTV_Boost" },
             };
         }
 
@@ -91,7 +91,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         [TestMethod()]
         public void CreateOptimizationConstraintListCSITestWithPlanTargets()
         {
-            List<Tuple<string, string>> testPlanTargets = CreateDummyCSIPlanTargetsList();
+            Dictionary<string, string> testPlanTargets = CreateDummyCSIPlanTargetsList();
             CSIAutoPlanTemplate testTemplate = ConstructTestCSIAutoPlanTemplate();
             List<Tuple<string, List<OptimizationConstraint>>> expected = new List<Tuple<string, List<OptimizationConstraint>>>
             {
@@ -127,7 +127,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
                 Tuple.Create("CSI-bst", SetupDummyBoostOptObjList())
             };
 
-            List<Tuple<string, List<OptimizationConstraint>>> result = OptimizationSetupHelper.CreateOptimizationConstraintList(testTemplate, new List<Tuple<string, string>> { });
+            List<Tuple<string, List<OptimizationConstraint>>> result = OptimizationSetupHelper.CreateOptimizationConstraintList(testTemplate, new Dictionary<string, string> { });
 
             //CollectionAssert.AreEqual(expected, result);
             int count = 0;
@@ -148,7 +148,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
                 Tuple.Create("VMAT-TBI", SetupDummyInitialOptObjList()),
             };
 
-            List<Tuple<string, List<OptimizationConstraint>>> result = OptimizationSetupHelper.CreateOptimizationConstraintList(testTemplate, new List<Tuple<string, string>> { });
+            List<Tuple<string, List<OptimizationConstraint>>> result = OptimizationSetupHelper.CreateOptimizationConstraintList(testTemplate, new Dictionary<string, string> { });
 
             //CollectionAssert.AreEqual(expected, result);
             int count = 0;

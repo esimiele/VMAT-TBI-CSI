@@ -232,9 +232,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="prescriptions"></param>
         /// <returns></returns>
-        public static List<Tuple<string, string>> GetHighestRxPlanTargetList(List<Prescription> prescriptions)
+        public static Dictionary<string, string> GetHighestRxPlanTargetList(List<Prescription> prescriptions)
         {
-            List<Tuple<string, string>> plansTargets = new List<Tuple<string, string>> { };
+            Dictionary<string, string> plansTargets = new Dictionary<string, string> { };
             if (!prescriptions.Any()) return plansTargets;
             //sort by cumulative dose to targets
             List<Prescription> tmpList = prescriptions.OrderBy(x => x.CumulativeDoseToTarget).ToList();
@@ -246,12 +246,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 //check if this is the start of a new plan, if so, the the previous target was the highest dose target in the previous plan
                 if (!string.Equals(itr.PlanId, tmpPlan))
                 {
-                    plansTargets.Add(Tuple.Create<string, string>(tmpPlan, tmpTarget));
+                    plansTargets.Add(tmpPlan, tmpTarget);
                     tmpPlan = itr.PlanId;
                 }
                 tmpTarget = itr.TargetId;
             }
-            plansTargets.Add(Tuple.Create<string, string>(tmpPlan, tmpTarget));
+            plansTargets.Add(tmpPlan, tmpTarget);
             return plansTargets;
         }
 
@@ -260,10 +260,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="targetList"></param>
         /// <returns></returns>
-        public static List<Tuple<string, string>> GetHighestRxPlanTargetList(List<PlanTarget> targetList)
+        public static Dictionary<string, string> GetHighestRxPlanTargetList(List<PlanTarget> targetList)
         {
             //for this list, item1 is the target, item 2 is the cumulated dose (cGy), and item 3 is the plan
-            List<Tuple<string, string>> plansTargets = new List<Tuple<string, string>> { };
+            Dictionary<string, string> plansTargets = new Dictionary<string, string> { };
             if (!targetList.Any()) return plansTargets;
             //sort by cumulative dose to targets
             List<PlanTarget> tmpList = targetList.OrderBy(x => x.TargetRxDose).ToList();
@@ -275,12 +275,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 //check if this is the start of a new plan, if so, the the previous target was the highest dose target in the previous plan
                 if (!string.Equals(itr.PlanId, tmpPlan))
                 {
-                    plansTargets.Add(Tuple.Create<string, string>(tmpPlan, tmpTarget));
+                    plansTargets.Add(tmpPlan, tmpTarget);
                     tmpPlan = itr.PlanId;
                 }
                 tmpTarget = itr.TargetId;
             }
-            plansTargets.Add(Tuple.Create<string, string>(tmpPlan, tmpTarget));
+            plansTargets.Add(tmpPlan, tmpTarget);
             return plansTargets;
         }
 

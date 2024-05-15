@@ -587,7 +587,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         private bool CheckAllRequestedTargetCropAndOverlapManipulations()
         {
             List<string> structuresToRemove = new List<string> { };
-            List<Tuple<string, string>> tgts = TargetsHelper.GetHighestRxPlanTargetList(prescriptions);
+            Dictionary<string, string> tgts = TargetsHelper.GetHighestRxPlanTargetList(prescriptions);
             int percentCompletion = 0;
             int calcItems = ((1 + 2 * tgts.Count) * cropAndOverlapStructures.Count) + 1;
             ProvideUIUpdate(100 * ++percentCompletion / calcItems, "Retrieved plan-target list");
@@ -624,13 +624,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         /// <param name="normal"></param>
         /// <param name="tgts"></param>
         /// <returns></returns>
-        private bool DoesStructureOverlapWithAllTargets(Structure normal, List<Tuple<string, string>> tgts)
+        private bool DoesStructureOverlapWithAllTargets(Structure normal, Dictionary<string, string> tgts)
         {
             int percentComplete = 0;
             int calcItems = 2;
-            foreach (Tuple<string, string> itr1 in tgts)
+            foreach (KeyValuePair<string, string> itr1 in tgts)
             {
-                Structure target = StructureTuningHelper.GetStructureFromId(itr1.Item2, selectedSS);
+                Structure target = StructureTuningHelper.GetStructureFromId(itr1.Value, selectedSS);
                 if (target != null)
                 {
                     ProvideUIUpdate(100 * ++percentComplete/ calcItems, $"Retrieved target structure: {target.Id}");
@@ -641,7 +641,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     }
                     else ProvideUIUpdate(100 * ++percentComplete / calcItems, $"{normal.Id} overlaps with target {target.Id}");
                 }
-                else ProvideUIUpdate($"Warning! Could not retrieve target: {itr1.Item2}! Skipping");
+                else ProvideUIUpdate($"Warning! Could not retrieve target: {itr1.Value}! Skipping");
             }
             ProvideUIUpdate($"Normal structure ({normal.Id}) overlaps with all targets");
             return true;
