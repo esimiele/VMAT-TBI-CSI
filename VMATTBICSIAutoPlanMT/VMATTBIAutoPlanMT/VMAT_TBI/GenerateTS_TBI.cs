@@ -18,10 +18,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
     public class GenerateTS_TBI : GenerateTSbase
     {
         //Get methods
-        public int GetNumberOfIsocenters() { return numIsos; }
-        public int GetNumberOfVMATIsocenters() { return numVMATIsos; }
+        public int NumberofIsocenters { get; private set; } = -1;
+        public int NumberofVMATIsocenters { get; private set; } = -1;
         public List<Tuple<string, Dictionary<string,string>>> GetTsTargets() { return tsTargets; }
-        public Dictionary<string,string> GetNormalizationVolumes() { return normVolumes; }
+        //plan id, normalization volume
+        public Dictionary<string, string> NormalizationVolumes { get; private set; } = new Dictionary<string, string> { };
 
         //DICOM types
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
@@ -31,12 +32,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private List<RequestedTSStructure> TS_structures;
         //plan id, list<original target id, ts target id>
         private List<Tuple<string, Dictionary<string,string>>> tsTargets = new List<Tuple<string, Dictionary<string, string>>> { };
-        //plan id, normalization volume
-        private Dictionary<string,string> normVolumes = new Dictionary<string, string> { };
 
         //data members
-        private int numIsos;
-        private int numVMATIsos;
         private double targetMargin;
         private Structure flashStructure = null;
         private double flashMargin;
@@ -81,7 +78,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             try 
             { 
-                isoNames.Clear();
+                PlanIsocentersList.Clear();
                 if (PreliminaryChecks()) return true;
                 if (UnionLRStructures()) return true;
                 if (TSManipulationList.Any()) if (CheckHighResolution()) return true; 
@@ -425,7 +422,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 }
             }
             //only one plan is allowed for the prescriptions --> last item is the highest Rx target for this plan and needs to be set as the normalization volume
-            normVolumes.Add(prescriptions.Last().PlanId, tmpTSTargetList.Last().Value);
+            NormalizationVolumes.Add(prescriptions.Last().PlanId, tmpTSTargetList.Last().Value);
             tsTargets.Add(new Tuple<string, Dictionary<string,string>>(prescriptions.Last().PlanId, new Dictionary<string, string> (tmpTSTargetList)));
 
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
@@ -713,7 +710,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (CutTSTargetFromMatchline(TSPTVFlash, StructureTuningHelper.GetStructureFromId("matchline", selectedSS), dummyBox)) return true;
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Cut {TSPTVFlash.Id} structure at matchline structure");
             }
-            normVolumes = new Dictionary<string, string>(UpdateNormVolumesWithFlash(normVolumes));
+            NormalizationVolumes = new Dictionary<string, string>(UpdateNormVolumesWithFlash(NormalizationVolumes));
             tsTargets = new List<Tuple<string, Dictionary<string, string>>>(UpdateTsTargetsWithFlash(tsTargets));
             return false;
         }
@@ -778,8 +775,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 ProvideUIUpdate("matchline structure not present in structure set");
                 //no matchline implying that this patient will be treated with VMAT only. For these cases the maximum number of allowed isocenters is 3.
                 //the reason for the explicit statements calculating the number of isos and then truncating them to 3 was to account for patients requiring < 3 isos and if, later on, we want to remove the restriction of 3 isos
-                numIsos = numVMATIsos = (int)Math.Ceiling(bodyExtent / (maxFieldExtent - minFieldOverlap));
-                if (numIsos > 3) numIsos = numVMATIsos = 3;
+                NumberofIsocenters = NumberofVMATIsocenters = (int)Math.Ceiling(bodyExtent / (maxFieldExtent - minFieldOverlap));
+                if (NumberofIsocenters > 3) NumberofIsocenters = NumberofVMATIsocenters = 3;
                 ProvideUIUpdate(100 * ++percentComplete / calcItems);
             }
             else
@@ -792,8 +789,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     if (!CP.GetSelection()) return true;
 
                     //continue and ignore the empty matchline structure (same calculation as VMAT only)
-                    numIsos = numVMATIsos = (int)Math.Ceiling(bodyExtent / (maxFieldExtent - minFieldOverlap));
-                    if (numIsos > 3) numIsos = numVMATIsos = 3;
+                    NumberofIsocenters = NumberofVMATIsocenters = (int)Math.Ceiling(bodyExtent / (maxFieldExtent - minFieldOverlap));
+                    if (NumberofIsocenters > 3) NumberofIsocenters = NumberofVMATIsocenters = 3;
                     ProvideUIUpdate(100 * ++percentComplete / calcItems);
 
                 }
@@ -804,8 +801,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     Structure matchline = StructureTuningHelper.GetStructureFromId("matchline", selectedSS);
                     ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved matchline structure");
                     //get number of isos for PTV superior to matchplane (always truncate this value to a maximum of 4 isocenters)
-                    numVMATIsos = (int)Math.Ceiling((pts.Max(p => p.Z) - matchline.CenterPoint.z) / (maxFieldExtent - minFieldOverlap));
-                    if (numVMATIsos > 4) numVMATIsos = 4;
+                    NumberofVMATIsocenters = (int)Math.Ceiling((pts.Max(p => p.Z) - matchline.CenterPoint.z) / (maxFieldExtent - minFieldOverlap));
+                    if (NumberofVMATIsocenters > 4) NumberofVMATIsocenters = 4;
                     ProvideUIUpdate($"Separation between body z max and matchline center z: {(pts.Max(p => p.Z) - matchline.CenterPoint.z):0.0}");
                     ProvideUIUpdate($"numVAMTIsos calculated as double: {(pts.Max(p => p.Z) - matchline.CenterPoint.z) / (maxFieldExtent - minFieldOverlap):0.0}");
                     ProvideUIUpdate(100 * ++percentComplete / calcItems);
@@ -816,28 +813,28 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     {
                         ProvideUIUpdate($"Separation between matchline z center and body z min is <= maximum field extent ({maxFieldExtent})");
                         ProvideUIUpdate($"Only one APPA isocenters is required for coverage");
-                        numIsos = numVMATIsos + 1;
+                        NumberofIsocenters = NumberofVMATIsocenters + 1;
                     }
                     else
                     {
                         ProvideUIUpdate($"Separation between matchline z center and body z min is > maximum field extent ({maxFieldExtent})");
                         ProvideUIUpdate($"Two APPA isocenters are required for coverage");
-                        numIsos = numVMATIsos + 2;
+                        NumberofIsocenters = NumberofVMATIsocenters + 2;
                     }
                     ProvideUIUpdate(100 * ++percentComplete / calcItems);
                 }
             }
-            ProvideUIUpdate($"Calculated required number of VMAT Isos: {numVMATIsos}");
-            ProvideUIUpdate($"Calculated total number of Isos: {numIsos}");
+            ProvideUIUpdate($"Calculated required number of VMAT Isos: {NumberofVMATIsocenters}");
+            ProvideUIUpdate($"Calculated total number of Isos: {NumberofIsocenters}");
 
             //set isocenter names based on numIsos and numVMATIsos (determined these names from prior cases)
-            isoNames.Add(Tuple.Create(prescriptions.First().PlanId, new List<string>(IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos))));
-            if (numIsos > numVMATIsos) isoNames.Add(Tuple.Create("_Legs", new List<string>(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos))));
+            PlanIsocentersList.Add(new PlanIsocenters(prescriptions.First().PlanId, IsoNameHelper.GetTBIVMATIsoNames(NumberofVMATIsocenters, NumberofIsocenters)));
+            if (NumberofIsocenters > NumberofVMATIsocenters) PlanIsocentersList.Add(new PlanIsocenters("_Legs", IsoNameHelper.GetTBIAPPAIsoNames(NumberofVMATIsocenters, NumberofIsocenters)));
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved appropriate isocenter names:");
-            foreach(Tuple<string,List<string>> itr in isoNames)
+            foreach(PlanIsocenters itr in PlanIsocentersList)
             {
-                ProvideUIUpdate($"Plan Id: {itr.Item1}");
-                foreach(string itr1 in itr.Item2)
+                ProvideUIUpdate($"Plan Id: {itr.PlanId}");
+                foreach(string itr1 in itr.IsocenterIds)
                 {
                     ProvideUIUpdate($" {itr1}");
                 }

@@ -38,15 +38,15 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             StringBuilder output = new StringBuilder();
             if (prospectiveTemplate is CSIAutoPlanTemplate)
             {
-                output.AppendLine($" Initial Dose per fraction: {(prospectiveTemplate as CSIAutoPlanTemplate).GetInitialRxDosePerFx()} cGy");
-                output.AppendLine($" Initial Dose per fraction: {(prospectiveTemplate as CSIAutoPlanTemplate).GetInitialRxNumFx()} cGy");
-                output.AppendLine($" Boost Dose per fraction: {(prospectiveTemplate as CSIAutoPlanTemplate).GetBoostRxDosePerFx()} cGy");
-                output.AppendLine($" Boost Dose per fraction: {(prospectiveTemplate as CSIAutoPlanTemplate).GetBoostRxNumFx()} cGy");
+                output.AppendLine($" Initial Dose per fraction: {(prospectiveTemplate as CSIAutoPlanTemplate).InitialRxDosePerFx} cGy");
+                output.AppendLine($" Initial Dose per fraction: {(prospectiveTemplate as CSIAutoPlanTemplate).InitialRxNumberOfFractions} cGy");
+                output.AppendLine($" Boost Dose per fraction: {(prospectiveTemplate as CSIAutoPlanTemplate).BoostRxDosePerFx} cGy");
+                output.AppendLine($" Boost Dose per fraction: {(prospectiveTemplate as CSIAutoPlanTemplate).BoostRxNumberOfFractions} cGy");
             }
             else
             {
-                output.AppendLine($" Initial Dose per fraction: {(prospectiveTemplate as TBIAutoPlanTemplate).GetInitialRxDosePerFx()} cGy");
-                output.AppendLine($" Initial number of fractions: {(prospectiveTemplate as TBIAutoPlanTemplate).GetInitialRxNumFx()}");
+                output.AppendLine($" Initial Dose per fraction: {(prospectiveTemplate as TBIAutoPlanTemplate).InitialRxDosePerFx} cGy");
+                output.AppendLine($" Initial number of fractions: {(prospectiveTemplate as TBIAutoPlanTemplate).InitialRxNumberOfFractions}");
             }
             return output;
         }
@@ -283,13 +283,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         {
             StringBuilder output = new StringBuilder();
             output.AppendLine("%initial dose per fraction(cGy) and num fractions");
-            output.AppendLine($"initial dose per fraction={prospectiveTemplate.GetInitialRxDosePerFx()}");
-            output.AppendLine($"initial num fx={prospectiveTemplate.GetInitialRxDosePerFx()}");
-            if (prospectiveTemplate.GetBoostRxDosePerFx() > 0.1)
+            output.AppendLine($"initial dose per fraction={prospectiveTemplate.InitialRxDosePerFx}");
+            output.AppendLine($"initial num fx={prospectiveTemplate.InitialRxNumberOfFractions}");
+            if (prospectiveTemplate.BoostRxDosePerFx > 0.1)
             {
                 output.AppendLine("%boost dose per fraction(cGy) and num fractions");
-                output.AppendLine($"boost dose per fraction={prospectiveTemplate.GetBoostRxDosePerFx()}");
-                output.AppendLine($"boost num fx={prospectiveTemplate.GetBoostRxNumFx()}");
+                output.AppendLine($"boost dose per fraction={prospectiveTemplate.BoostRxDosePerFx}");
+                output.AppendLine($"boost num fx={prospectiveTemplate.BoostRxNumberOfFractions}");
             }
             output.AppendLine("%");
             output.AppendLine("%");
@@ -305,8 +305,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         {
             StringBuilder output = new StringBuilder();
             output.AppendLine("%initial dose per fraction(cGy) and num fractions");
-            output.AppendLine($"dose per fraction={prospectiveTemplate.GetInitialRxDosePerFx()}");
-            output.AppendLine($"num fx={prospectiveTemplate.GetInitialRxDosePerFx()}");
+            output.AppendLine($"dose per fraction={prospectiveTemplate.InitialRxDosePerFx}");
+            output.AppendLine($"num fx={prospectiveTemplate.InitialRxNumberOfFractions}");
             output.AppendLine("%");
             output.AppendLine("%");
             return output;

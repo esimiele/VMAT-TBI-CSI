@@ -137,6 +137,7 @@
     <Compile Include="BaseClasses\PlaceBeamsBase.cs" />
     <Compile Include="BaseClasses\PlanPrepBase.cs" />
     <Compile Include="BaseClasses\AutoPlanTemplateBase.cs" />
+    <Compile Include="DataContainers\PlanEvaluationDataContainer.cs" />
     <Compile Include="Delegates\AllDelegates.cs" />
     <Compile Include="Enums\AllEnums.cs" />
     <Compile Include="EnumTypeHelpers\DVHMetricTypeHelper.cs" />
@@ -150,8 +151,11 @@
     <Compile Include="Helpers\PlanObjectiveHelper.cs" />
     <Compile Include="Helpers\PlanPrepHelper.cs" />
     <Compile Include="Interfaces\IPlanConstraint.cs" />
+    <Compile Include="DataContainers\OptDataContainer.cs" />
+    <Compile Include="UtilityClasses\Daemon.cs" />
     <Compile Include="UtilityClasses\OptimizationConstraint.cs" />
     <Compile Include="UtilityClasses\OptTSCreationCriteria.cs" />
+    <Compile Include="UtilityClasses\PlanIsocenters.cs" />
     <Compile Include="UtilityClasses\PlanObjective.cs" />
     <Compile Include="UtilityClasses\PlanTarget.cs" />
     <Compile Include="UtilityClasses\Prescription.cs" />
@@ -164,7 +168,7 @@
     <Compile Include="UtilityClasses\TSRing.cs" />
     <Compile Include="Helpers\RingHelper.cs" />
     <Compile Include="PlanTemplateClasses\TBIAutoPlanTemplate.cs" />
-    <Compile Include="Structs\ImportExportDataStruct.cs" />
+    <Compile Include="UtilityClasses\ImportExportData.cs" />
     <Compile Include="UIHelpers\ConfigurationUIHelper.cs" />
     <Compile Include="Helpers\ContourHelper.cs" />
     <Compile Include="Helpers\OptimizationLoopHelper.cs" />
@@ -186,12 +190,10 @@
     <Compile Include="Prompts\ConfirmPrompt.xaml.cs">
       <DependentUpon>ConfirmPrompt.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Structs\OptDataContainerStruct.cs" />
     <Compile Include="Helpers\OptimizationSetupHelper.cs" />
     <Compile Include="Helpers\StructureTuningHelper.cs" />
     <Compile Include="Helpers\TargetsHelper.cs" />
     <Compile Include="Logging\Logger.cs" />
-    <Compile Include="Structs\EvalPlanStruct.cs" />
     <Compile Include="UIHelpers\BeamPlacementUIHelper.cs" />
     <Compile Include="Helpers\ConfigurationHelper.cs" />
     <Compile Include="Helpers\CTImageExport.cs" />

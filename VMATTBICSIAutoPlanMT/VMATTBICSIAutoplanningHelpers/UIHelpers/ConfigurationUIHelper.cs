@@ -37,10 +37,10 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 sb.AppendLine("-----------------------------------------------------------------------------");
 
                 sb.AppendLine($" Template ID: {itr.TemplateName}");
-                sb.AppendLine($" Initial Dose per fraction: {itr.GetInitialRxDosePerFx()} cGy");
-                sb.AppendLine($" Initial number of fractions: {itr.GetInitialRxNumFx()}");
-                sb.AppendLine($" Boost Dose per fraction: {itr.GetBoostRxDosePerFx()} cGy");
-                sb.AppendLine($" Boost number of fractions: {itr.GetBoostRxNumFx()}");
+                sb.AppendLine($" Initial Dose per fraction: {itr.InitialRxDosePerFx} cGy");
+                sb.AppendLine($" Initial number of fractions: {itr.InitialRxNumberOfFractions}");
+                sb.AppendLine($" Boost Dose per fraction: {itr.BoostRxDosePerFx} cGy");
+                sb.AppendLine($" Boost number of fractions: {itr.BoostRxNumberOfFractions}");
 
                 sb.Append(PrintTargetsTSParameters(itr));
 
@@ -98,8 +98,8 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 sb.AppendLine("----------------------------------------------------------------------------");
 
                 sb.AppendLine($" Template ID: {itr.TemplateName}");
-                sb.AppendLine($" Initial Dose per fraction: {itr.GetInitialRxDosePerFx()} cGy");
-                sb.AppendLine($" Initial number of fractions: {itr.GetInitialRxNumFx()}");
+                sb.AppendLine($" Initial Dose per fraction: {itr.InitialRxDosePerFx} cGy");
+                sb.AppendLine($" Initial number of fractions: {itr.InitialRxNumberOfFractions}");
 
                 sb.Append(PrintTargetsTSParameters(itr));
 

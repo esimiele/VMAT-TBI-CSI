@@ -73,7 +73,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             try
             {
-                isoNames.Clear();
+                PlanIsocentersList.Clear();
                 if (PreliminaryChecks()) return true;
                 if (UnionLRStructures()) return true;
                 if (TSManipulationList.Any()) if (CheckHighResolution()) return true;
@@ -1005,7 +1005,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
                 //set isocenter names based on numIsos and numVMATIsos (be sure to pass 'true' for the third argument to indicate that this is a CSI plan(s))
                 //plan Id, list of isocenter names for this plan
-                isoNames.Add(Tuple.Create(itr.Item1, new List<string>(IsoNameHelper.GetCSIIsoNames(numVMATIsos))));
+                PlanIsocentersList.Add(new PlanIsocenters(itr.Item1, IsoNameHelper.GetCSIIsoNames(numVMATIsos)));
                 ProvideUIUpdate(100 * ++counter / calcItems, "Added isocenter to stack!");
             }
             ProvideUIUpdate($"Required Number of Isocenters: {numVMATIsos}");

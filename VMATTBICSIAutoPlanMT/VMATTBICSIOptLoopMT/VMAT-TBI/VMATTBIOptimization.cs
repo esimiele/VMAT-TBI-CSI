@@ -6,7 +6,7 @@ using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using VMATTBICSIAutoPlanningHelpers.UIHelpers;
-using VMATTBICSIAutoPlanningHelpers.Structs;
+using VMATTBICSIAutoPlanningHelpers.DataContainers;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
 using System.Text;
@@ -38,23 +38,23 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                 SetAbortUIStatus("Runnning");
                 PrintRunSetupInfo();
                 //preliminary checks
-                if (PreliminaryChecksSSAndImage(_data.selectedSS, TargetsHelper.GetAllTargetIds(_data.prescriptions))) return true;
-                if (PreliminaryChecksCouch(_data.selectedSS)) return true;
-                if (PreliminaryChecksSpinningManny(_data.selectedSS)) return true;
-                if (_data.useFlash && PreliminaryChecksBolusOverlapWithSupport()) return true;
-                if (PreliminaryChecksPlans(_data.plans)) return true;
+                if (PreliminaryChecksSSAndImage(_data.StructureSet, TargetsHelper.GetAllTargetIds(_data.Prescriptions))) return true;
+                if (PreliminaryChecksCouch(_data.StructureSet)) return true;
+                if (PreliminaryChecksSpinningManny(_data.StructureSet)) return true;
+                if (_data.UseFlash && PreliminaryChecksBolusOverlapWithSupport()) return true;
+                if (PreliminaryChecksPlans(_data.Plans)) return true;
 
-                if (_data.isDemo || !_data.runCoverageCheck) ProvideUIUpdate(" Skipping coverage check! Moving on to optimization loop!");
+                if (_data.IsDemo || !_data.RunCoverageCheck) ProvideUIUpdate(" Skipping coverage check! Moving on to optimization loop!");
                 else
                 {
-                    foreach (ExternalPlanSetup itr in _data.plans)
+                    foreach (ExternalPlanSetup itr in _data.Plans)
                     {
-                        if (RunCoverageCheck(itr, _data.relativeDose, _data.targetVolCoverage, _data.useFlash)) return true;
+                        if (RunCoverageCheck(itr, _data.TreatmentPercentage, _data.TargetCoverageNormalization, _data.UseFlash)) return true;
                         ProvideUIUpdate(String.Format(" Coverage check for plan {0} completed!",itr.Id));
                     }
                 }
                 ProvideUIUpdate(String.Format(" Commencing optimization loop!"));
-                if (RunOptimizationLoop(_data.plans)) return true;
+                if (RunOptimizationLoop(_data.Plans)) return true;
                 OptimizationLoopFinished();
             }
             catch (Exception e) 
@@ -71,10 +71,10 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
         protected void CalculateNumberOfItemsToComplete()
         {
             overallCalcItems = 4;
-            overallCalcItems += _data.plans.Count;
-            if (_data.runCoverageCheck) overallCalcItems += 4 * _data.plans.Count;
-            int optLoopItems = 6 * _data.numOptimizations * _data.plans.Count;
-            if (_data.oneMoreOpt) optLoopItems += 3;
+            overallCalcItems += _data.Plans.Count;
+            if (_data.RunCoverageCheck) overallCalcItems += 4 * _data.Plans.Count;
+            int optLoopItems = 6 * _data.NumberOfIterations * _data.Plans.Count;
+            if (_data.OneMoreOptimization) optLoopItems += 3;
             overallCalcItems += optLoopItems;
         }
 
@@ -134,22 +134,22 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             int percentComplete = 0;
             int calcItems = 1;
 
-            List<Structure> supports = _data.selectedSS.Structures.Where(x => x.DicomType.ToLower().Contains("support")).ToList();
+            List<Structure> supports = _data.StructureSet.Structures.Where(x => x.DicomType.ToLower().Contains("support")).ToList();
             calcItems += supports.Count;
 
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved list of support structures");
             if (supports.Any())
             {
-                Structure bolus = StructureTuningHelper.GetStructureFromId("bolus_flash", _data.selectedSS);
+                Structure bolus = StructureTuningHelper.GetStructureFromId("bolus_flash", _data.StructureSet);
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved virtual bolus structure");
                 if (bolus == null || bolus.IsEmpty)
                 {
                     ProvideUIUpdate($"Error! Could not retrieve bolus structure! Exiting!", true);
                     return true;
                 }
-                (List<ExternalPlanSetup> otherPlans, StringBuilder planIdList) = OptimizationLoopHelper.GetOtherPlansWithSameSSWithCalculatedDose(_data.plans.First().Course.Patient.Courses.ToList(), _data.selectedSS);
+                (List<ExternalPlanSetup> otherPlans, StringBuilder planIdList) = OptimizationLoopHelper.GetOtherPlansWithSameSSWithCalculatedDose(_data.Plans.First().Course.Patient.Courses.ToList(), _data.StructureSet);
                 calcItems += otherPlans.Count;
-                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved list of plans that use structure set: {_data.selectedSS.Id} and have dose calculated");
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved list of plans that use structure set: {_data.StructureSet.Id} and have dose calculated");
 
                 List<ExternalPlanSetup> planRecalcList = new List<ExternalPlanSetup> { };
                 if (otherPlans.Any())
@@ -157,7 +157,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                     ProvideUIUpdate("The following plans have dose calculated and use the same structure set:");
                     ProvideUIUpdate(planIdList.ToString());
 
-                    foreach (ExternalPlanSetup itr in otherPlans) if (!_data.plans.Any(x => x == itr)) planRecalcList.Add(itr);
+                    foreach (ExternalPlanSetup itr in otherPlans) if (!_data.Plans.Any(x => x == itr)) planRecalcList.Add(itr);
                     ProvideUIUpdate(100 * ++percentComplete / calcItems, "Revised plan list to exclude plans that will be optimized");
                     calcItems += planRecalcList.Count;
 
@@ -214,18 +214,24 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             ProvideUIUpdate(100 * ++percentCompletion / calcItems);
 
             //run one optimization with NO intermediate dose.
-            if (OptimizePlan(_data.isDemo, new OptimizationOptionsVMAT(OptimizationIntermediateDoseOption.NoIntermediateDose, ""), plan, _data.app)) return true;
+            if (OptimizePlan(_data.IsDemo, new OptimizationOptionsVMAT(OptimizationIntermediateDoseOption.NoIntermediateDose, ""), plan, _data.Application)) return true;
 
             ProvideUIUpdate(100 * ++percentCompletion / calcItems, "Optimization finished on coverage check! Calculating dose!");
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
 
             //calculate dose (using AAA algorithm)
-            if (CalculateDose(_data.isDemo, plan, _data.app)) return true;
+            if (CalculateDose(_data.IsDemo, plan, _data.Application)) return true;
 
             ProvideUIUpdate(100 * ++percentCompletion / calcItems, "Dose calculated for coverage check, normalizing plan!");
 
-            //normalize plan
-            NormalizePlan(plan, TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, OptimizationLoopHelper.GetNormaliztionVolumeIdForPlan(plan.Id, _data.normalizationVolumes), useFlash, _data.planType), relativeDose, targetVolCoverage);
+            //normalize
+            if (NormalizePlan(plan,
+                             TargetsHelper.GetTargetStructureForPlanType(_data.StructureSet,
+                                                                         OptimizationLoopHelper.GetNormaliztionVolumeIdForPlan(plan.Id, _data.NormalizationVolumes),
+                                                                         _data.UseFlash,
+                                                                         _data.PlanType),
+                             _data.TreatmentPercentage,
+                             _data.TargetCoverageNormalization)) return true;
             if (GetAbortStatus())
             {
                 KillOptimizationLoop();
@@ -235,7 +241,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             ProvideUIUpdate(100 * ++percentCompletion / calcItems, "Plan normalized!");
 
             //print useful info about target coverage and global dmax
-            ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanMetrics, plan, _data.normalizationVolumes));
+            ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.RequestedPlanMetrics, plan, _data.NormalizationVolumes));
 
             //calculate global Dmax expressed as a percent of the prescription dose (if dose has been calculated)
             if (plan.IsDoseValid && ((plan.Dose.DoseMax3D.Dose / plan.TotalDose.Dose) > 1.40))
@@ -256,11 +262,11 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
         /// <returns></returns>
         protected override bool ResolveRunOptions(List<ExternalPlanSetup> plans)
         {
-            if (_data.oneMoreOpt)
+            if (_data.OneMoreOptimization)
             {
                 if (RunOneMoreOptionizationToLowerHotspots(plans)) return true;
             }
-            if (_data.useFlash)
+            if (_data.UseFlash)
             {
                 if (RemoveFlashAndRecalc(plans)) return true;
             }
@@ -277,7 +283,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             ProvideUIUpdate(100 * ++overallPercentCompletion / overallCalcItems, Environment.NewLine + "Removing flash, recalculating dose, and renormalizing to TS_PTV_VMAT!");
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
 
-            Structure bolus = StructureTuningHelper.GetStructureFromId("bolus_flash", _data.selectedSS);;
+            Structure bolus = StructureTuningHelper.GetStructureFromId("bolus_flash", _data.StructureSet);;
             if (bolus == null)
             {
                 //no structure named bolus_flash found. This is a problem. 
@@ -287,11 +293,11 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             else
             {
                 //reset dose calculation matrix for each plan in the current course. Sorry! You will have to recalculate dose to EVERY plan!
-                string calcModel = _data.plans.First().GetCalculationModel(CalculationType.PhotonVolumeDose);
+                string calcModel = _data.Plans.First().GetCalculationModel(CalculationType.PhotonVolumeDose);
                 List<ExternalPlanSetup> plansWithCalcDose = new List<ExternalPlanSetup> { };
                 foreach (ExternalPlanSetup itr in plans.First().Course.ExternalPlanSetups)
                 {
-                    if (itr.IsDoseValid && itr.StructureSet == _data.selectedSS)
+                    if (itr.IsDoseValid && itr.StructureSet == _data.StructureSet)
                     {
                         itr.ClearCalculationModel(CalculationType.PhotonVolumeDose);
                         itr.SetCalculationModel(CalculationType.PhotonVolumeDose, calcModel);
@@ -304,13 +310,13 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                 //recalculate dose to all the plans that had previously had dose calculated in the current course
                 foreach (ExternalPlanSetup itr in plansWithCalcDose)
                 {
-                    CalculateDose(_data.isDemo, itr, _data.app);
+                    CalculateDose(_data.IsDemo, itr, _data.Application);
                     ProvideUIUpdate(100 * ++overallPercentCompletion / overallCalcItems, "Dose calculated, normalizing plan!");
                     ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
                     if(plans.Any(x => x == itr))
                     {
                         //force the plan to normalize to TS_PTV_VMAT after removing flash
-                        NormalizePlan(itr, TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, "", false, _data.planType), _data.relativeDose, _data.targetVolCoverage);
+                        NormalizePlan(itr, TargetsHelper.GetTargetStructureForPlanType(_data.StructureSet, "", false, _data.PlanType), _data.TreatmentPercentage, _data.TargetCoverageNormalization);
                         ProvideUIUpdate(100 * ++overallPercentCompletion / overallCalcItems, "Plan normalized!");
                     }
                     else

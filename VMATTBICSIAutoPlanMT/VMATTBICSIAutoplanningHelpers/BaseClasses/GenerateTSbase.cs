@@ -15,7 +15,8 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
     public class GenerateTSbase : SimpleMTbase
     {
         //Get methods
-        public List<Tuple<string, List<string>>> GetIsoNames() { return isoNames; }
+        //plan Id, list of isocenter names for this plan
+        public List<PlanIsocenters> PlanIsocentersList { get; protected set; } = new List<PlanIsocenters> { };
         public List<string> GetAddedStructures() { return addedStructures; }
         public List<RequestedTSManipulation> GetSparingList() { return TSManipulationList; }
         public bool GetUpdateSparingListStatus() { return updateTSManipulationList; }
@@ -26,8 +27,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         protected List<RequestedTSManipulation> TSManipulationList;
         //id of added structures
         protected List<string> addedStructures = new List<string> { };
-        //plan Id, list of isocenter names for this plan
-        protected List<Tuple<string,List<string>>> isoNames = new List<Tuple<string, List<string>>> { };
         //flag to indicate to the main UI that the structure manipulation list needs to be updated
         protected bool updateTSManipulationList = false;
         protected string stackTraceError;

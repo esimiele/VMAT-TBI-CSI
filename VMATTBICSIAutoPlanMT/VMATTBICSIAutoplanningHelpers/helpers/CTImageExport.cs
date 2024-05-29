@@ -11,7 +11,7 @@ using EvilDICOM.Network;
 using EvilDICOM.Network.Enums;
 using SimpleProgressWindow;
 using VMATTBICSIAutoPlanningHelpers.Enums;
-using VMATTBICSIAutoPlanningHelpers.Structs;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 using System.Threading;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
@@ -21,7 +21,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         //data members
         private VMS.TPS.Common.Model.API.Image _image;
         private string _patID;
-        private ImportExportDataStruct _data;
+        private ImportExportData _data;
 
         /// <summary>
         /// Constructor
@@ -32,7 +32,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="closePW"></param>
         public CTImageExport(VMS.TPS.Common.Model.API.Image img, 
                              string patientID,
-                             ImportExportDataStruct theData,
+                             ImportExportData theData,
                              bool closePW) 
         {
             _image = img;
@@ -313,10 +313,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="daemon"></param>
         /// <returns></returns>
-        private bool VerifyDaemonIntegrity(Tuple<string,string,int> daemon)
+        private bool VerifyDaemonIntegrity(Daemon daemon)
         {
             //check if anything was assigned to this daemon (the port, item3, is set to -1 by default)
-            if (daemon.Item3 == -1) return true;
+            if (daemon.Port == -1) return true;
             return false;
         }
 
@@ -327,8 +327,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         private bool CheckDaemonConnection() 
         {
             //check connection between local file daemon and aria database daemon
-            Entity ariaDBDaemon = new Entity(_data.AriaDBDaemon.Item1, _data.AriaDBDaemon.Item2, _data.AriaDBDaemon.Item3);
-            Entity localDaemon = Entity.CreateLocal(_data.LocalDaemon.Item1, _data.LocalDaemon.Item3);
+            Entity ariaDBDaemon = new Entity(_data.AriaDBDaemon.AETitle, _data.AriaDBDaemon.IP, _data.AriaDBDaemon.Port);
+            Entity localDaemon = Entity.CreateLocal(_data.LocalDaemon.AETitle, _data.LocalDaemon.Port);
             if (PingDaemon(ariaDBDaemon, localDaemon)) return true;
             return false;
         }
@@ -359,9 +359,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             int percentComplete = 0;
             int calcItems = 3;
 
-            Entity ariaDBDaemon = new Entity(_data.AriaDBDaemon.Item1, _data.AriaDBDaemon.Item2, _data.AriaDBDaemon.Item3);
-            Entity VMSFileDaemon = new Entity(_data.VMSFileDaemon.Item1, _data.VMSFileDaemon.Item2, _data.VMSFileDaemon.Item3);
-            Entity localDaemon = Entity.CreateLocal(_data.LocalDaemon.Item1, _data.LocalDaemon.Item3);
+            Entity ariaDBDaemon = new Entity(_data.AriaDBDaemon.AETitle, _data.AriaDBDaemon.IP, _data.AriaDBDaemon.Port);
+            Entity VMSFileDaemon = new Entity(_data.VMSFileDaemon.AETitle, _data.VMSFileDaemon.IP, _data.VMSFileDaemon.Port);
+            Entity localDaemon = Entity.CreateLocal(_data.LocalDaemon.AETitle, _data.LocalDaemon.Port);
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Constructed Daemon entities");
 
             DICOMSCU client = new DICOMSCU(localDaemon);

@@ -6,11 +6,9 @@ using System.Windows.Controls;
 using System.IO;
 using Microsoft.Win32;
 using VMS.TPS.Common.Model.API;
-using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
-using VMATTBICSIAutoPlanningHelpers.Structs;
 using VMATTBICSIAutoPlanningHelpers.UIHelpers;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
 using VMATTBICSIOptLoopMT.VMAT_CSI;
@@ -23,6 +21,7 @@ using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
 using VMATTBICSIAutoPlanningHelpers.Logging;
 using System.Diagnostics;
 using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.DataContainers;
 using VMATTBICSIAutoPlanningHelpers.Interfaces;
 
 namespace VMATTBICSIOptLoopMT
@@ -619,25 +618,24 @@ namespace VMATTBICSIOptLoopMT
             copyAndSavePlanItr = copyAndSave.IsChecked.Value;
 
             //create a new instance of the structure dataContainer and assign the optimization loop parameters entered by the user to the various data members
-            OptDataContainer data = new OptDataContainer();
-            data.Construct(plans, 
-                           prescriptions,
-                           normalizationVolumes,
-                           objectives, 
-                           requestedTSstructures, 
-                           planDoseInfo,
-                           planType,
-                           planNorm, 
-                           numOptimizations, 
-                           runCoverageCheck, 
-                           runOneMoreOpt, 
-                           copyAndSavePlanItr, 
-                           useFlash, 
-                           threshold, 
-                           lowDoseLimit, 
-                           demo, 
-                           logFilePath, 
-                           app);
+            OptDataContainer data = new OptDataContainer(plans, 
+                                                         prescriptions,
+                                                         normalizationVolumes,
+                                                         objectives, 
+                                                         requestedTSstructures, 
+                                                         planDoseInfo,
+                                                         planType,
+                                                         planNorm, 
+                                                         numOptimizations, 
+                                                         runCoverageCheck, 
+                                                         runOneMoreOpt, 
+                                                         copyAndSavePlanItr, 
+                                                         useFlash, 
+                                                         threshold, 
+                                                         lowDoseLimit, 
+                                                         demo, 
+                                                         logFilePath, 
+                                                         app);
 
             //start the optimization loop (all saving to the database is performed in the progressWindow class)
             //use a bit of polymorphism

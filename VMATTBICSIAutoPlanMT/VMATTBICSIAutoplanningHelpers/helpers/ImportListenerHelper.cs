@@ -6,7 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using VMATTBICSIAutoPlanningHelpers.Structs;
+using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
@@ -19,12 +19,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 
         }
 
-        public static bool LaunchImportListener(string listener, ImportExportDataStruct IEData, string mrn)
+        public static bool LaunchImportListener(string listener, ImportExportData IEData, string mrn)
         {
             if (!string.IsNullOrEmpty(listener))
             {
                 ProcessStartInfo p = new ProcessStartInfo(listener);
-                p.Arguments = $"{IEData.ImportLocation} {mrn} {IEData.AriaDBDaemon.Item1} {IEData.AriaDBDaemon.Item2} {IEData.AriaDBDaemon.Item3} {IEData.LocalDaemon.Item1} {IEData.LocalDaemon.Item3} {3600.0}";
+                p.Arguments = $"{IEData.ImportLocation} {mrn} {IEData.AriaDBDaemon.AETitle} {IEData.AriaDBDaemon.IP} {IEData.AriaDBDaemon.Port} {IEData.LocalDaemon.AETitle} {IEData.LocalDaemon.Port} {3600.0}";
                 Process.Start(p);
                 return false;
             }

@@ -36,7 +36,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         //plan id, normalization volume for plan
         public Dictionary<string,string> NormalizationVolumes { set => normVolumes = new Dictionary<string,string>(value); }
         //plan Id, list of isocenter names for this plan
-        public List<Tuple<string, List<string>>> IsoNames { set => isoNames = new List<Tuple<string, List<string>>>(value); }
+        public List<PlanIsocenters> IsoNames { set => isoNames = new List<PlanIsocenters>(value); }
         //plan generation and beam placement
         public List<string> PlanUIDs { set => planUIDs = new List<string>(value); }
         //optimization setup
@@ -61,7 +61,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         private List<string> addedStructures;
         private Dictionary<string, string> tsTargets;
         private Dictionary<string, string> normVolumes;
-        private List<Tuple<string, List<string>>> isoNames;
+        private List<PlanIsocenters> isoNames;
         private List<string> planUIDs;
         private ScriptOperationType opType = ScriptOperationType.General;
 
@@ -83,7 +83,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             addedStructures = new List<string> { };
             tsTargets = new Dictionary<string, string> { };
             normVolumes = new Dictionary<string, string> { };
-            isoNames = new List<Tuple<string, List<string>>> { };
+            isoNames = new List<PlanIsocenters> { };
             planUIDs = new List<string> { };
             _logFromOperations = new StringBuilder();
             _logFromErrors = new StringBuilder();
@@ -233,10 +233,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             sb.AppendLine("");
 
             sb.AppendLine("Isocenter names:");
-            foreach (Tuple<string, List<string>> itr in isoNames)
+            foreach (PlanIsocenters itr in isoNames)
             {
-                sb.AppendLine($"    {itr.Item1}");
-                foreach (string s in itr.Item2)
+                sb.AppendLine($"    {itr.PlanId}");
+                foreach (string s in itr.IsocenterIds)
                 {
                     sb.AppendLine($"        {s}");
                 }

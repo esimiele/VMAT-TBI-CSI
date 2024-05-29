@@ -9,30 +9,17 @@ namespace VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses
 {
     public class CSIAutoPlanTemplate : AutoPlanTemplateBase
     {
-        #region Get Methods
-        public double GetInitialRxDosePerFx() { return initialRxDosePerFx; }
-        public int GetInitialRxNumFx() { return initialRxNumFx; }
-        public double GetBoostRxDosePerFx() { return boostRxDosePerFx; }
-        public int GetBoostRxNumFx() { return boostRxNumFx; }
-
+        #region Properties
+        public double InitialRxDosePerFx { get; set; } = 0.1;
+        public int InitialRxNumberOfFractions { get; set; } = 1;
+        public double BoostRxDosePerFx { get; set; } = 0.1;
+        public int BoostRxNumberOfFractions { get; set; } = 1;
         public List<TSRing> Rings { get; set; } = new List<TSRing>();
         public List<string> CropAndOverlapStructures { get; set; } = new List<string> { };
         public List<OptimizationConstraint> InitialOptimizationConstraints { get; set; } = new List<OptimizationConstraint> { };
         public List<OptimizationConstraint> BoostOptimizationConstraints { get; set; } = new List<OptimizationConstraint> { };
         #endregion
 
-        #region Set Methods
-        public void SetInitRxDosePerFx(double value) { initialRxDosePerFx = value; }
-        public void SetInitialRxNumFx(int value) { initialRxNumFx = value; }
-        public void SetBoostRxDosePerFx(double value) { boostRxDosePerFx = value; }
-        public void SetBoostRxNumFx(int value) { boostRxNumFx = value; }
-        #endregion
-
-        private double initialRxDosePerFx = 0.1;
-        private int initialRxNumFx = 1;
-        private double boostRxDosePerFx = 0.1;
-        private int boostRxNumFx = 1;
-        
         /// <summary>
         /// Constructor
         /// </summary>

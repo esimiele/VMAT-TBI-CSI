@@ -87,7 +87,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         public int clearOptBtnCounter = 0;
         public int clearTemplateOptBtnCounter = 0;
         //structure id, Rx dose, plan Id
-        List<PlanTarget> targets = new List<PlanTarget> { };
         //ts target list
         //plan id, list<original target id, ts target id>
         List<Tuple<string, Dictionary<string,string>>> tsTargets = new List<Tuple<string, Dictionary<string, string>>> { };
@@ -104,7 +103,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         int numIsos = 0;
         int numVMATIsos = 0;
         //plan Id, list of isocenter names for this plan
-        public List<Tuple<string, List<string>>> isoNames = new List<Tuple<string, List<string>>> { };
+        public List<PlanIsocenters> isoNames = new List<PlanIsocenters> { };
         //plan ID, target Id, numFx, dosePerFx, cumulative dose
         List<Prescription> prescriptions = new List<Prescription> { };
         bool useFlash = false;
@@ -292,7 +291,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             numFxTB.Text = "";
             if (selectedTemplate.TemplateName != "--select--")
             {
-                SetPresciptionInfo(selectedTemplate.GetInitialRxDosePerFx(), selectedTemplate.GetInitialRxNumFx());
+                SetPresciptionInfo(selectedTemplate.InitialRxDosePerFx, selectedTemplate.InitialRxNumberOfFractions);
                 ClearAllCurrentParameters();
                 LoadTemplateDefaults();
                 log.Template = selectedTemplate.TemplateName;
@@ -566,8 +565,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 return;
             }
 
-            targets = new List<PlanTarget>(parsedTargets.Item1);
-            (List<Prescription>, StringBuilder) parsedPrescriptions = TargetsHelper.BuildPrescriptionList(targets,
+            (List<Prescription>, StringBuilder) parsedPrescriptions = TargetsHelper.BuildPrescriptionList(parsedTargets.Item1,
                                                                                                           dosePerFxTB.Text,
                                                                                                           numFxTB.Text,
                                                                                                           RxTB.Text);
@@ -580,7 +578,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             targetsTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             structureTuningTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             TSManipulationTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
-            //need targets to be assigned prior to populating the ring defaults
             log.Prescriptions = prescriptions;
         }
 
@@ -985,9 +982,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //update the structure sparing list in this class and update the structure sparing list displayed to the user in TS Generation tab
                 AddStructureManipulationVolumes(generate.GetSparingList(), structureManipulationSP);
             }
-            isoNames = generate.GetIsoNames();
-            numIsos = generate.GetNumberOfIsocenters();
-            numVMATIsos = generate.GetNumberOfVMATIsocenters();
+            isoNames = generate.PlanIsocentersList;
+            numIsos = generate.NumberofIsocenters;
+            numVMATIsos = generate.NumberofVMATIsocenters;
            
             PopulateBeamsTab();
             if (generate.GetTsTargets().Any()) tsTargets = generate.GetTsTargets();
@@ -999,7 +996,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             log.AddedStructures = generate.GetAddedStructures();
             log.StructureManipulations = TSManipulationList;
             log.TSTargets = generate.GetTsTargets().SelectMany(x => x.Item2).ToDictionary(x => x.Key, x => x.Value);
-            log.NormalizationVolumes = generate.GetNormalizationVolumes();
+            log.NormalizationVolumes = generate.NormalizationVolumes;
             log.IsoNames = isoNames;
         }
         #endregion
@@ -1056,8 +1053,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 numIsos += tmp - numVMATIsos;
                 numVMATIsos = tmp;
                 isoNames.Clear();
-                isoNames = new List<Tuple<string, List<string>>> { Tuple.Create(prescriptions.First().PlanId, new List<string>(IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos)))};
-                if(numIsos > numVMATIsos) isoNames.Add(Tuple.Create("_Legs", new List<string>(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos))));
+                isoNames = new List<PlanIsocenters> { new PlanIsocenters(prescriptions.First().PlanId, IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos))};
+                if(numIsos > numVMATIsos) isoNames.Add(new PlanIsocenters("_Legs", IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos)));
                 log.IsoNames = isoNames;
                 PopulateBeamsTab();
             }
@@ -1085,11 +1082,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //now that we have a list of plans each with a list of isocenter names, we want to make a new list of plans each with a list of tuples of isocenter names and beams per isocenter
             List<Tuple<string, List<Tuple<string, int>>>> planIsoBeamInfo = new List<Tuple<string, List<Tuple<string, int>>>> { };
             int count = 0;
-            foreach (Tuple<string, List<string>> itr in isoNames)
+            foreach (PlanIsocenters itr in isoNames)
             {
                 List<Tuple<string, int>> isoNameBeams = new List<Tuple<string, int>> { };
-                for (int i = 0; i < itr.Item2.Count; i++) isoNameBeams.Add(new Tuple<string, int>(itr.Item2.ElementAt(i), numBeams.ElementAt(count).ElementAt(i)));
-                planIsoBeamInfo.Add(new Tuple<string, List<Tuple<string, int>>>(itr.Item1, new List<Tuple<string, int>>(isoNameBeams)));
+                for (int i = 0; i < itr.IsocenterIds.Count; i++) isoNameBeams.Add(new Tuple<string, int>(itr.IsocenterIds.ElementAt(i), numBeams.ElementAt(count).ElementAt(i)));
+                planIsoBeamInfo.Add(new Tuple<string, List<Tuple<string, int>>>(itr.PlanId, new List<Tuple<string, int>>(isoNameBeams)));
                 count++;
             }
 
@@ -1318,7 +1315,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 return;
             }
             //assumes you set all targets and upstream items correctly (as you would have had to place beams prior to this point)
-            if (CalculationHelper.AreEqual(selectedTemplate.GetInitialRxDosePerFx() * selectedTemplate.GetInitialRxNumFx(), Rx))
+            if (CalculationHelper.AreEqual(selectedTemplate.InitialRxDosePerFx * selectedTemplate.InitialRxNumberOfFractions, Rx))
             {
                 //currently entered prescription is equal to the prescription dose in the selected template. Simply populate the optimization objective list with the objectives from that template
                 PopulateOptimizationTab(theSP, parsedConstraints.constraints, checkIfStructIsInSS, true);
@@ -1329,7 +1326,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 string planId = parsedConstraints.constraints.First().Item1;
                 List<Tuple<string, List<OptimizationConstraint>>> scaledConstraints = new List<Tuple<string, List<OptimizationConstraint>>>
                 {
-                    Tuple.Create(planId, OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.First().Item2, selectedTemplate.GetInitialRxDosePerFx() * selectedTemplate.GetInitialRxNumFx(), Rx))
+                    Tuple.Create(planId, OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.First().Item2, selectedTemplate.InitialRxDosePerFx * selectedTemplate.InitialRxNumberOfFractions, Rx))
                 };
                 PopulateOptimizationTab(theSP, scaledConstraints, checkIfStructIsInSS, true);
             }
@@ -1653,8 +1650,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 templateNameTB.Text = theTemplate.TemplateName + "_1";
 
                 //setRx
-                templateInitPlanDosePerFxTB.Text = theTemplate.GetInitialRxDosePerFx().ToString();
-                templateInitPlanNumFxTB.Text = theTemplate.GetInitialRxNumFx().ToString();
+                templateInitPlanDosePerFxTB.Text = theTemplate.InitialRxDosePerFx.ToString();
+                templateInitPlanNumFxTB.Text = theTemplate.InitialRxNumberOfFractions.ToString();
 
                 //add targets
                 List<PlanTarget> targetList = new List<PlanTarget>(theTemplate.PlanTargets);
@@ -1741,7 +1738,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
             if (double.TryParse(templateInitPlanDosePerFxTB.Text, out double initDosePerFx))
             {
-                prospectiveTemplate.SetInitRxDosePerFx(initDosePerFx);
+                prospectiveTemplate.InitialRxDosePerFx = initDosePerFx;
             }
             else
             {
@@ -1750,7 +1747,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
             if (int.TryParse(templateInitPlanNumFxTB.Text, out int initNumFx))
             {
-                prospectiveTemplate.SetInitialRxNumFx(initNumFx);
+                prospectiveTemplate.InitialRxNumberOfFractions = initNumFx;
             }
             else
             {

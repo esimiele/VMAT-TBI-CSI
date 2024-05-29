@@ -124,19 +124,19 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                                         if (parameter == "template name") tempTemplate.TemplateName = value;
                                         else if (parameter == "initial dose per fraction")
                                         {
-                                            if (double.TryParse(value, out double initDPF)) tempTemplate.SetInitRxDosePerFx(initDPF);
+                                            if (double.TryParse(value, out double initDPF)) tempTemplate.InitialRxDosePerFx = initDPF;
                                         }
                                         else if (parameter == "initial num fx")
                                         {
-                                            if (int.TryParse(value, out int initFx)) tempTemplate.SetInitialRxNumFx(initFx);
+                                            if (int.TryParse(value, out int initFx)) tempTemplate.InitialRxNumberOfFractions = initFx;
                                         }
                                         else if (parameter == "boost dose per fraction")
                                         {
-                                            if (double.TryParse(value, out double bstDPF)) tempTemplate.SetBoostRxDosePerFx(bstDPF);
+                                            if (double.TryParse(value, out double bstDPF)) tempTemplate.BoostRxDosePerFx = bstDPF;
                                         }
                                         else if (parameter == "boost num fx")
                                         {
-                                            if (int.TryParse(value, out int bstFx)) tempTemplate.SetBoostRxNumFx(bstFx);
+                                            if (int.TryParse(value, out int bstFx)) tempTemplate.BoostRxNumberOfFractions = bstFx;
                                         }
                                     }
                                     else if (line.Contains("add TS manipulation")) TSManipulation_temp.Add(ParseTSManipulation(line));
@@ -211,11 +211,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                                         if (parameter == "template name") tempTemplate.TemplateName = value;
                                         else if (parameter == "dose per fraction")
                                         {
-                                            if (double.TryParse(value, out double initDPF)) tempTemplate.SetInitRxDosePerFx(initDPF);
+                                            if (double.TryParse(value, out double initDPF)) tempTemplate.InitialRxDosePerFx = initDPF;
                                         }
                                         else if (parameter == "num fx")
                                         {
-                                            if (int.TryParse(value, out int initFx)) tempTemplate.SetInitialRxNumFx(initFx);
+                                            if (int.TryParse(value, out int initFx)) tempTemplate.InitialRxNumberOfFractions = initFx;
                                         }
                                     }
                                     else if (line.Contains("add TS manipulation")) TSManipulation_temp.Add(ParseTSManipulation(line));
@@ -299,7 +299,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        public static Tuple<string,string,int> ParseDaemonSettings(string line)
+        public static Daemon ParseDaemonSettings(string line)
         {
             string AETitle;
             string IP;
@@ -310,7 +310,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             IP = line.Substring(0, line.IndexOf(","));
             line = CropLine(line, ",");
             int.TryParse(line.Substring(0, line.IndexOf("}")), out port);
-            return Tuple.Create(AETitle, IP, port);
+            return new Daemon(AETitle, IP, port);
         }
 
         /// <summary>
