@@ -1,7 +1,7 @@
 ﻿using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 
-namespace VMATTBICSIAutoPlanningHelpers.UtilityClasses
+namespace VMATTBICSIAutoPlanningHelpers.Models
 {
     public class OptTSCreationCriteria : RequestedPlanMetric
     {

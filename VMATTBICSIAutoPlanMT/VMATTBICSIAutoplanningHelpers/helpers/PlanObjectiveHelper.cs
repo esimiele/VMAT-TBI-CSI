@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using VMATTBICSIAutoPlanningHelpers.Enums;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 

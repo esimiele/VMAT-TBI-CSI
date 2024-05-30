@@ -1,6 +1,6 @@
 ﻿using VMATTBICSIAutoPlanningHelpers.Enums;
 
-namespace VMATTBICSIAutoPlanningHelpers.UtilityClasses
+namespace VMATTBICSIAutoPlanningHelpers.Models
 {
     public class RequestedTSManipulation
     {

@@ -72,10 +72,10 @@
       <RequiredTargetFramework>4.0</RequiredTargetFramework>
     </Reference>
     <Reference Include="VMS.TPS.Common.Model.API">
-      <HintPath>..\..\..\VMS_TPS_resources\16.1\16.1\VMS.TPS.Common.Model.API.dll</HintPath>
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\VMS.TPS.Common.Model.API.dll</HintPath>
     </Reference>
     <Reference Include="VMS.TPS.Common.Model.Types">
-      <HintPath>..\..\..\VMS_TPS_resources\16.1\16.1\VMS.TPS.Common.Model.Types.dll</HintPath>
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\VMS.TPS.Common.Model.Types.dll</HintPath>
     </Reference>
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />

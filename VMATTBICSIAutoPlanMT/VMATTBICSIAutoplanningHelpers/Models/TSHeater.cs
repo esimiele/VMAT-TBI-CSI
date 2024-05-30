@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace VMATTBICSIAutoPlanningHelpers.UtilityClasses
+namespace VMATTBICSIAutoPlanningHelpers.Models
 {
     public class TSHeater : RequestedOptimizationTSStructure
     {

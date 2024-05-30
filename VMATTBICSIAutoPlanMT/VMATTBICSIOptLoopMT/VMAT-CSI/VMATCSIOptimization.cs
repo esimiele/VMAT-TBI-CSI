@@ -6,7 +6,7 @@ using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using VMATTBICSIAutoPlanningHelpers.UIHelpers;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 using VMATTBICSIAutoPlanningHelpers.DataContainers;
 
 namespace VMATTBICSIOptLoopMT.VMAT_CSI

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using VMS.TPS.Common.Model.API;
 using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 using System.Linq;
 
 namespace VMATTBICSIAutoPlanningHelpers.DataContainers
@@ -22,7 +22,6 @@ namespace VMATTBICSIAutoPlanningHelpers.DataContainers
         public List<Prescription> Prescriptions { get; set; } = new List<Prescription> { };
         public Dictionary<string, string> NormalizationVolumes { get; set; } = new Dictionary<string, string> { };
         public List<PlanObjective> PlanObjectives { get; set; } = new List<PlanObjective> { };
-        //public List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures;
         public List<RequestedOptimizationTSStructure> RequestedOptimizationTSStructures { get; set; } = new List<RequestedOptimizationTSStructure> { };
         public List<RequestedPlanMetric> RequestedPlanMetrics { get; set; } = new List<RequestedPlanMetric> { };
         public double DecisionThreshold { get; set; } = double.NaN;

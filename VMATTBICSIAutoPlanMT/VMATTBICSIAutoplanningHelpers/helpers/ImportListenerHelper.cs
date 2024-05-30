@@ -6,7 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {

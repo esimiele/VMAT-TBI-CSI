@@ -11,7 +11,7 @@ using VMATTBICSIAutoPlanningHelpers.UIHelpers;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
 using OptimizationProgressWindow;
 using System.Text;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 using VMATTBICSIAutoPlanningHelpers.DataContainers;
 
 namespace VMATTBICSIAutoPlanningHelpers.BaseClasses

@@ -1,6 +1,6 @@
 ﻿using VMS.TPS.Common.Model.Types;
 
-namespace VMATTBICSIAutoPlanningHelpers.UtilityClasses
+namespace VMATTBICSIAutoPlanningHelpers.Models
 {
     public class Prescription
     {

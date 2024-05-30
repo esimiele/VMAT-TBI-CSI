@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using VMATTBICSIAutoPlanningHelpers.Enums;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 using VMS.TPS.Common.Model.Types;
 
 namespace VMATTBICSIAutoPlanningHelpers.BaseClasses

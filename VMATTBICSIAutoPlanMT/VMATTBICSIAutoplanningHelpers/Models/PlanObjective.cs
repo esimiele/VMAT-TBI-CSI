@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Interfaces;
 
-namespace VMATTBICSIAutoPlanningHelpers.UtilityClasses
+namespace VMATTBICSIAutoPlanningHelpers.Models
 {
     public class PlanObjective : IPlanConstraint
     {

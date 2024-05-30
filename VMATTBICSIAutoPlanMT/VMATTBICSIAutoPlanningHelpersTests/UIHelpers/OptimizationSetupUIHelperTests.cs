@@ -10,7 +10,7 @@ using Telerik.JustMock;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using Telerik.JustMock.AutoMock.Ninject.Planning;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers.Tests
 {

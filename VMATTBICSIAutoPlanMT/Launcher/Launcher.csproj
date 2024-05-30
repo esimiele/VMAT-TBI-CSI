@@ -69,9 +69,8 @@
     <Reference Include="System.Xaml">
       <RequiredTargetFramework>4.0</RequiredTargetFramework>
     </Reference>
-    <Reference Include="VMS.TPS.Common.Model.API, Version=1.0.300.11, Culture=neutral, PublicKeyToken=305b81e210ec4b89, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\VMS_TPS_resources\16.1\16.1\VMS.TPS.Common.Model.API.dll</HintPath>
+    <Reference Include="VMS.TPS.Common.Model.API">
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\VMS.TPS.Common.Model.API.dll</HintPath>
     </Reference>
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />

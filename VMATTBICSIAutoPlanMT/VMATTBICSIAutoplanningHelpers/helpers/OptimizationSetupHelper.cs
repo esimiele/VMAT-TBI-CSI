@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.Enums;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
 using System.Text;
 using VMS.TPS.Common.Model.API;
@@ -20,12 +20,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="selectedTemplate"></param>
         /// <param name="currentList"></param>
         /// <returns></returns>
-        public static List<Tuple<string, List<OptimizationConstraint>>> UpdateOptimizationConstraints(List<Tuple<string, Dictionary<string,string>>> tsTargets,
+        public static List<PlanOptimizationSetup> UpdateOptimizationConstraints(List<Tuple<string, Dictionary<string,string>>> tsTargets,
                                                                                                                                              List<Prescription> prescriptions,
                                                                                                                                              object selectedTemplate,
-                                                                                                                                             List<Tuple<string, List<OptimizationConstraint>>> currentList = null)
+                                                                                                                                             List<PlanOptimizationSetup> currentList = null)
         {
-            List<Tuple<string, List<OptimizationConstraint>>> updatedList = new List<Tuple<string, List<OptimizationConstraint>>> { };
+            List<PlanOptimizationSetup> updatedList = new List<PlanOptimizationSetup> { };
             if (!currentList.Any()) currentList = RetrieveOptConstraintsFromTemplate(selectedTemplate, prescriptions).Item1;
             if (currentList.Any())
             {
@@ -37,18 +37,18 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     if (!string.Equals(itr.Item1, tmpPlanId))
                     {
                         //new plan, update the list
-                        tmpList.AddRange(currentList.First(x => string.Equals(x.Item1, tmpPlanId)).Item2.Where(y => !tmpTSTargetListForPlan.Any(k => string.Equals(k.Key, y.StructureId))));
-                        updatedList.Add(Tuple.Create(tmpPlanId, new List<OptimizationConstraint>(tmpList)));
+                        tmpList.AddRange(currentList.First(x => string.Equals(x.PlanId, tmpPlanId)).OptimizationConstraints.Where(y => !tmpTSTargetListForPlan.Any(k => string.Equals(k.Key, y.StructureId))));
+                        updatedList.Add(new PlanOptimizationSetup(tmpPlanId, new List<OptimizationConstraint>(tmpList)));
                         tmpList = new List<OptimizationConstraint> { };
                         tmpPlanId = itr.Item1;
                         tmpTSTargetListForPlan = new Dictionary<string, string>(itr.Item2);
                     }
-                    if (currentList.Any(x => string.Equals(x.Item1, tmpPlanId)))
+                    if (currentList.Any(x => string.Equals(x.PlanId, tmpPlanId)))
                     {
                         foreach(KeyValuePair<string,string> itr1 in itr.Item2)
                         {
                             //grab all optimization constraints from the plan of interest that have the same structure id as item 2 of itr
-                            List<OptimizationConstraint> planOptList = currentList.First(x => string.Equals(x.Item1, tmpPlanId)).Item2.Where(y => string.Equals(y.StructureId, itr1.Key)).ToList();
+                            List<OptimizationConstraint> planOptList = currentList.First(x => string.Equals(x.PlanId, tmpPlanId)).OptimizationConstraints.Where(y => string.Equals(y.StructureId, itr1.Key)).ToList();
                             foreach (OptimizationConstraint itr2 in planOptList)
                             {
                                 //simple copy of constraints
@@ -58,8 +58,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                         
                     }
                 }
-                tmpList.AddRange(currentList.FirstOrDefault(x => string.Equals(x.Item1, tmpPlanId)).Item2.Where(y => !tmpTSTargetListForPlan.Any(k => string.Equals(k.Key, y.StructureId))));
-                updatedList.Add(Tuple.Create(tmpPlanId, new List<OptimizationConstraint>(tmpList)));
+                tmpList.AddRange(currentList.FirstOrDefault(x => string.Equals(x.PlanId, tmpPlanId)).OptimizationConstraints.Where(y => !tmpTSTargetListForPlan.Any(k => string.Equals(k.Key, y.StructureId))));
+                updatedList.Add(new PlanOptimizationSetup(tmpPlanId, new List<OptimizationConstraint>(tmpList)));
 
             }
             return updatedList;
@@ -73,12 +73,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="selectedTemplate"></param>
         /// <param name="currentList"></param>
         /// <returns></returns>
-        public static List<Tuple<string, List<OptimizationConstraint>>> UpdateOptimizationConstraints(List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations,
+        public static List<PlanOptimizationSetup> UpdateOptimizationConstraints(List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations,
                                                                                                                                              List<Prescription> prescriptions,
                                                                                                                                              object selectedTemplate,
-                                                                                                                                             List<Tuple<string, List<OptimizationConstraint>>> currentList = null)
+                                                                                                                                             List<PlanOptimizationSetup> currentList = null)
         {
-            List<Tuple<string, List<OptimizationConstraint>>> updatedList = new List<Tuple<string, List<OptimizationConstraint>>> { };
+            List<PlanOptimizationSetup> updatedList = new List<PlanOptimizationSetup> { };
             if(!currentList.Any()) currentList = RetrieveOptConstraintsFromTemplate(selectedTemplate, prescriptions).Item1;
             if (currentList.Any())
             {
@@ -90,15 +90,15 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     if (!string.Equals(itr.Item1, tmpPlanId))
                     {
                         //new plan, update the list
-                        tmpList.AddRange(currentList.FirstOrDefault(x => string.Equals(x.Item1, tmpPlanId)).Item2.Where(y => !string.Equals(y.StructureId, tmpTargetId)));
-                        updatedList.Add(Tuple.Create(tmpPlanId, new List<OptimizationConstraint>(tmpList)));
+                        tmpList.AddRange(currentList.FirstOrDefault(x => string.Equals(x.PlanId, tmpPlanId)).OptimizationConstraints.Where(y => !string.Equals(y.StructureId, tmpTargetId)));
+                        updatedList.Add(new PlanOptimizationSetup(tmpPlanId, new List<OptimizationConstraint>(tmpList)));
                         tmpList = new List<OptimizationConstraint> { };
                         tmpPlanId = itr.Item1;
                     }
-                    if (currentList.Any(x => string.Equals(x.Item1, itr.Item1)))
+                    if (currentList.Any(x => string.Equals(x.PlanId, itr.Item1)))
                     {
                         //grab all optimization constraints from the plan of interest that have the same structure id as item 2 of itr
-                        List<OptimizationConstraint> planOptList = currentList.FirstOrDefault(x => string.Equals(x.Item1, itr.Item1)).Item2.Where(y => string.Equals(y.StructureId, itr.Item2)).ToList();
+                        List<OptimizationConstraint> planOptList = currentList.FirstOrDefault(x => string.Equals(x.PlanId, itr.Item1)).OptimizationConstraints.Where(y => string.Equals(y.StructureId, itr.Item2)).ToList();
                         foreach (Tuple<string, string> itr1 in itr.Item3)
                         {
                             foreach (OptimizationConstraint itr2 in planOptList)
@@ -118,8 +118,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     }
                     tmpTargetId = itr.Item2;
                 }
-                tmpList.AddRange(currentList.FirstOrDefault(x => string.Equals(x.Item1, tmpPlanId)).Item2.Where(y => !string.Equals(y.StructureId, tmpTargetId)));
-                updatedList.Add(Tuple.Create(tmpPlanId, new List<OptimizationConstraint>(tmpList)));
+                tmpList.AddRange(currentList.FirstOrDefault(x => string.Equals(x.PlanId, tmpPlanId)).OptimizationConstraints.Where(y => !string.Equals(y.StructureId, tmpTargetId)));
+                updatedList.Add(new PlanOptimizationSetup(tmpPlanId, new List<OptimizationConstraint>(tmpList)));
             }
             return updatedList;
         }
@@ -132,21 +132,21 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="selectedTemplate"></param>
         /// <param name="currentList"></param>
         /// <returns></returns>
-        public static List<Tuple<string, List<OptimizationConstraint>>> UpdateOptimizationConstraints(List<Tuple<string, string, double>> addedRings,
-                                                                                                                                      List<Prescription> prescriptions,
-                                                                                                                                      object selectedTemplate,
-                                                                                                                                      List<Tuple<string, List<OptimizationConstraint>>> currentList = null)
-        {
+        public static List<PlanOptimizationSetup> UpdateOptimizationConstraints(List<TSRing> addedRings,
+                                                                                                      List<Prescription> prescriptions,
+                                                                                                      object selectedTemplate,
+                                                                                                      List<PlanOptimizationSetup> currentList = null)
+        { 
             if (!currentList.Any()) currentList = RetrieveOptConstraintsFromTemplate(selectedTemplate, prescriptions).Item1;
             if (currentList.Any())
             {
-                foreach (Tuple<string, string, double> itr in addedRings)
+                foreach (TSRing itr in addedRings)
                 {
-                    string planId = TargetsHelper.GetPlanIdFromTargetId(itr.Item1, prescriptions);
-                    if (currentList.Any(x => string.Equals(x.Item1, planId)))
+                    string planId = TargetsHelper.GetPlanIdFromTargetId(itr.TargetId, prescriptions);
+                    if (currentList.Any(x => string.Equals(x.PlanId, planId)))
                     {
-                        OptimizationConstraint ringConstraint = new OptimizationConstraint(itr.Item2, OptimizationObjectiveType.Upper, itr.Item3, Units.cGy, 0.0, 80);
-                        currentList.First(x => string.Equals(x.Item1, planId)).Item2.Add(ringConstraint);
+                        OptimizationConstraint ringConstraint = new OptimizationConstraint(itr.RingId, OptimizationObjectiveType.Upper, itr.DoseLevel, Units.cGy, 0.0, 80);
+                        currentList.First(x => string.Equals(x.PlanId, planId)).OptimizationConstraints.Add(ringConstraint);
                     }
                 }
             }
@@ -160,23 +160,23 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="jnxs"></param>
         /// <param name="prescriptions"></param>
         /// <returns></returns>
-        public static List<Tuple<string, List<OptimizationConstraint>>> InsertTSJnxOptConstraints(List<Tuple<string, List<OptimizationConstraint>>> list,
-                                                                                                                                         List<Tuple<ExternalPlanSetup, List<Structure>>> jnxs,
-                                                                                                                                         List<Prescription> prescriptions)
+        public static List<PlanOptimizationSetup> InsertTSJnxOptConstraints(List<PlanOptimizationSetup> list,
+                                                                                                  List<PlanFieldJunctions> jnxs,
+                                                                                                  List<Prescription> prescriptions)
         {
             //we want to insert the optimization constraints for these junction structure right after the ptv constraints, so find the last index of the target ptv structure and insert
             //the junction structure constraints directly after the target structure constraints
-            foreach (Tuple<string, List<OptimizationConstraint>> itr in list)
+            foreach (PlanOptimizationSetup itr in list)
             {
-                if (jnxs.Any(x => string.Equals(x.Item1.Id.ToLower(), itr.Item1.ToLower())))
+                if (jnxs.Any(x => string.Equals(x.PlanSetup.Id.ToLower(), itr.PlanId.ToLower())))
                 {
-                    int index = itr.Item2.FindLastIndex(x => x.StructureId.ToLower().Contains("ptv") || x.StructureId.ToLower().Contains("ts_overlap"));
-                    double rxDose = TargetsHelper.GetHighestRxForPlan(prescriptions, itr.Item1);
-                    foreach (Structure itr1 in jnxs.First(x => string.Equals(x.Item1.Id.ToLower(), itr.Item1.ToLower())).Item2)
+                    int index = itr.OptimizationConstraints.FindLastIndex(x => x.StructureId.ToLower().Contains("ptv") || x.StructureId.ToLower().Contains("ts_overlap"));
+                    double rxDose = TargetsHelper.GetHighestRxForPlan(prescriptions, itr.PlanId);
+                    foreach (Structure itr1 in jnxs.First(x => string.Equals(x.PlanSetup.Id.ToLower(), itr.PlanId.ToLower())).FieldJunctionStructures)
                     {
                         //per Nataliya's instructions, add both a lower and upper constraint to the junction volumes. Make the constraints match those of the ptv target
-                        itr.Item2.Insert(++index, new OptimizationConstraint(itr1.Id, OptimizationObjectiveType.Lower, rxDose, Units.cGy, 100.0, 100));
-                        itr.Item2.Insert(++index, new OptimizationConstraint(itr1.Id, OptimizationObjectiveType.Upper, rxDose * 1.01, Units.cGy, 0.0, 100));
+                        itr.OptimizationConstraints.Insert(++index, new OptimizationConstraint(itr1.Id, OptimizationObjectiveType.Lower, rxDose, Units.cGy, 100.0, 100));
+                        itr.OptimizationConstraints.Insert(++index, new OptimizationConstraint(itr1.Id, OptimizationObjectiveType.Upper, rxDose * 1.01, Units.cGy, 0.0, 100));
                     }
                 }
             }
@@ -189,10 +189,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="selectedTemplate"></param>
         /// <param name="prescriptions"></param>
         /// <returns></returns>
-        public static (List<Tuple<string, List<OptimizationConstraint>>>, StringBuilder) RetrieveOptConstraintsFromTemplate(object selectedTemplate, List<Prescription> prescriptions)
+        public static (List<PlanOptimizationSetup>, StringBuilder) RetrieveOptConstraintsFromTemplate(object selectedTemplate, List<Prescription> prescriptions)
         {
             StringBuilder sb = new StringBuilder();
-            List<Tuple<string, List<OptimizationConstraint>>> list = new List<Tuple<string, List<OptimizationConstraint>>> { };
+            List<PlanOptimizationSetup> list = new List<PlanOptimizationSetup> { };
             //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose
             if (selectedTemplate != null)
             {
@@ -208,10 +208,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="selectedTemplate"></param>
         /// <param name="targets"></param>
         /// <returns></returns>
-        public static (List<Tuple<string, List<OptimizationConstraint>>>, StringBuilder) RetrieveOptConstraintsFromTemplate(object selectedTemplate, List<PlanTarget> targets)
+        public static (List<PlanOptimizationSetup>, StringBuilder) RetrieveOptConstraintsFromTemplate(object selectedTemplate, List<PlanTarget> targets)
         {
             StringBuilder sb = new StringBuilder();
-            List<Tuple<string, List<OptimizationConstraint>>> list = new List<Tuple<string, List<OptimizationConstraint>>> { };
+            List<PlanOptimizationSetup> list = new List<PlanOptimizationSetup> { };
             //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose
             if (selectedTemplate != null)
             {
@@ -227,9 +227,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="selectedTemplate"></param>
         /// <param name="planTargets"></param>
         /// <returns></returns>
-        public static List<Tuple<string, List<OptimizationConstraint>>> CreateOptimizationConstraintList(object selectedTemplate, Dictionary<string,string> planTargets)
+        public static List<PlanOptimizationSetup> CreateOptimizationConstraintList(object selectedTemplate, Dictionary<string,string> planTargets)
         {
-            List<Tuple<string, List<OptimizationConstraint>>> list = new List<Tuple<string, List<OptimizationConstraint>>> { };
+            List<PlanOptimizationSetup> list = new List<PlanOptimizationSetup> { };
             //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose
             if (selectedTemplate != null)
             {
@@ -239,19 +239,19 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 {
                     if(isCSIplan)
                     {
-                        if ((selectedTemplate as CSIAutoPlanTemplate).InitialOptimizationConstraints.Any()) list.Add(Tuple.Create(planTargets.ElementAt(0).Key, (selectedTemplate as CSIAutoPlanTemplate).InitialOptimizationConstraints));
-                        if (planTargets.Count > 1 && (selectedTemplate as CSIAutoPlanTemplate).BoostOptimizationConstraints.Any()) list.Add(Tuple.Create(planTargets.ElementAt(1).Key, (selectedTemplate as CSIAutoPlanTemplate).BoostOptimizationConstraints));
+                        if ((selectedTemplate as CSIAutoPlanTemplate).InitialOptimizationConstraints.Any()) list.Add(new PlanOptimizationSetup(planTargets.ElementAt(0).Key, (selectedTemplate as CSIAutoPlanTemplate).InitialOptimizationConstraints));
+                        if (planTargets.Count > 1 && (selectedTemplate as CSIAutoPlanTemplate).BoostOptimizationConstraints.Any()) list.Add(new PlanOptimizationSetup(planTargets.ElementAt(1).Key, (selectedTemplate as CSIAutoPlanTemplate).BoostOptimizationConstraints));
                     }
-                    else if ((selectedTemplate as TBIAutoPlanTemplate).InitialOptimizationConstraints.Any()) list.Add(Tuple.Create(planTargets.ElementAt(0).Key, (selectedTemplate as TBIAutoPlanTemplate).InitialOptimizationConstraints));
+                    else if ((selectedTemplate as TBIAutoPlanTemplate).InitialOptimizationConstraints.Any()) list.Add(new PlanOptimizationSetup(planTargets.ElementAt(0).Key, (selectedTemplate as TBIAutoPlanTemplate).InitialOptimizationConstraints));
                 }
                 else
                 {
                     if (isCSIplan)
                     {
-                        if ((selectedTemplate as CSIAutoPlanTemplate).InitialOptimizationConstraints.Any()) list.Add(Tuple.Create("CSI-init", (selectedTemplate as CSIAutoPlanTemplate).InitialOptimizationConstraints));
-                        if ((selectedTemplate as CSIAutoPlanTemplate).BoostRxDosePerFx != 0.1 && (selectedTemplate as CSIAutoPlanTemplate).BoostOptimizationConstraints.Any()) list.Add(Tuple.Create("CSI-bst", (selectedTemplate as CSIAutoPlanTemplate).BoostOptimizationConstraints));
+                        if ((selectedTemplate as CSIAutoPlanTemplate).InitialOptimizationConstraints.Any()) list.Add(new PlanOptimizationSetup("CSI-init", (selectedTemplate as CSIAutoPlanTemplate).InitialOptimizationConstraints));
+                        if ((selectedTemplate as CSIAutoPlanTemplate).BoostRxDosePerFx != 0.1 && (selectedTemplate as CSIAutoPlanTemplate).BoostOptimizationConstraints.Any()) list.Add(new PlanOptimizationSetup("CSI-bst", (selectedTemplate as CSIAutoPlanTemplate).BoostOptimizationConstraints));
                     }
-                    else if ((selectedTemplate as TBIAutoPlanTemplate).InitialOptimizationConstraints.Any()) list.Add(Tuple.Create("VMAT-TBI", (selectedTemplate as TBIAutoPlanTemplate).InitialOptimizationConstraints));
+                    else if ((selectedTemplate as TBIAutoPlanTemplate).InitialOptimizationConstraints.Any()) list.Add(new PlanOptimizationSetup("VMAT-TBI", (selectedTemplate as TBIAutoPlanTemplate).InitialOptimizationConstraints));
                 }
             }
             return list;

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using SimpleProgressWindow;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 using VMATTBICSIAutoPlanningHelpers.Delegates;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;

@@ -19,7 +19,7 @@ using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
 using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
 using System.Collections.ObjectModel;
 using System.Text;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
@@ -98,7 +98,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         //list to hold the current structure ids in the structure set in addition to the prospective ids after unioning the left and right structures together
         List<string> structureIdsPostUnion = new List<string> { };
         //list of junction structures (i.e., overlap regions between adjacent isocenters)
-        List<Tuple<ExternalPlanSetup, List<Structure>>> jnxs = new List<Tuple<ExternalPlanSetup, List<Structure>>> { };
+        List<PlanFieldJunctions> jnxs = new List<PlanFieldJunctions> { };
         ExternalPlanSetup VMATplan = null;
         int numIsos = 0;
         int numVMATIsos = 0;
@@ -601,8 +601,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             //check if structures need to be unioned before adding defaults
             List<string> ids = selectedSS.Structures.Select(x => x.Id).ToList();
-            List<Tuple<Structure, Structure, string>> structuresToUnion = new List<Tuple<Structure, Structure, string>>(StructureTuningHelper.CheckStructuresToUnion(selectedSS));
-            foreach (Tuple<Structure, Structure, string> itr in structuresToUnion) ids.Add(itr.Item3);
+            List<UnionStructureModel> structuresToUnion = new List<UnionStructureModel>(StructureTuningHelper.CheckStructuresToUnion(selectedSS));
+            foreach (UnionStructureModel itr in structuresToUnion) ids.Add(itr.ProposedUnionStructureId);
             return ids;
         }
 
@@ -975,12 +975,12 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //boolean operations on structures of two different resolutions, code was added to the generateTS class to automatically convert these structures to low resolution with the name of
             // '<original structure Id>_lowRes'. When these structures are converted to low resolution, the updateSparingList flag in the generateTS class is set to true to tell this class that the 
             //structure sparing list needs to be updated with the new low resolution structures.
-            if (generate.GetUpdateSparingListStatus())
+            if (generate.DoesTSManipulationListRequireUpdating)
             {
 
                 ClearStructureManipulationsList(ClearStructureManipulationsBtn);
                 //update the structure sparing list in this class and update the structure sparing list displayed to the user in TS Generation tab
-                AddStructureManipulationVolumes(generate.GetSparingList(), structureManipulationSP);
+                AddStructureManipulationVolumes(generate.TSManipulationList, structureManipulationSP);
             }
             isoNames = generate.PlanIsocentersList;
             numIsos = generate.NumberofIsocenters;
@@ -993,7 +993,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             structureTuningTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             TSManipulationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             beamPlacementTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
-            log.AddedStructures = generate.GetAddedStructures();
+            log.AddedStructures = generate.AddedStructureIds;
             log.StructureManipulations = TSManipulationList;
             log.TSTargets = generate.GetTsTargets().SelectMany(x => x.Item2).ToDictionary(x => x.Key, x => x.Value);
             log.NormalizationVolumes = generate.NormalizationVolumes;
@@ -1128,7 +1128,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             bool result = place.Execute();
             log.AppendLogOutput("Plan generation and beam placement output:", place.GetLogOutput());
             if (result) return;
-            VMATplan = place.GetGeneratedVMATPlans().First();
+            VMATplan = place.VMATPlans.First();
             if (VMATplan == null) return;
             if(place.GetCheckIsoPlacementStatus())
             {
@@ -1139,7 +1139,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //also repopulate the optimization tab (will include the newly added field junction structures)!
             if (contourOverlap_chkbox.IsChecked.Value)
             {
-                jnxs = place.GetFieldJunctionStructures();
+                jnxs = place.FieldJunctions;
                 ClearOptimizationConstraintsList(optParametersSP);
                 AddDefaultOptimizationConstraints_Click(null, null);
             }
@@ -1153,15 +1153,15 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         #endregion
 
         #region optimization setup
-        private void PopulateOptimizationTab(StackPanel theSP, List<Tuple<string, List<OptimizationConstraint>>> tmpList = null, bool checkIfStructurePresentInSS = true, bool updateTsStructureJnxObjectives = false)
+        private void PopulateOptimizationTab(StackPanel theSP, List<PlanOptimizationSetup> tmpList = null, bool checkIfStructurePresentInSS = true, bool updateTsStructureJnxObjectives = false)
         {
-            List<Tuple<string, List<OptimizationConstraint>>> defaultListList = new List<Tuple<string, List<OptimizationConstraint>>> { };
+            List<PlanOptimizationSetup> defaultListList = new List<PlanOptimizationSetup> { };
             if (tmpList == null)
             {
                 //tmplist is empty indicating that no optimization constraints were present on the UI when this method was called
                 updateTsStructureJnxObjectives = true;
                 //retrieve constraints from template
-                (List<Tuple<string, List<OptimizationConstraint>>> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(templateList.SelectedItem as TBIAutoPlanTemplate, prescriptions);
+                (List<PlanOptimizationSetup> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(templateList.SelectedItem as TBIAutoPlanTemplate, prescriptions);
                 if (!parsedConstraints.constraints.Any())
                 {
                     log.LogError(parsedConstraints.errorMessage);
@@ -1172,10 +1172,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
             if (checkIfStructurePresentInSS)
             {
-                foreach (Tuple<string, List<OptimizationConstraint>> itr in tmpList)
+                foreach (PlanOptimizationSetup itr in tmpList)
                 {
                     List<OptimizationConstraint> defaultList = new List<OptimizationConstraint> { };
-                    foreach (OptimizationConstraint opt in itr.Item2)
+                    foreach (OptimizationConstraint opt in itr.OptimizationConstraints)
                     {
                         //always add PTV objectives to optimization objectives list
                         if (opt.StructureId.Contains("--select--") || opt.StructureId.Contains("PTV")) defaultList.Add(opt);
@@ -1188,13 +1188,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                         }
                         else if (StructureTuningHelper.DoesStructureExistInSS(opt.StructureId, selectedSS, true)) defaultList.Add(opt);
                     }
-                    defaultListList.Add(Tuple.Create(itr.Item1, new List<OptimizationConstraint>(defaultList)));
+                    defaultListList.Add(new PlanOptimizationSetup(itr.PlanId, new List<OptimizationConstraint>(defaultList)));
                 }
             }
             else
             {
                 //do NOT check to ensure structures in optimization constraint list are present in structure set before adding them to the UI list
-                defaultListList = new List<Tuple<string, List<OptimizationConstraint>>>(tmpList);
+                defaultListList = new List<PlanOptimizationSetup>(tmpList);
             }
 
             if (updateTsStructureJnxObjectives)
@@ -1206,7 +1206,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                                                                                                        jnxs);
             }
 
-            foreach (Tuple<string, List<OptimizationConstraint>> itr in defaultListList) AddOptimizationConstraintItems(itr.Item2, itr.Item1, theSP);
+            foreach (PlanOptimizationSetup itr in defaultListList) AddOptimizationConstraintItems(itr.OptimizationConstraints, itr.PlanId, theSP);
         }
 
         private void AddOptimizationConstraintsHeader(StackPanel theSP)
@@ -1308,7 +1308,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 log.LogError("Warning! Entered initial plan prescription is not valid! \nCannot scale optimization objectives to requested Rx! Exiting!");
                 return;
             }
-            (List<Tuple<string, List<OptimizationConstraint>>> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(selectedTemplate, prescriptions);
+            (List<PlanOptimizationSetup> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(selectedTemplate, prescriptions);
             if (!parsedConstraints.constraints.Any())
             {
                 log.LogError(parsedConstraints.errorMessage);
@@ -1323,10 +1323,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             else
             {
                 //entered prescription differs from prescription in template --> need to rescale all objectives by ratio of prescriptions
-                string planId = parsedConstraints.constraints.First().Item1;
-                List<Tuple<string, List<OptimizationConstraint>>> scaledConstraints = new List<Tuple<string, List<OptimizationConstraint>>>
+                string planId = parsedConstraints.constraints.First().PlanId;
+                List<PlanOptimizationSetup> scaledConstraints = new List<PlanOptimizationSetup>
                 {
-                    Tuple.Create(planId, OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.First().Item2, selectedTemplate.InitialRxDosePerFx * selectedTemplate.InitialRxNumberOfFractions, Rx))
+                    new PlanOptimizationSetup(planId, OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.First().OptimizationConstraints, selectedTemplate.InitialRxDosePerFx * selectedTemplate.InitialRxNumberOfFractions, Rx))
                 };
                 PopulateOptimizationTab(theSP, scaledConstraints, checkIfStructIsInSS, true);
             }
@@ -1334,7 +1334,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         private void SetOptConst_Click(object sender, RoutedEventArgs e)
         {
-            (List<Tuple<string, List<OptimizationConstraint>>>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optParametersSP);
+            (List<PlanOptimizationSetup>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optParametersSP);
             if (!parsedOptimizationConstraints.Item1.Any())
             {
                 log.LogError(parsedOptimizationConstraints.Item2);
@@ -1348,10 +1348,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 theCourse = pi.Courses.First(x => x.Id == "VMAT TBI");
                 pi.BeginModifications();
                 //additional check if the plan was not found in the list of VMATplans
-                VMATplan = theCourse.ExternalPlanSetups.FirstOrDefault(x => x.Id == parsedOptimizationConstraints.Item1.First().Item1);
+                VMATplan = theCourse.ExternalPlanSetups.FirstOrDefault(x => x.Id == parsedOptimizationConstraints.Item1.First().PlanId);
             }
 
-            List<OptimizationConstraint> constraints = parsedOptimizationConstraints.Item1.First().Item2;
+            List<OptimizationConstraint> constraints = parsedOptimizationConstraints.Item1.First().OptimizationConstraints;
             if (VMATplan != null)
             {
                 if (VMATplan.OptimizationSetup.Objectives.Count() > 0)
@@ -1409,20 +1409,20 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (theBtn.Name.Contains("template")) theSP = templateOptParamsSP;
             else theSP = optParametersSP;
             if (!prescriptions.Any()) return;
-            List<Tuple<string, List<OptimizationConstraint>>> tmpListList = new List<Tuple<string, List<OptimizationConstraint>>> { };
+            List<PlanOptimizationSetup> tmpListList = new List<PlanOptimizationSetup> { };
             List<OptimizationConstraint> tmp = new List<OptimizationConstraint> { };
             if (theSP.Children.Count > 0)
             {
                 //stuff in the optimization UI. Parse it, and add a blank optimization constraint at the end
                 //read list of current objectives
-                (List<Tuple<string, List<OptimizationConstraint>>>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(theSP, false);
-                foreach (Tuple<string, List<OptimizationConstraint>> itr in parsedOptimizationConstraints.Item1)
+                (List<PlanOptimizationSetup>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(theSP, false);
+                foreach (PlanOptimizationSetup itr in parsedOptimizationConstraints.Item1)
                 {
-                    tmp = new List<OptimizationConstraint>(itr.Item2)
+                    tmp = new List<OptimizationConstraint>(itr.OptimizationConstraints)
                     {
                         new OptimizationConstraint("--select--", OptimizationObjectiveType.None, 0.0, Units.cGy, 0.0, 0)
                     };
-                    tmpListList.Add(Tuple.Create(itr.Item1, tmp));
+                    tmpListList.Add(new PlanOptimizationSetup(itr.PlanId, tmp));
                 }
             }
             else
@@ -1436,13 +1436,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                         tmp = new List<OptimizationConstraint>(selectedTemplate.InitialOptimizationConstraints);
                     }
                     else tmp.Add(new OptimizationConstraint("--select--", OptimizationObjectiveType.None, 0.0, Units.cGy, 0.0, 0));
-                    tmpListList.Add(Tuple.Create(prescriptions.First().PlanId, tmp));
+                    tmpListList.Add(new PlanOptimizationSetup(prescriptions.First().PlanId, tmp));
                 }
                 else
                 {
                     if (VMATplan != null)
                     {
-                        tmpListList.Add(Tuple.Create(VMATplan.Id, new List<OptimizationConstraint> { new OptimizationConstraint("--select--", OptimizationObjectiveType.None, 0.0, Units.cGy, 0.0, 0) }));
+                        tmpListList.Add(new PlanOptimizationSetup(VMATplan.Id, new List<OptimizationConstraint> { new OptimizationConstraint("--select--", OptimizationObjectiveType.None, 0.0, Units.cGy, 0.0, 0) }));
                     }
                     else log.LogError("Error! Please generate a VMAT plan and place beams prior to adding optimization constraints!");
                 }
@@ -1667,7 +1667,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (theTemplate.TSManipulations.Any()) AddStructureManipulationVolumes(theTemplate.TSManipulations, templateStructuresSP);
 
                 //add optimization constraints
-                (List<Tuple<string, List<OptimizationConstraint>>>, StringBuilder) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(theTemplate, targetList);
+                (List<PlanOptimizationSetup>, StringBuilder) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(theTemplate, targetList);
                 if (!parsedConstraints.Item1.Any())
                 {
                     log.LogError(parsedConstraints.Item2);
@@ -1715,7 +1715,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 AddStructureManipulationVolumes(parsedTSManipulationList.Item1, templateStructuresSP);
 
                 //add optimization constraints
-                (List<Tuple<string, List<OptimizationConstraint>>>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optParametersSP);
+                (List<PlanOptimizationSetup>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optParametersSP);
                 if (parsedOptimizationConstraints.Item1.Any())
                 {
                     log.LogError(parsedOptimizationConstraints.Item2);
@@ -1759,8 +1759,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             prospectiveTemplate.PlanTargets = TargetsUIHelper.ParseTargets(templateTargetsSP).Item1.OrderBy(x => x.TargetRxDose).ToList();
             prospectiveTemplate.CreateTSStructures = StructureTuningUIHelper.ParseCreateTSStructureList(templateTSSP).Item1;
             prospectiveTemplate.TSManipulations = StructureTuningUIHelper.ParseTSManipulationList(templateStructuresSP).Item1;
-            List<Tuple<string, List<OptimizationConstraint>>> templateOptParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(templateOptParamsSP).Item1;
-            prospectiveTemplate.InitialOptimizationConstraints = new List<OptimizationConstraint>(templateOptParametersListList.First().Item2);
+            List<PlanOptimizationSetup> templateOptParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(templateOptParamsSP).Item1;
+            prospectiveTemplate.InitialOptimizationConstraints = new List<OptimizationConstraint>(templateOptParametersListList.First().OptimizationConstraints);
 
             templatePreviewTB.Text = TemplateBuilder.GenerateTemplatePreviewText(prospectiveTemplate).ToString();
             templatePreviewScroller.ScrollToTop();

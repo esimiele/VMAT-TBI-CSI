@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMS.TPS.Common.Model.API;
 using Telerik.JustMock;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
 {
@@ -53,17 +53,17 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         {
             StructureSet ss = BuildTestStructureSet();
 
-            List<Tuple<Structure, Structure, string>> expected = new List<Tuple<Structure, Structure, string>>
+            List<UnionStructureModel> expected = new List<UnionStructureModel>
             {
-                Tuple.Create(ss.Structures.First(x => x.Id == "Lens_L"), ss.Structures.First(x => x.Id == "Lens_R"), "lenses"),
-                Tuple.Create(ss.Structures.First(x => x.Id == "Lung_L"), ss.Structures.First(x => x.Id == "Lung_R"), "lungs"),
-                Tuple.Create(ss.Structures.First(x => x.Id == "Kidney_L"), ss.Structures.First(x => x.Id == "Kidney_R"), "kidneys"),
+                new UnionStructureModel(ss.Structures.First(x => x.Id == "Lens_L"), ss.Structures.First(x => x.Id == "Lens_R"), "lenses"),
+                new UnionStructureModel(ss.Structures.First(x => x.Id == "Lung_L"), ss.Structures.First(x => x.Id == "Lung_R"), "lungs"),
+                new UnionStructureModel(ss.Structures.First(x => x.Id == "Kidney_L"), ss.Structures.First(x => x.Id == "Kidney_R"), "kidneys"),
             };
 
-            List<Tuple<Structure, Structure, string>> result = StructureTuningHelper.CheckStructuresToUnion(ss);
-            foreach (Tuple<Structure, Structure, string> itr in result)
+            List<UnionStructureModel> result = StructureTuningHelper.CheckStructuresToUnion(ss);
+            foreach (UnionStructureModel itr in result)
             {
-                Console.WriteLine($"{itr.Item1.Id}, {itr.Item2.Id}, {itr.Item3}");
+                Console.WriteLine($"{itr.Structure_Left.Id}, {itr.Structure_Right.Id}, {itr.ProposedUnionStructureId}");
             }
             CollectionAssert.AreEqual(expected, result);
         }

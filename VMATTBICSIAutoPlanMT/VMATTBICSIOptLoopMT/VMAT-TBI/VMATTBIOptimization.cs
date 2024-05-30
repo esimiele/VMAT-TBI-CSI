@@ -10,7 +10,7 @@ using VMATTBICSIAutoPlanningHelpers.DataContainers;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
 using System.Text;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBICSIOptLoopMT.VMAT_TBI
 {

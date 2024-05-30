@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 using VMS.TPS.Common.Model.API;
 using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
 
@@ -38,10 +38,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="selectedSS"></param>
         /// <returns></returns>
-        public static List<Tuple<Structure, Structure, string>> CheckStructuresToUnion(StructureSet selectedSS)
+        public static List<UnionStructureModel> CheckStructuresToUnion(StructureSet selectedSS)
         {
             //left structure, right structure, unioned structure name
-            List<Tuple<Structure, Structure, string>> structuresToUnion = new List<Tuple<Structure, Structure, string>> { };
+            List<UnionStructureModel> structuresToUnion = new List<UnionStructureModel> { };
             List<Structure> LStructs = selectedSS.Structures.Where(x => x.Id.Substring(x.Id.Length - 2, 2).ToLower() == "_l" || x.Id.Substring(x.Id.Length - 2, 2).ToLower() == " l").ToList();
             List<Structure> RStructs = selectedSS.Structures.Where(x => x.Id.Substring(x.Id.Length - 2, 2).ToLower() == "_r" || x.Id.Substring(x.Id.Length - 2, 2).ToLower() == " r").ToList();
             foreach (Structure itr in LStructs)
@@ -50,7 +50,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 string newName = AddProperEndingToName(itr.Id.Substring(0, itr.Id.Length - 2).ToLower());
                 if (!ReferenceEquals(RStruct,null) && !selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(),newName.ToLower()) && !x.IsEmpty))
                 {
-                    structuresToUnion.Add(new Tuple<Structure, Structure, string>(itr, RStruct, newName));
+                    structuresToUnion.Add(new UnionStructureModel(itr, RStruct, newName));
                 }
             }
             return structuresToUnion;
@@ -76,24 +76,24 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="itr"></param>
         /// <param name="selectedSS"></param>
         /// <returns></returns>
-        public static (bool, StringBuilder) UnionLRStructures(Tuple<Structure, Structure, string> itr, StructureSet selectedSS)
+        public static (bool, StringBuilder) UnionLRStructures(UnionStructureModel itr, StructureSet selectedSS)
         {
             StringBuilder sb = new StringBuilder();
             Structure newStructure;
-            string newName = itr.Item3;
+            string newName = itr.ProposedUnionStructureId;
             try
             {
                 //a structure already exists in the structure set with the intended name
                 if (DoesStructureExistInSS(newName, selectedSS)) newStructure = GetStructureFromId(newName, selectedSS);
                 else newStructure = selectedSS.AddStructure("CONTROL", newName);
-                (bool copyFail, StringBuilder copyMessage) = ContourHelper.CopyStructureOntoStructure(itr.Item1, newStructure);
+                (bool copyFail, StringBuilder copyMessage) = ContourHelper.CopyStructureOntoStructure(itr.Structure_Left, newStructure);
                 if (copyFail) return (true, copyMessage);
-                (bool unionFail, StringBuilder unionMessage) = ContourHelper.ContourUnion(itr.Item2, newStructure, 0.0);
+                (bool unionFail, StringBuilder unionMessage) = ContourHelper.ContourUnion(itr.Structure_Right, newStructure, 0.0);
                 if (unionFail) return (true, unionMessage);
             }
             catch (Exception except) 
             { 
-                sb.Append($"Warning! Could not union {itr.Item1.Id} and {itr.Item2.Id} onto {newName}\nBecause: {except.Message}"); 
+                sb.Append($"Warning! Could not union {itr.Structure_Left.Id} and {itr.Structure_Right.Id} onto {newName}\nBecause: {except.Message}"); 
                 return (true, sb); 
             }
             return (false, sb);

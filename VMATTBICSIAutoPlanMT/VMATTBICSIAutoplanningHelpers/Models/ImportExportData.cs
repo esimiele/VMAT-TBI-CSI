@@ -1,7 +1,7 @@
 ﻿using System;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 
-namespace VMATTBICSIAutoPlanningHelpers.UtilityClasses
+namespace VMATTBICSIAutoPlanningHelpers.Models
 {
     /// <summary>
     /// Helper class to store the relevant information regarding image export

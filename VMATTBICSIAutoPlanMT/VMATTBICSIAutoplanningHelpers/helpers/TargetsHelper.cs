@@ -6,7 +6,7 @@ using System.Linq;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 using System.Windows.Media.Media3D;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers

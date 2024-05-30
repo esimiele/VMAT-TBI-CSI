@@ -9,7 +9,7 @@ using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.EnumTypeHelpers;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 using VMATTBICSIAutoPlanningHelpers.Interfaces;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
@@ -75,13 +75,13 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <param name="targetManipulations"></param>
         /// <param name="addedRings"></param>
         /// <returns></returns>
-        public static List<Tuple<string, List<OptimizationConstraint>>> UpdateOptObjectivesWithTsStructuresAndJnxs(List<Tuple<string, List<OptimizationConstraint>>> defaultListList,
-                                                                                                                                                          List<Prescription> prescriptions,
-                                                                                                                                                          object selectedTemplate,
-                                                                                                                                                          List<Tuple<string, Dictionary<string,string>>> tsTargets,
-                                                                                                                                                          List<Tuple<ExternalPlanSetup, List<Structure>>> jnxs,
-                                                                                                                                                          List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations = null,
-                                                                                                                                                          List<Tuple<string, string, double>> addedRings = null)
+        public static List<PlanOptimizationSetup> UpdateOptObjectivesWithTsStructuresAndJnxs(List<PlanOptimizationSetup> defaultListList,
+                                                                                             List<Prescription> prescriptions,
+                                                                                             object selectedTemplate,
+                                                                                             List<Tuple<string, Dictionary<string,string>>> tsTargets,
+                                                                                             List<PlanFieldJunctions> jnxs,
+                                                                                             List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations = null,
+                                                                                             List<TSRing> addedRings = null)
         {
             if (tsTargets.Any())
             {
@@ -370,18 +370,18 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <param name="sp"></param>
         /// <param name="checkInputIntegrity"></param>
         /// <returns></returns>
-        public static (List<Tuple<string, List<OptimizationConstraint>>>, StringBuilder) ParseOptConstraints(StackPanel sp, bool checkInputIntegrity = true)
+        public static (List<PlanOptimizationSetup>, StringBuilder) ParseOptConstraints(StackPanel sp, bool checkInputIntegrity = true)
         {
             StringBuilder sb = new StringBuilder();
             if (sp.Children.Count == 0)
             {
                 sb.AppendLine("No optimization parameters present to assign to plans!");
-                return (new List<Tuple<string, List<OptimizationConstraint>>>(), sb);
+                return (new List<PlanOptimizationSetup>(), sb);
             }
 
             //get constraints
             List<OptimizationConstraint> optParametersList = new List<OptimizationConstraint> { };
-            List<Tuple<string, List<OptimizationConstraint>>> optParametersListList = new List<Tuple<string, List<OptimizationConstraint>>> { };
+            List<PlanOptimizationSetup> optParametersListList = new List<PlanOptimizationSetup> { };
             string structure = "";
             string constraintType = "";
             double dose = -1.0;
@@ -428,7 +428,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 {
                     if (optParametersList.Any())
                     {
-                        optParametersListList.Add(new Tuple<string, List<OptimizationConstraint>>(planId, new List<OptimizationConstraint>(optParametersList)));
+                        optParametersListList.Add(new PlanOptimizationSetup(planId, new List<OptimizationConstraint>(optParametersList)));
                         optParametersList = new List<OptimizationConstraint> { };
                     }
                     string planIdHeader = (copyObj as Label).Content.ToString();
@@ -440,12 +440,12 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                     if (checkInputIntegrity && (structure == "--select--" || constraintType == "--select--"))
                     {
                         sb.AppendLine("Error! \nStructure or Sparing Type not selected! \nSelect an option and try again");
-                        return (new List<Tuple<string, List<OptimizationConstraint>>>(), sb);
+                        return (new List<PlanOptimizationSetup>(), sb);
                     }
                     else if (checkInputIntegrity && (dose == -1.0 || vol == -1.0 || priority == -1.0))
                     {
                         sb.AppendLine("Error! \nDose, volume, or priority values are invalid! \nEnter new values and try again");
-                        return (new List<Tuple<string, List<OptimizationConstraint>>>(), sb);
+                        return (new List<PlanOptimizationSetup>(), sb);
                     }
                     //if the row of data passes the above checks, add it the optimization parameter list
                     else optParametersList.Add(new OptimizationConstraint(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), Math.Round(dose, 3, MidpointRounding.AwayFromZero), Units.cGy, Math.Round(vol, 3, MidpointRounding.AwayFromZero), priority));
@@ -458,7 +458,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 }
                 numElementsPerRow = 0;
             }
-            optParametersListList.Add(new Tuple<string, List<OptimizationConstraint>>(planId, new List<OptimizationConstraint>(optParametersList)));
+            optParametersListList.Add(new PlanOptimizationSetup(planId, new List<OptimizationConstraint>(optParametersList)));
             return (optParametersListList, sb);
         }
 

@@ -7,7 +7,7 @@ using System.Text;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.BaseClasses;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {

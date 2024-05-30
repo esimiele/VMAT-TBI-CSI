@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 
-namespace VMATTBICSIAutoPlanningHelpers.UtilityClasses
+namespace VMATTBICSIAutoPlanningHelpers.Models
 {
     public class RequestedPlanMetric
     {

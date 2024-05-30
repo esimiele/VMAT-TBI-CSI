@@ -7,7 +7,7 @@ using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using System.Runtime.ExceptionServices;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
@@ -111,7 +111,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (CheckExistingCourse()) return true;
                 if (CheckExistingPlans()) return true;
                 if (CreateVMATPlans()) return true;
-                vmatPlan = vmatPlans.First();
+                vmatPlan = VMATPlans.First();
                 if (planIsoBeamInfo.Count > 1 && CreateAPPAPlan()) return true;
                 //plan, List<isocenter position, isocenter name, number of beams per isocenter>
                 List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> isoLocations = GetIsocenterPositions();
@@ -129,7 +129,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             catch (Exception e)
             {
                 ProvideUIUpdate($"{e.Message}", true);
-                stackTraceError = e.StackTrace;
+                StackTraceError = e.StackTrace;
                 return true;
             }
         }
@@ -212,9 +212,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //6-10-2020 EAS, want to count up from matchplane to ensure distance from matchplane is fixed at 190 mm
                 v.z = targetInfExtent + (numVMATIsos - i - 1) * isoSeparation + (maxFieldYExtent / 2 - supInfTargetMargin);
                 //round z position to the nearest integer
-                v = RoundIsocenterPositions(v, vmatPlan);
+                v = RoundIsocenterPosition(v, vmatPlan);
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated isocenter position {i + 1}");
-                tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPositions(v, vmatPlan),
+                tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPosition(v, vmatPlan),
                                                         planIsoBeamInfo.First().Item2.ElementAt(i).Item1,
                                                         planIsoBeamInfo.First().Item2.ElementAt(i).Item2));
             }
@@ -256,9 +256,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //matchline are equidistant from the matchline
                 v.z = targetSupExtent - i * isoSeparation - offsetZ;
 
-                v = RoundIsocenterPositions(v, legsPlan);
+                v = RoundIsocenterPosition(v, legsPlan);
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated isocenter position {i + 1}");
-                tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPositions(v, legsPlan),
+                tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPosition(v, legsPlan),
                                                         planIsoBeamInfo.Last().Item2.ElementAt(i).Item1,
                                                         planIsoBeamInfo.Last().Item2.ElementAt(i).Item2));
             }

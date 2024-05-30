@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
 using VMATTBICSIAutoPlanningHelpers.Enums;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
 {
@@ -70,10 +70,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         public CSIAutoPlanTemplate ConstructTestCSIAutoPlanTemplate()
         {
             CSIAutoPlanTemplate template = new CSIAutoPlanTemplate("test");
-            template.SetInitialRxNumFx(20);
-            template.SetInitRxDosePerFx(180.0);
-            template.SetBoostRxNumFx(10);
-            template.SetBoostRxDosePerFx(180.0);
+            template.InitialRxNumberOfFractions = 20;
+            template.InitialRxDosePerFx = 180.0;
+            template.BoostRxNumberOfFractions = 10;
+            template.BoostRxDosePerFx = 180.0;
             template.InitialOptimizationConstraints = new List<OptimizationConstraint>(SetupDummyInitialOptObjList());
             template.BoostOptimizationConstraints = new List<OptimizationConstraint>(SetupDummyBoostOptObjList());
             return template;
@@ -82,8 +82,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         public TBIAutoPlanTemplate ConstructTestTBIAutoPlanTemplate()
         {
             TBIAutoPlanTemplate template = new TBIAutoPlanTemplate("test");
-            template.SetInitialRxNumFx(20);
-            template.SetInitRxDosePerFx(180.0);
+            template.InitialRxNumberOfFractions = 20;
+            template.InitialRxDosePerFx = 180.0;
             template.InitialOptimizationConstraints = new List<OptimizationConstraint>(SetupDummyInitialOptObjList());
             return template;
         }
@@ -93,27 +93,27 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         {
             Dictionary<string, string> testPlanTargets = CreateDummyCSIPlanTargetsList();
             CSIAutoPlanTemplate testTemplate = ConstructTestCSIAutoPlanTemplate();
-            List<Tuple<string, List<OptimizationConstraint>>> expected = new List<Tuple<string, List<OptimizationConstraint>>>
+            List<PlanOptimizationSetup> expected = new List<PlanOptimizationSetup>
             {
-                Tuple.Create("initial", SetupDummyInitialOptObjList()),
-                Tuple.Create("boost", SetupDummyBoostOptObjList())
+                new PlanOptimizationSetup("initial", SetupDummyInitialOptObjList()),
+                new PlanOptimizationSetup("boost", SetupDummyBoostOptObjList())
             };
 
-            List<Tuple<string, List<OptimizationConstraint>>> result = OptimizationSetupHelper.CreateOptimizationConstraintList(testTemplate, testPlanTargets);
+            List<PlanOptimizationSetup> result = OptimizationSetupHelper.CreateOptimizationConstraintList(testTemplate, testPlanTargets);
 
             //CollectionAssert.AreEqual(expected, result);
             int count = 0;
-            foreach (Tuple<string, List<OptimizationConstraint>> itr in result)
+            foreach (PlanOptimizationSetup itr in result)
             {
-                Assert.AreEqual(itr.Item1, expected.ElementAt(count).Item1);
-                CollectionAssert.AreEqual(itr.Item2, expected.ElementAt(count).Item2);
+                Assert.AreEqual(itr.PlanId, expected.ElementAt(count).PlanId);
+                CollectionAssert.AreEqual(itr.OptimizationConstraints, expected.ElementAt(count).OptimizationConstraints);
                 count++;
             }
 
-            expected = new List<Tuple<string, List<OptimizationConstraint>>>
+            expected = new List<PlanOptimizationSetup>
             {
-                Tuple.Create("initial", SetupDummyInitialOptObjList()),
-                Tuple.Create("boost", SetupDummyBoostOptObjList())
+                new PlanOptimizationSetup("initial", SetupDummyInitialOptObjList()),
+                new PlanOptimizationSetup("boost", SetupDummyBoostOptObjList())
             };
         }
 
@@ -121,20 +121,20 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         public void CreateOptimizationConstraintListCSITestNoPlanTargets()
         {
             CSIAutoPlanTemplate testTemplate = ConstructTestCSIAutoPlanTemplate();
-            List<Tuple<string, List<OptimizationConstraint>>> expected = new List<Tuple<string, List<OptimizationConstraint>>>
+            List<PlanOptimizationSetup> expected = new List<PlanOptimizationSetup>
             {
-                Tuple.Create("CSI-init", SetupDummyInitialOptObjList()),
-                Tuple.Create("CSI-bst", SetupDummyBoostOptObjList())
+                new PlanOptimizationSetup("CSI-init", SetupDummyInitialOptObjList()),
+                new PlanOptimizationSetup("CSI-bst", SetupDummyBoostOptObjList())
             };
 
-            List<Tuple<string, List<OptimizationConstraint>>> result = OptimizationSetupHelper.CreateOptimizationConstraintList(testTemplate, new Dictionary<string, string> { });
+            List<PlanOptimizationSetup> result = OptimizationSetupHelper.CreateOptimizationConstraintList(testTemplate, new Dictionary<string, string> { });
 
             //CollectionAssert.AreEqual(expected, result);
             int count = 0;
-            foreach (Tuple<string, List<OptimizationConstraint>> itr in result)
+            foreach (PlanOptimizationSetup itr in result)
             {
-                Assert.AreEqual(itr.Item1, expected.ElementAt(count).Item1);
-                CollectionAssert.AreEqual(itr.Item2, expected.ElementAt(count).Item2);
+                Assert.AreEqual(itr.PlanId, expected.ElementAt(count).PlanId);
+                CollectionAssert.AreEqual(itr.OptimizationConstraints, expected.ElementAt(count).OptimizationConstraints);
                 count++;
             }
         }
@@ -143,19 +143,19 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         public void CreateOptimizationConstraintListTBITestNoPlanTargets()
         {
             TBIAutoPlanTemplate testTemplate = ConstructTestTBIAutoPlanTemplate();
-            List<Tuple<string, List<OptimizationConstraint>>> expected = new List<Tuple<string, List<OptimizationConstraint>>>
+            List<PlanOptimizationSetup> expected = new List<PlanOptimizationSetup>
             {
-                Tuple.Create("VMAT-TBI", SetupDummyInitialOptObjList()),
+                new PlanOptimizationSetup("VMAT-TBI", SetupDummyInitialOptObjList()),
             };
 
-            List<Tuple<string, List<OptimizationConstraint>>> result = OptimizationSetupHelper.CreateOptimizationConstraintList(testTemplate, new Dictionary<string, string> { });
+            List<PlanOptimizationSetup> result = OptimizationSetupHelper.CreateOptimizationConstraintList(testTemplate, new Dictionary<string, string> { });
 
             //CollectionAssert.AreEqual(expected, result);
             int count = 0;
-            foreach (Tuple<string, List<OptimizationConstraint>> itr in result)
+            foreach (PlanOptimizationSetup itr in result)
             {
-                Assert.AreEqual(itr.Item1, expected.ElementAt(count).Item1);
-                CollectionAssert.AreEqual(itr.Item2, expected.ElementAt(count).Item2);
+                Assert.AreEqual(itr.PlanId, expected.ElementAt(count).PlanId);
+                CollectionAssert.AreEqual(itr.OptimizationConstraints, expected.ElementAt(count).OptimizationConstraints);
                 count++;
             }
         }

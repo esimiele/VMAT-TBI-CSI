@@ -6,7 +6,7 @@ using VMS.TPS.Common.Model.Types;
 using System.Windows.Media.Media3D;
 using SimpleProgressWindow;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
 using System.Text;
 
@@ -17,19 +17,13 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         //Get methods
         //plan Id, list of isocenter names for this plan
         public List<PlanIsocenters> PlanIsocentersList { get; protected set; } = new List<PlanIsocenters> { };
-        public List<string> GetAddedStructures() { return addedStructures; }
-        public List<RequestedTSManipulation> GetSparingList() { return TSManipulationList; }
-        public bool GetUpdateSparingListStatus() { return updateTSManipulationList; }
-        public string GetErrorStackTrace() { return stackTraceError; }
+        public List<string> AddedStructureIds { get; protected set; } = new List<string> { };
+        public List<RequestedTSManipulation> TSManipulationList { get; protected set; } = new List<RequestedTSManipulation> { };
+        //flag to indicate to the main UI that the structure manipulation list needs to be updated
+        public bool DoesTSManipulationListRequireUpdating { get; protected set; } = false;
+        public string StrackTraceError { get; protected set; } = string.Empty;
 
         protected StructureSet selectedSS;
-        //structure, manipulation type, added margin (if applicable)
-        protected List<RequestedTSManipulation> TSManipulationList;
-        //id of added structures
-        protected List<string> addedStructures = new List<string> { };
-        //flag to indicate to the main UI that the structure manipulation list needs to be updated
-        protected bool updateTSManipulationList = false;
-        protected string stackTraceError;
 
         #region virtual methods
         protected virtual bool PreliminaryChecks()
@@ -65,15 +59,15 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         {
             UpdateUILabel("Unioning Structures: ");
             ProvideUIUpdate(0, "Checking for L and R structures to union!");
-            List<Tuple<Structure, Structure, string>> structuresToUnion = StructureTuningHelper.CheckStructuresToUnion(selectedSS);
+            List<UnionStructureModel> structuresToUnion = StructureTuningHelper.CheckStructuresToUnion(selectedSS);
             if (structuresToUnion.Any())
             {
                 int calcItems = structuresToUnion.Count;
                 int numUnioned = 0;
-                foreach (Tuple<Structure, Structure, string> itr in structuresToUnion)
+                foreach (UnionStructureModel itr in structuresToUnion)
                 {
                     (bool fail, StringBuilder output) = StructureTuningHelper.UnionLRStructures(itr, selectedSS);
-                    if (!fail) ProvideUIUpdate(100 * ++numUnioned / calcItems, $"Unioned {itr.Item3}");
+                    if (!fail) ProvideUIUpdate(100 * ++numUnioned / calcItems, $"Unioned {itr.ProposedUnionStructureId}");
                     else
                     {
                         ProvideUIUpdate(output.ToString(), true);
@@ -363,7 +357,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 if(UpdateManipulationList(itr, lowRes.Id)) return true;
             }
             //inform the main UI class that the UI needs to be updated
-            updateTSManipulationList = true;
+            DoesTSManipulationListRequireUpdating = true;
             return false;
         }
 
@@ -572,7 +566,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             if (selectedSS.CanAddStructure(dicomType, structName))
             {
                 addedStructure = selectedSS.AddStructure(dicomType, structName);
-                addedStructures.Add(structName);
+                AddedStructureIds.Add(structName);
             }
             else ProvideUIUpdate($"Can't add {structName} to the structure set!");
             return addedStructure;

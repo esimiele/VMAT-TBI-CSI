@@ -5,7 +5,7 @@ using System.Windows.Controls;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.EnumTypeHelpers;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {

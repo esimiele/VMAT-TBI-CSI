@@ -5,13 +5,10 @@ using System.Linq;
 using System.Reflection;
 using System.Windows;
 using VMATTBICSIAutoPlanningHelpers.Enums;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 using VMATTBICSIAutoPlanningHelpers.EnumTypeHelpers;
 using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
 using VMS.TPS.Common.Model.Types;
-using EvilDICOM.Core.Helpers;
-using static System.Windows.Forms.AxHost;
-using VMATTBICSIAutoPlanningHelpers.Logging;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
@@ -111,7 +108,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                             List<PlanObjective> planObj_temp = new List<PlanObjective> { };
                             List<RequestedPlanMetric> planDoseInfo_temp = new List<RequestedPlanMetric> { };
                             List<RequestedOptimizationTSStructure> requestedTSstructures_temp = new List<RequestedOptimizationTSStructure> { };
-                            //List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures_temp = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> { };
                             //parse the data specific to the myeloablative case setup
                             while (!(line = reader.ReadLine()).Equals(":end template case configuration:"))
                             {
@@ -196,9 +192,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                             //optimization loop
                             List<PlanObjective> planObj_temp = new List<PlanObjective> { };
                             List<RequestedPlanMetric> planDoseInfo_temp = new List<RequestedPlanMetric> { };
-
                             List<RequestedOptimizationTSStructure> requestedTSstructures_temp = new List<RequestedOptimizationTSStructure> { };
-                            //List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures_temp = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> { };
                             //parse the data specific to the myeloablative case setup
                             while (!(line = reader.ReadLine()).Equals(":end template case configuration:"))
                             {

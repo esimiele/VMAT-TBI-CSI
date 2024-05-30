@@ -7,7 +7,7 @@ using System.Text;
 using System.Windows;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 using VMS.TPS.Common.Model.Types;
 
 namespace VMATTBICSIAutoPlanningHelpers.Logging

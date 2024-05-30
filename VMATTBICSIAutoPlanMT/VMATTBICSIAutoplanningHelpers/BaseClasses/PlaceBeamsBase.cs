@@ -8,19 +8,18 @@ using VMATTBICSIAutoPlanningHelpers.Prompts;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using SimpleProgressWindow;
 using System.Reflection;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 {
     public class PlaceBeamsBase : SimpleMTbase
     {
         //get methods
-        public List<ExternalPlanSetup> GetGeneratedVMATPlans() { return vmatPlans; }
-        public List<Tuple<ExternalPlanSetup, List<Structure>>> GetFieldJunctionStructures() { return jnxs; }
-        public string GetErrorStackTrace() { return stackTraceError; }
+        public List<ExternalPlanSetup> VMATPlans { get; protected set; } = new List<ExternalPlanSetup>();
+        public List<PlanFieldJunctions> FieldJunctions { get; protected set; } = new List<PlanFieldJunctions> { };
+        public string StackTraceError { get; protected set; } = string.Empty;
 
         protected bool contourOverlap = false;
-        protected List<ExternalPlanSetup> vmatPlans = new List<ExternalPlanSetup> { };
         private string courseId;
         protected Course theCourse;
         protected StructureSet selectedSS;
@@ -32,8 +31,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         protected string useGPUoptimization = "";
         protected string MRrestart = "";
         protected double contourOverlapMargin;
-        protected List<Tuple<ExternalPlanSetup,List<Structure>>> jnxs = new List<Tuple<ExternalPlanSetup, List<Structure>>> { };
-        protected string stackTraceError;
 
         #region virtual methods
         /// <summary>
@@ -174,7 +171,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 ProvideUIUpdate(100 * ++counter / calcItems, $"Set plan Id for {planName}");
 
                 //ask the user to set the calculation model if it was not configured
-                if (calculationModel == "")
+                if (string.IsNullOrEmpty(calculationModel))
                 {
                     SelectItemPrompt SIP = new SelectItemPrompt("No calculation model set!" + Environment.NewLine + "Please select a calculation model!", thePlan.GetModelsForCalculationType(CalculationType.PhotonVolumeDose).ToList());
                     SIP.ShowDialog();
@@ -201,7 +198,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 //v16 of Eclipse allows for the creation of a plan with a named target structure and named primary reference point. Neither of these options are available in v15
                 //plan.TargetVolumeID = selectedSS.Structures.First(x => x.Id == "xx");
                 //plan.PrimaryReferencePoint = plan.ReferencePoints.Fisrt(x => x.Id == "xx");
-                vmatPlans.Add(thePlan);
+                VMATPlans.Add(thePlan);
                 ProvideUIUpdate(100 * ++counter / calcItems, $"Added plan {itr.PlanId} to stack!");
             }
             ProvideUIUpdate(100, "Finished creating and initializing plans!");
@@ -268,7 +265,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="v"></param>
         /// <param name="plan"></param>
         /// <returns></returns>
-        protected VVector RoundIsocenterPositions(VVector v, ExternalPlanSetup plan)
+        protected VVector RoundIsocenterPosition(VVector v, ExternalPlanSetup plan)
         {
             int counter = 0;
             int calcItems = 3;
@@ -347,7 +344,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 tmpJnxList.Add(selectedSS.AddStructure("CONTROL", $"TS_jnx{isoCount + i}"));
                 ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Added TS junction to stack: TS_jnx{isoCount + 1}");
             }
-            jnxs.Add(Tuple.Create(isoLocations.Item1, tmpJnxList));
+            FieldJunctions.Add(new PlanFieldJunctions(isoLocations.Item1, tmpJnxList));
 
             //make a box at the min/max x,y positions of the target structure with no margin
             VVector[] targetBoundingBox = CreateTargetBoundingBox(target_tmp, 0.0);

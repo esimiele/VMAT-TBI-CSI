@@ -8,7 +8,7 @@ using System.Text;
 using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using VMATTBICSIAutoPlanningHelpers.EnumTypeHelpers;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {

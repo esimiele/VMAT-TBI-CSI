@@ -9,7 +9,7 @@ using Telerik.JustMock;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.Enums;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
 {

@@ -4,7 +4,7 @@ using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using System.Text;
 using VMATTBICSIAutoPlanningHelpers.BaseClasses;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {

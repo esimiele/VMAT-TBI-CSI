@@ -11,7 +11,7 @@ using EvilDICOM.Network;
 using EvilDICOM.Network.Enums;
 using SimpleProgressWindow;
 using VMATTBICSIAutoPlanningHelpers.Enums;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 using System.Threading;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers

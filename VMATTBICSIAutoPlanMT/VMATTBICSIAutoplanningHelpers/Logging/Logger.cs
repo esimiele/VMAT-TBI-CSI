@@ -9,7 +9,7 @@ using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
 using FolderBrowserDialog = System.Windows.Forms.FolderBrowserDialog;
 using DialogResult = System.Windows.Forms.DialogResult;
 using System.Reflection;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBICSIAutoPlanningHelpers.Logging
 {
@@ -18,7 +18,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         #region Set methods
         //general patient info
         public string MRN { set { mrn = value; } }
-        public void SetPlanType(PlanType type) { planType = type; }
         public string Template { set => template = value; }
         public string StructureSet { set => selectedSS = value; }
         public bool ChangesSaved { set => changesSaved = value; }
@@ -41,7 +40,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         public List<string> PlanUIDs { set => planUIDs = new List<string>(value); }
         //optimization setup
         //plan ID, <structure, constraint type, dose cGy, volume %, priority>
-        public List<Tuple<string, List<OptimizationConstraint>>> OptimizationConstraints { get; set; } = new List<Tuple<string, List<OptimizationConstraint>>>();
+        public List<PlanOptimizationSetup> OptimizationConstraints { get; set; } = new List<PlanOptimizationSetup>();
         public ScriptOperationType OpType { set => opType = value; }
         #endregion
 
@@ -265,10 +264,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             sb.AppendLine("");
 
             sb.AppendLine("Optimization constraints:");
-            foreach (Tuple<string, List<OptimizationConstraint>> itr in OptimizationConstraints)
+            foreach (PlanOptimizationSetup itr in OptimizationConstraints)
             {
-                sb.AppendLine($"    {itr.Item1}");
-                foreach (OptimizationConstraint itr1 in itr.Item2)
+                sb.AppendLine($"    {itr.PlanId}");
+                foreach (OptimizationConstraint itr1 in itr.OptimizationConstraints)
                 {
                     sb.AppendLine($"        {{{itr1.StructureId},{itr1.ConstraintType},{itr1.QueryDose},{itr1.QueryVolume},{itr1.Priority}}}");
                 }

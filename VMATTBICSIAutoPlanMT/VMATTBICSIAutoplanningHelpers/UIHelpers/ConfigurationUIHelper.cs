@@ -6,7 +6,7 @@ using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 using VMS.TPS.Common.Model.Types;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
@@ -48,7 +48,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 {
                     sb.AppendLine(String.Format(" {0} ring structures:", itr.TemplateName));
                     sb.AppendLine(String.Format("  {0, -15} | {1, -11} | {2, -14} | {3,-10} |", "target Id", "margin (cm)", "thickness (cm)", "dose (cGy)"));
-                    foreach (UtilityClasses.TSRing ring in itr.Rings) sb.AppendLine(String.Format("  {0, -15} | {1, -11} | {2, -14} | {3,-10} |", ring.TargetId, ring.MarginFromTargetInCM, ring.RingThicknessInCM, ring.DoseLevel));
+                    foreach (Models.TSRing ring in itr.Rings) sb.AppendLine(String.Format("  {0, -15} | {1, -11} | {2, -14} | {3,-10} |", ring.TargetId, ring.MarginFromTargetInCM, ring.RingThicknessInCM, ring.DoseLevel));
                     sb.AppendLine(Environment.NewLine);
                 }
                 else sb.AppendLine(String.Format(" No requested ring structures for template: {0}", itr.TemplateName));

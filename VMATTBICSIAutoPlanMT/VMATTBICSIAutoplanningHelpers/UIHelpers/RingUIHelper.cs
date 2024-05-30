@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Controls;
 using System.Windows;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {

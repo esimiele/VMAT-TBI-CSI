@@ -71,19 +71,19 @@
       <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Progress\Telerik JustMock\Libraries\Telerik.JustMock.dll</HintPath>
     </Reference>
     <Reference Include="VMS.TPS.Common.BusinessLogic.Interface">
-      <HintPath>..\..\..\VMS_TPS_resources\16.1\16.1\VMS.TPS.Common.BusinessLogic.Interface.dll</HintPath>
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\VMS.TPS.Common.BusinessLogic.Interface.dll</HintPath>
     </Reference>
     <Reference Include="VMS.TPS.Common.Calculation.Interface">
-      <HintPath>..\..\..\VMS_TPS_resources\16.1\16.1\VMS.TPS.Common.Calculation.Interface.dll</HintPath>
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\VMS.TPS.Common.Calculation.Interface.dll</HintPath>
     </Reference>
     <Reference Include="VMS.TPS.Common.Model.API">
-      <HintPath>..\..\..\VMS_TPS_resources\16.1\16.1\VMS.TPS.Common.Model.API.dll</HintPath>
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\VMS.TPS.Common.Model.API.dll</HintPath>
     </Reference>
     <Reference Include="VMS.TPS.Common.Model.Interface">
-      <HintPath>..\..\..\VMS_TPS_resources\16.1\16.1\VMS.TPS.Common.Model.Interface.dll</HintPath>
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\VMS.TPS.Common.Model.Interface.dll</HintPath>
     </Reference>
     <Reference Include="VMS.TPS.Common.Model.Types">
-      <HintPath>..\..\..\VMS_TPS_resources\16.1\16.1\VMS.TPS.Common.Model.Types.dll</HintPath>
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\VMS.TPS.Common.Model.Types.dll</HintPath>
     </Reference>
     <Reference Include="WindowsBase" />
   </ItemGroup>

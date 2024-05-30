@@ -95,7 +95,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             catch(Exception e)
             {
                 ProvideUIUpdate($"{e.Message}", true);
-                stackTraceError = e.StackTrace;
+                StackTraceError = e.StackTrace;
                 return true;
             }
         }
@@ -312,7 +312,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             VVector userOrigin = image.UserOrigin;
             ProvideUIUpdate($"Retrieved user origin position: ({userOrigin.x:0.0}, {userOrigin.y:0.0}, {userOrigin.z:0.0}) mm");
             List<Tuple<string, List<string>>> planIdTargets = new List<Tuple<string, List<string>>>(TargetsHelper.GetTargetListForEachPlan(prescriptions));
-            foreach (ExternalPlanSetup itr in vmatPlans)
+            foreach (ExternalPlanSetup itr in VMATPlans)
             {
                 ProvideUIUpdate($"Retrieving number of isocenters for plan: {itr.Id}");
                 int numIsos = planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, itr.Id)).Item2.Count;
@@ -358,7 +358,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     };
 
                     ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated isocenter position {1}");
-                    tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPositions(v, itr),
+                    tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPosition(v, itr),
                                                             planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, itr.Id)).Item2.ElementAt(0).Item1,
                                                             planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, itr.Id)).Item2.ElementAt(0).Item2));
                 }
@@ -423,7 +423,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated isocenter position {i + 1}");
                 ProvideUIUpdate($"Isocenter position: ({v.x:0.0}, {v.y:0.0}, {v.z:0.0}) mm");
-                tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPositions(v, thePlan),
+                tmp.Add(new Tuple<VVector, string, int>(RoundIsocenterPosition(v, thePlan),
                                                         planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, thePlan.Id)).Item2.ElementAt(i).Item1,
                                                         planIsoBeamInfo.FirstOrDefault(x => string.Equals(x.Item1, thePlan.Id)).Item2.ElementAt(i).Item2));
             }

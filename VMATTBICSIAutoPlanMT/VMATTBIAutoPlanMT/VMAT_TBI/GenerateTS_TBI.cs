@@ -11,7 +11,7 @@ using VMATTBICSIAutoPlanningHelpers.Helpers;
 using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
 using System.Text;
 using System.Runtime.ExceptionServices;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
@@ -322,9 +322,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             ProvideUIUpdate(0, "Contouring tuning structures!");
 
             counter = 0;
-            calcItems = addedStructures.Count;
+            calcItems = AddedStructureIds.Count;
             //now contour the various structures
-            foreach (string itr in addedStructures)
+            foreach (string itr in AddedStructureIds)
             {
                 ProvideUIUpdate($"Contouring TS: {itr}");
                 Structure addedStructure = StructureTuningHelper.GetStructureFromId(itr, selectedSS);

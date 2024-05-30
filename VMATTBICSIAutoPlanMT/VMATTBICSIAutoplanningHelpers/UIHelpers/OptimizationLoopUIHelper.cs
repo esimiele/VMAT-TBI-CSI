@@ -7,7 +7,7 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 using VMATTBICSIAutoPlanningHelpers.EnumTypeHelpers;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers

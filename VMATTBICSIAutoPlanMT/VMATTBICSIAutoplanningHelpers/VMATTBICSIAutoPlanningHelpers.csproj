@@ -121,13 +121,11 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
-    <Reference Include="VMS.TPS.Common.Model.API, Version=1.0.450.29, Culture=neutral, PublicKeyToken=305b81e210ec4b89, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\VMS_TPS_resources\16.1\16.1\VMS.TPS.Common.Model.API.dll</HintPath>
+    <Reference Include="VMS.TPS.Common.Model.API">
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\VMS.TPS.Common.Model.API.dll</HintPath>
     </Reference>
-    <Reference Include="VMS.TPS.Common.Model.Types, Version=1.0.450.29, Culture=neutral, PublicKeyToken=305b81e210ec4b89, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\VMS_TPS_resources\16.1\16.1\VMS.TPS.Common.Model.Types.dll</HintPath>
+    <Reference Include="VMS.TPS.Common.Model.Types">
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\VMS.TPS.Common.Model.Types.dll</HintPath>
     </Reference>
     <Reference Include="WindowsBase" />
   </ItemGroup>
@@ -152,23 +150,26 @@
     <Compile Include="Helpers\PlanPrepHelper.cs" />
     <Compile Include="Interfaces\IPlanConstraint.cs" />
     <Compile Include="DataContainers\OptDataContainer.cs" />
-    <Compile Include="UtilityClasses\Daemon.cs" />
-    <Compile Include="UtilityClasses\OptimizationConstraint.cs" />
-    <Compile Include="UtilityClasses\OptTSCreationCriteria.cs" />
-    <Compile Include="UtilityClasses\PlanIsocenters.cs" />
-    <Compile Include="UtilityClasses\PlanObjective.cs" />
-    <Compile Include="UtilityClasses\PlanTarget.cs" />
-    <Compile Include="UtilityClasses\Prescription.cs" />
-    <Compile Include="UtilityClasses\RequestedOptimizationTSStructure.cs" />
-    <Compile Include="UtilityClasses\RequestedPlanMetric.cs" />
-    <Compile Include="UtilityClasses\RequestedTSStructure.cs" />
-    <Compile Include="UtilityClasses\RequestedTSManipulation.cs" />
-    <Compile Include="UtilityClasses\TSCooler.cs" />
-    <Compile Include="UtilityClasses\TSHeater.cs" />
-    <Compile Include="UtilityClasses\TSRing.cs" />
+    <Compile Include="Models\Daemon.cs" />
+    <Compile Include="Models\OptimizationConstraint.cs" />
+    <Compile Include="Models\OptTSCreationCriteria.cs" />
+    <Compile Include="Models\PlanFieldJunctions.cs" />
+    <Compile Include="Models\PlanIsocenters.cs" />
+    <Compile Include="Models\PlanObjective.cs" />
+    <Compile Include="Models\PlanOptimizationSetup.cs" />
+    <Compile Include="Models\PlanTarget.cs" />
+    <Compile Include="Models\Prescription.cs" />
+    <Compile Include="Models\RequestedOptimizationTSStructure.cs" />
+    <Compile Include="Models\RequestedPlanMetric.cs" />
+    <Compile Include="Models\RequestedTSStructure.cs" />
+    <Compile Include="Models\RequestedTSManipulation.cs" />
+    <Compile Include="Models\TSCooler.cs" />
+    <Compile Include="Models\TSHeater.cs" />
+    <Compile Include="Models\TSRing.cs" />
     <Compile Include="Helpers\RingHelper.cs" />
+    <Compile Include="Models\UnionStructureModel.cs" />
     <Compile Include="PlanTemplateClasses\TBIAutoPlanTemplate.cs" />
-    <Compile Include="UtilityClasses\ImportExportData.cs" />
+    <Compile Include="Models\ImportExportData.cs" />
     <Compile Include="UIHelpers\ConfigurationUIHelper.cs" />
     <Compile Include="Helpers\ContourHelper.cs" />
     <Compile Include="Helpers\OptimizationLoopHelper.cs" />

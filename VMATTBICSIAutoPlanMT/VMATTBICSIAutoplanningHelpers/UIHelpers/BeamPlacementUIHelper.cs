@@ -5,7 +5,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
-using VMATTBICSIAutoPlanningHelpers.UtilityClasses;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {

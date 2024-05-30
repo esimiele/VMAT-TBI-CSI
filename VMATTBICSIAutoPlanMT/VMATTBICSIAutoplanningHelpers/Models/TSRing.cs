@@ -5,11 +5,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace VMATTBICSIAutoPlanningHelpers.UtilityClasses
+namespace VMATTBICSIAutoPlanningHelpers.Models
 {
     public class TSRing
     {
         public string TargetId { get; set; } = string.Empty;
+        public string RingId { get; set; } = string.Empty;
         public double MarginFromTargetInCM { get; set; } = double.NaN;
         public double RingThicknessInCM {  get; set; } = double.NaN;
         public double DoseLevel { get; set; } = double.NaN; 
@@ -21,7 +22,14 @@ namespace VMATTBICSIAutoPlanningHelpers.UtilityClasses
             RingThicknessInCM = thickness;
             DoseLevel = dose;
         }
-        ////target to create ring from, margin, thickness, dose level (cGy)
-        //private List<Tuple<string, double, double, double>> createRings = new List<Tuple<string, double, double, double>> { };
+
+        public TSRing(TSRing r)
+        {
+            TargetId = r.TargetId;
+            RingId = r.RingId;
+            MarginFromTargetInCM = r.MarginFromTargetInCM;
+            RingThicknessInCM = r.RingThicknessInCM;
+            DoseLevel = r.DoseLevel;
+        }
     }
 }
