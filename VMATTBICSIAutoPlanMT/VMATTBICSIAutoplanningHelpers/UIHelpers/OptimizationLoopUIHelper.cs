@@ -256,19 +256,18 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <returns></returns>
         public static string PrintPlanOptimizationResultVsConstraints(ExternalPlanSetup plan, 
                                                                       List<OptimizationConstraint> optParams, 
-                                                                      List<Tuple<Structure, DVHData, double, double, double, int>> diffPlanOpt, 
+                                                                      List<PlanOptConstraintsDeviationModel> diffPlanOpt, 
                                                                       double totalCostPlanOpt)
         {
             StringBuilder sb = new StringBuilder();
             //print the results of the quality check for this optimization
             sb.AppendLine(GetOptimizationResultsHeader(plan.Id));
             int index = 0;
-            //structure, dvh data, current dose obj, dose diff^2, cost, current priority, priority difference
-            foreach (Tuple<Structure, DVHData, double, double, double, int> itr in diffPlanOpt)
+            foreach (PlanOptConstraintsDeviationModel itr in diffPlanOpt)
             {
                 //"structure Id", "constraint type", "dose diff^2 (cGy^2)", "current priority", "cost", "cost (%)"
                 sb.AppendLine(String.Format("{0, -16} | {1, -16} | {2, -20:N1} | {3, -16} | {4, -12:N1} | {5, -9:N1} |",
-                                                itr.Item1.Id, optParams.ElementAt(index).ConstraintType.ToString(), itr.Item4, itr.Item6, itr.Item5, 100 * itr.Item5 / totalCostPlanOpt));
+                                                itr.Structure.Id, optParams.ElementAt(index).ConstraintType.ToString(), itr.DoseDifferenceSquared, itr.Prioirty, itr.OptimizationCost, 100 * itr.OptimizationCost / totalCostPlanOpt));
                 index++;
             }
             return sb.ToString();

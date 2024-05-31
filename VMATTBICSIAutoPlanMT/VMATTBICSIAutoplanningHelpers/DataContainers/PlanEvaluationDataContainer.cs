@@ -9,9 +9,9 @@ namespace VMATTBICSIAutoPlanningHelpers.DataContainers
     public class PlanEvaluationDataContainer
     {
         //difference between current dose values for each structure in the optimization list and the optimization constraint(s) for that structure
-        public List<Tuple<Structure, DVHData, double, double, double, int>> PlanDifferenceFromOptConstraints { get; set; } = new List<Tuple<Structure, DVHData, double, double, double, int>> { };
+        public List<PlanOptConstraintsDeviationModel> PlanDifferenceFromOptConstraints { get; set; } = new List<PlanOptConstraintsDeviationModel> { };
         //same for plan objectives
-        public List<Tuple<Structure, DVHData, double, double>> PlanDifferenceFromPlanObjectives { get; set; } = new List<Tuple<Structure, DVHData, double, double>> { };
+        public List<PlanObjectivesDeviationModel> PlanDifferenceFromPlanObjectives { get; set; } = new List<PlanObjectivesDeviationModel> { };
         //vector to hold the updated optimization objectives (to be assigned to the plan)
         public List<OptimizationConstraint> UpdatedOptimizationObjectives { get; set; } = new List<OptimizationConstraint> { };
         //the total cost sum(dose diff^2 * priority) for all structures in the optimization objective vector list

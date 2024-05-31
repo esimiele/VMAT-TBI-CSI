@@ -765,7 +765,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             ProvideUIUpdate($"Parsing optimization objectives from plan: {plan.Id}");
             List<OptimizationConstraint> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
             //get current optimization objectives from plan (we could use the optParams list, but we want the actual instances of the OptimizationObjective class so we can get the results from each objective)
-            (int numComparison, int numPass, double totalCostPlanObj, List<Tuple<Structure, DVHData, double, double>> differenceFromPlanObj) = EvaluateResultVsPlanObjectives(plan, planObj, optParams);
+            (int numComparison, List<PlanObjectivesDeviationModel> differenceFromPlanObj) = EvaluateResultVsPlanObjectives(plan, planObj, optParams);
             if (GetAbortStatus())
             {
                 KillOptimizationLoop();
@@ -774,17 +774,17 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             }
 
             e.PlanDifferenceFromPlanObjectives = differenceFromPlanObj;
-            e.TotalOptimizationCostPlanObjectives = totalCostPlanObj;
+            e.TotalOptimizationCostPlanObjectives = differenceFromPlanObj.Sum(x => x.OptimizationCost);
             //all constraints met, exiting
-            if (numComparison == numPass)
+            if (numComparison == differenceFromPlanObj.Count(x => x.ObjectiveMet == true))
             {
                 e.AllPlanObjectivesMet = true;
                 return e;
             }
             ProvideUIUpdate("All plan objectives NOT met! Adjusting optimization parameters!");
 
-            (double totalCostPlanOpt, List<Tuple<Structure, DVHData, double, double, double, int>> differenceFromOptConstraints) = EvaluateResultVsOptimizationConstraints(plan, optParams);
-            e.TotalOptimizationCostOptConstraints = totalCostPlanOpt;
+            List<PlanOptConstraintsDeviationModel> differenceFromOptConstraints = EvaluateResultVsOptimizationConstraints(plan, optParams);
+            e.TotalOptimizationCostOptConstraints = differenceFromOptConstraints.Sum(x => x.OptimizationCost);
             e.PlanDifferenceFromOptConstraints = differenceFromOptConstraints;
             if (GetAbortStatus())
             {
@@ -824,18 +824,16 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="planObj"></param>
         /// <param name="optParams"></param>
         /// <returns></returns>
-        protected (int, int, double, List<Tuple<Structure, DVHData, double, double>>) EvaluateResultVsPlanObjectives(ExternalPlanSetup plan, 
+        protected (int, List<PlanObjectivesDeviationModel>) EvaluateResultVsPlanObjectives(ExternalPlanSetup plan, 
                                                                                                                      List<PlanObjective> planObj, 
                                                                                                                      List<OptimizationConstraint> optParams)
         {
             ProvideUIUpdate("Evluating optimization result vs plan objectives");
             int percentComplete = 0;
             int calcItems = 1 + planObj.Count();
-            //counter to record the number of plan objective met
-            int numPass = 0;
+            //counter to record the number of plan objective comparisons performed
             int numComparisons = 0;
-            double totalCostPlanObj = 0;
-            List<Tuple<Structure, DVHData, double, double>> differenceFromPlanObj = new List<Tuple<Structure, DVHData, double, double>> { };
+            List<PlanObjectivesDeviationModel> differenceFromPlanObj = new List<PlanObjectivesDeviationModel> { };
             
             //loop through all the plan objectives for this case and compare the actual dose to the dose in the plan objective.
             //If we met the constraint, increment numPass. At the end of the loop, if numPass == the number of plan objectives
@@ -880,7 +878,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                     {
                         //objective was met. Increment the counter for the number of objecives met
                         ProvideUIUpdate($"Plan objective met for: ({itr.StructureId},{itr.ConstraintType},{itr.QueryDose} {itr.QueryDoseUnits}, {itr.QueryVolume} {itr.QueryVolumeUnits})");
-                        numPass++;
                     }
                     else
                     {
@@ -889,12 +886,11 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                     }
 
                     //add this comparison to the list and increment the running total of the cost for the plan objectives
-                    differenceFromPlanObj.Add(Tuple.Create(s, dvh, diff * diff, cost));
-                    totalCostPlanObj += cost;
+                    differenceFromPlanObj.Add(new PlanObjectivesDeviationModel(s, dvh, diff * diff, cost, diff <= 0));
                 }
             }
             ProvideUIUpdate(100, $"Elapsed time: {GetElapsedTime()}");
-            return (numComparisons, numPass, totalCostPlanObj, differenceFromPlanObj);
+            return (numComparisons, differenceFromPlanObj);
         }
 
         /// <summary>
@@ -903,14 +899,12 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="plan"></param>
         /// <param name="optParams"></param>
         /// <returns></returns>
-        protected (double, List<Tuple<Structure, DVHData, double, double, double, int>>) EvaluateResultVsOptimizationConstraints(ExternalPlanSetup plan, 
-                                                                                                                                 List<OptimizationConstraint> optParams)
+        protected List<PlanOptConstraintsDeviationModel> EvaluateResultVsOptimizationConstraints(ExternalPlanSetup plan, 
+                                                                                                 List<OptimizationConstraint> optParams)
         {
             ProvideUIUpdate("Evaluating optimization result vs optimization constraints:");
             //since we didn't meet all of the plan objectives, we now need to evaluate how well the plan compared to the desired plan objectives
-            List<Tuple<Structure, DVHData, double, double, double, int>> differenceFromOptConstraints = new List<Tuple<Structure, DVHData, double, double, double, int>> { };
-            //double to hold the total cost of the optimization
-            double totalCostPlanOpt = 0;
+            List<PlanOptConstraintsDeviationModel> differenceFromOptConstraints = new List<PlanOptConstraintsDeviationModel> { };
             int percentComplete = 0;
             int calcItems = 1 + optParams.Count();
             foreach (OptimizationConstraint itr in optParams)
@@ -926,13 +920,12 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 double cost = diff * diff * itr.Priority;
 
                 //structure, dvh data, current dose obj, dose diff^2, cost, current priority
-                differenceFromOptConstraints.Add(Tuple.Create(s, dvh, itr.QueryDose, diff * diff, cost, itr.Priority));
+                differenceFromOptConstraints.Add(new PlanOptConstraintsDeviationModel(s, dvh, itr.QueryDose, diff * diff, cost, itr.Priority));
                 //add the cost for this constraint to the running total
-                totalCostPlanOpt += cost;
             }
             ProvideUIUpdate(100, $"Elapsed time: {GetElapsedTime()}");
             //save the total cost from this optimization
-            return (totalCostPlanOpt, differenceFromOptConstraints);
+            return differenceFromOptConstraints;
         }
 
         /// <summary>
@@ -944,7 +937,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="optParams"></param>
         /// <returns></returns>
         protected virtual List<OptimizationConstraint> DetermineNewOptimizationObjectives(ExternalPlanSetup plan, 
-                                                                                          List<Tuple<Structure, DVHData, double, double, double, int>> diffPlanOpt, 
+                                                                                          List<PlanOptConstraintsDeviationModel> diffPlanOpt, 
                                                                                           double totalCostOptimizationConstraints, 
                                                                                           List<OptimizationConstraint> optParams)
         {
@@ -955,28 +948,31 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             int percentComplete = 0;
             int calcItems = 1 + diffPlanOpt.Count();
             int count = 0;
-            foreach (Tuple<Structure, DVHData, double, double, double, int> itr in diffPlanOpt)
+            foreach (PlanOptConstraintsDeviationModel itr in diffPlanOpt)
             {
                 ProvideUIUpdate(100 * ++percentComplete / calcItems);
                 double relative_cost = 0.0;
                 //assign new objective dose and priority to the current dose and priority
-                double newDose = itr.Item3;
-                int newPriority = itr.Item6;
+                double newDose = itr.DoseConstraint;
+                int newPriority = itr.Prioirty;
                 //check to see if objective was met (i.e., was the cost > 0.). If objective was met, adjust nothing and copy the current optimization objective for this structure onto the updatedObj vector
-                if (itr.Item5 > 0.0)
+                if (itr.OptimizationCost > 0.0)
                 {
                     //objective was not met. Determine what to adjust based on OPTIMIZATION OBJECTIVE parameters (not plan objective parameters)
-                    relative_cost = itr.Item5 / totalCostOptimizationConstraints;
+                    relative_cost = itr.OptimizationCost / totalCostOptimizationConstraints;
 
                     //do NOT adjust ptv dose constraints, only priorities (the ptv structures are going to have the highest relative cost of all the structures due to the difficulty in covering the entire PTV with 100% of the dose and keeing dMax low)
                     //If we starting adjusting the dose for these constraints, they would quickly escalate out of control, therefore, only adjust their priorities by a small amount
-                    if (!itr.Item1.Id.ToLower().Contains("ptv") && !itr.Item1.Id.ToLower().Contains("ts_ring") && (relative_cost >= _data.DecisionThreshold))
+                    if (!itr.Structure.Id.ToLower().Contains("ptv") && !itr.Structure.Id.ToLower().Contains("ts_ring") && (relative_cost >= _data.DecisionThreshold))
                     {
                         //OAR objective is greater than threshold, adjust dose. Evaluate difference between current actual dose and current optimization parameter setting. Adjust new objective dose by dose difference weighted by the relative cost
                         //=> don't push the dose too low, otherwise the constraints won't make sense. Currently, the lowest dose limit is 10% of the Rx dose (set by adjusting lowDoseLimit)
                         //this equation was (more or less) determined empirically:
                         // current dose obj - sqrt(dose diff from current obj) * relative cost * 2
-                        if ((newDose - (Math.Sqrt(itr.Item4) * relative_cost * 2)) >= plan.TotalDose.Dose * _data.LowDoseLimit) newDose -= (Math.Sqrt(itr.Item4) * relative_cost * 2);
+                        if ((newDose - (Math.Sqrt(itr.DoseDifferenceSquared) * relative_cost * 2)) >= plan.TotalDose.Dose * _data.LowDoseLimit)
+                        {
+                            newDose -= (Math.Sqrt(itr.DoseDifferenceSquared) * relative_cost * 2);
+                        }
                         //else do nothing. This can be changed later to increase the priority instead of doing nothing
                     }
                     else
@@ -985,7 +981,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                         //increase OAR objective priority by 100 times the relative cost of this objective
                         //increase PTV objective by 10 times the relative cost (need to have a much lower scaling factor, otherwise it will increase too rapidly)
                         double increase = 100 * relative_cost;
-                        if (itr.Item1.Id.ToLower().Contains("ptv") || itr.Item1.Id.ToLower().Contains("ts_ring")) increase /= 10;
+                        if (itr.Structure.Id.ToLower().Contains("ptv") || itr.Structure.Id.ToLower().Contains("ts_ring")) increase /= 10;
                         newPriority += (int)Math.Ceiling(increase);
                     }
                 }

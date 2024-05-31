@@ -312,18 +312,6 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
                 foreach (ExternalPlanSetup itr in plans)
                 {
-                    //string exeName = "ParallelTest";
-                    //string path = AppExePath(exeName);
-                    //if (!string.IsNullOrEmpty(path))
-                    //{
-                    //    ProcessStartInfo p = new ProcessStartInfo(path);
-                    //    p.Arguments = String.Format("{0} {1}", _data.id, itr.UID);
-                    //    Process.Start(p);
-                    //}
-                    //else ProvideUIUpdate("Executable path was empty");
-                    //Testing t = new Testing(_data.isDemo, itr);
-                    //Thread worker = new Thread(t.Run);
-                    //worker.Start(t);
                     ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Optimizing plan: {itr.Id}!");
                     if (OptimizePlan(_data.IsDemo, new OptimizationOptionsVMAT(OptimizationIntermediateDoseOption.NoIntermediateDose, ""), itr, _data.Application)) return true;
                     ProvideUIUpdate(100 * ++percentComplete / calcItems, "Optimization finished! Calculating dose!");
@@ -399,8 +387,8 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
         private PlanEvaluationDataContainer EvaluatePlanSumComponentPlans(ExternalPlanSetup plan, List<OptimizationConstraint> optParams)
         {
             PlanEvaluationDataContainer e = new PlanEvaluationDataContainer();
-            (double totalCostPlanOpt, List<Tuple<Structure, DVHData, double, double, double, int>> diffPlanOpt) = EvaluateResultVsOptimizationConstraints(plan, optParams);
-            e.TotalOptimizationCostOptConstraints = totalCostPlanOpt;
+            List<PlanOptConstraintsDeviationModel> diffPlanOpt = EvaluateResultVsOptimizationConstraints(plan, optParams);
+            e.TotalOptimizationCostOptConstraints = diffPlanOpt.Sum(x => x.OptimizationCost);
             e.PlanDifferenceFromOptConstraints = diffPlanOpt;
             e.UpdatedOptimizationObjectives = DetermineNewOptimizationObjectives(plan, e.PlanDifferenceFromOptConstraints, e.TotalOptimizationCostOptConstraints, optParams);
             return e;
@@ -418,27 +406,11 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             ProvideUIUpdate($"Parsing optimization objectives from plan: {plan.Id}");
             List<OptimizationConstraint> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
             //get current optimization objectives from plan (we could use the optParams list, but we want the actual instances of the OptimizationObjective class so we can get the results from each objective)
-            (int, int, double, List<Tuple<Structure, DVHData, double, double>>) planObjectiveEvaluation = EvaluateResultVsPlanObjectives(plan, planObj, optParams);
+            (int numComparisons, List<PlanObjectivesDeviationModel> diffPlanObj) = EvaluateResultVsPlanObjectives(plan, planObj, optParams);
             //all constraints met, exiting
-            if (planObjectiveEvaluation.Item1 == planObjectiveEvaluation.Item2) return true;
+            if (numComparisons == diffPlanObj.Count(x => x.ObjectiveMet == true)) return true;
             return false;
         }
-
-        //private string AppExePath(string exeName)
-        //{
-        //    return FirstExePathIn(Path.GetDirectoryName(GetSourceFilePath()), exeName);
-        //}
-
-        //private string FirstExePathIn(string dir, string exeName)
-        //{
-        //    return Directory.GetFiles(dir, "*.exe").FirstOrDefault(x => x.Contains(exeName));
-        //}
-
-        //private string GetSourceFilePath([CallerFilePath] string sourceFilePath = "")
-        //{
-        //    return @"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\Research\VMAT-TBI-CSI\bin\";
-        //}
-
         #endregion
     }
 }

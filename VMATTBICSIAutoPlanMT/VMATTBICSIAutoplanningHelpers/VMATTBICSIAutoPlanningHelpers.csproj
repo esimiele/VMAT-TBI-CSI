@@ -150,12 +150,15 @@
     <Compile Include="Helpers\PlanPrepHelper.cs" />
     <Compile Include="Interfaces\IPlanConstraint.cs" />
     <Compile Include="DataContainers\OptDataContainer.cs" />
+    <Compile Include="Interfaces\IPlanQualityEvaluation.cs" />
     <Compile Include="Models\Daemon.cs" />
     <Compile Include="Models\OptimizationConstraint.cs" />
     <Compile Include="Models\OptTSCreationCriteria.cs" />
     <Compile Include="Models\PlanFieldJunctions.cs" />
     <Compile Include="Models\PlanIsocenters.cs" />
     <Compile Include="Models\PlanObjective.cs" />
+    <Compile Include="Models\PlanObjectivesDeviationModel.cs" />
+    <Compile Include="Models\PlanOptConstraintsDeviationModel.cs" />
     <Compile Include="Models\PlanOptimizationSetup.cs" />
     <Compile Include="Models\PlanTarget.cs" />
     <Compile Include="Models\Prescription.cs" />
