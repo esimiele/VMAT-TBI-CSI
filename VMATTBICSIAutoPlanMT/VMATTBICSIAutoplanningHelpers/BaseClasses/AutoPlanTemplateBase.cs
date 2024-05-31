@@ -11,7 +11,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         #region Get methods
         //this is only here for the display name data binding. All other references to the template name use the explicit get method
         public string TemplateName { get; set; } = string.Empty;
-        public List<PlanTarget> PlanTargets { get; set; } = new List<PlanTarget>();
+        public List<PlanTargetsModel> PlanTargets { get; set; } = new List<PlanTargetsModel>();
         public List<RequestedTSStructure> CreateTSStructures { get; set; } = new List<RequestedTSStructure> { };
         public List<RequestedTSManipulation> TSManipulations { get; set; } = new List<RequestedTSManipulation> { };
 

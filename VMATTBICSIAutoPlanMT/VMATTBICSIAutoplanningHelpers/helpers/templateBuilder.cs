@@ -63,7 +63,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             {
                 output.AppendLine($" Initial Dose per fraction: {prospectiveTemplate.TemplateName} cGy");
                 output.AppendLine(String.Format("  {0, -15} | {1, -8} | {2, -14} |", "structure Id", "Rx (cGy)", "Num Fx", "Plan Id"));
-                foreach (PlanTarget tgt in prospectiveTemplate.PlanTargets) output.AppendLine(String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |", tgt.TargetId, tgt.TargetRxDose, tgt.PlanId));
+                foreach (PlanTargetsModel tgt in prospectiveTemplate.PlanTargets)
+                {
+                    foreach(TargetModel itr in tgt.Targets)
+                    {
+                        output.AppendLine(String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |", itr.TargetId, itr.TargetRxDose, tgt.PlanId));
+                    }
+                }
             }
             else output.AppendLine($" No targets set for template: {prospectiveTemplate.TemplateName}");
             output.AppendLine("");
@@ -250,7 +256,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             StringBuilder output = new StringBuilder();
             if (prospectiveTemplate.PlanTargets.Any())
             {
-                foreach (PlanTarget itr in prospectiveTemplate.PlanTargets) output.AppendLine($"add target{{{itr.TargetId},{itr.TargetRxDose},{itr.PlanId}}}");
+                foreach (PlanTargetsModel itr in prospectiveTemplate.PlanTargets)
+                {
+                    foreach(TargetModel tgt in itr.Targets)
+                    {
+                        output.AppendLine($"add target{{{tgt.TargetId},{tgt.TargetRxDose},{itr.PlanId}}}");
+                    }
+                }
                 output.AppendLine("%");
                 output.AppendLine("%");
             }

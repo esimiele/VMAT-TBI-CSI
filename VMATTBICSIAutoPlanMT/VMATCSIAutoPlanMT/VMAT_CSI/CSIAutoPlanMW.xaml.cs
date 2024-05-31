@@ -439,13 +439,16 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             CSIAutoPlanTemplate selectedTemplate = templateList.SelectedItem as CSIAutoPlanTemplate;
             if (selectedTemplate != null)
             {
-                foreach(PlanTarget itr in selectedTemplate.PlanTargets)
+                foreach(PlanTargetsModel itr in selectedTemplate.PlanTargets)
                 {
-                    if(selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), itr.TargetId.ToLower()) && 
-                                                 !x.IsEmpty &&
-                                                 x.ApprovalHistory.First().ApprovalStatus == StructureApprovalStatus.Approved))
+                    foreach(TargetModel targets in itr.Targets)
                     {
-                        approvedTargets.Add(selectedSS.Structures.First(x => string.Equals(x.Id.ToLower(), itr.TargetId.ToLower()) && x.ApprovalHistory.First().ApprovalStatus == StructureApprovalStatus.Approved).Id);
+                        if (selectedSS.Structures.Any(x => string.Equals(x.Id, targets.TargetId, StringComparison.OrdinalIgnoreCase) &&
+                                                                         !x.IsEmpty &&
+                                                                         x.ApprovalHistory.First().ApprovalStatus == StructureApprovalStatus.Approved))
+                        {
+                            approvedTargets.Add(selectedSS.Structures.First(x => string.Equals(x.Id, targets.TargetId, StringComparison.OrdinalIgnoreCase) && x.ApprovalHistory.First().ApprovalStatus == StructureApprovalStatus.Approved).Id);
+                        }
                     }
                 }
             }
@@ -567,7 +570,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 return;
             }
             (ScrollViewer, StackPanel) SVSP = GetSVAndSPTargetsTab(sender);
-            AddTargetVolumes(new List<PlanTarget> { new PlanTarget("--select--", 0.0, "--select--") }, SVSP.Item2);
+            AddTargetVolumes(new List<PlanTargetsModel> { new PlanTargetsModel("--select--", new List<TargetModel> { new TargetModel("--select--", 0.0) }) }, SVSP.Item2);
             SVSP.Item1.ScrollToBottom();
         }
 
@@ -578,7 +581,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!"); 
                 return; 
             }
-            List<PlanTarget> targetList = new List<PlanTarget>(TargetsUIHelper.AddTargetDefaults((templateList.SelectedItem as CSIAutoPlanTemplate)));
+            List<PlanTargetsModel> targetList = new List<PlanTargetsModel>(TargetsUIHelper.AddTargetDefaults((templateList.SelectedItem as CSIAutoPlanTemplate)));
             ClearAllTargetItems();
             AddTargetVolumes(targetList, targetsSP);
             targetsScroller.ScrollToBottom();
@@ -592,12 +595,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 return; 
             }
             
-            List<PlanTarget> targetList = new List<PlanTarget>(TargetsUIHelper.ScanSSAndAddTargets(selectedSS));
+            List<TargetModel> targetList = new List<TargetModel>(TargetsUIHelper.ScanSSAndAddTargets(selectedSS));
             if (!targetList.Any()) return;
 
             (ScrollViewer, StackPanel) SVSP = GetSVAndSPTargetsTab(sender);
             ClearAllTargetItems();
-            AddTargetVolumes(targetList, SVSP.Item2);
+            AddTargetVolumes(new List<PlanTargetsModel> { new PlanTargetsModel("--select--", targetList) }, SVSP.Item2);
             SVSP.Item1.ScrollToBottom();
         }
 
@@ -625,7 +628,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
         }
 
-        private void AddTargetVolumes(List<PlanTarget> defaultList, StackPanel theSP)
+        private void AddTargetVolumes(List<PlanTargetsModel> defaultList, StackPanel theSP)
         {
             int counter;
             string clearBtnNamePrefix;
@@ -643,18 +646,22 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //assumes each target has a unique planID 
             List<string> planIDs = new List<string>(defaultList.Select(x => x.PlanId));
             planIDs.Add("--Add New--");
-            foreach(PlanTarget itr in defaultList)
+            foreach(PlanTargetsModel itr in defaultList)
             {
-                if(theSP.Name.Contains("template") || string.Equals(itr.TargetId,"--select--") || StructureTuningHelper.DoesStructureExistInSS(itr.TargetId, selectedSS, true))
+                foreach(TargetModel target in itr.Targets)
                 {
-                    counter++;
-                    theSP.Children.Add(TargetsUIHelper.AddTargetVolumes(theSP.Width,
-                                                                        itr,
-                                                                        clearBtnNamePrefix,
-                                                                        counter,
-                                                                        planIDs,
-                                                                        (delegate (object sender, SelectionChangedEventArgs e) { TargetPlanId_SelectionChanged(theSP, sender, e); }),
-                                                                        new RoutedEventHandler(this.ClearTargetItem_click)));
+                    if (theSP.Name.Contains("template") || string.Equals(target.TargetId, "--select--") || StructureTuningHelper.DoesStructureExistInSS(target.TargetId, selectedSS, true))
+                    {
+                        counter++;
+                        theSP.Children.Add(TargetsUIHelper.AddTargetVolumes(theSP.Width,
+                                                                            itr.PlanId,
+                                                                            target,
+                                                                            clearBtnNamePrefix,
+                                                                            counter,
+                                                                            planIDs,
+                                                                            (delegate (object sender, SelectionChangedEventArgs e) { TargetPlanId_SelectionChanged(theSP, sender, e); }),
+                                                                            new RoutedEventHandler(this.ClearTargetItem_click)));
+                    }
                 }
             }
         }
@@ -710,7 +717,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
 
             //target id, target Rx, plan id
-            (List<PlanTarget>, StringBuilder) parsedTargets = TargetsUIHelper.ParseTargets(targetsSP);
+            (List<PlanTargetsModel>, StringBuilder) parsedTargets = TargetsUIHelper.ParseTargets(targetsSP);
             if (!parsedTargets.Item1.Any())
             {
                 log.LogError(parsedTargets.Item2);
@@ -750,27 +757,30 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             TSManipulationTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
         }
 
-        private (bool, StringBuilder) VerifySelectedTargetsIntegrity(List<PlanTarget> parsedTargets)
+        private (bool, StringBuilder) VerifySelectedTargetsIntegrity(List<PlanTargetsModel> parsedTargets)
         {
             //verify selected targets are APPROVED
             bool fail = false;
             StringBuilder sb = new StringBuilder();
-            foreach (PlanTarget itr in parsedTargets)
+            foreach (PlanTargetsModel itr in parsedTargets)
             {
-                if (!StructureTuningHelper.DoesStructureExistInSS(itr.TargetId, selectedSS, true))
+                foreach(TargetModel target in itr.Targets)
                 {
-                    sb.AppendLine($"Error! {itr.TargetId} is either NOT present in structure set or is not contoured!");
-                    fail = true;
-                }
-                else
-                {
-                    //structure is present and contoured
-                    Structure tgt = StructureTuningHelper.GetStructureFromId(itr.TargetId, selectedSS);
-                    if (tgt.ApprovalHistory.First().ApprovalStatus != StructureApprovalStatus.Approved)
+                    if (!StructureTuningHelper.DoesStructureExistInSS(target.TargetId, selectedSS, true))
                     {
-                        sb.AppendLine($"Error! {tgt.Id} is NOT approved!");
-                        sb.AppendLine($"{tgt.Id} approval status: {tgt.ApprovalHistory.First().ApprovalStatus}");
+                        sb.AppendLine($"Error! {target.TargetId} is either NOT present in structure set or is not contoured!");
                         fail = true;
+                    }
+                    else
+                    {
+                        //structure is present and contoured
+                        Structure tgt = StructureTuningHelper.GetStructureFromId(target.TargetId, selectedSS);
+                        if (tgt.ApprovalHistory.First().ApprovalStatus != StructureApprovalStatus.Approved)
+                        {
+                            sb.AppendLine($"Error! {tgt.Id} is NOT approved!");
+                            sb.AppendLine($"{tgt.Id} approval status: {tgt.ApprovalHistory.First().ApprovalStatus}");
+                            fail = true;
+                        }
                     }
                 }
             }
@@ -2001,7 +2011,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 }
 
                 //add targets
-                List<PlanTarget> targetList = new List<PlanTarget>(theTemplate.PlanTargets);
+                List<PlanTargetsModel> targetList = new List<PlanTargetsModel>(theTemplate.PlanTargets);
                 ClearAllTargetItems(templateClearTargetList);
                 AddTargetVolumes(targetList, templateTargetsSP);
 
@@ -2031,14 +2041,14 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             else if(templateBuildOptionCB.SelectedItem.ToString().ToLower() == "current parameters")
             {
                 //add targets (checked first to ensure the user has actually input some parameters into the UI before trying to make a template based on the current settings)
-                (List<PlanTarget> targetList, StringBuilder) parsedTargetList = TargetsUIHelper.ParseTargets(targetsSP);
-                if (!parsedTargetList.targetList.Any())
+                (List<PlanTargetsModel> planTargetList, StringBuilder errorMsg) = TargetsUIHelper.ParseTargets(targetsSP);
+                if (!planTargetList.Any())
                 {
                     log.LogError("Error! Enter parameters into the UI before trying to use them to make a new plan template!");
                     return;
                 }
                 ClearAllTargetItems(templateClearTargetList);
-                AddTargetVolumes(parsedTargetList.targetList.OrderBy(x => x.TargetRxDose).ToList(), templateTargetsSP);
+                AddTargetVolumes(planTargetList, templateTargetsSP);
 
                 //set name
                 templateNameTB.Text = "--new template--";
@@ -2150,7 +2160,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
 
             //sort targets by prescription dose (ascending order)
-            prospectiveTemplate.PlanTargets = TargetsUIHelper.ParseTargets(templateTargetsSP).Item1.OrderBy(x => x.TargetRxDose).ToList();
+            prospectiveTemplate.PlanTargets = TargetsUIHelper.ParseTargets(templateTargetsSP).Item1;
             prospectiveTemplate.CreateTSStructures = StructureTuningUIHelper.ParseCreateTSStructureList(templateTSSP).Item1;
             prospectiveTemplate.Rings = RingUIHelper.ParseCreateRingList(templateCreateRingsSP).Item1;
             prospectiveTemplate.CropAndOverlapStructures = new List<string>(CropOverlapOARUIHelper.ParseCropOverlapOARList(templateCropOverlapOARsSP).Item1);

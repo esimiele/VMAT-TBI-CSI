@@ -429,7 +429,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private void AddTarget_Click(object sender, RoutedEventArgs e)
         {
             (ScrollViewer, StackPanel) SVSP = GetSVAndSPTargetsTab(sender);
-            AddTargetVolumes(new List<PlanTarget> { new PlanTarget("--select--", 0.0, "--select--") }, SVSP.Item2);
+            AddTargetVolumes(new List<PlanTargetsModel> { new PlanTargetsModel("--select--", 0.0, "--select--") }, SVSP.Item2);
             SVSP.Item1.ScrollToBottom();
         }
 
@@ -440,7 +440,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
                 return;
             }
-            List<PlanTarget> targetList = new List<PlanTarget>(TargetsUIHelper.AddTargetDefaults((templateList.SelectedItem as TBIAutoPlanTemplate)));
+            List<PlanTargetsModel> targetList = new List<PlanTargetsModel>(TargetsUIHelper.AddTargetDefaults((templateList.SelectedItem as TBIAutoPlanTemplate)));
             ClearAllTargetItems();
             AddTargetVolumes(targetList, targetsSP);
             targetsScroller.ScrollToBottom();
@@ -470,7 +470,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
         }
 
-        private void AddTargetVolumes(List<PlanTarget> defaultList, StackPanel theSP)
+        private void AddTargetVolumes(List<PlanTargetsModel> defaultList, StackPanel theSP)
         {
             int counter;
             string clearBtnNamePrefix;
@@ -488,7 +488,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //assumes each target has a unique planID 
             List<string> planIDs = new List<string>(defaultList.Select(x => x.PlanId));
             planIDs.Add("--Add New--");
-            foreach (PlanTarget itr in defaultList)
+            foreach (PlanTargetsModel itr in defaultList)
             {
                 counter++;
                 theSP.Children.Add(TargetsUIHelper.AddTargetVolumes(theSP.Width,
@@ -552,7 +552,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
 
             //target id, target Rx, plan id
-            (List<PlanTarget>, StringBuilder) parsedTargets = TargetsUIHelper.ParseTargets(targetsSP);
+            (List<PlanTargetsModel>, StringBuilder) parsedTargets = TargetsUIHelper.ParseTargets(targetsSP);
             if (!parsedTargets.Item1.Any())
             {
                 log.LogError(parsedTargets.Item2);
@@ -581,7 +581,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             log.Prescriptions = prescriptions;
         }
 
-        private (bool, StringBuilder) VerifySelectedTargetsIntegrity(List<PlanTarget> parsedTargets)
+        private (bool, StringBuilder) VerifySelectedTargetsIntegrity(List<PlanTargetsModel> parsedTargets)
         {
             //verify selected targets are APPROVED
             bool fail = false;
@@ -1654,7 +1654,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 templateInitPlanNumFxTB.Text = theTemplate.InitialRxNumberOfFractions.ToString();
 
                 //add targets
-                List<PlanTarget> targetList = new List<PlanTarget>(theTemplate.PlanTargets);
+                List<PlanTargetsModel> targetList = new List<PlanTargetsModel>(theTemplate.PlanTargets);
                 ClearAllTargetItems(templateClearTargetList);
                 AddTargetVolumes(targetList, templateTargetsSP);
 
@@ -1678,7 +1678,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             else if (templateBuildOptionCB.SelectedItem.ToString().ToLower() == "current parameters")
             {
                 //add targets (checked first to ensure the user has actually input some parameters into the UI before trying to make a template based on the current settings)
-                (List<PlanTarget> targetList, StringBuilder) parsedTargetList = TargetsUIHelper.ParseTargets(targetsSP);
+                (List<PlanTargetsModel> targetList, StringBuilder) parsedTargetList = TargetsUIHelper.ParseTargets(targetsSP);
                 if (!parsedTargetList.targetList.Any())
                 {
                     log.LogError("Error! Enter parameters into the UI before trying to use them to make a new plan template!");

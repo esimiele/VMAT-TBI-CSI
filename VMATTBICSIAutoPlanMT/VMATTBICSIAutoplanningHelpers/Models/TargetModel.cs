@@ -6,17 +6,23 @@ using System.Threading.Tasks;
 
 namespace VMATTBICSIAutoPlanningHelpers.Models
 {
-    public class PlanTarget
+    public class TargetModel
     {
         public string TargetId { get; set; } = string.Empty;
         public double TargetRxDose { get; set; } = double.NaN;
-        public string PlanId { get; set; } = string.Empty;
+        public string TsTargetId { get; set; } = string.Empty;
 
-        public PlanTarget(string target, double dose, string plan) 
+        public TargetModel(string target, double dose, string ts)
         {
             TargetId = target;
             TargetRxDose = dose;
-            PlanId = plan;
+            TsTargetId = ts;
+        }
+
+        public TargetModel(string target, double dose)
+        {
+            TargetId = target;
+            TargetRxDose = dose;
         }
     }
 }

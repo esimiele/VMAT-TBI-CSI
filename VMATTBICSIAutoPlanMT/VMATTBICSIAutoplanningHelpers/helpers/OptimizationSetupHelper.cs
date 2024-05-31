@@ -208,7 +208,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="selectedTemplate"></param>
         /// <param name="targets"></param>
         /// <returns></returns>
-        public static (List<PlanOptimizationSetup>, StringBuilder) RetrieveOptConstraintsFromTemplate(object selectedTemplate, List<PlanTarget> targets)
+        public static (List<PlanOptimizationSetup>, StringBuilder) RetrieveOptConstraintsFromTemplate(object selectedTemplate, List<PlanTargetsModel> targets)
         {
             StringBuilder sb = new StringBuilder();
             List<PlanOptimizationSetup> list = new List<PlanOptimizationSetup> { };

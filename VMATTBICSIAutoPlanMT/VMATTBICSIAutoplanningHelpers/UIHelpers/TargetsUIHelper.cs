@@ -18,14 +18,14 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// </summary>
         /// <param name="template"></param>
         /// <returns></returns>
-        public static List<PlanTarget> AddTargetDefaults(AutoPlanTemplateBase template)
+        public static List<PlanTargetsModel> AddTargetDefaults(AutoPlanTemplateBase template)
         {
-            List<PlanTarget> targetList = new List<PlanTarget> { };
+            List<PlanTargetsModel> targetList;
             if (template != null)
             {
-                targetList = new List<PlanTarget>(template.PlanTargets);
+                targetList = new List<PlanTargetsModel>(template.PlanTargets);
             }
-            else targetList = new List<PlanTarget> { new PlanTarget("--select--", 0.0, "--select--") };
+            else targetList = new List<PlanTargetsModel> { new PlanTargetsModel("--select--", new List<TargetModel> { new TargetModel("--select--", 0.0) })};
             return targetList;
         }
 
@@ -34,16 +34,16 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// </summary>
         /// <param name="selectedSS"></param>
         /// <returns></returns>
-        public static List<PlanTarget> ScanSSAndAddTargets(StructureSet selectedSS)
+        public static List<TargetModel> ScanSSAndAddTargets(StructureSet selectedSS)
         {
-            List<PlanTarget> targetList = new List<PlanTarget> { };
+            List<TargetModel> targetList = new List<TargetModel> { };
             List<Structure> tgt = selectedSS.Structures.Where(x => x.Id.ToLower().Contains("ptv") && !x.Id.ToLower().Contains("ts_") && x.ApprovalHistory.First().Equals(StructureApprovalStatus.Approved)).ToList();
             if (!tgt.Any()) return targetList;
             double tgtRx;
             foreach (Structure itr in tgt)
             {
                 if (!double.TryParse(itr.Id.Substring(itr.Id.IndexOf("_") + 1, itr.Id.Length - (itr.Id.IndexOf("_") + 1)), out tgtRx)) tgtRx = 0.1;
-                targetList.Add(new PlanTarget(itr.Id, tgtRx, ""));
+                targetList.Add(new TargetModel(itr.Id, tgtRx));
             }
             return targetList;
         }
@@ -112,7 +112,8 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <param name="addTargetEvenIfNotInSS"></param>
         /// <returns></returns>
         public static StackPanel AddTargetVolumes(double width, 
-                                                  PlanTarget listItem, 
+                                                  string planId,
+                                                  TargetModel target,
                                                   string clearBtnNamePrefix, 
                                                   int counter, 
                                                   List<string> planIDs, 
@@ -139,7 +140,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 Margin = new Thickness(5, 5, 0, 0)
             };
 
-            str_cb.Items.Add(listItem.TargetId);
+            str_cb.Items.Add(target.TargetId);
             str_cb.Items.Add("--Add New--");
             str_cb.SelectedIndex = 0;
             str_cb.SelectionChanged += typeChngHndl;
@@ -155,7 +156,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 TextAlignment = TextAlignment.Center,
                 VerticalContentAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(5, 5, 0, 0),
-                Text = listItem.TargetRxDose.ToString()
+                Text = target.TargetRxDose.ToString()
             };
             sp.Children.Add(RxDose_tb);
 
@@ -170,7 +171,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 HorizontalContentAlignment = HorizontalAlignment.Center
             };
             foreach (string p in planIDs) planId_cb.Items.Add(p);
-            planId_cb.Text = listItem.PlanId;
+            planId_cb.Text = planId;
             planId_cb.SelectionChanged += typeChngHndl;
             sp.Children.Add(planId_cb);
 
@@ -195,10 +196,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// </summary>
         /// <param name="theSP"></param>
         /// <returns></returns>
-        public static (List<PlanTarget>, StringBuilder) ParseTargets(StackPanel theSP)
+        public static (List<PlanTargetsModel>, StringBuilder) ParseTargets(StackPanel theSP)
         {
             StringBuilder sb = new StringBuilder();
-            List<PlanTarget> listTargets = new List<PlanTarget> { };
+            List<PlanTargetsModel> listTargets = new List<PlanTargetsModel> { };
+            List<Tuple<string, string, double>> tmpList = new List<Tuple<string, string, double>> { };
             string structure = "";
             double tgtRx = -1000.0;
             string planID = "";
@@ -245,7 +247,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                             //MessageBox.Show(String.Format("Error! Plan Id '{0}' is greater than maximum length allowed by Eclipse (13)! Exiting!", planID));
                             planID = planID.Substring(0, 13);
                         }
-                        listTargets.Add(new PlanTarget(structure, tgtRx, planID));
+                        tmpList.Add(Tuple.Create(planID, structure, tgtRx));
                     }
                     firstCombo = true;
                     tgtRx = -1000.0;
@@ -253,8 +255,22 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 else headerObj = false;
             }
 
+            string prevPlanId = tmpList.First().Item1;
+            List<TargetModel> targets = new List<TargetModel> { };
+            foreach(Tuple<string,string,double> itr in tmpList)
+            {
+                if(!string.Equals(itr.Item1, prevPlanId, StringComparison.OrdinalIgnoreCase))
+                {
+                    listTargets.Add(new PlanTargetsModel(prevPlanId, targets.OrderBy(x => x.TargetRxDose)));
+                    targets = new List<TargetModel> { };
+                }
+                targets.Add(new TargetModel(itr.Item2, itr.Item3));
+                prevPlanId = itr.Item1;
+            }
+            listTargets.Add(new PlanTargetsModel(prevPlanId, targets));
+
             //sort the targets based on requested plan Id (alphabetically)
-            listTargets.Sort(delegate (PlanTarget x, PlanTarget y) { return x.PlanId.CompareTo(y.PlanId); });
+            listTargets.Sort(delegate (PlanTargetsModel x, PlanTargetsModel y) { return x.Targets.Last().TargetRxDose.CompareTo(y.Targets.Last().TargetRxDose); });
             return (listTargets, sb);
         }
     }

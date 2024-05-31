@@ -129,7 +129,13 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             {
                 sb.AppendLine($" {itr.TemplateName} targets:");
                 sb.AppendLine(String.Format("  {0, -15} | {1, -8} | {3, -14} |", "structure Id", "Rx (cGy)", "Num Fx", "Plan Id"));
-                foreach (PlanTarget tgt in itr.PlanTargets) sb.AppendLine(String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |", tgt.TargetId, tgt.TargetRxDose, tgt.PlanId));
+                foreach (PlanTargetsModel tgt in itr.PlanTargets)
+                {
+                    foreach(TargetModel planTargets in tgt.Targets)
+                    {
+                        sb.AppendLine(String.Format("  {0, -15} | {1, -8} | {2,-14:N1} |", planTargets.TargetId, planTargets.TargetRxDose, tgt.PlanId));
+                    }
+                }
                 sb.AppendLine(Environment.NewLine);
             }
             else sb.AppendLine($" No targets set for template: {itr.TemplateName}");

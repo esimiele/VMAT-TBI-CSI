@@ -160,12 +160,13 @@
     <Compile Include="Models\PlanObjectivesDeviationModel.cs" />
     <Compile Include="Models\PlanOptConstraintsDeviationModel.cs" />
     <Compile Include="Models\PlanOptimizationSetup.cs" />
-    <Compile Include="Models\PlanTarget.cs" />
+    <Compile Include="Models\PlanTargetsModel.cs" />
     <Compile Include="Models\Prescription.cs" />
     <Compile Include="Models\RequestedOptimizationTSStructure.cs" />
     <Compile Include="Models\RequestedPlanMetric.cs" />
     <Compile Include="Models\RequestedTSStructure.cs" />
     <Compile Include="Models\RequestedTSManipulation.cs" />
+    <Compile Include="Models\TargetModel.cs" />
     <Compile Include="Models\TSCooler.cs" />
     <Compile Include="Models\TSHeater.cs" />
     <Compile Include="Models\TSRing.cs" />
