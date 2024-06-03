@@ -486,18 +486,24 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
             if (theSP.Children.Count == 0) AddTargetHeader(theSP);
             //assumes each target has a unique planID 
-            List<string> planIDs = new List<string>(defaultList.Select(x => x.PlanId));
-            planIDs.Add("--Add New--");
+            List<string> planIDs = new List<string>(defaultList.Select(x => x.PlanId))
+            {
+                "--Add New--"
+            };
             foreach (PlanTargetsModel itr in defaultList)
             {
-                counter++;
-                theSP.Children.Add(TargetsUIHelper.AddTargetVolumes(theSP.Width,
-                                                                    itr,
-                                                                    clearBtnNamePrefix,
-                                                                    counter,
-                                                                    planIDs,
-                                                                    (delegate (object sender, SelectionChangedEventArgs e) { TargetPlanId_SelectionChanged(theSP, sender, e); }),
-                                                                    new RoutedEventHandler(this.ClearTargetItem_click)));
+                foreach(TargetModel tgt in itr.Targets)
+                {
+                    counter++;
+                    theSP.Children.Add(TargetsUIHelper.AddTargetVolumes(theSP.Width,
+                                                                        itr.PlanId,
+                                                                        tgt,
+                                                                        clearBtnNamePrefix,
+                                                                        counter,
+                                                                        planIDs,
+                                                                        (delegate (object sender, SelectionChangedEventArgs e) { TargetPlanId_SelectionChanged(theSP, sender, e); }),
+                                                                        new RoutedEventHandler(this.ClearTargetItem_click)));
+                }
             }
         }
 
@@ -1685,7 +1691,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     return;
                 }
                 ClearAllTargetItems(templateClearTargetList);
-                AddTargetVolumes(parsedTargetList.targetList.OrderBy(x => x.TargetRxDose).ToList(), templateTargetsSP);
+                AddTargetVolumes(parsedTargetList.targetList, templateTargetsSP);
 
                 //set name
                 templateNameTB.Text = "--new template--";
@@ -1756,7 +1762,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
 
             //sort targets by prescription dose (ascending order)
-            prospectiveTemplate.PlanTargets = TargetsUIHelper.ParseTargets(templateTargetsSP).Item1.OrderBy(x => x.TargetRxDose).ToList();
+            prospectiveTemplate.PlanTargets = TargetsUIHelper.ParseTargets(templateTargetsSP).Item1;
             prospectiveTemplate.CreateTSStructures = StructureTuningUIHelper.ParseCreateTSStructureList(templateTSSP).Item1;
             prospectiveTemplate.TSManipulations = StructureTuningUIHelper.ParseTSManipulationList(templateStructuresSP).Item1;
             List<PlanOptimizationSetup> templateOptParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(templateOptParamsSP).Item1;

@@ -22,5 +22,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Models
             PlanId = plan;
             Targets.Add(tgts);
         }
+
+        public PlanTargetsModel(string plan, double tgtRx, string tgtId)
+        {
+            PlanId = PlanId;
+            Targets = new List<TargetModel>
+            {
+                new TargetModel(tgtId, tgtRx)
+            };
+        }
     }
 }

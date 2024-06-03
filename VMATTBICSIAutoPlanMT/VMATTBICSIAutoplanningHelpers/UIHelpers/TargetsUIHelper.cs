@@ -8,6 +8,7 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 using VMATTBICSIAutoPlanningHelpers.Models;
+using VMATTBICSIAutoPlanningHelpers.Helpers;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
@@ -200,7 +201,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         {
             StringBuilder sb = new StringBuilder();
             List<PlanTargetsModel> listTargets = new List<PlanTargetsModel> { };
-            List<Tuple<string, string, double>> tmpList = new List<Tuple<string, string, double>> { };
+            List<PlanTargetsModel> ungroupedList = new List<PlanTargetsModel> { };
             string structure = "";
             double tgtRx = -1000.0;
             string planID = "";
@@ -247,30 +248,16 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                             //MessageBox.Show(String.Format("Error! Plan Id '{0}' is greater than maximum length allowed by Eclipse (13)! Exiting!", planID));
                             planID = planID.Substring(0, 13);
                         }
-                        tmpList.Add(Tuple.Create(planID, structure, tgtRx));
+                        ungroupedList.Add(new PlanTargetsModel(planID, tgtRx, structure));
                     }
                     firstCombo = true;
                     tgtRx = -1000.0;
                 }
                 else headerObj = false;
             }
-
-            string prevPlanId = tmpList.First().Item1;
-            List<TargetModel> targets = new List<TargetModel> { };
-            foreach(Tuple<string,string,double> itr in tmpList)
-            {
-                if(!string.Equals(itr.Item1, prevPlanId, StringComparison.OrdinalIgnoreCase))
-                {
-                    listTargets.Add(new PlanTargetsModel(prevPlanId, targets.OrderBy(x => x.TargetRxDose)));
-                    targets = new List<TargetModel> { };
-                }
-                targets.Add(new TargetModel(itr.Item2, itr.Item3));
-                prevPlanId = itr.Item1;
-            }
-            listTargets.Add(new PlanTargetsModel(prevPlanId, targets));
-
-            //sort the targets based on requested plan Id (alphabetically)
-            listTargets.Sort(delegate (PlanTargetsModel x, PlanTargetsModel y) { return x.Targets.Last().TargetRxDose.CompareTo(y.Targets.Last().TargetRxDose); });
+            
+            //plan targets model list grouped by plan Id and targets sorted according to target Rx
+            listTargets = new List<PlanTargetsModel>(TargetsHelper.GroupTargetsByPlanIdAndOrderByTargetRx(ungroupedList));
             return (listTargets, sb);
         }
     }

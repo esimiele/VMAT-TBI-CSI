@@ -104,7 +104,6 @@
     <Compile Include="Helpers\TSManipulationTypeHelperTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UIHelpers\OptimizationSetupUIHelperTests.cs" />
-    <Compile Include="UIHelpers\TargetsHelperTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

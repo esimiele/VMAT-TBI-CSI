@@ -206,7 +206,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="prescriptions"></param>
         /// <returns></returns>
-        public static List<Tuple<string,List<string>>> GetTargetListForEachPlan(List<Prescription> prescriptions)
+        public static List<Tuple<string, List<string>>> GetTargetListForEachPlan(List<Prescription> prescriptions)
         {
             List<Tuple<string, List<string>>> planIdTargets = new List<Tuple<string, List<string>>> { };
             string tmpPlanId = prescriptions.First().PlanId;
@@ -318,25 +318,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         }
 
         /// <summary>
-        /// Simple h
-        /// </summary>
-        /// <param name="prescriptions"></param>
-        /// <returns></returns>
-        public static List<Tuple<string, double>> GetSortedTargetIdsByRxDose(List<Prescription> prescriptions)
-        {
-            List<Tuple<string, double>> sortedTargets = new List<Tuple<string, double>> { };
-            if (!prescriptions.Any()) return sortedTargets;
-            //sort by cumulative dose to targets
-            List<Prescription> tmpList = prescriptions.OrderBy(x => x.CumulativeDoseToTarget).ToList();
-
-            foreach (Prescription itr in tmpList)
-            {
-                sortedTargets.Add(Tuple.Create(itr.TargetId, itr.CumulativeDoseToTarget));
-            }
-            return sortedTargets;
-        }
-
-        /// <summary>
         /// Simple helper method to return a list of the target Ids from the prescription list
         /// </summary>
         /// <param name="prescriptions"></param>
@@ -418,18 +399,20 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <returns></returns>
         public static List<Prescription> GetHighestRxPrescriptionForEachPlan(List<Prescription> prescriptions)
         {
-            List<Prescription> highestRxPrescriptions = new List<Prescription> { };
-            //sort prescriptions by cumulative Rx
-            List<Prescription> tmpList = prescriptions.OrderBy(x => x.CumulativeDoseToTarget).ToList();
+            //List<Prescription> highestRxPrescriptions = new List<Prescription> { };
+            ////sort prescriptions by cumulative Rx
+            //List<Prescription> tmpList = prescriptions.OrderBy(x => x.CumulativeDoseToTarget).ToList();
 
-            //add the last item in the prescription list where the plan id matches the plan id in the first entry in the sorted prescription list
-            highestRxPrescriptions.Add(tmpList.Last(x => string.Equals(x.PlanId, tmpList.First().PlanId)));
-            if (tmpList.Any(x => !string.Equals(x.PlanId, tmpList.First().PlanId)))
-            {
-                //add the last item in the prescription list where the plan id DOES NOT match the plan id in the first entry in the sorted prescription list
-                highestRxPrescriptions.Add(tmpList.Last(x => !string.Equals(x.PlanId, tmpList.First().PlanId)));
-            }
-            return highestRxPrescriptions;
+            ////add the last item in the prescription list where the plan id matches the plan id in the first entry in the sorted prescription list
+            //highestRxPrescriptions.Add(tmpList.Last(x => string.Equals(x.PlanId, tmpList.First().PlanId)));
+            //if (tmpList.Any(x => !string.Equals(x.PlanId, tmpList.First().PlanId)))
+            //{
+            //    //add the last item in the prescription list where the plan id DOES NOT match the plan id in the first entry in the sorted prescription list
+            //    highestRxPrescriptions.Add(tmpList.Last(x => !string.Equals(x.PlanId, tmpList.First().PlanId)));
+            //}
+            //return highestRxPrescriptions;
+
+            return prescriptions.GroupBy(x => x.PlanId, (planId, groupedTargets) => new Prescription(planId, groupedTargets.Last().TargetId, groupedTargets.Last().NumberOfFractions, groupedTargets.Last().DoseValue, groupedTargets.Last().CumulativeDoseToTarget)).ToList();
         }
 
         /// <summary>
@@ -440,6 +423,19 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         public static List<PlanTargetsModel> GroupTargetsByPlanIdAndOrderByTargetRx(List<PlanTargetsModel> ungrouped)
         {
             return ungrouped.GroupBy(x => x.PlanId, (planId, groupedTargets) => new PlanTargetsModel(planId, groupedTargets.SelectMany(x => x.Targets).OrderBy(y => y.TargetRxDose))).ToList();
+        }
+
+        /// <summary>
+        /// Helper method to take an ungrouped, unordered list of plan target models and first group them by plan Id, then order the targets by target prescription dose
+        /// </summary>
+        /// <param name="ungrouped"></param>
+        /// <returns></returns>
+        public static List<PlanTargetsModel> GroupPrescriptionsByPlanIdAndOrderByTargetRx(List<Prescription> ungrouped)
+        {
+            return ungrouped.GroupBy(x => x.PlanId, (planId, groupedTargets) =>
+            {
+                return new PlanTargetsModel(planId, groupedTargets.SelectMany(x => new List<TargetModel>{ new TargetModel(x.TargetId, x.CumulativeDoseToTarget) }).OrderBy(y => y.TargetRxDose));
+            }).ToList();
         }
     }
 }

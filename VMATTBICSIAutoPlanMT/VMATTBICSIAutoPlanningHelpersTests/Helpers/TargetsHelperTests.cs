@@ -28,12 +28,110 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         public void GetHighestRxPlanTargetListTestRx()
         {
             List<Prescription> testRx = CreateDummyPrescription();
-            List<Tuple<string, string>> expected = new List<Tuple<string, string>>
+            Dictionary<string, string> expected = new Dictionary<string, string>
             {
-                Tuple.Create("CSI-init", "PTV_CSI"),
-                Tuple.Create("CSI-bst", "PTV_Boost"),
+                { "CSI-init", "PTV_CSI" },
+                { "CSI-bst", "PTV_Boost" }
             };
             CollectionAssert.AreEqual(expected, TargetsHelper.GetHighestRxPlanTargetList(testRx));
+        }
+
+        [TestMethod()]
+        public void GroupTargetsByPlanIdTest()
+        {
+            List<PlanTargetsModel> models = new List<PlanTargetsModel>();
+            models.Add(new PlanTargetsModel("CSI-init", new TargetModel("2", 2400)));
+            models.Add(new PlanTargetsModel("CSI-bst", new TargetModel("4", 4800)));
+            models.Add(new PlanTargetsModel("CSI-init", new TargetModel("3", 3600)));
+            models.Add(new PlanTargetsModel("CSI-bst", new TargetModel("5", 6000)));
+            models.Add(new PlanTargetsModel("CSI-init", new TargetModel("1", 1200)));
+
+            List<PlanTargetsModel> expected = new List<PlanTargetsModel>
+        {
+            new PlanTargetsModel("CSI-init", new List<TargetModel> {  new TargetModel("1", 1200), new TargetModel("2", 2400), new TargetModel("3", 3600)}),
+            new PlanTargetsModel("CSI-bst", new List<TargetModel> {  new TargetModel("4", 4800), new TargetModel("5", 6000)})
+        };
+            List<PlanTargetsModel> result = TargetsHelper.GroupTargetsByPlanIdAndOrderByTargetRx(models);
+            Console.WriteLine($"{expected.Count} | {result.Count}");
+            Assert.AreEqual(expected.Count, result.Count);
+
+            Console.WriteLine("expected");
+            foreach (PlanTargetsModel itr in expected)
+            {
+                foreach (TargetModel tgt in itr.Targets)
+                {
+                    Console.WriteLine($"{itr.PlanId} | {tgt.TargetId} | {tgt.TargetRxDose}");
+                }
+            }
+            Console.WriteLine("result");
+            foreach (PlanTargetsModel itr in result)
+            {
+                foreach (TargetModel tgt in itr.Targets)
+                {
+                    Console.WriteLine($"{itr.PlanId} | {tgt.TargetId} | {tgt.TargetRxDose}");
+                }
+            }
+
+            for (int i = 0; i < expected.Count; i++)
+            {
+                Assert.AreEqual(expected.ElementAt(i).PlanId, result.ElementAt(i).PlanId);
+                CollectionAssert.AreEqual(expected.ElementAt(i).Targets, result.ElementAt(i).Targets, new TargetModelComparer());
+            }
+        }
+
+        [TestMethod()]
+        public void GroupPrescriptionsByPlanIdTest()
+        {
+            List<Prescription> models = new List<Prescription>();
+            models.Add(new Prescription("CSI-init", "2", 6, new DoseValue(400, DoseValue.DoseUnit.cGy), 2400));
+            models.Add(new Prescription("CSI-bst", "4", 7, new DoseValue(200, DoseValue.DoseUnit.cGy), 5000));
+            models.Add(new Prescription("CSI-init", "1", 6, new DoseValue(200, DoseValue.DoseUnit.cGy), 1200));
+            models.Add(new Prescription("CSI-bst", "5", 7, new DoseValue(300, DoseValue.DoseUnit.cGy), 5700));
+            models.Add(new Prescription("CSI-init", "3", 6, new DoseValue(600, DoseValue.DoseUnit.cGy), 3600));
+
+            List<PlanTargetsModel> expected = new List<PlanTargetsModel>
+        {
+            new PlanTargetsModel("CSI-init", new List<TargetModel> {  new TargetModel("1", 1200), new TargetModel("2", 2400), new TargetModel("3", 3600)}),
+            new PlanTargetsModel("CSI-bst", new List<TargetModel> {  new TargetModel("4", 5000), new TargetModel("5", 5700)})
+        };
+            List<PlanTargetsModel> result = TargetsHelper.GroupPrescriptionsByPlanIdAndOrderByTargetRx(models);
+            Console.WriteLine($"{expected.Count} | {result.Count}");
+            Assert.AreEqual(expected.Count, result.Count);
+
+            Console.WriteLine("expected");
+            foreach (PlanTargetsModel itr in expected)
+            {
+                foreach (TargetModel tgt in itr.Targets)
+                {
+                    Console.WriteLine($"{itr.PlanId} | {tgt.TargetId} | {tgt.TargetRxDose}");
+                }
+            }
+            Console.WriteLine("result");
+            foreach (PlanTargetsModel itr in result)
+            {
+                foreach (TargetModel tgt in itr.Targets)
+                {
+                    Console.WriteLine($"{itr.PlanId} | {tgt.TargetId} | {tgt.TargetRxDose}");
+                }
+            }
+
+            for (int i = 0; i < expected.Count; i++)
+            {
+                Assert.AreEqual(expected.ElementAt(i).PlanId, result.ElementAt(i).PlanId);
+                CollectionAssert.AreEqual(expected.ElementAt(i).Targets, result.ElementAt(i).Targets, new TargetModelComparer());
+            }
+        }
+    }
+
+    public class TargetModelComparer : Comparer<TargetModel>
+    {
+        public override int Compare(TargetModel x, TargetModel y)
+        {
+            // compare the two mountains
+            // for the purpose of this tests they are considered equal when their identifiers (names) match
+            int idCompare = x.TargetId.CompareTo(y.TargetId);
+            int rxCompare = x.TargetRxDose.CompareTo(y.TargetRxDose);
+            return Math.Max(Math.Abs(idCompare), Math.Abs(rxCompare));
         }
     }
 }
