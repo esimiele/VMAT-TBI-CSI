@@ -17,9 +17,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="template"></param>
         /// <param name="sex"></param>
         /// <returns></returns>
-        public static List<RequestedTSManipulation> AddTemplateSpecificStructureManipulations(List<RequestedTSManipulation> templateManipulationList, List<RequestedTSManipulation> manipulationListToUpdate, string sex)
+        public static List<RequestedTSManipulationModel> AddTemplateSpecificStructureManipulations(List<RequestedTSManipulationModel> templateManipulationList, List<RequestedTSManipulationModel> manipulationListToUpdate, string sex)
         {
-            foreach (RequestedTSManipulation s in templateManipulationList)
+            foreach (RequestedTSManipulationModel s in templateManipulationList)
             {
                 if (string.Equals(s.StructureId.ToLower(), "ovaries") || string.Equals(s.StructureId.ToLower(), "testes"))
                 {

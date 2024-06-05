@@ -249,11 +249,11 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
 
             int percentComplete = 0;
             int calcItems = 4;
-            List<RequestedOptimizationTSStructure> theList = new List<RequestedOptimizationTSStructure>
+            List<RequestedOptimizationTSStructureModel> theList = new List<RequestedOptimizationTSStructureModel>
                         {
-                            new TSCooler("TS_cooler101",107.0,101.0,100, 0.0)
+                            new TSCoolerStructureModel("TS_cooler101",107.0,101.0,100, 0.0)
                         };
-            (bool fail, List<OptimizationConstraint> addedTSCoolerConstraint) = UpdateHeaterCoolerStructures(initialPlan, true, theList, false);
+            (bool fail, List<OptimizationConstraintModel> addedTSCoolerConstraint) = UpdateHeaterCoolerStructures(initialPlan, true, theList, false);
             if (fail)
             {
                 //user killed operation while generating heater and cooler structures
@@ -261,7 +261,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 return true;
             }
             ProvideUIUpdate(100 * ++percentComplete / calcItems);
-            List<OptimizationConstraint> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(initialPlan);
+            List<OptimizationConstraintModel> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(initialPlan);
             optParams.AddRange(addedTSCoolerConstraint);
             ProvideUIUpdate(100 * ++percentComplete / calcItems, OptimizationLoopUIHelper.PrintPlanOptimizationConstraints(initialPlan.Id, optParams));
 
@@ -345,7 +345,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 else
                 {
                     ProvideUIUpdate("All plan objectives NOT met! Updating heater and cooler structures!");
-                    (bool fail, List<OptimizationConstraint> updatedHeaterCoolerConstraints) = UpdateHeaterCoolerStructures(evalPlan, oneMoreOptNextItr, _data.RequestedOptimizationTSStructures);
+                    (bool fail, List<OptimizationConstraintModel> updatedHeaterCoolerConstraints) = UpdateHeaterCoolerStructures(evalPlan, oneMoreOptNextItr, _data.RequestedOptimizationTSStructures);
                     //did the user abort the program while updating the heater and cooler structures
                     if (fail)
                     {
@@ -356,7 +356,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                     foreach (ExternalPlanSetup itr in plans)
                     {
                         ProvideUIUpdate($"Adjusting optimization parameters for plan: {itr.Id}!");
-                        List<OptimizationConstraint> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(itr);
+                        List<OptimizationConstraintModel> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(itr);
                         ProvideUIUpdate($"Evaluating quality of plan: {itr.Id}!");
                         PlanEvaluationDataContainer e = EvaluatePlanSumComponentPlans(itr, optParams);
                         if (e.OptimizationKilledByUser) return true;
@@ -384,7 +384,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
         /// <param name="plan"></param>
         /// <param name="optParams"></param>
         /// <returns></returns>
-        private PlanEvaluationDataContainer EvaluatePlanSumComponentPlans(ExternalPlanSetup plan, List<OptimizationConstraint> optParams)
+        private PlanEvaluationDataContainer EvaluatePlanSumComponentPlans(ExternalPlanSetup plan, List<OptimizationConstraintModel> optParams)
         {
             PlanEvaluationDataContainer e = new PlanEvaluationDataContainer();
             List<PlanOptConstraintsDeviationModel> diffPlanOpt = EvaluateResultVsOptimizationConstraints(plan, optParams);
@@ -400,11 +400,11 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
         /// <param name="plan"></param>
         /// <param name="planObj"></param>
         /// <returns></returns>
-        private bool EvaluatePlanSumQuality(ExternalPlanSetup plan, List<PlanObjective> planObj)
+        private bool EvaluatePlanSumQuality(ExternalPlanSetup plan, List<PlanObjectiveModel> planObj)
         {
             UpdateUILabel($"Plan sum evaluation: {plan.Id}");
             ProvideUIUpdate($"Parsing optimization objectives from plan: {plan.Id}");
-            List<OptimizationConstraint> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
+            List<OptimizationConstraintModel> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
             //get current optimization objectives from plan (we could use the optParams list, but we want the actual instances of the OptimizationObjective class so we can get the results from each objective)
             (int numComparisons, List<PlanObjectivesDeviationModel> diffPlanObj) = EvaluateResultVsPlanObjectives(plan, planObj, optParams);
             //all constraints met, exiting

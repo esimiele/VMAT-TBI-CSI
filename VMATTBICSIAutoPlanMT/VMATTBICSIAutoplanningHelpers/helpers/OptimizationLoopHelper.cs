@@ -55,14 +55,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="sumTotalDose"></param>
         /// <param name="originalConstraints"></param>
         /// <returns></returns>
-        public static List<OptimizationConstraint> ScaleHeaterCoolerOptConstraints(double planTotalDose, 
+        public static List<OptimizationConstraintModel> ScaleHeaterCoolerOptConstraints(double planTotalDose, 
                                                                                    double sumTotalDose, 
-                                                                                   List<OptimizationConstraint> originalConstraints)
+                                                                                   List<OptimizationConstraintModel> originalConstraints)
         {
-            List<OptimizationConstraint> updatedOpt = new List<OptimizationConstraint> { };
-            foreach (OptimizationConstraint itr in originalConstraints)
+            List<OptimizationConstraintModel> updatedOpt = new List<OptimizationConstraintModel> { };
+            foreach (OptimizationConstraintModel itr in originalConstraints)
             {
-                updatedOpt.Add(new OptimizationConstraint(itr.StructureId, itr.ConstraintType, itr.QueryDose * planTotalDose / sumTotalDose, Units.cGy, itr.QueryVolume, itr.Priority));
+                updatedOpt.Add(new OptimizationConstraintModel(itr.StructureId, itr.ConstraintType, itr.QueryDose * planTotalDose / sumTotalDose, Units.cGy, itr.QueryVolume, itr.Priority));
             }
             return updatedOpt;
         }
@@ -72,17 +72,17 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="updatedOpt"></param>
         /// <returns></returns>
-        public static List<OptimizationConstraint> IncreaseOptConstraintPrioritiesForFinalOpt(List<OptimizationConstraint> updatedOpt)
+        public static List<OptimizationConstraintModel> IncreaseOptConstraintPrioritiesForFinalOpt(List<OptimizationConstraintModel> updatedOpt)
         {
             //go through the current list of optimization objects and add all of them to finalObj vector. ADD COMMENTS!
-            List<OptimizationConstraint> finalObj = new List<OptimizationConstraint> { };
+            List<OptimizationConstraintModel> finalObj = new List<OptimizationConstraintModel> { };
             double maxPriority = (double)updatedOpt.Max(x => x.Priority);
-            foreach (OptimizationConstraint itr in updatedOpt)
+            foreach (OptimizationConstraintModel itr in updatedOpt)
             {
                 //get maximum priority and assign it to the cooler structure to really push the hotspot down. Also lower dose objective
                 if (itr.StructureId.ToLower().Contains("ts_cooler"))
                 {
-                    finalObj.Add(new OptimizationConstraint(itr.StructureId, itr.ConstraintType, 0.98 * itr.QueryDose, Units.cGy, itr.QueryVolume, Math.Max(itr.Priority, (int)(0.9 * maxPriority))));
+                    finalObj.Add(new OptimizationConstraintModel(itr.StructureId, itr.ConstraintType, 0.98 * itr.QueryDose, Units.cGy, itr.QueryVolume, Math.Max(itr.Priority, (int)(0.9 * maxPriority))));
                 }
                 else finalObj.Add(itr);
             }

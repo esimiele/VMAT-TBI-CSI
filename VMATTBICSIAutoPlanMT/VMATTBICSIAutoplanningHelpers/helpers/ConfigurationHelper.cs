@@ -97,17 +97,17 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                         if (line.Equals(":begin template case configuration:"))
                         {
                             //preparation
-                            List<RequestedTSManipulation> TSManipulation_temp = new List<RequestedTSManipulation> { };
-                            List<RequestedTSStructure> TSstructures_temp = new List<RequestedTSStructure> { };
-                            List<TSRing> createRings_temp = new List<TSRing> { };
-                            List<OptimizationConstraint> initOptConst_temp = new List<OptimizationConstraint> { };
-                            List<OptimizationConstraint> bstOptConst_temp = new List<OptimizationConstraint> { };
+                            List<RequestedTSManipulationModel> TSManipulation_temp = new List<RequestedTSManipulationModel> { };
+                            List<RequestedTSStructureModel> TSstructures_temp = new List<RequestedTSStructureModel> { };
+                            List<TSRingStructureModel> createRings_temp = new List<TSRingStructureModel> { };
+                            List<OptimizationConstraintModel> initOptConst_temp = new List<OptimizationConstraintModel> { };
+                            List<OptimizationConstraintModel> bstOptConst_temp = new List<OptimizationConstraintModel> { };
                             List<PlanTargetsModel> targets_temp = new List<PlanTargetsModel> { };
                             List<string> cropAndContourOverlapStructures_temp = new List<string> { };
                             //optimization loop
-                            List<PlanObjective> planObj_temp = new List<PlanObjective> { };
-                            List<RequestedPlanMetric> planDoseInfo_temp = new List<RequestedPlanMetric> { };
-                            List<RequestedOptimizationTSStructure> requestedTSstructures_temp = new List<RequestedOptimizationTSStructure> { };
+                            List<PlanObjectiveModel> planObj_temp = new List<PlanObjectiveModel> { };
+                            List<RequestedPlanMetricModel> planDoseInfo_temp = new List<RequestedPlanMetricModel> { };
+                            List<RequestedOptimizationTSStructureModel> requestedTSstructures_temp = new List<RequestedOptimizationTSStructureModel> { };
                             //parse the data specific to the myeloablative case setup
                             while (!(line = reader.ReadLine()).Equals(":end template case configuration:"))
                             {
@@ -148,16 +148,16 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                                 }
                             }
 
-                            if (TSManipulation_temp.Any()) tempTemplate.TSManipulations = new List<RequestedTSManipulation>(TSManipulation_temp);
-                            if (createRings_temp.Any()) tempTemplate.Rings = new List<TSRing>(createRings_temp);
+                            if (TSManipulation_temp.Any()) tempTemplate.TSManipulations = new List<RequestedTSManipulationModel>(TSManipulation_temp);
+                            if (createRings_temp.Any()) tempTemplate.Rings = new List<TSRingStructureModel>(createRings_temp);
                             if (cropAndContourOverlapStructures_temp.Any()) tempTemplate.CropAndOverlapStructures = new List<string>(cropAndContourOverlapStructures_temp);
                             if (TSstructures_temp.Any()) tempTemplate.CreateTSStructures = TSstructures_temp;
-                            if (initOptConst_temp.Any()) tempTemplate.InitialOptimizationConstraints = new List<OptimizationConstraint>(initOptConst_temp);
-                            if (bstOptConst_temp.Any()) tempTemplate.BoostOptimizationConstraints = new List<OptimizationConstraint>(bstOptConst_temp);
+                            if (initOptConst_temp.Any()) tempTemplate.InitialOptimizationConstraints = new List<OptimizationConstraintModel>(initOptConst_temp);
+                            if (bstOptConst_temp.Any()) tempTemplate.BoostOptimizationConstraints = new List<OptimizationConstraintModel>(bstOptConst_temp);
                             if (targets_temp.Any()) tempTemplate.PlanTargets = new List<PlanTargetsModel>(targets_temp);
-                            if (planObj_temp.Any()) tempTemplate.PlanObjectives = new List<PlanObjective>(planObj_temp);
-                            if (requestedTSstructures_temp.Any()) tempTemplate.RequestedOptimizationTSStructures = new List<RequestedOptimizationTSStructure>(requestedTSstructures_temp);
-                            if (planDoseInfo_temp.Any()) tempTemplate.RequestedPlanMetrics = new List<RequestedPlanMetric>(planDoseInfo_temp);
+                            if (planObj_temp.Any()) tempTemplate.PlanObjectives = new List<PlanObjectiveModel>(planObj_temp);
+                            if (requestedTSstructures_temp.Any()) tempTemplate.RequestedOptimizationTSStructures = new List<RequestedOptimizationTSStructureModel>(requestedTSstructures_temp);
+                            if (planDoseInfo_temp.Any()) tempTemplate.RequestedPlanMetrics = new List<RequestedPlanMetricModel>(planDoseInfo_temp);
                         }
                     }
                 }
@@ -185,14 +185,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                         if (line.Equals(":begin template case configuration:"))
                         {
                             //preparation
-                            List<RequestedTSManipulation> TSManipulation_temp = new List<RequestedTSManipulation> { };
-                            List<RequestedTSStructure> TSstructures_temp = new List<RequestedTSStructure> { };
-                            List<OptimizationConstraint> initOptConst_temp = new List<OptimizationConstraint> { };
+                            List<RequestedTSManipulationModel> TSManipulation_temp = new List<RequestedTSManipulationModel> { };
+                            List<RequestedTSStructureModel> TSstructures_temp = new List<RequestedTSStructureModel> { };
+                            List<OptimizationConstraintModel> initOptConst_temp = new List<OptimizationConstraintModel> { };
                             List<PlanTargetsModel> targets_temp = new List<PlanTargetsModel> { };
                             //optimization loop
-                            List<PlanObjective> planObj_temp = new List<PlanObjective> { };
-                            List<RequestedPlanMetric> planDoseInfo_temp = new List<RequestedPlanMetric> { };
-                            List<RequestedOptimizationTSStructure> requestedTSstructures_temp = new List<RequestedOptimizationTSStructure> { };
+                            List<PlanObjectiveModel> planObj_temp = new List<PlanObjectiveModel> { };
+                            List<RequestedPlanMetricModel> planDoseInfo_temp = new List<RequestedPlanMetricModel> { };
+                            List<RequestedOptimizationTSStructureModel> requestedTSstructures_temp = new List<RequestedOptimizationTSStructureModel> { };
                             //parse the data specific to the myeloablative case setup
                             while (!(line = reader.ReadLine()).Equals(":end template case configuration:"))
                             {
@@ -222,13 +222,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                                 }
                             }
 
-                            if (TSManipulation_temp.Any()) tempTemplate.TSManipulations = new List<RequestedTSManipulation>(TSManipulation_temp);
+                            if (TSManipulation_temp.Any()) tempTemplate.TSManipulations = new List<RequestedTSManipulationModel>(TSManipulation_temp);
                             if (TSstructures_temp.Any()) tempTemplate.CreateTSStructures = TSstructures_temp;
-                            if (initOptConst_temp.Any()) tempTemplate.InitialOptimizationConstraints = new List<OptimizationConstraint>(initOptConst_temp);
+                            if (initOptConst_temp.Any()) tempTemplate.InitialOptimizationConstraints = new List<OptimizationConstraintModel>(initOptConst_temp);
                             if (targets_temp.Any()) tempTemplate.PlanTargets = new List<PlanTargetsModel>(targets_temp);
-                            if (planObj_temp.Any()) tempTemplate.PlanObjectives = new List<PlanObjective>(planObj_temp);
-                            if (requestedTSstructures_temp.Any()) tempTemplate.RequestedOptimizationTSStructures = new List<RequestedOptimizationTSStructure>(requestedTSstructures_temp);
-                            if (planDoseInfo_temp.Any()) tempTemplate.RequestedPlanMetrics = new List<RequestedPlanMetric>(planDoseInfo_temp);
+                            if (planObj_temp.Any()) tempTemplate.PlanObjectives = new List<PlanObjectiveModel>(planObj_temp);
+                            if (requestedTSstructures_temp.Any()) tempTemplate.RequestedOptimizationTSStructures = new List<RequestedOptimizationTSStructureModel>(requestedTSstructures_temp);
+                            if (planDoseInfo_temp.Any()) tempTemplate.RequestedPlanMetrics = new List<RequestedPlanMetricModel>(planDoseInfo_temp);
                         }
                     }
                 }
@@ -275,7 +275,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        public static RequestedTSStructure ParseCreateTS(string line)
+        public static RequestedTSStructureModel ParseCreateTS(string line)
         {
             //known array format --> can take shortcuts in parsing the data
             //structure id, sparing type, added margin in cm (ignored if sparing type is Dmax ~ Rx Dose)
@@ -285,7 +285,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             dicomType = line.Substring(0, line.IndexOf(","));
             line = CropLine(line, ",");
             TSstructure = line.Substring(0, line.IndexOf("}"));
-            return new RequestedTSStructure(dicomType, TSstructure);
+            return new RequestedTSStructureModel(dicomType, TSstructure);
         }
 
         /// <summary>
@@ -293,7 +293,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        public static Daemon ParseDaemonSettings(string line)
+        public static DaemonModel ParseDaemonSettings(string line)
         {
             string AETitle;
             string IP;
@@ -304,7 +304,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             IP = line.Substring(0, line.IndexOf(","));
             line = CropLine(line, ",");
             int.TryParse(line.Substring(0, line.IndexOf("}")), out port);
-            return new Daemon(AETitle, IP, port);
+            return new DaemonModel(AETitle, IP, port);
         }
 
         /// <summary>
@@ -312,7 +312,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        private static TSRing ParseCreateRing(string line)
+        private static TSRingStructureModel ParseCreateRing(string line)
         {
             string structure;
             double margin;
@@ -326,7 +326,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             thickness = double.Parse(line.Substring(0, line.IndexOf(",")));
             line = CropLine(line, ",");
             dose = double.Parse(line.Substring(0, line.IndexOf("}")));
-            return new TSRing(structure, margin, thickness, dose);
+            return new TSRingStructureModel(structure, margin, thickness, dose);
         }
 
         /// <summary>
@@ -355,7 +355,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        public static RequestedTSManipulation ParseTSManipulation(string line)
+        public static RequestedTSManipulationModel ParseTSManipulation(string line)
         {
             //known array format --> can take shortcuts in parsing the data
             //structure id, sparing type, added margin in cm (ignored if sparing type is Dmax ~ Rx Dose)
@@ -368,7 +368,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             spareType = line.Substring(0, line.IndexOf(","));
             line = CropLine(line, ",");
             val = double.Parse(line.Substring(0, line.IndexOf("}")));
-            return new RequestedTSManipulation(structure, TSManipulationTypeHelper.GetTSManipulationType(spareType), val);
+            return new RequestedTSManipulationModel(structure, TSManipulationTypeHelper.GetTSManipulationType(spareType), val);
         }
 
         /// <summary>
@@ -389,7 +389,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        public static OptimizationConstraint ParseOptimizationConstraint(string line)
+        public static OptimizationConstraintModel ParseOptimizationConstraint(string line)
         {
             //known array format --> can take shortcuts in parsing the data
             //structure id, constraint type, dose (cGy), volume (%), priority
@@ -408,7 +408,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             volumeVal = double.Parse(line.Substring(0, line.IndexOf(",")));
             line = CropLine(line, ",");
             priorityVal = int.Parse(line.Substring(0, line.IndexOf("}")));
-            return new OptimizationConstraint(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), doseVal, Units.cGy, volumeVal, priorityVal);
+            return new OptimizationConstraintModel(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), doseVal, Units.cGy, volumeVal, priorityVal);
         }
 
         /// <summary>
@@ -416,7 +416,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        private static RequestedPlanMetric ParseRequestedPlanDoseInfo(string line)
+        private static RequestedPlanMetricModel ParseRequestedPlanDoseInfo(string line)
         {
             line = CropLine(line, "{");
             string structure = line.Substring(0, line.IndexOf(","));
@@ -427,7 +427,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             if(metric == DVHMetric.Dmax || metric == DVHMetric.Dmin)
             {
                 Units queryResultUnits = UnitsTypeHelper.GetUnitsType(line.Substring(0, line.IndexOf("}")));
-                return new RequestedPlanMetric(structure, metric, queryResultUnits);
+                return new RequestedPlanMetricModel(structure, metric, queryResultUnits);
             }
             else
             {
@@ -436,13 +436,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 Units queryValueUnits = UnitsTypeHelper.GetUnitsType(line.Substring(0, line.IndexOf(",")));
                 line = CropLine(line, ",");
                 Units queryResultUnits = UnitsTypeHelper.GetUnitsType(line.Substring(0, line.IndexOf("}")));
-                return new RequestedPlanMetric(structure, metric, queryVal, queryValueUnits, queryResultUnits); 
+                return new RequestedPlanMetricModel(structure, metric, queryVal, queryValueUnits, queryResultUnits); 
             }
         }
 
-        public static List<OptTSCreationCriteria> ParseOptTSCreationCriteria(string line)
+        public static List<OptTSCreationCriteriaModel> ParseOptTSCreationCriteria(string line)
         {
-            List<OptTSCreationCriteria> constraints = new List<OptTSCreationCriteria> { };
+            List<OptTSCreationCriteriaModel> constraints = new List<OptTSCreationCriteriaModel> { };
             line = line.Trim('{', '}');
             if (string.IsNullOrEmpty(line)) return constraints;
             List<string> splitStr = line.Split(',').ToList();
@@ -451,7 +451,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 string itrTrim = itr.Trim();
                 if (string.Equals(itrTrim, "finalopt", StringComparison.OrdinalIgnoreCase))
                 {
-                    constraints.Add(new OptTSCreationCriteria(true));
+                    constraints.Add(new OptTSCreationCriteriaModel(true));
                 }
                 else
                 {
@@ -466,7 +466,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                         if (double.TryParse(splitConstraint.ElementAt(2), out double limit))
                         {
                             Units resultUnits = UnitsTypeHelper.GetUnitsType(splitConstraint.ElementAt(3));
-                            constraints.Add(new OptTSCreationCriteria(metric, op, limit, resultUnits));
+                            constraints.Add(new OptTSCreationCriteriaModel(metric, op, limit, resultUnits));
                         }
                     }
                     else
@@ -487,7 +487,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                             if (double.TryParse(splitConstraint.ElementAt(4), out double limit))
                             {
                                 Units resultUnits = UnitsTypeHelper.GetUnitsType(splitConstraint.ElementAt(5));
-                                constraints.Add(new OptTSCreationCriteria(metric, queryVal, queryUnits, op, limit, resultUnits));
+                                constraints.Add(new OptTSCreationCriteriaModel(metric, queryVal, queryUnits, op, limit, resultUnits));
                             }
                         }
                     }
@@ -498,7 +498,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return constraints;
         }
 
-        private static RequestedOptimizationTSStructure ParseOptimizationTSstructure(string line)
+        private static RequestedOptimizationTSStructureModel ParseOptimizationTSstructure(string line)
         {
             string structure;
             double lowDoseLevel;
@@ -515,18 +515,18 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             volumeVal = double.Parse(line.Substring(0, line.IndexOf(",")));
             line = CropLine(line, ",");
             priority = int.Parse(line.Substring(0, line.IndexOf(",")));
-            List<OptTSCreationCriteria> creationCriteria = ParseOptTSCreationCriteria(line);
-            RequestedOptimizationTSStructure requestedOptimizationTSStructure;
+            List<OptTSCreationCriteriaModel> creationCriteria = ParseOptTSCreationCriteria(line);
+            RequestedOptimizationTSStructureModel requestedOptimizationTSStructure;
             if (structure.ToLower().Contains("heater"))
             {
-                requestedOptimizationTSStructure = new TSHeater(structure, lowDoseLevel, upperDoseLevel, priority);
+                requestedOptimizationTSStructure = new TSHeaterStructureModel(structure, lowDoseLevel, upperDoseLevel, priority);
             }
             else if (structure.ToLower().Contains("cooler"))
             {
-                requestedOptimizationTSStructure = new TSCooler(structure, lowDoseLevel, upperDoseLevel, priority);
+                requestedOptimizationTSStructure = new TSCoolerStructureModel(structure, lowDoseLevel, upperDoseLevel, priority);
             }
             else return null;
-            requestedOptimizationTSStructure.CreationCriteria = new List<OptTSCreationCriteria>(creationCriteria);
+            requestedOptimizationTSStructure.CreationCriteria = new List<OptTSCreationCriteriaModel>(creationCriteria);
             return requestedOptimizationTSStructure;
         }
 
@@ -617,7 +617,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        private static PlanObjective ParsePlanObjective(string line)
+        private static PlanObjectiveModel ParsePlanObjective(string line)
         {
             string structure;
             string constraintType;
@@ -635,7 +635,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             line = CropLine(line, ",");
             if (line.Contains("Relative")) dvp = DoseValuePresentation.Relative;
             else dvp = DoseValuePresentation.Absolute;
-            return new PlanObjective(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), doseVal, dvp == DoseValuePresentation.Absolute ? Units.cGy : Units.Percent, volumeVal, Units.Percent);
+            return new PlanObjectiveModel(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), doseVal, dvp == DoseValuePresentation.Absolute ? Units.cGy : Units.Percent, volumeVal, Units.Percent);
         }
 
         /// <summary>

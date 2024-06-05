@@ -69,7 +69,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <returns></returns>
         public static StackPanel AddTSVolume(StackPanel theSP, 
                                              StructureSet selectedSS, 
-                                             RequestedTSStructure listItem, 
+                                             RequestedTSStructureModel listItem, 
                                              string clearBtnPrefix, 
                                              int clearBtnCounter, 
                                              RoutedEventHandler clearEvtHndl)
@@ -167,10 +167,10 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// </summary>
         /// <param name="theSP"></param>
         /// <returns></returns>
-        public static (List<RequestedTSStructure>, StringBuilder) ParseCreateTSStructureList(StackPanel theSP)
+        public static (List<RequestedTSStructureModel>, StringBuilder) ParseCreateTSStructureList(StackPanel theSP)
         {
             StringBuilder sb = new StringBuilder();
-            List<RequestedTSStructure> TSStructureList = new List<RequestedTSStructure> { };
+            List<RequestedTSStructureModel> TSStructureList = new List<RequestedTSStructureModel> { };
             string dcmType = "";
             string structure = "";
             bool firstCombo = true;
@@ -196,10 +196,10 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                     if (dcmType == "--select--" || structure == "--select--")
                     {
                         sb.AppendLine("Error! \nStructure or DICOM Type not selected! \nSelect an option and try again");
-                        return (new List<RequestedTSStructure> { }, sb);
+                        return (new List<RequestedTSStructureModel> { }, sb);
                     }
                     //only add the current row to the structure sparing list if all the parameters were successful parsed
-                    else TSStructureList.Add(new RequestedTSStructure(dcmType, structure));
+                    else TSStructureList.Add(new RequestedTSStructureModel(dcmType, structure));
                     firstCombo = true;
                 }
                 else headerObj = false;
@@ -285,7 +285,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <returns></returns>
         public static StackPanel AddTSManipulation(StackPanel theSP, 
                                                    List<string> structureIds, 
-                                                   RequestedTSManipulation listItem, 
+                                                   RequestedTSManipulationModel listItem, 
                                                    string clearBtnPrefix, 
                                                    int clearSpareBtnCounter, 
                                                    SelectionChangedEventHandler typeChngHndl, 
@@ -432,10 +432,10 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// </summary>
         /// <param name="theSP"></param>
         /// <returns></returns>
-        public static (List<RequestedTSManipulation>, StringBuilder) ParseTSManipulationList(StackPanel theSP)
+        public static (List<RequestedTSManipulationModel>, StringBuilder) ParseTSManipulationList(StackPanel theSP)
         {
             StringBuilder sb = new StringBuilder();
-            List<RequestedTSManipulation> TSManipulationList = new List<RequestedTSManipulation> { };
+            List<RequestedTSManipulationModel> TSManipulationList = new List<RequestedTSManipulationModel> { };
             string structure = "";
             string spareType = "";
             double margin = -1000.0;
@@ -467,16 +467,16 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                     if (structure == "--select--" || spareType == "--select--")
                     {
                         sb.AppendLine("Error! \nStructure or Sparing Type not selected! \nSelect an option and try again");
-                        return (new List<RequestedTSManipulation> { }, sb);
+                        return (new List<RequestedTSManipulationModel> { }, sb);
                     }
                     //margin will not be assigned from the default value (-1000) if the input is empty, a whitespace, or NaN
                     else if (margin == -1000.0)
                     {
                         sb.AppendLine("Error! \nEntered margin value is invalid! \nEnter a new margin and try again");
-                        return (new List<RequestedTSManipulation> { }, sb);
+                        return (new List<RequestedTSManipulationModel> { }, sb);
                     }
                     //only add the current row to the structure sparing list if all the parameters were successful parsed
-                    else TSManipulationList.Add(new RequestedTSManipulation(structure, TSManipulationTypeHelper.GetTSManipulationType(spareType), margin));
+                    else TSManipulationList.Add(new RequestedTSManipulationModel(structure, TSManipulationTypeHelper.GetTSManipulationType(spareType), margin));
                     firstCombo = true;
                     margin = -1000.0;
                 }

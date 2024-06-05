@@ -38,7 +38,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        public static Prescription ParsePrescriptionsFromLogFile(string line)
+        public static PrescriptionModel ParsePrescriptionsFromLogFile(string line)
         {
             string planId;
             string targetId;
@@ -55,7 +55,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             dosePerFx = double.Parse(line.Substring(0, line.IndexOf(",")));
             line = ConfigurationHelper.CropLine(line, ",");
             RxDose = double.Parse(line.Substring(0, line.IndexOf("}")));
-            return new Prescription(planId, targetId, numFx, new DoseValue(dosePerFx, DoseValue.DoseUnit.cGy), RxDose);
+            return new PrescriptionModel(planId, targetId, numFx, new DoseValue(dosePerFx, DoseValue.DoseUnit.cGy), RxDose);
         }
 
         /// <summary>

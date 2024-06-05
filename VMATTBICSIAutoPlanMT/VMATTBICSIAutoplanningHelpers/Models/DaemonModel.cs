@@ -6,15 +6,15 @@ using System.Threading.Tasks;
 
 namespace VMATTBICSIAutoPlanningHelpers.Models
 {
-    public class Daemon
+    public class DaemonModel
     {
         public string AETitle { get; set; } = string.Empty;
         public string IP { get; set; } = string.Empty;
         public int Port { get; set; } = -1;
 
-        public Daemon() { }
+        public DaemonModel() { }
 
-        public Daemon(string ae, string ip, int p)
+        public DaemonModel(string ae, string ip, int p)
         {
             AETitle = ae;
             IP = ip;

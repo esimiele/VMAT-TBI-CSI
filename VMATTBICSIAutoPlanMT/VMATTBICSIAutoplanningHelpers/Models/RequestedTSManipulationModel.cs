@@ -2,13 +2,13 @@
 
 namespace VMATTBICSIAutoPlanningHelpers.Models
 {
-    public class RequestedTSManipulation
+    public class RequestedTSManipulationModel
     {
         public string StructureId { get; set; } = string.Empty;
         public TSManipulationType ManipulationType { get; set; } = TSManipulationType.None;
         public double MarginInCM { get; set; } = double.NaN;
 
-        public RequestedTSManipulation(string structureId, TSManipulationType manipulationType, double marginInCM)
+        public RequestedTSManipulationModel(string structureId, TSManipulationType manipulationType, double marginInCM)
         {
             StructureId = structureId;
             ManipulationType = manipulationType;

@@ -12,12 +12,12 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         //this is only here for the display name data binding. All other references to the template name use the explicit get method
         public string TemplateName { get; set; } = string.Empty;
         public List<PlanTargetsModel> PlanTargets { get; set; } = new List<PlanTargetsModel>();
-        public List<RequestedTSStructure> CreateTSStructures { get; set; } = new List<RequestedTSStructure> { };
-        public List<RequestedTSManipulation> TSManipulations { get; set; } = new List<RequestedTSManipulation> { };
+        public List<RequestedTSStructureModel> CreateTSStructures { get; set; } = new List<RequestedTSStructureModel> { };
+        public List<RequestedTSManipulationModel> TSManipulations { get; set; } = new List<RequestedTSManipulationModel> { };
 
-        public List<PlanObjective> PlanObjectives { get; set; } = new List<PlanObjective> { };
-        public List<RequestedPlanMetric> RequestedPlanMetrics { get; set; } = new List<RequestedPlanMetric> { };
-        public List<RequestedOptimizationTSStructure> RequestedOptimizationTSStructures { get; set; } = new List<RequestedOptimizationTSStructure> { };
+        public List<PlanObjectiveModel> PlanObjectives { get; set; } = new List<PlanObjectiveModel> { };
+        public List<RequestedPlanMetricModel> RequestedPlanMetrics { get; set; } = new List<RequestedPlanMetricModel> { };
+        public List<RequestedOptimizationTSStructureModel> RequestedOptimizationTSStructures { get; set; } = new List<RequestedOptimizationTSStructureModel> { };
         //public List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> GetRequestedOptTSStructures() { return requestedOptTSStructures; }
         #endregion
 

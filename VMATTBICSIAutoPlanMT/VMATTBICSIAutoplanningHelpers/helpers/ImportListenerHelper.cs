@@ -19,7 +19,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 
         }
 
-        public static bool LaunchImportListener(string listener, ImportExportData IEData, string mrn)
+        public static bool LaunchImportListener(string listener, ImportExportDataModel IEData, string mrn)
         {
             if (!string.IsNullOrEmpty(listener))
             {

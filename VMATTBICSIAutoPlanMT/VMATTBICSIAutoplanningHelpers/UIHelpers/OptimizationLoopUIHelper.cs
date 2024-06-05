@@ -63,11 +63,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// </summary>
         /// <param name="planObj"></param>
         /// <returns></returns>
-        public static string PrintPlanObjectives(List<PlanObjective> planObj)
+        public static string PrintPlanObjectives(List<PlanObjectiveModel> planObj)
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine(GetPlanObjectivesHeader());
-            foreach (PlanObjective itr in planObj)
+            foreach (PlanObjectiveModel itr in planObj)
             {
                 //"structure Id", "constraint type", "dose (cGy or %)", "volume (%)", "Dose display (absolute or relative)"
                 sb.AppendLine(String.Format("{0, -16} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-9} |", itr.StructureId, itr.ConstraintType, itr.QueryDose, itr.QueryVolume, itr.QueryDoseUnits));
@@ -120,14 +120,14 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <param name="plan"></param>
         /// <param name="normalizationVolumes"></param>
         /// <returns></returns>
-        public static string PrintAdditionalPlanDoseInfo(List<RequestedPlanMetric> requestedInfo, 
+        public static string PrintAdditionalPlanDoseInfo(List<RequestedPlanMetricModel> requestedInfo, 
                                                          ExternalPlanSetup plan, 
                                                          Dictionary<string, string> normalizationVolumes)
         {
             StringBuilder sb = new StringBuilder();
 
             sb.AppendLine(Environment.NewLine + $"Additional infomation for plan: {plan.Id}");
-            foreach (RequestedPlanMetric itr in requestedInfo)
+            foreach (RequestedPlanMetricModel itr in requestedInfo)
             {
                 if (itr.StructureId.Contains("<plan>"))
                 {
@@ -191,23 +191,23 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// </summary>
         /// <param name="requestedTSstructures"></param>
         /// <returns></returns>
-        public static string PrintRequestedTSStructures(List<RequestedOptimizationTSStructure> requestedTSstructures)
+        public static string PrintRequestedTSStructures(List<RequestedOptimizationTSStructureModel> requestedTSstructures)
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("Requested tuning structures:");
             sb.AppendLine("--------------------------------------------------------------------------");
             sb.AppendLine(String.Format("{0, -16} | {1, -9} | {2, -10} | {3, -5} | {4, -8} | {5, -10} |", "structure Id", "low D (%)", "high D (%)", "V (%)", "priority", "constraint"));
             sb.AppendLine("--------------------------------------------------------------------------");
-            foreach (RequestedOptimizationTSStructure ts in requestedTSstructures)
+            foreach (RequestedOptimizationTSStructureModel ts in requestedTSstructures)
             {
-                if (ts.GetType() == typeof(TSCooler)) sb.Append(String.Format(" {0, -15} | {1, -9:N1} | {2,-10:N1} | {3,-5:N1} | {4,-8} |", ts.TSStructureId, "", (ts as TSCooler).UpperDoseValue, ts.Constraints.First().QueryVolume, ts.Constraints.First().Priority));
-                else sb.Append(String.Format(" {0, -15} | {1, -9:N1} | {2,-10:N1} | {3,-5:N1} | {4,-8} |", ts.TSStructureId, (ts as TSHeater).LowerDoseValue, (ts as TSHeater).UpperDoseValue, ts.Constraints.First().QueryVolume, ts.Constraints.First().Priority));
+                if (ts.GetType() == typeof(TSCoolerStructureModel)) sb.Append(String.Format(" {0, -15} | {1, -9:N1} | {2,-10:N1} | {3,-5:N1} | {4,-8} |", ts.TSStructureId, "", (ts as TSCoolerStructureModel).UpperDoseValue, ts.Constraints.First().QueryVolume, ts.Constraints.First().Priority));
+                else sb.Append(String.Format(" {0, -15} | {1, -9:N1} | {2,-10:N1} | {3,-5:N1} | {4,-8} |", ts.TSStructureId, (ts as TSHeaterStructureModel).LowerDoseValue, (ts as TSHeaterStructureModel).UpperDoseValue, ts.Constraints.First().QueryVolume, ts.Constraints.First().Priority));
 
                 if (!ts.CreationCriteria.Any()) sb.AppendLine(String.Format(" {0,-10} |", "none"));
                 else
                 {
                     int count = 0;
-                    foreach (OptTSCreationCriteria ts1 in ts.CreationCriteria)
+                    foreach (OptTSCreationCriteriaModel ts1 in ts.CreationCriteria)
                     {
                         if (count == 0)
                         {
@@ -235,11 +235,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <param name="planId"></param>
         /// <param name="constraints"></param>
         /// <returns></returns>
-        public static string PrintPlanOptimizationConstraints(string planId, List<OptimizationConstraint> constraints)
+        public static string PrintPlanOptimizationConstraints(string planId, List<OptimizationConstraintModel> constraints)
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine(GetOptimizationObjectivesHeader(planId));
-            foreach (OptimizationConstraint itr in constraints)
+            foreach (OptimizationConstraintModel itr in constraints)
             {
                 sb.AppendLine(String.Format("{0, -16} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", itr.StructureId, itr.ConstraintType, itr.QueryDose, itr.QueryVolume, itr.Priority));
             }
@@ -255,7 +255,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <param name="totalCostPlanOpt"></param>
         /// <returns></returns>
         public static string PrintPlanOptimizationResultVsConstraints(ExternalPlanSetup plan, 
-                                                                      List<OptimizationConstraint> optParams, 
+                                                                      List<OptimizationConstraintModel> optParams, 
                                                                       List<PlanOptConstraintsDeviationModel> diffPlanOpt, 
                                                                       double totalCostPlanOpt)
         {

@@ -25,7 +25,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         public static List<StackPanel> PopulateBeamsTabHelper(double width, 
                                                               List<string> linacs, 
                                                               List<string> beamEnergies, 
-                                                              List<PlanIsocenters> isoNames, 
+                                                              List<PlanIsocenterModel> isoNames, 
                                                               int[] beamsPerIso)
         {
             List<StackPanel> theSPList = new List<StackPanel> { };
@@ -118,7 +118,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             theSPList.Add(sp);
 
             //add iso names and suggested number of beams
-            foreach(PlanIsocenters itr in isoNames)
+            foreach(PlanIsocenterModel itr in isoNames)
             {
                 sp = new StackPanel
                 {
@@ -142,7 +142,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 theSPList.Add(sp);
 
                 int isoCount = 0;
-                foreach(string isoId in itr.IsocenterIds)
+                foreach(string isoId in itr.Isocenters.Select(x => x.IsocenterId))
                 {
                     sp = new StackPanel
                     {
@@ -195,7 +195,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <param name="theSP"></param>
         /// <param name="isos"></param>
         /// <returns></returns>
-        public static (string, string, List<List<int>>, StringBuilder) GetBeamSelections(StackPanel theSP, List<PlanIsocenters> isos)
+        public static (string, string, List<List<int>>, StringBuilder) GetBeamSelections(StackPanel theSP, List<PlanIsocenterModel> isos)
         {
             StringBuilder sb = new StringBuilder();
             int isocount = 0;
@@ -225,21 +225,20 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                         // MessageBox.Show(count.ToString());
                         if (!int.TryParse((obj1 as TextBox).Text, out int beamTMP))
                         {
-                            sb.AppendLine(String.Format("Error! \nNumber of beams entered in iso {0} is NaN!", isos.ElementAt(plancount).IsocenterIds.ElementAt(isocount)));
+                            sb.AppendLine(String.Format("Error! \nNumber of beams entered in iso {0} is NaN!", isos.ElementAt(plancount).Isocenters.ElementAt(isocount++).IsocenterId));
                             return ("","",new List<List<int>>(), sb);
                         }
                         else if (beamTMP < 1)
                         {
-                            sb.AppendLine(String.Format("Error! \nNumber of beams entered in iso {0} is < 1!", isos.ElementAt(plancount).IsocenterIds.ElementAt(isocount)));
+                            sb.AppendLine(String.Format("Error! \nNumber of beams entered in iso {0} is < 1!", isos.ElementAt(plancount).Isocenters.ElementAt(isocount++).IsocenterId));
                             return ("", "", new List<List<int>>(), sb);
                         }
                         else if (beamTMP > 4)
                         {
-                            sb.AppendLine(String.Format("Error! \nNumber of beams entered in iso {0} is > 4!", isos.ElementAt(plancount).IsocenterIds.ElementAt(isocount)));
+                            sb.AppendLine(String.Format("Error! \nNumber of beams entered in iso {0} is > 4!", isos.ElementAt(plancount).Isocenters.ElementAt(isocount++).IsocenterId));
                             return ("", "", new List<List<int>>(), sb);
                         }
                         else numBeams_temp.Add(beamTMP);
-                        isocount++;
                     }
                     numElementsPerRow++;
                 }
@@ -249,6 +248,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                     numBeams.Add(new List<int>(numBeams_temp));
                     numBeams_temp = new List<int> { };
                     plancount++;
+                    isocount = 0;
                 }
                 numElementsPerRow = 0;
             }

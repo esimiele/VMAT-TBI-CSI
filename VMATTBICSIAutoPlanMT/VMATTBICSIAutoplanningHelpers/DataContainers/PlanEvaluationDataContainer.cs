@@ -13,7 +13,7 @@ namespace VMATTBICSIAutoPlanningHelpers.DataContainers
         //same for plan objectives
         public List<PlanObjectivesDeviationModel> PlanDifferenceFromPlanObjectives { get; set; } = new List<PlanObjectivesDeviationModel> { };
         //vector to hold the updated optimization objectives (to be assigned to the plan)
-        public List<OptimizationConstraint> UpdatedOptimizationObjectives { get; set; } = new List<OptimizationConstraint> { };
+        public List<OptimizationConstraintModel> UpdatedOptimizationObjectives { get; set; } = new List<OptimizationConstraintModel> { };
         //the total cost sum(dose diff^2 * priority) for all structures in the optimization objective vector list
         public double TotalOptimizationCostOptConstraints { get; set; } = double.NaN;
         //same for plan objective vector

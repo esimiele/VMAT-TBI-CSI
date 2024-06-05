@@ -22,7 +22,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="name"></param>
         /// <param name="priority"></param>
         /// <returns></returns>
-        public static string GenerateCooler(ExternalPlanSetup plan, TSCooler ts)
+        public static string GenerateCooler(ExternalPlanSetup plan, TSCoolerStructureModel ts)
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine($"Generating cooler structure: {ts.TSStructureId} now");
@@ -56,7 +56,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="name"></param>
         /// <param name="priority"></param>
         /// <returns></returns>
-        public static string GenerateHeater(ExternalPlanSetup plan, Structure target, TSHeater ts)
+        public static string GenerateHeater(ExternalPlanSetup plan, Structure target, TSHeaterStructureModel ts)
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine($"Generating heater structure: {ts.TSStructureId} now");
@@ -126,11 +126,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         //    return true;
         //}
 
-        public static void EvaluateHeaterCoolerCreationCriteria(ExternalPlanSetup plan, Structure target, List<OptTSCreationCriteria> criteria)
+        public static void EvaluateHeaterCoolerCreationCriteria(ExternalPlanSetup plan, Structure target, List<OptTSCreationCriteriaModel> criteria)
         {
             if(criteria.Any())
             {
-                foreach(OptTSCreationCriteria itr in criteria)
+                foreach(OptTSCreationCriteriaModel itr in criteria)
                 {
                     if (itr.DVHMetric == DVHMetric.Dmax)
                     {

@@ -19,11 +19,11 @@ namespace VMATTBICSIAutoPlanningHelpers.DataContainers
         public bool OneMoreOptimization { get; set; } = false;
         public bool CopyAndSaveEachOptimizedPlan { get; set; } = false;
         public bool UseFlash { get; set; } = false;
-        public List<Prescription> Prescriptions { get; set; } = new List<Prescription> { };
+        public List<PrescriptionModel> Prescriptions { get; set; } = new List<PrescriptionModel> { };
         public Dictionary<string, string> NormalizationVolumes { get; set; } = new Dictionary<string, string> { };
-        public List<PlanObjective> PlanObjectives { get; set; } = new List<PlanObjective> { };
-        public List<RequestedOptimizationTSStructure> RequestedOptimizationTSStructures { get; set; } = new List<RequestedOptimizationTSStructure> { };
-        public List<RequestedPlanMetric> RequestedPlanMetrics { get; set; } = new List<RequestedPlanMetric> { };
+        public List<PlanObjectiveModel> PlanObjectives { get; set; } = new List<PlanObjectiveModel> { };
+        public List<RequestedOptimizationTSStructureModel> RequestedOptimizationTSStructures { get; set; } = new List<RequestedOptimizationTSStructureModel> { };
+        public List<RequestedPlanMetricModel> RequestedPlanMetrics { get; set; } = new List<RequestedPlanMetricModel> { };
         public double DecisionThreshold { get; set; } = double.NaN;
         public double LowDoseLimit { get; set; } = double.NaN;
         public bool IsDemo { get; set; } = false;
@@ -31,11 +31,11 @@ namespace VMATTBICSIAutoPlanningHelpers.DataContainers
         public PlanType PlanType { get; set; } = PlanType.VMAT_TBI;
 
         public OptDataContainer(List<ExternalPlanSetup> p,
-                                List<Prescription> presc,
+                                List<PrescriptionModel> presc,
                                 Dictionary<string, string> normVols,
-                                List<PlanObjective> objectives,
-                                List<RequestedOptimizationTSStructure> RTS,
-                                List<RequestedPlanMetric> info,
+                                List<PlanObjectiveModel> objectives,
+                                List<RequestedOptimizationTSStructureModel> RTS,
+                                List<RequestedPlanMetricModel> info,
                                 PlanType type,
                                 double targetNorm,
                                 int numOpt,

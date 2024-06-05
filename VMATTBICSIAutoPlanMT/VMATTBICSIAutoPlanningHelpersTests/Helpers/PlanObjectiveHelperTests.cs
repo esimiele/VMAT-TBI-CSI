@@ -20,15 +20,15 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         public void ConstructPlanObjectivesTest()
         {
             //structure id, objective type, dose (% or cGy), volume (%), dose value presentation
-            List<PlanObjective> testPlanObj = new List<PlanObjective>
+            List<PlanObjectiveModel> testPlanObj = new List<PlanObjectiveModel>
             {
-                new PlanObjective("PTV_Boost", OptimizationObjectiveType.Lower, 100.0, Units.cGy, 95.0, Units.Percent),
-                new PlanObjective("PTV_Boost", OptimizationObjectiveType.Upper, 110.0, Units.cGy, 0.0, Units.Percent),
-                new PlanObjective("PTV_CSI", OptimizationObjectiveType.Lower, 3600.0, Units.cGy, 95.0, Units.Percent),
-                new PlanObjective("PTV_CSI", OptimizationObjectiveType.Upper, 3750.0, Units.cGy, 0.0, Units.Percent),
-                new PlanObjective("Brainstem", OptimizationObjectiveType.Upper, 104.0, Units.cGy, 0.0, Units.Percent),
-                new PlanObjective("SpinalCord", OptimizationObjectiveType.Upper, 104.0, Units.cGy, 0.0, Units.Percent),
-                new PlanObjective("OpticNrvs", OptimizationObjectiveType.Upper, 104.0, Units.cGy, 0.0, Units.Percent)
+                new PlanObjectiveModel("PTV_Boost", OptimizationObjectiveType.Lower, 100.0, Units.cGy, 95.0, Units.Percent),
+                new PlanObjectiveModel("PTV_Boost", OptimizationObjectiveType.Upper, 110.0, Units.cGy, 0.0, Units.Percent),
+                new PlanObjectiveModel("PTV_CSI", OptimizationObjectiveType.Lower, 3600.0, Units.cGy, 95.0, Units.Percent),
+                new PlanObjectiveModel("PTV_CSI", OptimizationObjectiveType.Upper, 3750.0, Units.cGy, 0.0, Units.Percent),
+                new PlanObjectiveModel("Brainstem", OptimizationObjectiveType.Upper, 104.0, Units.cGy, 0.0, Units.Percent),
+                new PlanObjectiveModel("SpinalCord", OptimizationObjectiveType.Upper, 104.0, Units.cGy, 0.0, Units.Percent),
+                new PlanObjectiveModel("OpticNrvs", OptimizationObjectiveType.Upper, 104.0, Units.cGy, 0.0, Units.Percent)
             };
 
             Dictionary<string, string> testTSTargets = new Dictionary<string, string>
@@ -50,18 +50,18 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             StructureSet ss = Mock.Create<StructureSet>();
             Mock.Arrange(() => ss.Structures).Returns(new List<Structure> { tsPTVBoost, tsPTVCSI, brainstem, spinalcord, opticNrvs });
 
-            List<PlanObjective> expected = new List<PlanObjective>
+            List<PlanObjectiveModel> expected = new List<PlanObjectiveModel>
             {
-                new PlanObjective("ts_PTV_Boost", OptimizationObjectiveType.Lower, 100.0, Units.cGy, 95.0, Units.Percent),
-                new PlanObjective("ts_PTV_Boost", OptimizationObjectiveType.Upper, 110.0, Units.cGy, 0.0, Units.Percent),
-                new PlanObjective("ts_PTV_CSI", OptimizationObjectiveType.Lower, 3600.0, Units.cGy,95.0, Units.Percent),
-                new PlanObjective("ts_PTV_CSI", OptimizationObjectiveType.Upper, 3750.0, Units.cGy,0.0, Units.Percent),
-                new PlanObjective("Brainstem", OptimizationObjectiveType.Upper, 104.0, Units.cGy,0.0, Units.Percent),
-                new PlanObjective("SpinalCord", OptimizationObjectiveType.Upper, 104.0, Units.cGy,0.0, Units.Percent),
-                new PlanObjective("OpticNrvs", OptimizationObjectiveType.Upper, 104.0, Units.cGy, 0.0, Units.Percent)
+                new PlanObjectiveModel("ts_PTV_Boost", OptimizationObjectiveType.Lower, 100.0, Units.cGy, 95.0, Units.Percent),
+                new PlanObjectiveModel("ts_PTV_Boost", OptimizationObjectiveType.Upper, 110.0, Units.cGy, 0.0, Units.Percent),
+                new PlanObjectiveModel("ts_PTV_CSI", OptimizationObjectiveType.Lower, 3600.0, Units.cGy,95.0, Units.Percent),
+                new PlanObjectiveModel("ts_PTV_CSI", OptimizationObjectiveType.Upper, 3750.0, Units.cGy,0.0, Units.Percent),
+                new PlanObjectiveModel("Brainstem", OptimizationObjectiveType.Upper, 104.0, Units.cGy,0.0, Units.Percent),
+                new PlanObjectiveModel("SpinalCord", OptimizationObjectiveType.Upper, 104.0, Units.cGy,0.0, Units.Percent),
+                new PlanObjectiveModel("OpticNrvs", OptimizationObjectiveType.Upper, 104.0, Units.cGy, 0.0, Units.Percent)
             };
 
-            List<PlanObjective> result = PlanObjectiveHelper.ConstructPlanObjectives(testPlanObj, ss, testTSTargets);
+            List<PlanObjectiveModel> result = PlanObjectiveHelper.ConstructPlanObjectives(testPlanObj, ss, testTSTargets);
 
             CollectionAssert.AreEqual(expected, result);
         }

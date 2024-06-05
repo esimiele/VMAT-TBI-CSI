@@ -195,17 +195,17 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
         {
             ProvideUIUpdate("Running coverage check..." + Environment.NewLine);
             //zero all optimization objectives except those in the target
-            List<OptimizationConstraint> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
-            List<OptimizationConstraint> targetOnlyObj = new List<OptimizationConstraint> { };
+            List<OptimizationConstraintModel> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
+            List<OptimizationConstraintModel> targetOnlyObj = new List<OptimizationConstraintModel> { };
 
             ProvideUIUpdate(OptimizationLoopUIHelper.GetOptimizationObjectivesHeader(plan.Id));
             int percentCompletion = 0;
             int calcItems = 5;
-            foreach (OptimizationConstraint opt in optParams)
+            foreach (OptimizationConstraintModel opt in optParams)
             {
                 int priority = 0;
                 if (opt.StructureId.ToLower().Contains("ptv") || opt.StructureId.ToLower().Contains("ts_jnx")) priority = opt.Priority;
-                targetOnlyObj.Add(new OptimizationConstraint(opt.StructureId, opt.ConstraintType, opt.QueryDose, Units.cGy, opt.QueryVolume, priority));
+                targetOnlyObj.Add(new OptimizationConstraintModel(opt.StructureId, opt.ConstraintType, opt.QueryDose, Units.cGy, opt.QueryVolume, priority));
                 //record the optimization constraints for each structure after zero-ing the priorities. This information will be reported to the user in a progress update
                 ProvideUIUpdate(String.Format("{0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.StructureId, opt.ConstraintType, opt.QueryDose, opt.QueryVolume, priority));
             }

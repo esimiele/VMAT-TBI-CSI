@@ -8,7 +8,7 @@ using VMATTBICSIAutoPlanningHelpers.Interfaces;
 
 namespace VMATTBICSIAutoPlanningHelpers.Models
 {
-    public class PlanObjective : IPlanConstraint
+    public class PlanObjectiveModel : IPlanConstraint
     {
         //structure, constraint type, dose, relative volume, dose value presentation (unless otherwise specified)
         public string StructureId { get; set; } = string.Empty;
@@ -18,7 +18,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Models
         public double QueryVolume { get; set; } = double.NaN;
         public Units QueryVolumeUnits { get; set; } = Units.None;
 
-        public PlanObjective(string structureId, OptimizationObjectiveType constraintType, double queryDose, Units queryDoseUnits, double queryVolume, Units queryVolumeUnits = Units.Percent)
+        public PlanObjectiveModel(string structureId, OptimizationObjectiveType constraintType, double queryDose, Units queryDoseUnits, double queryVolume, Units queryVolumeUnits = Units.Percent)
         {
             StructureId = structureId;
             ConstraintType = constraintType;

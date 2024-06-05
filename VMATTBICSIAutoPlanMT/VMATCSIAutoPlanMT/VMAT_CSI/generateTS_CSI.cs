@@ -16,19 +16,17 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
     {
         //get methods
         public List<Tuple<string, string, List<Tuple<string, string>>>> GetTargetCropOverlapManipulations() { return targetManipulations; }
-        public List<Tuple<string, Dictionary<string,string>>> GetTsTargets() { return tsTargets; }
         public Dictionary<string, string> NormalizationVolumes { get; private set; } = new Dictionary<string, string> { };
-        public List<TSRing> AddedRings { get; private set; } = new List<TSRing> { };
+        public List<TSRingStructureModel> AddedRings { get; private set; } = new List<TSRingStructureModel> { };
 
         //DICOM types
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
         //dicom type, structure Id
-        private List<RequestedTSStructure> createTSStructureList;
+        private List<RequestedTSStructureModel> createTSStructureList;
         //plan id, structure id, num fx, dose per fx, cumulative dose
-        private List<Prescription> prescriptions;
-        private List<TSRing> requestedRings;
-        private List<Tuple<string, Dictionary<string,string>>> tsTargets = new List<Tuple<string, Dictionary<string, string>>> { };
+        private List<PrescriptionModel> prescriptions;
+        private List<TSRingStructureModel> requestedRings;
         //planId, lower dose target id, list<manipulation target id, operation>
         private List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations = new List<Tuple<string, string, List<Tuple<string, string>>>> { };
         //plan id, normalization volume
@@ -46,12 +44,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         /// <param name="ss"></param>
         /// <param name="cropStructs"></param>
         /// <param name="closePW"></param>
-        public GenerateTS_CSI(List<RequestedTSStructure> ts, List<RequestedTSManipulation> list, List<TSRing> tgtRings, List<Prescription> presc, StructureSet ss, List<string> cropStructs, bool closePW)
+        public GenerateTS_CSI(List<RequestedTSStructureModel> ts, List<RequestedTSManipulationModel> list, List<TSRingStructureModel> tgtRings, List<PrescriptionModel> presc, StructureSet ss, List<string> cropStructs, bool closePW)
         {
-            createTSStructureList = new List<RequestedTSStructure>(ts);
-            requestedRings = new List<TSRing>(tgtRings);
-            TSManipulationList = new List<RequestedTSManipulation>(list);
-            prescriptions = new List<Prescription>(presc);
+            createTSStructureList = new List<RequestedTSStructureModel>(ts);
+            requestedRings = new List<TSRingStructureModel>(tgtRings);
+            TSManipulationList = new List<RequestedTSManipulationModel>(list);
+            prescriptions = new List<PrescriptionModel>(presc);
             selectedSS = ss;
             cropAndOverlapStructures = new List<string>(cropStructs);
             SetCloseOnFinish(closePW, 3000);
@@ -146,7 +144,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 ProvideUIUpdate("Generating requested ring structures for targets!");
                 int percentCompletion = 0;
                 int calcItems = 3 * requestedRings.Count();
-                foreach(TSRing itr in requestedRings)
+                foreach(TSRingStructureModel itr in requestedRings)
                 {
                     Structure target = StructureTuningHelper.GetStructureFromId(itr.TargetId, selectedSS);
                     if (target != null)
@@ -159,7 +157,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                             return true;
                         }
 
-                        Structure ring = AddTSStructures(new RequestedTSStructure("CONTROL", ringName));
+                        Structure ring = AddTSStructures(new RequestedTSStructureModel("CONTROL", ringName));
                         if (ring == null) return true;
                         ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Created empty ring: {ring.Id}");
 
@@ -170,7 +168,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                             ProvideUIUpdate(errorMessage.ToString());
                             return true;
                         }
-                        TSRing addRing = new TSRing(itr);
+                        TSRingStructureModel addRing = new TSRingStructureModel(itr);
                         addRing.RingId = ring.Id;
                         AddedRings.Add(addRing);
                         ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Finished contouring ring: {itr}");
@@ -357,10 +355,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             UpdateUILabel("Create TS Structures:");
             ProvideUIUpdate("Adding remaining tuning structures to stack!");
             //get all TS structures that do not contain 'ctv' or 'ptv' in the title
-            List<RequestedTSStructure> remainingTS = createTSStructureList.Where(x => !x.StructureId.ToLower().Contains("ctv") && !x.StructureId.ToLower().Contains("ptv")).ToList();
+            List<RequestedTSStructureModel> remainingTS = createTSStructureList.Where(x => !x.StructureId.ToLower().Contains("ctv") && !x.StructureId.ToLower().Contains("ptv")).ToList();
             int calcItems = remainingTS.Count;
             int counter = 0;
-            foreach (RequestedTSStructure itr in remainingTS)
+            foreach (RequestedTSStructureModel itr in remainingTS)
             {
                 //if those structures have NOT been added to the added structure list, go ahead and add them to stack
                 if (!AddedStructureIds.Any(x => string.Equals(x.ToLower(), itr.StructureId)))
@@ -529,24 +527,24 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             int counter = 0;
             int calcItems = TSManipulationList.Count * prescriptions.Count;
             string tmpPlanId = prescriptions.First().PlanId;
-            Dictionary<string,string> tmpTSTargetList = new Dictionary<string, string> { };
+            List<TargetModel> tmpTSTargetList = new List<TargetModel> { };
             string prevTargetId = "";
             //prescriptions are inherently sorted by increasing cumulative Rx to targets
-            foreach (Prescription itr in prescriptions)
+            foreach (PrescriptionModel itr in prescriptions)
             {
                 if(!string.Equals(itr.PlanId, tmpPlanId))
                 {
                     //new plan
-                    tsTargets.Add(new Tuple<string, Dictionary<string,string>>(tmpPlanId, new Dictionary<string, string>(tmpTSTargetList)));
+                    PlanTargets.Add(new PlanTargetsModel(tmpPlanId, new List<TargetModel>(tmpTSTargetList)));
                     //last target id represents highest Rx target for previous plan
                     NormalizationVolumes.Add(tmpPlanId, prevTargetId);
-                    tmpTSTargetList = new Dictionary<string, string> { };
+                    tmpTSTargetList = new List<TargetModel> { };
                     tmpPlanId = itr.PlanId;
                 }
                 //create a new TS target for optimization and copy the original target structure onto the new TS structure
                 Structure addedTSTarget = GetTSTarget(itr.TargetId);
                 prevTargetId = addedTSTarget.Id;
-                tmpTSTargetList.Add(itr.TargetId, addedTSTarget.Id);
+                tmpTSTargetList.Add(new TargetModel(itr.TargetId, itr.CumulativeDoseToTarget, addedTSTarget.Id));
 
                 //ensure the target is cropped 3mm from body
                 ProvideUIUpdate($"Cropping TS target from body with {3.0} mm inner margin");
@@ -560,7 +558,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 if (TSManipulationList.Any())
                 {
                     //normal structure id, manipulation type, added margin (if applicable)
-                    foreach (RequestedTSManipulation itr1 in TSManipulationList)
+                    foreach (RequestedTSManipulationModel itr1 in TSManipulationList)
                     {
                         if (ManipulateTuningStructures(itr1, addedTSTarget)) return true;
                         ProvideUIUpdate(100 * ++counter / calcItems);
@@ -570,7 +568,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             //iterated through entire prescription list, need to add final values to normVolumes and tsTargets
             NormalizationVolumes.Add(tmpPlanId, prevTargetId);
-            tsTargets.Add(new Tuple<string, Dictionary<string, string>>(tmpPlanId, new Dictionary<string, string>(tmpTSTargetList)));
+            PlanTargets.Add(new PlanTargetsModel(tmpPlanId, new List<TargetModel>(tmpTSTargetList)));
             ProvideUIUpdate("Finished performing TS manipulations");
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
@@ -670,7 +668,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             Structure cropStructure;
             if (!string.Equals(cropName, target.Id))
             {
-                cropStructure = AddTSStructures(new RequestedTSStructure("CONTROL", cropName));
+                cropStructure = AddTSStructures(new RequestedTSStructureModel("CONTROL", cropName));
                 if (cropStructure == null)
                 {
                     ProvideUIUpdate($"Error! Could not create crop structure: {cropName}! Exiting", true);
@@ -705,7 +703,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 ProvideUIUpdate($"Warning! Ran out of characters for structure Id! Using structure Id: TS_overlap{prescriptionCount}");
                 overlapName = $"TS_overlap{prescriptionCount}";
             }
-            overlapStructure = AddTSStructures(new RequestedTSStructure("CONTROL", overlapName));
+            overlapStructure = AddTSStructures(new RequestedTSStructureModel("CONTROL", overlapName));
             if (overlapStructure == null)
             {
                 ProvideUIUpdate($"Error! Could not create overlap structure: {overlapName}! Exiting");
@@ -732,7 +730,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             int calcItems = 1 + (3 + 3 * cropAndOverlapStructures.Count) * prescriptions.Count();
 
             //sort by cumulative Rx to the targets (item 5)
-            List<Prescription> sortedPrescriptions = prescriptions.OrderBy(x => x.CumulativeDoseToTarget).ToList();
+            List<PrescriptionModel> sortedPrescriptions = prescriptions.OrderBy(x => x.CumulativeDoseToTarget).ToList();
             ProvideUIUpdate(100 * ++percentComplete / calcItems, "Sorted prescriptions by cumulative dose");
 
             if (cropAndOverlapStructures.Any())
@@ -953,12 +951,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //revised to get the number of unique plans list, for each unique plan, find the target with the greatest z-extent and determine the number of isocenters based off that target. 
             //plan Id, list of targets assigned to that plan
 
-            List<Tuple<string, List<string>>> planIdTargets = new List<Tuple<string, List<string>>>(TargetsHelper.GetTargetListForEachPlan(prescriptions));
+            List<PlanTargetsModel> planIdTargets = new List<PlanTargetsModel>(TargetsHelper.GetTargetListForEachPlan(prescriptions));
             ProvideUIUpdate(100 * ++counter / calcItems, "Generated list of plans each containing list of targets");
 
-            foreach (Tuple<string, List<string>> itr in planIdTargets)
+            foreach (PlanTargetsModel itr in planIdTargets)
             {
-                calcItems = itr.Item2.Count;
+                calcItems = itr.Targets.Count;
                 counter = 0;
                 //determine for each plan which target has the greatest z-extent
                 (bool fail, Structure longestTargetInPlan, double maxTargetLength, StringBuilder errorMessage) = TargetsHelper.GetLongestTargetInPlan(itr, selectedSS);
@@ -967,7 +965,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     ProvideUIUpdate($"Error! No structure named: {errorMessage} found or contoured!", true);
                     return true;
                 }
-                ProvideUIUpdate($"Determined target with greatest extent: {longestTargetInPlan.Id}, Plan: {itr.Item1}");
+                ProvideUIUpdate($"Determined target with greatest extent: {longestTargetInPlan.Id}, Plan: {itr.PlanId}");
 
                 counter = 0;
                 calcItems = 3;
@@ -1002,7 +1000,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
                 //set isocenter names based on numIsos and numVMATIsos (be sure to pass 'true' for the third argument to indicate that this is a CSI plan(s))
                 //plan Id, list of isocenter names for this plan
-                PlanIsocentersList.Add(new PlanIsocenters(itr.Item1, IsoNameHelper.GetCSIIsoNames(numVMATIsos)));
+                PlanIsocentersList.Add(new PlanIsocenterModel(itr.PlanId, IsoNameHelper.GetCSIIsoNames(numVMATIsos)));
                 ProvideUIUpdate(100 * ++counter / calcItems, "Added isocenter to stack!");
             }
             ProvideUIUpdate($"Required Number of Isocenters: {numVMATIsos}");

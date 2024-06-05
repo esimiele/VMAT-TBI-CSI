@@ -14,10 +14,10 @@ namespace VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses
         public int InitialRxNumberOfFractions { get; set; } = 1;
         public double BoostRxDosePerFx { get; set; } = 0.1;
         public int BoostRxNumberOfFractions { get; set; } = 1;
-        public List<TSRing> Rings { get; set; } = new List<TSRing>();
+        public List<TSRingStructureModel> Rings { get; set; } = new List<TSRingStructureModel>();
         public List<string> CropAndOverlapStructures { get; set; } = new List<string> { };
-        public List<OptimizationConstraint> InitialOptimizationConstraints { get; set; } = new List<OptimizationConstraint> { };
-        public List<OptimizationConstraint> BoostOptimizationConstraints { get; set; } = new List<OptimizationConstraint> { };
+        public List<OptimizationConstraintModel> InitialOptimizationConstraints { get; set; } = new List<OptimizationConstraintModel> { };
+        public List<OptimizationConstraintModel> BoostOptimizationConstraints { get; set; } = new List<OptimizationConstraintModel> { };
         #endregion
 
         /// <summary>

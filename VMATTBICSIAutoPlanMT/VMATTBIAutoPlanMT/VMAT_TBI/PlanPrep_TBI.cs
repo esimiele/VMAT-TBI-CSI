@@ -6,6 +6,7 @@ using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using System.Text;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
@@ -99,7 +100,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
 
             //get the isocenter names using the isoNameHelper class
-            List<string> isoNames = new List<string>(IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos));
+            List<IsocenterModel> isoNames = new List<IsocenterModel>(IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos));
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved isocenter names for plan: {VMATPlan.Id}");
 
             if (appaPlan != null)

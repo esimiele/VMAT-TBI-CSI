@@ -13,21 +13,21 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
     [TestClass()]
     public class TargetsHelperTests
     {
-        public List<Prescription> CreateDummyPrescription()
+        public List<PrescriptionModel> CreateDummyPrescription()
         {
             //plan ID, target Id, numFx, dosePerFx, cumulative dose
-            return new List<Prescription>
+            return new List<PrescriptionModel>
             {
-                new Prescription("CSI-init", "PTV_CSIMid", 20, new DoseValue(160.0, DoseValue.DoseUnit.cGy), 3200.0),
-                new Prescription("CSI-init", "PTV_CSI", 20, new DoseValue(180.0, DoseValue.DoseUnit.cGy), 3600.0),
-                new Prescription("CSI-bst", "PTV_Boost", 10, new DoseValue(180.0, DoseValue.DoseUnit.cGy), 5400.0),
+                new PrescriptionModel("CSI-init", "PTV_CSIMid", 20, new DoseValue(160.0, DoseValue.DoseUnit.cGy), 3200.0),
+                new PrescriptionModel("CSI-init", "PTV_CSI", 20, new DoseValue(180.0, DoseValue.DoseUnit.cGy), 3600.0),
+                new PrescriptionModel("CSI-bst", "PTV_Boost", 10, new DoseValue(180.0, DoseValue.DoseUnit.cGy), 5400.0),
             };
         }
 
         [TestMethod()]
         public void GetHighestRxPlanTargetListTestRx()
         {
-            List<Prescription> testRx = CreateDummyPrescription();
+            List<PrescriptionModel> testRx = CreateDummyPrescription();
             Dictionary<string, string> expected = new Dictionary<string, string>
             {
                 { "CSI-init", "PTV_CSI" },
@@ -82,12 +82,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         [TestMethod()]
         public void GroupPrescriptionsByPlanIdTest()
         {
-            List<Prescription> models = new List<Prescription>();
-            models.Add(new Prescription("CSI-init", "2", 6, new DoseValue(400, DoseValue.DoseUnit.cGy), 2400));
-            models.Add(new Prescription("CSI-bst", "4", 7, new DoseValue(200, DoseValue.DoseUnit.cGy), 5000));
-            models.Add(new Prescription("CSI-init", "1", 6, new DoseValue(200, DoseValue.DoseUnit.cGy), 1200));
-            models.Add(new Prescription("CSI-bst", "5", 7, new DoseValue(300, DoseValue.DoseUnit.cGy), 5700));
-            models.Add(new Prescription("CSI-init", "3", 6, new DoseValue(600, DoseValue.DoseUnit.cGy), 3600));
+            List<PrescriptionModel> models = new List<PrescriptionModel>();
+            models.Add(new PrescriptionModel("CSI-init", "2", 6, new DoseValue(400, DoseValue.DoseUnit.cGy), 2400));
+            models.Add(new PrescriptionModel("CSI-bst", "4", 7, new DoseValue(200, DoseValue.DoseUnit.cGy), 5000));
+            models.Add(new PrescriptionModel("CSI-init", "1", 6, new DoseValue(200, DoseValue.DoseUnit.cGy), 1200));
+            models.Add(new PrescriptionModel("CSI-bst", "5", 7, new DoseValue(300, DoseValue.DoseUnit.cGy), 5700));
+            models.Add(new PrescriptionModel("CSI-init", "3", 6, new DoseValue(600, DoseValue.DoseUnit.cGy), 3600));
 
             List<PlanTargetsModel> expected = new List<PlanTargetsModel>
         {

@@ -70,7 +70,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         {
             string testCreateTS = "create TS{CONTROL,TS_Eyes}";
             Tuple<string, string> expected = Tuple.Create("CONTROL", "TS_Eyes");
-            RequestedTSStructure result = ConfigurationHelper.ParseCreateTS(testCreateTS);
+            RequestedTSStructureModel result = ConfigurationHelper.ParseCreateTS(testCreateTS);
             Assert.AreEqual(expected, result);
         }
 
@@ -79,7 +79,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         {
             string testCreateTS = "create TS{PTV,TS_Eyes}";
             Tuple<string, string> expected = Tuple.Create("CONTROL", "TS_Eyes");
-            RequestedTSStructure result = ConfigurationHelper.ParseCreateTS(testCreateTS);
+            RequestedTSStructureModel result = ConfigurationHelper.ParseCreateTS(testCreateTS);
             Assert.AreNotEqual(expected, result);
         }
 

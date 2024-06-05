@@ -78,7 +78,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             {
                 output.AppendLine($" Initial Dose per fraction: {prospectiveTemplate.TemplateName} cGy");
                 output.AppendLine(String.Format("  {0, -10} | {1, -15} |", "DICOM type", "Structure Id"));
-                foreach (RequestedTSStructure ts in prospectiveTemplate.CreateTSStructures) output.AppendLine(String.Format("  {0, -10} | {1, -15} |" + Environment.NewLine, ts.DICOMType, ts.StructureId));
+                foreach (RequestedTSStructureModel ts in prospectiveTemplate.CreateTSStructures) output.AppendLine(String.Format("  {0, -10} | {1, -15} |" + Environment.NewLine, ts.DICOMType, ts.StructureId));
             }
             else output.AppendLine($" No additional tuning structures for template: {prospectiveTemplate.TemplateName}");
             output.AppendLine("");
@@ -87,7 +87,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             {
                 output.AppendLine($" {prospectiveTemplate.TemplateName} additional tuning structure manipulations:");
                 output.AppendLine(String.Format("  {0, -15} | {1, -23} | {2, -11} |", "structure Id", "manipulation type", "margin (cm)"));
-                foreach (RequestedTSManipulation spare in prospectiveTemplate.TSManipulations) output.AppendLine(String.Format("  {0, -15} | {1, -23} | {2,-11:N1} |", spare.StructureId, spare.ManipulationType, spare.MarginInCM));
+                foreach (RequestedTSManipulationModel spare in prospectiveTemplate.TSManipulations) output.AppendLine(String.Format("  {0, -15} | {1, -23} | {2,-11:N1} |", spare.StructureId, spare.ManipulationType, spare.MarginInCM));
             }
             else output.AppendLine($" No additional sparing structures for template: {prospectiveTemplate.TemplateName}");
             output.AppendLine("");
@@ -107,7 +107,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             {
                 output.AppendLine($" {prospectiveTemplate.TemplateName} ring structures:");
                 output.AppendLine(String.Format("  {0, -15} | {1, -11} | {2, -14} | {3,-10} |", "target Id", "margin (cm)", "thickness (cm)", "dose (cGy)"));
-                foreach (TSRing ring in prospectiveTemplate.Rings) output.AppendLine(String.Format("  {0, -15} | {1, -11} | {2, -14} | {3,-10} |", ring.TargetId, ring.MarginFromTargetInCM, ring.RingThicknessInCM, ring.DoseLevel));
+                foreach (TSRingStructureModel ring in prospectiveTemplate.Rings) output.AppendLine(String.Format("  {0, -15} | {1, -11} | {2, -14} | {3,-10} |", ring.TargetId, ring.MarginFromTargetInCM, ring.RingThicknessInCM, ring.DoseLevel));
             }
             else output.AppendLine($" No requested ring structures for template: {prospectiveTemplate.TemplateName}");
             output.AppendLine("");
@@ -125,7 +125,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             {
                 output.AppendLine($" Initial Dose per fraction: {prospectiveTemplate.TemplateName} cGy");
                 output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority"));
-                foreach (OptimizationConstraint opt in prospectiveTemplate.InitialOptimizationConstraints) output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.StructureId, opt.ConstraintType, opt.QueryDose, opt.QueryVolume, opt.Priority));
+                foreach (OptimizationConstraintModel opt in prospectiveTemplate.InitialOptimizationConstraints) output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.StructureId, opt.ConstraintType, opt.QueryDose, opt.QueryVolume, opt.Priority));
             }
             else output.AppendLine(" No iniital plan optimization constraints for template: {prospectiveTemplate.GetTemplateName()}");
             output.AppendLine("");
@@ -134,7 +134,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             {
                 output.AppendLine($" Initial Dose per fraction: {prospectiveTemplate.TemplateName} cGy");
                 output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority"));
-                foreach (OptimizationConstraint opt in prospectiveTemplate.BoostOptimizationConstraints) output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.StructureId, opt.ConstraintType, opt.QueryDose, opt.QueryVolume, opt.Priority));
+                foreach (OptimizationConstraintModel opt in prospectiveTemplate.BoostOptimizationConstraints) output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.StructureId, opt.ConstraintType, opt.QueryDose, opt.QueryVolume, opt.Priority));
             }
             else output.AppendLine($" No boost plan optimization constraints for template: {prospectiveTemplate.TemplateName}");
             output.AppendLine("");
@@ -154,7 +154,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             {
                 output.AppendLine($" {prospectiveTemplate.TemplateName} template initial plan optimization parameters:");
                 output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority"));
-                foreach (OptimizationConstraint opt in prospectiveTemplate.InitialOptimizationConstraints) output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.StructureId, opt.ConstraintType, opt.QueryDose, opt.QueryVolume, opt.Priority));
+                foreach (OptimizationConstraintModel opt in prospectiveTemplate.InitialOptimizationConstraints) output.AppendLine(String.Format("  {0, -14} | {1, -15} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.StructureId, opt.ConstraintType, opt.QueryDose, opt.QueryVolume, opt.Priority));
             }
             else output.AppendLine($" No iniital plan optimization constraints for template: {prospectiveTemplate.TemplateName}");
             output.AppendLine("");
@@ -196,7 +196,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             StringBuilder output = new StringBuilder();
             if (prospectiveTemplate.Rings.Any())
             {
-                foreach (TSRing itr in prospectiveTemplate.Rings) output.AppendLine($"create ring{{{itr.TargetId},{itr.MarginFromTargetInCM},{itr.RingThicknessInCM},{itr.DoseLevel}}}");
+                foreach (TSRingStructureModel itr in prospectiveTemplate.Rings) output.AppendLine($"create ring{{{itr.TargetId},{itr.MarginFromTargetInCM},{itr.RingThicknessInCM},{itr.DoseLevel}}}");
                 output.AppendLine("%");
                 output.AppendLine("%");
             }
@@ -212,7 +212,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 
             if (prospectiveTemplate.InitialOptimizationConstraints.Any())
             {
-                foreach (OptimizationConstraint itr in prospectiveTemplate.InitialOptimizationConstraints) output.AppendLine($"add init opt constraint{{{itr.StructureId},{itr.ConstraintType},{itr.QueryDose},{itr.QueryVolume},{itr.Priority}}}");
+                foreach (OptimizationConstraintModel itr in prospectiveTemplate.InitialOptimizationConstraints) output.AppendLine($"add init opt constraint{{{itr.StructureId},{itr.ConstraintType},{itr.QueryDose},{itr.QueryVolume},{itr.Priority}}}");
                 output.AppendLine("%");
                 output.AppendLine("%");
             }
@@ -220,7 +220,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 
             if (prospectiveTemplate.BoostOptimizationConstraints.Any())
             {
-                foreach (OptimizationConstraint itr in prospectiveTemplate.BoostOptimizationConstraints) output.AppendLine($"add boost opt constraint{{{itr.StructureId},{itr.ConstraintType},{itr.QueryDose},{itr.QueryVolume},{itr.Priority}}}");
+                foreach (OptimizationConstraintModel itr in prospectiveTemplate.BoostOptimizationConstraints) output.AppendLine($"add boost opt constraint{{{itr.StructureId},{itr.ConstraintType},{itr.QueryDose},{itr.QueryVolume},{itr.Priority}}}");
                 output.AppendLine("%");
                 output.AppendLine("%");
             }
@@ -238,7 +238,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             StringBuilder output = new StringBuilder();
             if (prospectiveTemplate.InitialOptimizationConstraints.Any())
             {
-                foreach (OptimizationConstraint itr in prospectiveTemplate.InitialOptimizationConstraints) output.AppendLine($"add init opt constraint{{{itr.StructureId},{itr.ConstraintType},{itr.QueryDose},{itr.QueryVolume},{itr.Priority}}}");
+                foreach (OptimizationConstraintModel itr in prospectiveTemplate.InitialOptimizationConstraints) output.AppendLine($"add init opt constraint{{{itr.StructureId},{itr.ConstraintType},{itr.QueryDose},{itr.QueryVolume},{itr.Priority}}}");
                 output.AppendLine("%");
                 output.AppendLine("%");
             }
@@ -270,7 +270,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 
             if (prospectiveTemplate.CreateTSStructures.Any())
             {
-                foreach (RequestedTSStructure itr in prospectiveTemplate.CreateTSStructures) output.AppendLine($"add TS{{{itr.DICOMType},{itr.StructureId}}}");
+                foreach (RequestedTSStructureModel itr in prospectiveTemplate.CreateTSStructures) output.AppendLine($"add TS{{{itr.DICOMType},{itr.StructureId}}}");
                 output.AppendLine("%");
                 output.AppendLine("%");
             }
@@ -278,7 +278,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 
             if (prospectiveTemplate.TSManipulations.Any())
             {
-                foreach (RequestedTSManipulation itr in prospectiveTemplate.TSManipulations) output.AppendLine($"add sparing structure{{{itr.StructureId},{itr.ManipulationType},{itr.MarginInCM}}}");
+                foreach (RequestedTSManipulationModel itr in prospectiveTemplate.TSManipulations) output.AppendLine($"add sparing structure{{{itr.StructureId},{itr.ManipulationType},{itr.MarginInCM}}}");
                 output.AppendLine("%");
                 output.AppendLine("%");
             }

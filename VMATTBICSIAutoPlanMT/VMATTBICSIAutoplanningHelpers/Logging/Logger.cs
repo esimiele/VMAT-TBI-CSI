@@ -10,6 +10,7 @@ using FolderBrowserDialog = System.Windows.Forms.FolderBrowserDialog;
 using DialogResult = System.Windows.Forms.DialogResult;
 using System.Reflection;
 using VMATTBICSIAutoPlanningHelpers.Models;
+using System.Linq;
 
 namespace VMATTBICSIAutoPlanningHelpers.Logging
 {
@@ -24,23 +25,23 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         public string User { set => userId = value; }
         public string LogPath { get { return logPath; } set { logPath = value; } }
         //plan ID, target Id, numFx, dosePerFx, cumulative dose
-        public List<Prescription> Prescriptions { set => prescriptions = new List<Prescription>(value); }
+        public List<PrescriptionModel> Prescriptions { set => prescriptions = new List<PrescriptionModel>(value); }
         public List<string> AddedPrelimTargetsStructures { set => addedPrelimTargets = new List<string>(value); }
         //ts generation and manipulation
         public List<string> AddedStructures { set => addedStructures = new List<string>(value); }
-        public List<RequestedTSManipulation> StructureManipulations { get; set; } = new List<RequestedTSManipulation>();
+        public List<RequestedTSManipulationModel> StructureManipulations { get; set; } = new List<RequestedTSManipulationModel>();
      
         //plan id, list<original target id, ts target id>
         public Dictionary<string, string> TSTargets { set => tsTargets = new Dictionary<string, string>(value); }
         //plan id, normalization volume for plan
         public Dictionary<string,string> NormalizationVolumes { set => normVolumes = new Dictionary<string,string>(value); }
         //plan Id, list of isocenter names for this plan
-        public List<PlanIsocenters> IsoNames { set => isoNames = new List<PlanIsocenters>(value); }
+        public List<PlanIsocenterModel> PlanIsocenters { set => planIsocenters = new List<PlanIsocenterModel>(value); }
         //plan generation and beam placement
         public List<string> PlanUIDs { set => planUIDs = new List<string>(value); }
         //optimization setup
         //plan ID, <structure, constraint type, dose cGy, volume %, priority>
-        public List<PlanOptimizationSetup> OptimizationConstraints { get; set; } = new List<PlanOptimizationSetup>();
+        public List<PlanOptimizationSetupModel> OptimizationConstraints { get; set; } = new List<PlanOptimizationSetupModel>();
         public ScriptOperationType OpType { set => opType = value; }
         #endregion
 
@@ -55,12 +56,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         private string template;
         private string selectedSS;
         bool changesSaved = false;
-        List<Prescription> prescriptions;
+        List<PrescriptionModel> prescriptions;
         private List<string> addedPrelimTargets;
         private List<string> addedStructures;
         private Dictionary<string, string> tsTargets;
         private Dictionary<string, string> normVolumes;
-        private List<PlanIsocenters> isoNames;
+        private List<PlanIsocenterModel> planIsocenters;
         private List<string> planUIDs;
         private ScriptOperationType opType = ScriptOperationType.General;
 
@@ -77,12 +78,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             mrn = patient;
 
             selectedSS = "";
-            prescriptions = new List<Prescription> { };
+            prescriptions = new List<PrescriptionModel> { };
             addedPrelimTargets = new List<string> { };
             addedStructures = new List<string> { };
             tsTargets = new Dictionary<string, string> { };
             normVolumes = new Dictionary<string, string> { };
-            isoNames = new List<PlanIsocenters> { };
+            planIsocenters = new List<PlanIsocenterModel> { };
             planUIDs = new List<string> { };
             _logFromOperations = new StringBuilder();
             _logFromErrors = new StringBuilder();
@@ -220,7 +221,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             sb.AppendLine($"Template={template}");
             sb.AppendLine("");
             sb.AppendLine("Prescriptions:");
-            foreach (Prescription itr in prescriptions) sb.AppendLine($"    {{{itr.PlanId},{itr.TargetId},{itr.NumberOfFractions},{itr.DoseValue.Dose},{itr.CumulativeDoseToTarget}}}");
+            foreach (PrescriptionModel itr in prescriptions) sb.AppendLine($"    {{{itr.PlanId},{itr.TargetId},{itr.NumberOfFractions},{itr.DosePerFraction.Dose},{itr.CumulativeDoseToTarget}}}");
             sb.AppendLine("");
 
             sb.AppendLine("Added TS structures:");
@@ -228,14 +229,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             sb.AppendLine("");
 
             sb.AppendLine("Structure manipulations:");
-            foreach (RequestedTSManipulation itr in StructureManipulations) sb.AppendLine($"    {{{itr.StructureId},{itr.ManipulationType},{itr.MarginInCM}}}");
+            foreach (RequestedTSManipulationModel itr in StructureManipulations) sb.AppendLine($"    {{{itr.StructureId},{itr.ManipulationType},{itr.MarginInCM}}}");
             sb.AppendLine("");
 
             sb.AppendLine("Isocenter names:");
-            foreach (PlanIsocenters itr in isoNames)
+            foreach (PlanIsocenterModel itr in planIsocenters)
             {
                 sb.AppendLine($"    {itr.PlanId}");
-                foreach (string s in itr.IsocenterIds)
+                foreach (string s in itr.Isocenters.Select(x => x.IsocenterId))
                 {
                     sb.AppendLine($"        {s}");
                 }
@@ -264,10 +265,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             sb.AppendLine("");
 
             sb.AppendLine("Optimization constraints:");
-            foreach (PlanOptimizationSetup itr in OptimizationConstraints)
+            foreach (PlanOptimizationSetupModel itr in OptimizationConstraints)
             {
                 sb.AppendLine($"    {itr.PlanId}");
-                foreach (OptimizationConstraint itr1 in itr.OptimizationConstraints)
+                foreach (OptimizationConstraintModel itr1 in itr.OptimizationConstraints)
                 {
                     sb.AppendLine($"        {{{itr1.StructureId},{itr1.ConstraintType},{itr1.QueryDose},{itr1.QueryVolume},{itr1.Priority}}}");
                 }

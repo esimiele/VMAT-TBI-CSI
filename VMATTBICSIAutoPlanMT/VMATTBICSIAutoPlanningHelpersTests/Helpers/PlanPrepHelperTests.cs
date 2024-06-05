@@ -11,6 +11,7 @@ using VMS.TPS.Common.Model.Types;
 using VMS.TPS.Common.Model;
 using System.Windows;
 using VMATTBICSIAutoPlanningHelpers.Tests.Helpers;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
 {
@@ -145,15 +146,15 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             }
 
             //first beam isocenter position in each group (grouping based on z position)
-            List<Tuple<double, double, double>> expected = new List<Tuple<double, double, double>>
+            List<VVector> expected = new List<VVector>
             {
-                Tuple.Create(0.0,0.0,-10.0),
-                Tuple.Create(0.0,0.0,-15.0),
-                Tuple.Create(0.0,0.0,-25.0),
-                Tuple.Create(0.0,0.0,-35.0)
+                new VVector(0.0,0.0,-10.0),
+                new VVector(0.0,0.0,-15.0),
+                new VVector(0.0,0.0,-25.0),
+                new VVector(0.0,0.0,-35.0)
             };
 
-            List<Tuple<double, double, double>> result = PlanPrepHelper.ExtractIsoPositions(plan);
+            List<VVector> result = PlanPrepHelper.ExtractIsoPositions(plan);
             CollectionAssert.AreEqual(expected, result);
         }
 
@@ -161,33 +162,24 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         public void CalculateShiftsTest()
         {
             //first beam isocenter position in each group (grouping based on z position)
-            List<Tuple<double, double, double>> testIsoPositions = new List<Tuple<double, double, double>>
+            List<VVector> testIsoPositions = new List<VVector>
             {
-                Tuple.Create(0.0,0.0,-10.0),
-                Tuple.Create(0.0,0.0,-15.0),
-                Tuple.Create(0.0,0.0,-25.0),
-                Tuple.Create(0.0,0.0,-35.0)
+                new VVector(0.0,0.0,-10.0),
+                new VVector(0.0,0.0,-15.0),
+                new VVector(0.0,0.0,-25.0),
+                new VVector(0.0,0.0,-35.0)
             };
 
-            List<Tuple<double, double, double>> expectedShiftsFromBBs = new List<Tuple<double, double, double>>
+            List<IsocenterShiftModel> expectedShifts = new List<IsocenterShiftModel>
             {
-                Tuple.Create(0.0,0.0,-1.0),
-                Tuple.Create(0.0,0.0,-1.50),
-                Tuple.Create(0.0,0.0,-2.50),
-                Tuple.Create(0.0,0.0,-3.50)
+                new IsocenterShiftModel(new VVector(0.0,0.0,-1.0), new VVector(0.0,0.0,-1.0)),
+                new IsocenterShiftModel(new VVector(0.0,0.0,-1.5), new VVector(0.0,0.0,-0.5)),
+                new IsocenterShiftModel(new VVector(0.0,0.0,-2.5), new VVector(0.0,0.0,-1.0)),
+                new IsocenterShiftModel(new VVector(0.0,0.0,-3.5), new VVector(0.0,0.0,-1.0)),
             };
 
-            List<Tuple<double, double, double>> expectedShiftsBetweenIsos = new List<Tuple<double, double, double>>
-            {
-                Tuple.Create(0.0,0.0,-1.0),
-                Tuple.Create(0.0,0.0,-0.5),
-                Tuple.Create(0.0,0.0,-1.0),
-                Tuple.Create(0.0,0.0,-1.0)
-            };
-
-            (List<Tuple<double, double, double>> resultsShiftsFromBBs, List<Tuple<double, double, double>> resultsShiftsBetweenIsos) = PlanPrepHelper.CalculateShifts(testIsoPositions);
-            CollectionAssert.AreEqual(resultsShiftsFromBBs, expectedShiftsFromBBs);
-            CollectionAssert.AreEqual(resultsShiftsBetweenIsos, expectedShiftsBetweenIsos);
+            List<IsocenterShiftModel> resultsShifts = PlanPrepHelper.CalculateShifts(testIsoPositions);
+            CollectionAssert.AreEqual(expectedShifts, resultsShifts);
         }
 
         [TestMethod()]

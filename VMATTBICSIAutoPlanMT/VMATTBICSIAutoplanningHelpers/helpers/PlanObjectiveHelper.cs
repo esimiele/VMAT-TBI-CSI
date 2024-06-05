@@ -17,14 +17,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="selectedSS"></param>
         /// <param name="tsTargets"></param>
         /// <returns></returns>
-        public static List<PlanObjective> ConstructPlanObjectives(List<PlanObjective> obj,
+        public static List<PlanObjectiveModel> ConstructPlanObjectives(List<PlanObjectiveModel> obj,
                                                                   StructureSet selectedSS,
                                                                   Dictionary<string,string> tsTargets)
         {
-            List<PlanObjective> tmp = new List<PlanObjective> { };
+            List<PlanObjectiveModel> tmp = new List<PlanObjectiveModel> { };
             if (selectedSS != null)
             {
-                foreach (PlanObjective itr in obj)
+                foreach (PlanObjectiveModel itr in obj)
                 {
                     string volume = itr.StructureId;
                     if (tsTargets.Any(x => string.Equals(x.Key, itr.StructureId)))
@@ -35,7 +35,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     }
                     if (StructureTuningHelper.DoesStructureExistInSS(volume, selectedSS, true))
                     {
-                        tmp.Add(new PlanObjective(volume, itr.ConstraintType, itr.QueryDose, Units.cGy, itr.QueryVolume, Units.Percent));
+                        tmp.Add(new PlanObjectiveModel(volume, itr.ConstraintType, itr.QueryDose, Units.cGy, itr.QueryVolume, Units.Percent));
                     }
                 }
             }

@@ -21,10 +21,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
         //Dicom type, structure Id
-        private List<RequestedTSStructure> createPrelimTargetList;
+        private List<RequestedTSStructureModel> createPrelimTargetList;
         private StructureSet selectedSS;
         //Dicom type, structure Id
-        private List<RequestedTSStructure> missingTargets = new List<RequestedTSStructure> { };
+        private List<RequestedTSStructureModel> missingTargets = new List<RequestedTSStructureModel> { };
         private List<string> addedTargetIds = new List<string> { };
         private string stackTraceError;
         private ProvideUIUpdateDelegate PUUD;
@@ -35,9 +35,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         /// <param name="tgts"></param>
         /// <param name="ss"></param>
         /// <param name="closePW"></param>
-        public GenerateTargets_CSI(List<RequestedTSStructure> tgts, StructureSet ss, bool closePW)
+        public GenerateTargets_CSI(List<RequestedTSStructureModel> tgts, StructureSet ss, bool closePW)
         {
-            createPrelimTargetList = new List<RequestedTSStructure>(tgts);
+            createPrelimTargetList = new List<RequestedTSStructureModel>(tgts);
             selectedSS = ss;
             SetCloseOnFinish(closePW, 3000);
         }
@@ -150,7 +150,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ProvideUIUpdate(0, "Checking for missing target structures!");
             int calcItems = createPrelimTargetList.Count;
             int counter = 0;
-            foreach (RequestedTSStructure itr in createPrelimTargetList)
+            foreach (RequestedTSStructureModel itr in createPrelimTargetList)
             {
                 Structure tmp = StructureTuningHelper.GetStructureFromId(itr.StructureId, selectedSS);
                 if (tmp == null)
@@ -182,7 +182,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //int calcItems = prospectiveTargets.Count;
             int calcItems = missingTargets.Count;
             int counter = 0;
-            foreach (RequestedTSStructure itr in missingTargets)
+            foreach (RequestedTSStructureModel itr in missingTargets)
             {
                 if (selectedSS.CanAddStructure(itr.DICOMType, itr.StructureId))
                 {

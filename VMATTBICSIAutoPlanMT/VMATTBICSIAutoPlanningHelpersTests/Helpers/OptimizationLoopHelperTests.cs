@@ -38,53 +38,53 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             Assert.AreNotEqual(expected, result2);
         }
 
-        public List<OptimizationConstraint> SetupDummyOptObjList()
+        public List<OptimizationConstraintModel> SetupDummyOptObjList()
         {
             //rx = 3600
-            return new List<OptimizationConstraint>
+            return new List<OptimizationConstraintModel>
             {
-                new OptimizationConstraint("TS_cooler120", OptimizationObjectiveType.Upper, 3888.0, Units.cGy, 0.0, 80),
-                new OptimizationConstraint("TS_cooler110", OptimizationObjectiveType.Upper, 3888.0, Units.cGy, 0.0, 80),
-                new OptimizationConstraint ("TS_cooler105", OptimizationObjectiveType.Upper, 3636.0, Units.cGy, 0.0, 70),
-                new OptimizationConstraint ("TS_cooler107", OptimizationObjectiveType.Upper, 3672.0, Units.cGy, 0.0, 80)
+                new OptimizationConstraintModel("TS_cooler120", OptimizationObjectiveType.Upper, 3888.0, Units.cGy, 0.0, 80),
+                new OptimizationConstraintModel("TS_cooler110", OptimizationObjectiveType.Upper, 3888.0, Units.cGy, 0.0, 80),
+                new OptimizationConstraintModel ("TS_cooler105", OptimizationObjectiveType.Upper, 3636.0, Units.cGy, 0.0, 70),
+                new OptimizationConstraintModel ("TS_cooler107", OptimizationObjectiveType.Upper, 3672.0, Units.cGy, 0.0, 80)
             };
         }
 
         [TestMethod()]
         public void ScaleHeaterCoolerOptConstraintsTest()
         {
-            List<OptimizationConstraint> dummyList = SetupDummyOptObjList();
+            List<OptimizationConstraintModel> dummyList = SetupDummyOptObjList();
             double planDose = 3600.0;
             double sumDose = 5400.0;
-            List<OptimizationConstraint> expected = new List<OptimizationConstraint>
+            List<OptimizationConstraintModel> expected = new List<OptimizationConstraintModel>
             {
-                new OptimizationConstraint("TS_cooler120", OptimizationObjectiveType.Upper, 2592.0, Units.cGy,0.0, 80),
-                new OptimizationConstraint("TS_cooler110", OptimizationObjectiveType.Upper, 2592.0, Units.cGy,0.0, 80),
-                new OptimizationConstraint("TS_cooler105", OptimizationObjectiveType.Upper, 2424.0, Units.cGy,0.0, 70),
-                new OptimizationConstraint("TS_cooler107", OptimizationObjectiveType.Upper, 2448.0, Units.cGy,0.0, 80)
+                new OptimizationConstraintModel("TS_cooler120", OptimizationObjectiveType.Upper, 2592.0, Units.cGy,0.0, 80),
+                new OptimizationConstraintModel("TS_cooler110", OptimizationObjectiveType.Upper, 2592.0, Units.cGy,0.0, 80),
+                new OptimizationConstraintModel("TS_cooler105", OptimizationObjectiveType.Upper, 2424.0, Units.cGy,0.0, 70),
+                new OptimizationConstraintModel("TS_cooler107", OptimizationObjectiveType.Upper, 2448.0, Units.cGy,0.0, 80)
             };
-            List<OptimizationConstraint> result = OptimizationLoopHelper.ScaleHeaterCoolerOptConstraints(planDose, sumDose, dummyList);
+            List<OptimizationConstraintModel> result = OptimizationLoopHelper.ScaleHeaterCoolerOptConstraints(planDose, sumDose, dummyList);
             CollectionAssert.AreEqual(expected, result);
         }
 
         [TestMethod()]
         public void IncreaseOptConstraintPrioritiesForFinalOptTest()
         {
-            List<OptimizationConstraint> dummyList = SetupDummyOptObjList();
-            dummyList.Add(new OptimizationConstraint("TS_PTV_CSI", OptimizationObjectiveType.Lower, 3600.0, Units.cGy, 0.0, 120));
-            List<OptimizationConstraint> expected = new List<OptimizationConstraint>
+            List<OptimizationConstraintModel> dummyList = SetupDummyOptObjList();
+            dummyList.Add(new OptimizationConstraintModel("TS_PTV_CSI", OptimizationObjectiveType.Lower, 3600.0, Units.cGy, 0.0, 120));
+            List<OptimizationConstraintModel> expected = new List<OptimizationConstraintModel>
             {
-                new OptimizationConstraint("TS_cooler120", OptimizationObjectiveType.Upper, 3810.24, Units.cGy,0.0, 108),
-                new OptimizationConstraint("TS_cooler110", OptimizationObjectiveType.Upper, 3810.24, Units.cGy,0.0, 108),
-                new OptimizationConstraint("TS_cooler105", OptimizationObjectiveType.Upper, 3563.28, Units.cGy,0.0, 108),
-                new OptimizationConstraint("TS_cooler107", OptimizationObjectiveType.Upper, 3598.56, Units.cGy,0.0, 108),
-                new OptimizationConstraint("TS_PTV_CSI", OptimizationObjectiveType.Lower, 3600.0, Units.cGy,0.0, 120)
+                new OptimizationConstraintModel("TS_cooler120", OptimizationObjectiveType.Upper, 3810.24, Units.cGy,0.0, 108),
+                new OptimizationConstraintModel("TS_cooler110", OptimizationObjectiveType.Upper, 3810.24, Units.cGy,0.0, 108),
+                new OptimizationConstraintModel("TS_cooler105", OptimizationObjectiveType.Upper, 3563.28, Units.cGy,0.0, 108),
+                new OptimizationConstraintModel("TS_cooler107", OptimizationObjectiveType.Upper, 3598.56, Units.cGy,0.0, 108),
+                new OptimizationConstraintModel("TS_PTV_CSI", OptimizationObjectiveType.Lower, 3600.0, Units.cGy,0.0, 120)
             };
-            List<OptimizationConstraint> result = OptimizationLoopHelper.IncreaseOptConstraintPrioritiesForFinalOpt(dummyList);
+            List<OptimizationConstraintModel> result = OptimizationLoopHelper.IncreaseOptConstraintPrioritiesForFinalOpt(dummyList);
             int count = 0;
-            foreach (OptimizationConstraint itr in result)
+            foreach (OptimizationConstraintModel itr in result)
             {
-                OptimizationConstraint exp = expected.ElementAtOrDefault(count++);
+                OptimizationConstraintModel exp = expected.ElementAtOrDefault(count++);
                 //tolerance of 0.01 cGy (for some reason, just mock says the result and expected are different, but I can't see any difference in the output. Must be rounding)
                 Assert.AreEqual(itr.QueryDose, exp.QueryDose, 0.01);
                 Assert.AreEqual(itr.Priority, exp.Priority);

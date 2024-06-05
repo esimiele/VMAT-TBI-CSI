@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace VMATTBICSIAutoPlanningHelpers.Models
 {
-    public class TSRing
+    public class TSRingStructureModel
     {
         public string TargetId { get; set; } = string.Empty;
         public string RingId { get; set; } = string.Empty;
@@ -15,7 +15,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Models
         public double RingThicknessInCM {  get; set; } = double.NaN;
         public double DoseLevel { get; set; } = double.NaN; 
 
-        public TSRing(string id, double margin, double thickness, double dose) 
+        public TSRingStructureModel(string id, double margin, double thickness, double dose) 
         {
             TargetId = id;
             MarginFromTargetInCM = margin;
@@ -23,7 +23,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Models
             DoseLevel = dose;
         }
 
-        public TSRing(TSRing r)
+        public TSRingStructureModel(TSRingStructureModel r)
         {
             TargetId = r.TargetId;
             RingId = r.RingId;

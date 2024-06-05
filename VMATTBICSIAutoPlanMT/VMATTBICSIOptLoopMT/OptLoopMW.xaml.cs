@@ -52,18 +52,18 @@ namespace VMATTBICSIOptLoopMT
         double lowDoseLimit = 0.1;
 
         //plan id, list<structure id, optimization objective type, dose, volume, priority>
-        List<PlanOptimizationSetup> optConstraintsFromLogs = new List<PlanOptimizationSetup> { };
+        List<PlanOptimizationSetupModel> optConstraintsFromLogs = new List<PlanOptimizationSetupModel> { };
 
         //structure, constraint type, dose, relative volume, dose value presentation (unless otherwise specified)
         //note, if the constraint type is "mean", the relative volume value is ignored
-        public List<PlanObjective> planObj = new List<PlanObjective> { };
+        public List<PlanObjectiveModel> planObj = new List<PlanObjectiveModel> { };
 
         //ID, lower dose level, upper dose level, volume (%), priority, list of criteria that must be met to add the requested cooler/heater structures
         //public List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>{ };
-        public List<RequestedOptimizationTSStructure> requestedTSstructures = new List<RequestedOptimizationTSStructure>();
+        public List<RequestedOptimizationTSStructureModel> requestedTSstructures = new List<RequestedOptimizationTSStructureModel>();
 
         //structure id(or can put '<plan>' to get the plan dose value), metric requested(Dmax, Dmin, D<vol %>, V<dose %>), query value, return value representation(dose or volume as absolute or relative)
-        public List<RequestedPlanMetric> planDoseInfo = new List<RequestedPlanMetric> { };
+        public List<RequestedPlanMetricModel> planDoseInfo = new List<RequestedPlanMetricModel> { };
 
         private VMS.TPS.Common.Model.API.Application app = null;
 
@@ -83,7 +83,7 @@ namespace VMATTBICSIOptLoopMT
         PlanType planType;
         List<string> planUIDs = new List<string> { };
         //plan id, target id, num fx, dose per fx, cumulative rx for this target
-        List<Prescription> prescriptions = new List<Prescription> { };
+        List<PrescriptionModel> prescriptions = new List<PrescriptionModel> { };
         //plan id, volume id
         Dictionary<string, string> normalizationVolumes = new Dictionary<string, string> { };
         //list<original target id, ts target id>
@@ -273,7 +273,7 @@ namespace VMATTBICSIOptLoopMT
                     if (optConstraintsFromLogs.Any())
                     {
                         ClearAllItemsFromUIList(optimizationParamSP);
-                        foreach (PlanOptimizationSetup itr in optConstraintsFromLogs) AddListItemsToUI(itr.OptimizationConstraints, itr.PlanId, optimizationParamSP);
+                        foreach (PlanOptimizationSetupModel itr in optConstraintsFromLogs) AddListItemsToUI(itr.OptimizationConstraints, itr.PlanId, optimizationParamSP);
                     }
                     else MessageBox.Show("No optimization constraints present in log file!");
                 }
@@ -299,18 +299,18 @@ namespace VMATTBICSIOptLoopMT
                 }
                 else thePlan = plans.First();
 
-                List<OptimizationConstraint> tmp = new List<OptimizationConstraint> { new OptimizationConstraint("--select--", OptimizationObjectiveType.None, 0.0, Units.cGy, 0.0, 0) };
-                List<List<OptimizationConstraint>> tmpList = new List<List<OptimizationConstraint>> { };
+                List<OptimizationConstraintModel> tmp = new List<OptimizationConstraintModel> { new OptimizationConstraintModel("--select--", OptimizationObjectiveType.None, 0.0, Units.cGy, 0.0, 0) };
+                List<List<OptimizationConstraintModel>> tmpList = new List<List<OptimizationConstraintModel>> { };
                 if (SPAndSV.Item1.Children.Count > 0)
                 {
-                    List<PlanOptimizationSetup> optParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(SPAndSV.Item1, false).Item1;
-                    foreach (PlanOptimizationSetup itr in optParametersListList)
+                    List<PlanOptimizationSetupModel> optParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(SPAndSV.Item1, false).Item1;
+                    foreach (PlanOptimizationSetupModel itr in optParametersListList)
                     {
                         if (string.Equals(itr.PlanId, thePlan.Id))
                         {
-                            tmp = new List<OptimizationConstraint>(itr.OptimizationConstraints)
+                            tmp = new List<OptimizationConstraintModel>(itr.OptimizationConstraints)
                             {
-                                new OptimizationConstraint("--select--", OptimizationObjectiveType.None, 0.0, Units.cGy, 0.0, 0)
+                                new OptimizationConstraintModel("--select--", OptimizationObjectiveType.None, 0.0, Units.cGy, 0.0, 0)
                             };
                             tmpList.Add(tmp);
                         }
@@ -323,13 +323,13 @@ namespace VMATTBICSIOptLoopMT
                 }
                 ClearAllItemsFromUIList(SPAndSV.Item1);
                 int count = 0;
-                foreach (List<OptimizationConstraint> itr in tmpList) AddListItemsToUI(itr, plans.ElementAt(count++).Id, SPAndSV.Item1);
+                foreach (List<OptimizationConstraintModel> itr in tmpList) AddListItemsToUI(itr, plans.ElementAt(count++).Id, SPAndSV.Item1);
             }
             else
             {
-                List<PlanObjective> tmp = new List<PlanObjective> 
+                List<PlanObjectiveModel> tmp = new List<PlanObjectiveModel> 
                 { 
-                    new PlanObjective("--select--", OptimizationObjectiveType.None, 0.0, Units.Percent, 0.0, Units.Percent) 
+                    new PlanObjectiveModel("--select--", OptimizationObjectiveType.None, 0.0, Units.Percent, 0.0, Units.Percent) 
                 };
                 AddListItemsToUI(tmp, "", SPAndSV.Item1); 
                 planObjectiveHeader.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -365,10 +365,10 @@ namespace VMATTBICSIOptLoopMT
             {
                 ClearAllItemsFromUIList(planObjectiveParamSP);
                 //requires a structure set to properly function
-                planObj = new List<PlanObjective>(PlanObjectiveHelper.ConstructPlanObjectives(selectedTemplate.PlanObjectives, selectedSS, tsTargets));
+                planObj = new List<PlanObjectiveModel>(PlanObjectiveHelper.ConstructPlanObjectives(selectedTemplate.PlanObjectives, selectedSS, tsTargets));
                 PopulatePlanObjectivesTab(planObjectiveParamSP);
-                planDoseInfo = new List<RequestedPlanMetric>(selectedTemplate.RequestedPlanMetrics);
-                requestedTSstructures = new List<RequestedOptimizationTSStructure>(selectedTemplate.RequestedOptimizationTSStructures);
+                planDoseInfo = new List<RequestedPlanMetricModel>(selectedTemplate.RequestedPlanMetrics);
+                requestedTSstructures = new List<RequestedOptimizationTSStructureModel>(selectedTemplate.RequestedOptimizationTSStructures);
                 if (selectedTemplate.PlanObjectives.Any())
                 {
                     planObjectiveHeader.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -378,10 +378,10 @@ namespace VMATTBICSIOptLoopMT
             else
             {
                 templateList.UnselectAll();
-                planObj = new List<PlanObjective>();
+                planObj = new List<PlanObjectiveModel>();
                 ClearAllItemsFromUIList(planObjectiveParamSP);
-                planDoseInfo = new List<RequestedPlanMetric>();
-                requestedTSstructures = new List<RequestedOptimizationTSStructure> { };
+                planDoseInfo = new List<RequestedPlanMetricModel>();
+                requestedTSstructures = new List<RequestedOptimizationTSStructureModel> { };
                 planObjectiveHeader.Background = System.Windows.Media.Brushes.PaleVioletRed;
                 optimizationSetupHeader.Background = System.Windows.Media.Brushes.DarkGray;
             }
@@ -591,13 +591,13 @@ namespace VMATTBICSIOptLoopMT
             (bool prelimChecksFail, double planNorm, int numOptimizations) = PreliminaryChecksOptimizationLoopStart();
             if (prelimChecksFail) return;
 
-            (List<PlanOptimizationSetup>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optimizationParamSP);
+            (List<PlanOptimizationSetupModel>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optimizationParamSP);
             if (!parsedOptimizationConstraints.Item1.Any())
             {
                 MessageBox.Show(parsedOptimizationConstraints.Item2.ToString());
                 return;
             }
-            List<PlanObjective> objectives = PlanObjectiveSetupUIHelper.ParsePlanObjectives(planObjectiveParamSP);
+            List<PlanObjectiveModel> objectives = PlanObjectiveSetupUIHelper.ParsePlanObjectives(planObjectiveParamSP);
             if (!objectives.Any())
             {
                 MessageBox.Show("Error! Missing plan objectives! Please add plan objectives and try again!");
@@ -650,9 +650,9 @@ namespace VMATTBICSIOptLoopMT
         /// </summary>
         /// <param name="constraints"></param>
         /// <returns></returns>
-        private bool AssignRequestedOptimizationConstraints(List<PlanOptimizationSetup> constraints)
+        private bool AssignRequestedOptimizationConstraints(List<PlanOptimizationSetupModel> constraints)
         {
-            foreach (PlanOptimizationSetup itr in constraints)
+            foreach (PlanOptimizationSetupModel itr in constraints)
             {
                 ExternalPlanSetup thePlan = null;
                 //additional check if the plan was not found in the list of VMATplans
@@ -953,17 +953,17 @@ namespace VMATTBICSIOptLoopMT
                             else if (line.Contains("Optimization constraints:"))
                             {
                                 string planId = "";
-                                List<OptimizationConstraint> tmpConstraints = new List<OptimizationConstraint> { };
+                                List<OptimizationConstraintModel> tmpConstraints = new List<OptimizationConstraintModel> { };
                                 while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {
                                     if (!line.Contains("{"))
                                     {
                                         if(tmpConstraints.Any())
                                         {
-                                            optConstraintsFromLogs.Add(new PlanOptimizationSetup(planId, new List<OptimizationConstraint>(tmpConstraints)));
+                                            optConstraintsFromLogs.Add(new PlanOptimizationSetupModel(planId, new List<OptimizationConstraintModel>(tmpConstraints)));
                                         }
                                         planId = line;
-                                        tmpConstraints = new List<OptimizationConstraint> { };
+                                        tmpConstraints = new List<OptimizationConstraintModel> { };
                                     }
                                     else
                                     {
@@ -972,7 +972,7 @@ namespace VMATTBICSIOptLoopMT
                                 }
                                 if (tmpConstraints.Any())
                                 {
-                                    optConstraintsFromLogs.Add(new PlanOptimizationSetup(planId, new List<OptimizationConstraint>(tmpConstraints)));
+                                    optConstraintsFromLogs.Add(new PlanOptimizationSetupModel(planId, new List<OptimizationConstraintModel>(tmpConstraints)));
                                 }
                             }
                         }

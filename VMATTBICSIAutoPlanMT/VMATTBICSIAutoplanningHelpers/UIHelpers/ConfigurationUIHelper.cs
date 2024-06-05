@@ -48,7 +48,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 {
                     sb.AppendLine(String.Format(" {0} ring structures:", itr.TemplateName));
                     sb.AppendLine(String.Format("  {0, -15} | {1, -11} | {2, -14} | {3,-10} |", "target Id", "margin (cm)", "thickness (cm)", "dose (cGy)"));
-                    foreach (Models.TSRing ring in itr.Rings) sb.AppendLine(String.Format("  {0, -15} | {1, -11} | {2, -14} | {3,-10} |", ring.TargetId, ring.MarginFromTargetInCM, ring.RingThicknessInCM, ring.DoseLevel));
+                    foreach (Models.TSRingStructureModel ring in itr.Rings) sb.AppendLine(String.Format("  {0, -15} | {1, -11} | {2, -14} | {3,-10} |", ring.TargetId, ring.MarginFromTargetInCM, ring.RingThicknessInCM, ring.DoseLevel));
                     sb.AppendLine(Environment.NewLine);
                 }
                 else sb.AppendLine(String.Format(" No requested ring structures for template: {0}", itr.TemplateName));
@@ -66,7 +66,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 {
                     sb.AppendLine($" {itr.TemplateName} template initial plan optimization parameters:");
                     sb.AppendLine(String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority"));
-                    foreach (OptimizationConstraint opt in itr.InitialOptimizationConstraints) sb.AppendLine(String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.StructureId, opt.ConstraintType, opt.QueryDose, opt.QueryVolume, opt.Priority));
+                    foreach (OptimizationConstraintModel opt in itr.InitialOptimizationConstraints) sb.AppendLine(String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.StructureId, opt.ConstraintType, opt.QueryDose, opt.QueryVolume, opt.Priority));
                     sb.AppendLine(Environment.NewLine);
                 }
                 else sb.AppendLine($" No iniital plan optimization constraints for template: {itr.TemplateName}");
@@ -75,7 +75,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 {
                     sb.AppendLine($" {itr.TemplateName} template boost plan optimization parameters:");
                     sb.AppendLine(String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority"));
-                    foreach (OptimizationConstraint opt in itr.BoostOptimizationConstraints) sb.AppendLine(String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.StructureId, opt.ConstraintType, opt.QueryDose, opt.QueryVolume, opt.Priority));
+                    foreach (OptimizationConstraintModel opt in itr.BoostOptimizationConstraints) sb.AppendLine(String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.StructureId, opt.ConstraintType, opt.QueryDose, opt.QueryVolume, opt.Priority));
                     sb.AppendLine(Environment.NewLine);
                 }
                 else sb.AppendLine($" No boost plan optimization constraints for template: {itr.TemplateName}");
@@ -107,7 +107,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 {
                     sb.AppendLine($" {itr.TemplateName} template initial plan optimization parameters:");
                     sb.AppendLine(String.Format("  {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -8} |", "structure Id", "constraint type", "dose (cGy)", "volume (%)", "priority"));
-                    foreach (OptimizationConstraint opt in itr.InitialOptimizationConstraints) sb.AppendLine(String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.StructureId, opt.ConstraintType, opt.QueryDose, opt.QueryVolume, opt.Priority));
+                    foreach (OptimizationConstraintModel opt in itr.InitialOptimizationConstraints) sb.AppendLine(String.Format("  {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", opt.StructureId, opt.ConstraintType, opt.QueryDose, opt.QueryVolume, opt.Priority));
                     sb.AppendLine(Environment.NewLine);
                 }
                 else sb.AppendLine($" No iniital plan optimization constraints for template: {itr.TemplateName}");
@@ -144,7 +144,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             {
                 sb.AppendLine($" {itr.TemplateName} additional tuning structures:");
                 sb.AppendLine(String.Format("  {0, -10} | {1, -15} |", "DICOM type", "Structure Id"));
-                foreach (RequestedTSStructure ts in itr.CreateTSStructures) sb.AppendLine(String.Format("  {0, -10} | {1, -15} |", ts.DICOMType, ts.StructureId));
+                foreach (RequestedTSStructureModel ts in itr.CreateTSStructures) sb.AppendLine(String.Format("  {0, -10} | {1, -15} |", ts.DICOMType, ts.StructureId));
                 sb.AppendLine(Environment.NewLine);
             }
             else sb.AppendLine($" No additional tuning structures for template: {itr.TemplateName}");
@@ -153,7 +153,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             {
                 sb.AppendLine($" {itr.TemplateName} additional sparing structures:");
                 sb.AppendLine(String.Format("  {0, -15} | {1, -26} | {2, -11} |", "structure Id", "sparing type", "margin (cm)"));
-                foreach (RequestedTSManipulation spare in itr.TSManipulations) sb.AppendLine(String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |", spare.StructureId, spare.ManipulationType, spare.MarginInCM));
+                foreach (RequestedTSManipulationModel spare in itr.TSManipulations) sb.AppendLine(String.Format("  {0, -15} | {1, -26} | {2,-11:N1} |", spare.StructureId, spare.ManipulationType, spare.MarginInCM));
                 sb.AppendLine(Environment.NewLine);
             }
             else sb.AppendLine($" No additional sparing structures for template: {itr.TemplateName}");
@@ -173,7 +173,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 sb.AppendLine($" {itr.TemplateName} template requested dosimetric info after each iteration:");
                 sb.AppendLine(String.Format(" {0, -15} | {1, -6} | {2, -9} |", "structure Id", "metric", "dose type"));
 
-                foreach (RequestedPlanMetric info in itr.RequestedPlanMetrics)
+                foreach (RequestedPlanMetricModel info in itr.RequestedPlanMetrics)
                 {
                     if (info.DVHMetric == DVHMetric.Dmax || info.DVHMetric == DVHMetric.Dmin) sb.AppendLine(String.Format(" {0, -15} | {1, -6} | {2, -9} |", info.StructureId, info.DVHMetric, info.QueryResultUnits));
                     else sb.AppendLine(String.Format(" {0, -15} | {1, -6} | {2, -9} |", info.StructureId, $"{info.DVHMetric} {info.QueryValue} {info.QueryUnits}", info.QueryResultUnits));
@@ -186,7 +186,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             {
                 sb.AppendLine($" {itr.TemplateName} template plan objectives:");
                 sb.AppendLine(String.Format(" {0, -15} | {1, -16} | {2, -10} | {3, -10} | {4, -9} |", "structure Id", "constraint type", "dose", "volume (%)", "dose type"));
-                foreach (PlanObjective obj in itr.PlanObjectives)
+                foreach (PlanObjectiveModel obj in itr.PlanObjectives)
                 {
                     sb.AppendLine(String.Format(" {0, -15} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-9} |", obj.StructureId, obj.ConstraintType, obj.QueryDose, obj.QueryVolume, obj.QueryDoseUnits));
                 }
@@ -198,16 +198,16 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             {
                 sb.AppendLine($" {itr.TemplateName} template requested tuning structures:");
                 sb.AppendLine(String.Format(" {0, -15} | {1, -9} | {2, -10} | {3, -5} | {4, -8} | {5, -10} |", "structure Id", "low D (%)", "high D (%)", "V (%)", "priority", "constraint"));
-                foreach (RequestedOptimizationTSStructure ts in itr.RequestedOptimizationTSStructures)
+                foreach (RequestedOptimizationTSStructureModel ts in itr.RequestedOptimizationTSStructures)
                 {
-                    if(ts.GetType() == typeof(TSCooler)) sb.Append(String.Format(" {0, -15} | {1, -9:N1} | {2,-10:N1} | {3,-5:N1} | {4,-8} |", ts.TSStructureId, "", (ts as TSCooler).UpperDoseValue, ts.Constraints.First().QueryVolume, ts.Constraints.First().Priority));
-                    else sb.Append(String.Format(" {0, -15} | {1, -9:N1} | {2,-10:N1} | {3,-5:N1} | {4,-8} |", ts.TSStructureId, (ts as TSHeater).LowerDoseValue, (ts as TSHeater).UpperDoseValue, ts.Constraints.First().QueryVolume, ts.Constraints.First().Priority));
+                    if(ts.GetType() == typeof(TSCoolerStructureModel)) sb.Append(String.Format(" {0, -15} | {1, -9:N1} | {2,-10:N1} | {3,-5:N1} | {4,-8} |", ts.TSStructureId, "", (ts as TSCoolerStructureModel).UpperDoseValue, ts.Constraints.First().QueryVolume, ts.Constraints.First().Priority));
+                    else sb.Append(String.Format(" {0, -15} | {1, -9:N1} | {2,-10:N1} | {3,-5:N1} | {4,-8} |", ts.TSStructureId, (ts as TSHeaterStructureModel).LowerDoseValue, (ts as TSHeaterStructureModel).UpperDoseValue, ts.Constraints.First().QueryVolume, ts.Constraints.First().Priority));
                     
                     if (!ts.CreationCriteria.Any()) sb.AppendLine(String.Format(" {0,-10} |", "none"));
                     else
                     {
                         int count = 0;
-                        foreach (OptTSCreationCriteria ts1 in ts.CreationCriteria)
+                        foreach (OptTSCreationCriteriaModel ts1 in ts.CreationCriteria)
                         {
                             if (count == 0)
                             {

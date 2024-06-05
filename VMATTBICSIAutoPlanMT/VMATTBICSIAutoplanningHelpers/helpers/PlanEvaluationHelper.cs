@@ -22,7 +22,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         {
             //generic type function to accept both optimization constraint and plan objective tuples as arguments
             double diff = 0.0;
-            if(goal.GetType() == typeof(PlanObjective)) goal = (PlanObjective)goal;
+            if(goal.GetType() == typeof(PlanObjectiveModel)) goal = (PlanObjectiveModel)goal;
             //calculate the dose difference between the actual plan dose and the optimization dose constraint (separate based on constraint type). If the difference is less than 0, truncate the dose difference to 0
             if (goal.ConstraintType == OptimizationObjectiveType.Upper)
             {

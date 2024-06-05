@@ -18,18 +18,18 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="oldBstRx"></param>
         /// <param name="newBstRx"></param>
         /// <returns></returns>
-        public static List<TSRing> RescaleRingDosesToNewRx(List<TSRing> existingRings,
-                                                           List<Prescription> prescriptions,
+        public static List<TSRingStructureModel> RescaleRingDosesToNewRx(List<TSRingStructureModel> existingRings,
+                                                           List<PrescriptionModel> prescriptions,
                                                            double oldInitRx,
                                                            double newInitRx,
                                                            double oldBstRx,
                                                            double newBstRx)
         {
-            List<TSRing> scaledRings = new List<TSRing> { };
+            List<TSRingStructureModel> scaledRings = new List<TSRingStructureModel> { };
             List<Tuple<string, double>> planIdRx = TargetsHelper.GetPlanIdHighesRxDoseFromPrescriptions(prescriptions);
             bool isInitPlan = true;
 
-            foreach (TSRing itr in existingRings)
+            foreach (TSRingStructureModel itr in existingRings)
             {
                 //match ring target to prescription target
                 if (prescriptions.Any(x => string.Equals(x.TargetId, itr.TargetId)))
@@ -57,7 +57,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                         scaleFactor = newBstRx / oldBstRx;
                     }
                     //scale ring dose by ratio of appropriate plan Rx doses
-                    scaledRings.Add(new TSRing(itr.TargetId, itr.MarginFromTargetInCM, itr.RingThicknessInCM, itr.DoseLevel * scaleFactor));
+                    scaledRings.Add(new TSRingStructureModel(itr.TargetId, itr.MarginFromTargetInCM, itr.RingThicknessInCM, itr.DoseLevel * scaleFactor));
                 }
             }
 

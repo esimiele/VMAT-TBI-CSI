@@ -3,18 +3,18 @@ using VMATTBICSIAutoPlanningHelpers.Helpers;
 
 namespace VMATTBICSIAutoPlanningHelpers.Models
 {
-    public class OptTSCreationCriteria : RequestedPlanMetric
+    public class OptTSCreationCriteriaModel : RequestedPlanMetricModel
     {
         public bool CreateForFinalOptimization { get; set; } = false;
         public double Limit { get; set; } = double.NaN;
         public InequalityOperator Operator { get; set; } = InequalityOperator.None;
         public double QueryResult { get; set; } = double.NaN;
-        public OptTSCreationCriteria(bool finalOpt) 
+        public OptTSCreationCriteriaModel(bool finalOpt) 
         {
             CreateForFinalOptimization = finalOpt;
         }
 
-        public OptTSCreationCriteria(DVHMetric dVHMetric, double queryVal, Units queryUnits, InequalityOperator op, double lim, Units resultUnits) 
+        public OptTSCreationCriteriaModel(DVHMetric dVHMetric, double queryVal, Units queryUnits, InequalityOperator op, double lim, Units resultUnits) 
         {
             DVHMetric = dVHMetric;
             QueryValue = queryVal;
@@ -24,7 +24,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Models
             QueryResultUnits = resultUnits;
         }
 
-        public OptTSCreationCriteria(DVHMetric dVHMetric, InequalityOperator op, double lim, Units resultUnits)
+        public OptTSCreationCriteriaModel(DVHMetric dVHMetric, InequalityOperator op, double lim, Units resultUnits)
         {
             DVHMetric = dVHMetric;
             Operator = op;

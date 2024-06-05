@@ -2,15 +2,15 @@
 
 namespace VMATTBICSIAutoPlanningHelpers.Models
 {
-    public class Prescription
+    public class PrescriptionModel
     {
         public string PlanId { get; set; } = string.Empty;
         public string TargetId { get; set; } = string.Empty;
         public int NumberOfFractions { get; set; } = -1;
-        public DoseValue DoseValue { get; set; } = new DoseValue();
+        public DoseValue DosePerFraction { get; set; } = new DoseValue();
         public double CumulativeDoseToTarget { get; set; } = double.NaN;
 
-        public Prescription(string planId, 
+        public PrescriptionModel(string planId, 
                             string targetId, 
                             int numberOfFractions, 
                             DoseValue doseValue, 
@@ -19,7 +19,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Models
             PlanId = planId;
             TargetId = targetId;
             NumberOfFractions = numberOfFractions;
-            DoseValue = doseValue;
+            DosePerFraction = doseValue;
             CumulativeDoseToTarget = cumulativeDoseToTarget;
         }
     }

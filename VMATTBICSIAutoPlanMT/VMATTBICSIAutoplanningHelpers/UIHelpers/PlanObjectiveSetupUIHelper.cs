@@ -89,10 +89,10 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// </summary>
         /// <param name="theSP"></param>
         /// <returns></returns>
-        public static List<PlanObjective> ParsePlanObjectives(StackPanel theSP)
+        public static List<PlanObjectiveModel> ParsePlanObjectives(StackPanel theSP)
         {
             //get constraints
-            List<PlanObjective> tmp = new List<PlanObjective> { };
+            List<PlanObjectiveModel> tmp = new List<PlanObjectiveModel> { };
             string structure = "";
             string constraintType = "";
             double dose = -1.0;
@@ -140,15 +140,15 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                     if (structure == "--select--" || constraintType == "--select--")
                     {
                         MessageBox.Show("Error! \nStructure or Sparing Type not selected! \nSelect an option and try again");
-                        return new List<PlanObjective>{};
+                        return new List<PlanObjectiveModel>{};
                     }
                     else if (dose == -1.0 || vol == -1.0)
                     {
                         MessageBox.Show("Error! \nDose, volume, or priority values are invalid! \nEnter new values and try again");
-                        return new List<PlanObjective> { };
+                        return new List<PlanObjectiveModel> { };
                     }
                     //if the row of data passes the above checks, add it the optimization parameter list
-                    else tmp.Add(new PlanObjective(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), Math.Round(dose, 3, MidpointRounding.AwayFromZero), Units.cGy, Math.Round(vol, 3, MidpointRounding.AwayFromZero), presentation));
+                    else tmp.Add(new PlanObjectiveModel(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), Math.Round(dose, 3, MidpointRounding.AwayFromZero), Units.cGy, Math.Round(vol, 3, MidpointRounding.AwayFromZero), presentation));
                     //reset the values of the variables used to parse the data
                     firstCombo = true;
                     txtbxNum = 1;

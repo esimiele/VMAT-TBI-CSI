@@ -37,33 +37,33 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             };
         }
 
-        public List<OptimizationConstraint> SetupDummyInitialOptObjList()
+        public List<OptimizationConstraintModel> SetupDummyInitialOptObjList()
         {
             //rx = 3600
-            return new List<OptimizationConstraint>
+            return new List<OptimizationConstraintModel>
             {
-                new OptimizationConstraint("PTV_CSI", OptimizationObjectiveType.Lower, 3600, Units.cGy, 0.0, 100),
-                new OptimizationConstraint("PTV_CSI", OptimizationObjectiveType.Upper, 3672, Units.cGy, 0.0, 100),
-                new OptimizationConstraint("Brainstem", OptimizationObjectiveType.Upper, 3650, Units.cGy, 0.0, 80),
-                new OptimizationConstraint ("Brainstem_PRV", OptimizationObjectiveType.Upper, 3650, Units.cGy, 0.0, 60),
-                new OptimizationConstraint ("OpticChiasm", OptimizationObjectiveType.Upper, 3420, Units.cGy, 0.0, 80),
-                new OptimizationConstraint ("OpticChiasm_PRV", OptimizationObjectiveType.Upper, 3420, Units.cGy, 0.0, 60),
-                new OptimizationConstraint ("TS_cooler107", OptimizationObjectiveType.Upper, 3672.0, Units.cGy, 0.0, 80)
+                new OptimizationConstraintModel("PTV_CSI", OptimizationObjectiveType.Lower, 3600, Units.cGy, 0.0, 100),
+                new OptimizationConstraintModel("PTV_CSI", OptimizationObjectiveType.Upper, 3672, Units.cGy, 0.0, 100),
+                new OptimizationConstraintModel("Brainstem", OptimizationObjectiveType.Upper, 3650, Units.cGy, 0.0, 80),
+                new OptimizationConstraintModel ("Brainstem_PRV", OptimizationObjectiveType.Upper, 3650, Units.cGy, 0.0, 60),
+                new OptimizationConstraintModel ("OpticChiasm", OptimizationObjectiveType.Upper, 3420, Units.cGy, 0.0, 80),
+                new OptimizationConstraintModel ("OpticChiasm_PRV", OptimizationObjectiveType.Upper, 3420, Units.cGy, 0.0, 60),
+                new OptimizationConstraintModel ("TS_cooler107", OptimizationObjectiveType.Upper, 3672.0, Units.cGy, 0.0, 80)
             };
         }
 
-        public List<OptimizationConstraint> SetupDummyBoostOptObjList()
+        public List<OptimizationConstraintModel> SetupDummyBoostOptObjList()
         {
             //rx = 3600
-            return new List<OptimizationConstraint>
+            return new List<OptimizationConstraintModel>
             {
-                new OptimizationConstraint ("PTV_Boost", OptimizationObjectiveType.Lower, 1800, Units.cGy, 0.0, 100),
-                new OptimizationConstraint ("PTV_Boost", OptimizationObjectiveType.Upper, 1850, Units.cGy, 0.0, 100),
-                new OptimizationConstraint ("Brainstem", OptimizationObjectiveType.Upper, 1760, Units.cGy, 0.0, 80),
-                new OptimizationConstraint ("Brainstem_PRV", OptimizationObjectiveType.Upper, 1760, Units.cGy, 0.0, 60),
-                new OptimizationConstraint ("OpticChiasm", OptimizationObjectiveType.Upper, 1650, Units.cGy, 0.0, 80),
-                new OptimizationConstraint ("OpticChiasm_PRV", OptimizationObjectiveType.Upper, 1650, Units.cGy, 0.0, 60),
-                new OptimizationConstraint ("TS_cooler107", OptimizationObjectiveType.Upper, 1836, Units.cGy, 0.0, 80)
+                new OptimizationConstraintModel ("PTV_Boost", OptimizationObjectiveType.Lower, 1800, Units.cGy, 0.0, 100),
+                new OptimizationConstraintModel ("PTV_Boost", OptimizationObjectiveType.Upper, 1850, Units.cGy, 0.0, 100),
+                new OptimizationConstraintModel ("Brainstem", OptimizationObjectiveType.Upper, 1760, Units.cGy, 0.0, 80),
+                new OptimizationConstraintModel ("Brainstem_PRV", OptimizationObjectiveType.Upper, 1760, Units.cGy, 0.0, 60),
+                new OptimizationConstraintModel ("OpticChiasm", OptimizationObjectiveType.Upper, 1650, Units.cGy, 0.0, 80),
+                new OptimizationConstraintModel ("OpticChiasm_PRV", OptimizationObjectiveType.Upper, 1650, Units.cGy, 0.0, 60),
+                new OptimizationConstraintModel ("TS_cooler107", OptimizationObjectiveType.Upper, 1836, Units.cGy, 0.0, 80)
             };
         }
 
@@ -74,8 +74,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             template.InitialRxDosePerFx = 180.0;
             template.BoostRxNumberOfFractions = 10;
             template.BoostRxDosePerFx = 180.0;
-            template.InitialOptimizationConstraints = new List<OptimizationConstraint>(SetupDummyInitialOptObjList());
-            template.BoostOptimizationConstraints = new List<OptimizationConstraint>(SetupDummyBoostOptObjList());
+            template.InitialOptimizationConstraints = new List<OptimizationConstraintModel>(SetupDummyInitialOptObjList());
+            template.BoostOptimizationConstraints = new List<OptimizationConstraintModel>(SetupDummyBoostOptObjList());
             return template;
         }
 
@@ -84,7 +84,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             TBIAutoPlanTemplate template = new TBIAutoPlanTemplate("test");
             template.InitialRxNumberOfFractions = 20;
             template.InitialRxDosePerFx = 180.0;
-            template.InitialOptimizationConstraints = new List<OptimizationConstraint>(SetupDummyInitialOptObjList());
+            template.InitialOptimizationConstraints = new List<OptimizationConstraintModel>(SetupDummyInitialOptObjList());
             return template;
         }
 
@@ -93,27 +93,27 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         {
             Dictionary<string, string> testPlanTargets = CreateDummyCSIPlanTargetsList();
             CSIAutoPlanTemplate testTemplate = ConstructTestCSIAutoPlanTemplate();
-            List<PlanOptimizationSetup> expected = new List<PlanOptimizationSetup>
+            List<PlanOptimizationSetupModel> expected = new List<PlanOptimizationSetupModel>
             {
-                new PlanOptimizationSetup("initial", SetupDummyInitialOptObjList()),
-                new PlanOptimizationSetup("boost", SetupDummyBoostOptObjList())
+                new PlanOptimizationSetupModel("initial", SetupDummyInitialOptObjList()),
+                new PlanOptimizationSetupModel("boost", SetupDummyBoostOptObjList())
             };
 
-            List<PlanOptimizationSetup> result = OptimizationSetupHelper.CreateOptimizationConstraintList(testTemplate, testPlanTargets);
+            List<PlanOptimizationSetupModel> result = OptimizationSetupHelper.CreateOptimizationConstraintList(testTemplate, testPlanTargets);
 
             //CollectionAssert.AreEqual(expected, result);
             int count = 0;
-            foreach (PlanOptimizationSetup itr in result)
+            foreach (PlanOptimizationSetupModel itr in result)
             {
                 Assert.AreEqual(itr.PlanId, expected.ElementAt(count).PlanId);
                 CollectionAssert.AreEqual(itr.OptimizationConstraints, expected.ElementAt(count).OptimizationConstraints);
                 count++;
             }
 
-            expected = new List<PlanOptimizationSetup>
+            expected = new List<PlanOptimizationSetupModel>
             {
-                new PlanOptimizationSetup("initial", SetupDummyInitialOptObjList()),
-                new PlanOptimizationSetup("boost", SetupDummyBoostOptObjList())
+                new PlanOptimizationSetupModel("initial", SetupDummyInitialOptObjList()),
+                new PlanOptimizationSetupModel("boost", SetupDummyBoostOptObjList())
             };
         }
 
@@ -121,17 +121,17 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         public void CreateOptimizationConstraintListCSITestNoPlanTargets()
         {
             CSIAutoPlanTemplate testTemplate = ConstructTestCSIAutoPlanTemplate();
-            List<PlanOptimizationSetup> expected = new List<PlanOptimizationSetup>
+            List<PlanOptimizationSetupModel> expected = new List<PlanOptimizationSetupModel>
             {
-                new PlanOptimizationSetup("CSI-init", SetupDummyInitialOptObjList()),
-                new PlanOptimizationSetup("CSI-bst", SetupDummyBoostOptObjList())
+                new PlanOptimizationSetupModel("CSI-init", SetupDummyInitialOptObjList()),
+                new PlanOptimizationSetupModel("CSI-bst", SetupDummyBoostOptObjList())
             };
 
-            List<PlanOptimizationSetup> result = OptimizationSetupHelper.CreateOptimizationConstraintList(testTemplate, new Dictionary<string, string> { });
+            List<PlanOptimizationSetupModel> result = OptimizationSetupHelper.CreateOptimizationConstraintList(testTemplate, new Dictionary<string, string> { });
 
             //CollectionAssert.AreEqual(expected, result);
             int count = 0;
-            foreach (PlanOptimizationSetup itr in result)
+            foreach (PlanOptimizationSetupModel itr in result)
             {
                 Assert.AreEqual(itr.PlanId, expected.ElementAt(count).PlanId);
                 CollectionAssert.AreEqual(itr.OptimizationConstraints, expected.ElementAt(count).OptimizationConstraints);
@@ -143,16 +143,16 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         public void CreateOptimizationConstraintListTBITestNoPlanTargets()
         {
             TBIAutoPlanTemplate testTemplate = ConstructTestTBIAutoPlanTemplate();
-            List<PlanOptimizationSetup> expected = new List<PlanOptimizationSetup>
+            List<PlanOptimizationSetupModel> expected = new List<PlanOptimizationSetupModel>
             {
-                new PlanOptimizationSetup("VMAT-TBI", SetupDummyInitialOptObjList()),
+                new PlanOptimizationSetupModel("VMAT-TBI", SetupDummyInitialOptObjList()),
             };
 
-            List<PlanOptimizationSetup> result = OptimizationSetupHelper.CreateOptimizationConstraintList(testTemplate, new Dictionary<string, string> { });
+            List<PlanOptimizationSetupModel> result = OptimizationSetupHelper.CreateOptimizationConstraintList(testTemplate, new Dictionary<string, string> { });
 
             //CollectionAssert.AreEqual(expected, result);
             int count = 0;
-            foreach (PlanOptimizationSetup itr in result)
+            foreach (PlanOptimizationSetupModel itr in result)
             {
                 Assert.AreEqual(itr.PlanId, expected.ElementAt(count).PlanId);
                 CollectionAssert.AreEqual(itr.OptimizationConstraints, expected.ElementAt(count).OptimizationConstraints);

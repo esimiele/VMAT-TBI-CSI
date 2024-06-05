@@ -7,7 +7,7 @@ using VMATTBICSIAutoPlanningHelpers.Enums;
 
 namespace VMATTBICSIAutoPlanningHelpers.Models
 {
-    public class RequestedPlanMetric
+    public class RequestedPlanMetricModel
     {
         public string StructureId { get; set; } = string.Empty;
         public DVHMetric DVHMetric { get; set; } = DVHMetric.None;
@@ -15,8 +15,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Models
         public Units QueryUnits { get; set; } = Units.None;
         public Units QueryResultUnits { get; set; } = Units.None;
 
-        public RequestedPlanMetric() { }
-        public RequestedPlanMetric(string structureId, DVHMetric dVHMetric, double queryVal, Units queryUnits, Units resultUnits)
+        public RequestedPlanMetricModel() { }
+        public RequestedPlanMetricModel(string structureId, DVHMetric dVHMetric, double queryVal, Units queryUnits, Units resultUnits)
         {
             StructureId = structureId;
             DVHMetric = dVHMetric;
@@ -25,7 +25,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Models
             QueryResultUnits = resultUnits;
         }
 
-        public RequestedPlanMetric(string structureId, DVHMetric dVHMetric, Units resultUnits)
+        public RequestedPlanMetricModel(string structureId, DVHMetric dVHMetric, Units resultUnits)
         {
             StructureId = structureId;
             DVHMetric = dVHMetric;

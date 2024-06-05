@@ -12,7 +12,7 @@ namespace VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses
         //this is only here for the display name data binding. All other references to the template name use the explicit get method
         public double InitialRxDosePerFx { get; set; } = 0.1;
         public int InitialRxNumberOfFractions { get; set; } = 1;
-        public List<OptimizationConstraint> InitialOptimizationConstraints { get; set; } = new List<OptimizationConstraint>();
+        public List<OptimizationConstraintModel> InitialOptimizationConstraints { get; set; } = new List<OptimizationConstraintModel>();
         #endregion
 
         /// <summary>

@@ -18,30 +18,30 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         [TestMethod()]
         public void AddTemplateSpecificStructureManipulationsTest()
         {
-            List<RequestedTSManipulation> templateManipulationList = new List<RequestedTSManipulation>
+            List<RequestedTSManipulationModel> templateManipulationList = new List<RequestedTSManipulationModel>
             {
-                new RequestedTSManipulation("Ovaries", TSManipulationType.CropTargetFromStructure, 0.1),
-                new RequestedTSManipulation("Testes", TSManipulationType.CropTargetFromStructure, 0.1),
-                new RequestedTSManipulation("Liver", TSManipulationType.CropTargetFromStructure, 0.0),
-                new RequestedTSManipulation("Lungs", TSManipulationType.ContourSubStructure, -1.0),
-                new RequestedTSManipulation("Lungs", TSManipulationType.ContourSubStructure, -1.5),
-                new RequestedTSManipulation("Liver", TSManipulationType.ContourSubStructure, -1.0),
-                new RequestedTSManipulation("Liver", TSManipulationType.ContourSubStructure, -2.0),
+                new RequestedTSManipulationModel("Ovaries", TSManipulationType.CropTargetFromStructure, 0.1),
+                new RequestedTSManipulationModel("Testes", TSManipulationType.CropTargetFromStructure, 0.1),
+                new RequestedTSManipulationModel("Liver", TSManipulationType.CropTargetFromStructure, 0.0),
+                new RequestedTSManipulationModel("Lungs", TSManipulationType.ContourSubStructure, -1.0),
+                new RequestedTSManipulationModel("Lungs", TSManipulationType.ContourSubStructure, -1.5),
+                new RequestedTSManipulationModel("Liver", TSManipulationType.ContourSubStructure, -1.0),
+                new RequestedTSManipulationModel("Liver", TSManipulationType.ContourSubStructure, -2.0),
             };
-            List<RequestedTSManipulation> defaultManipulationList = new List<RequestedTSManipulation> { };
+            List<RequestedTSManipulationModel> defaultManipulationList = new List<RequestedTSManipulationModel> { };
 
             string sex = "Female";
-            List<RequestedTSManipulation> expected = new List<RequestedTSManipulation>
+            List<RequestedTSManipulationModel> expected = new List<RequestedTSManipulationModel>
             {
-                new RequestedTSManipulation("Ovaries", TSManipulationType.CropTargetFromStructure, 0.1),
-                new RequestedTSManipulation("Liver", TSManipulationType.CropTargetFromStructure, 0.0),
-                new RequestedTSManipulation("Lungs", TSManipulationType.ContourSubStructure, -1.0),
-                new RequestedTSManipulation("Lungs", TSManipulationType.ContourSubStructure, -1.5),
-                new RequestedTSManipulation("Liver", TSManipulationType.ContourSubStructure, -1.0),
-                new RequestedTSManipulation("Liver", TSManipulationType.ContourSubStructure, -2.0),
+                new RequestedTSManipulationModel("Ovaries", TSManipulationType.CropTargetFromStructure, 0.1),
+                new RequestedTSManipulationModel("Liver", TSManipulationType.CropTargetFromStructure, 0.0),
+                new RequestedTSManipulationModel("Lungs", TSManipulationType.ContourSubStructure, -1.0),
+                new RequestedTSManipulationModel("Lungs", TSManipulationType.ContourSubStructure, -1.5),
+                new RequestedTSManipulationModel("Liver", TSManipulationType.ContourSubStructure, -1.0),
+                new RequestedTSManipulationModel("Liver", TSManipulationType.ContourSubStructure, -2.0),
             };
 
-            List<RequestedTSManipulation> result = StructureTuningHelper.AddTemplateSpecificStructureManipulations(templateManipulationList,
+            List<RequestedTSManipulationModel> result = StructureTuningHelper.AddTemplateSpecificStructureManipulations(templateManipulationList,
                                                                                                                   defaultManipulationList,
                                                                                                                   sex);
 

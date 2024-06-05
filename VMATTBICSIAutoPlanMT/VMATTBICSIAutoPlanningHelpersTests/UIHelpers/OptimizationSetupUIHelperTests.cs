@@ -47,18 +47,18 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers.Tests
             return testMeanObj;
         }
 
-        public List<OptimizationConstraint> BuildExpectedObjectiveList()
+        public List<OptimizationConstraintModel> BuildExpectedObjectiveList()
         {
-            return new List<OptimizationConstraint>
+            return new List<OptimizationConstraintModel>
             {
-                new OptimizationConstraint("0", OptimizationObjectiveType.Upper, 0.0, Units.cGy, 0.0, 0),
-                new OptimizationConstraint("1", OptimizationObjectiveType.Lower, 10.0, Units.cGy, 100.0, 1),
-                new OptimizationConstraint("2", OptimizationObjectiveType.Upper, 20.0, Units.cGy, 200.0, 2),
-                new OptimizationConstraint("3", OptimizationObjectiveType.Lower, 30.0, Units.cGy, 300.0, 3),
-                new OptimizationConstraint("4", OptimizationObjectiveType.Upper, 40.0, Units.cGy, 400.0, 4),
-                new OptimizationConstraint("0", OptimizationObjectiveType.Mean, 0.0, Units.cGy, 0.0, 0),
-                new OptimizationConstraint("1", OptimizationObjectiveType.Mean, 10.0, Units.cGy, 0.0, 1),
-                new OptimizationConstraint("2", OptimizationObjectiveType.Mean, 20.0, Units.cGy, 0.0, 2),
+                new OptimizationConstraintModel("0", OptimizationObjectiveType.Upper, 0.0, Units.cGy, 0.0, 0),
+                new OptimizationConstraintModel("1", OptimizationObjectiveType.Lower, 10.0, Units.cGy, 100.0, 1),
+                new OptimizationConstraintModel("2", OptimizationObjectiveType.Upper, 20.0, Units.cGy, 200.0, 2),
+                new OptimizationConstraintModel("3", OptimizationObjectiveType.Lower, 30.0, Units.cGy, 300.0, 3),
+                new OptimizationConstraintModel("4", OptimizationObjectiveType.Upper, 40.0, Units.cGy, 400.0, 4),
+                new OptimizationConstraintModel("0", OptimizationObjectiveType.Mean, 0.0, Units.cGy, 0.0, 0),
+                new OptimizationConstraintModel("1", OptimizationObjectiveType.Mean, 10.0, Units.cGy, 0.0, 1),
+                new OptimizationConstraintModel("2", OptimizationObjectiveType.Mean, 20.0, Units.cGy, 0.0, 2),
             };
         }
 
@@ -73,10 +73,10 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers.Tests
             Mock.Arrange(() => setup.Objectives).Returns(testObj);
             Mock.Arrange(() => plan.OptimizationSetup).Returns(setup);
 
-            List<OptimizationConstraint> expected = BuildExpectedObjectiveList();
+            List<OptimizationConstraintModel> expected = BuildExpectedObjectiveList();
 
-            List<OptimizationConstraint> result = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
-            foreach (OptimizationConstraint itr in result)
+            List<OptimizationConstraintModel> result = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
+            foreach (OptimizationConstraintModel itr in result)
             {
                 Console.WriteLine($"{itr.StructureId}, {itr.ConstraintType}, {itr.QueryDose}, {itr.QueryVolume}, {itr.Priority}");
             }
@@ -87,23 +87,23 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers.Tests
         [TestMethod()]
         public void RescalePlanObjectivesToNewRxTest()
         {
-            List<OptimizationConstraint> initialList = BuildExpectedObjectiveList();
+            List<OptimizationConstraintModel> initialList = BuildExpectedObjectiveList();
             double oldRx = 800.0;
             double newRx = 1200.0;
-            List<OptimizationConstraint> expected = new List<OptimizationConstraint>
+            List<OptimizationConstraintModel> expected = new List<OptimizationConstraintModel>
             {
-                new OptimizationConstraint("0", OptimizationObjectiveType.Upper, 0.0, Units.cGy, 0.0, 0),
-                new OptimizationConstraint("1", OptimizationObjectiveType.Lower, 15.0, Units.cGy,100.0, 1),
-                new OptimizationConstraint("2", OptimizationObjectiveType.Upper, 30.0, Units.cGy,200.0, 2),
-                new OptimizationConstraint("3", OptimizationObjectiveType.Lower, 45.0, Units.cGy,300.0, 3),
-                new OptimizationConstraint("4", OptimizationObjectiveType.Upper, 60.0, Units.cGy,400.0, 4),
-                new OptimizationConstraint("0", OptimizationObjectiveType.Mean, 0.0, Units.cGy,0.0, 0),
-                new OptimizationConstraint("1", OptimizationObjectiveType.Mean, 15.0, Units.cGy,0.0, 1),
-                new OptimizationConstraint("2", OptimizationObjectiveType.Mean, 30.0, Units.cGy,0.0, 2),
+                new OptimizationConstraintModel("0", OptimizationObjectiveType.Upper, 0.0, Units.cGy, 0.0, 0),
+                new OptimizationConstraintModel("1", OptimizationObjectiveType.Lower, 15.0, Units.cGy,100.0, 1),
+                new OptimizationConstraintModel("2", OptimizationObjectiveType.Upper, 30.0, Units.cGy,200.0, 2),
+                new OptimizationConstraintModel("3", OptimizationObjectiveType.Lower, 45.0, Units.cGy,300.0, 3),
+                new OptimizationConstraintModel("4", OptimizationObjectiveType.Upper, 60.0, Units.cGy,400.0, 4),
+                new OptimizationConstraintModel("0", OptimizationObjectiveType.Mean, 0.0, Units.cGy,0.0, 0),
+                new OptimizationConstraintModel("1", OptimizationObjectiveType.Mean, 15.0, Units.cGy,0.0, 1),
+                new OptimizationConstraintModel("2", OptimizationObjectiveType.Mean, 30.0, Units.cGy,0.0, 2),
             };
 
-            List<OptimizationConstraint> result = OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(initialList, oldRx, newRx);
-            foreach (OptimizationConstraint itr in result)
+            List<OptimizationConstraintModel> result = OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(initialList, oldRx, newRx);
+            foreach (OptimizationConstraintModel itr in result)
             {
                 Console.WriteLine($"{itr.StructureId}, {itr.ConstraintType}, {itr.QueryDose}, {itr.QueryVolume}, {itr.Priority}");
             }

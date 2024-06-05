@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace VMATTBICSIAutoPlanningHelpers.Models
 {
-    public class RequestedTSStructure
+    public class RequestedTSStructureModel
     {
         public string DICOMType { get; set; } = string.Empty;
         public string StructureId { get; set; } = string.Empty;
 
-        public RequestedTSStructure(string dICOMType, string structureId)
+        public RequestedTSStructureModel(string dICOMType, string structureId)
         {
             DICOMType = dICOMType;
             StructureId = structureId;

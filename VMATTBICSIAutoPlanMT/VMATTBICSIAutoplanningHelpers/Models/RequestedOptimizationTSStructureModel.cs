@@ -3,11 +3,11 @@ using System.Linq;
 
 namespace VMATTBICSIAutoPlanningHelpers.Models
 {
-    public abstract class RequestedOptimizationTSStructure
+    public abstract class RequestedOptimizationTSStructureModel
     {
         public string TSStructureId { get; set; } = string.Empty;
-        public List<OptimizationConstraint> Constraints { get; set; } = new List<OptimizationConstraint>();
-        public List<OptTSCreationCriteria> CreationCriteria { get; set; } = new List<OptTSCreationCriteria> { };
+        public List<OptimizationConstraintModel> Constraints { get; set; } = new List<OptimizationConstraintModel>();
+        public List<OptTSCreationCriteriaModel> CreationCriteria { get; set; } = new List<OptTSCreationCriteriaModel> { };
         public bool AllCriteriaMet(bool isFinalOpt) 
         {
             return CreationCriteria.All(x => x.CriteriaMet(isFinalOpt));

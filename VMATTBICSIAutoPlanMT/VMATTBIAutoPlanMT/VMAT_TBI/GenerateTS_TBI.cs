@@ -12,6 +12,7 @@ using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationTyp
 using System.Text;
 using System.Runtime.ExceptionServices;
 using VMATTBICSIAutoPlanningHelpers.Models;
+using System.Security.Cryptography.X509Certificates;
 
 namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
@@ -20,7 +21,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         //Get methods
         public int NumberofIsocenters { get; private set; } = -1;
         public int NumberofVMATIsocenters { get; private set; } = -1;
-        public List<Tuple<string, Dictionary<string,string>>> GetTsTargets() { return tsTargets; }
         //plan id, normalization volume
         public Dictionary<string, string> NormalizationVolumes { get; private set; } = new Dictionary<string, string> { };
 
@@ -28,10 +28,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         //Possible values are "AVOIDANCE", "CAVITY", "CONTRAST_AGENT", "CTV", "EXTERNAL", "GTV", "IRRAD_VOLUME", 
         //"ORGAN", "PTV", "TREATED_VOLUME", "SUPPORT", "FIXATION", "CONTROL", and "DOSE_REGION". 
         //plan id, structure id, num fx, dose per fx, cumulative dose
-        private List<Prescription> prescriptions;
-        private List<RequestedTSStructure> TS_structures;
+        private List<PrescriptionModel> prescriptions;
+        private List<RequestedTSStructureModel> TS_structures;
         //plan id, list<original target id, ts target id>
-        private List<Tuple<string, Dictionary<string,string>>> tsTargets = new List<Tuple<string, Dictionary<string, string>>> { };
 
         //data members
         private double targetMargin;
@@ -51,15 +50,15 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         /// <param name="fSt"></param>
         /// <param name="fM"></param>
         /// <param name="closePW"></param>
-        public GenerateTS_TBI(List<RequestedTSStructure> ts, 
-                              List<RequestedTSManipulation> list, 
-                              List<Prescription> presc, 
+        public GenerateTS_TBI(List<RequestedTSStructureModel> ts, 
+                              List<RequestedTSManipulationModel> list, 
+                              List<PrescriptionModel> presc, 
                               StructureSet ss, double tm, bool flash, Structure fSt, double fM, bool closePW)
         {
             //overloaded constructor for the case where the user wants to include flash in the simulation
-            TS_structures = new List<RequestedTSStructure>(ts);
-            TSManipulationList = new List<RequestedTSManipulation>(list);
-            prescriptions = new List<Prescription>(presc);
+            TS_structures = new List<RequestedTSStructureModel>(ts);
+            TSManipulationList = new List<RequestedTSManipulationModel>(list);
+            prescriptions = new List<PrescriptionModel>(presc);
             selectedSS = ss;
             targetMargin = tm;
             useFlash = flash;
@@ -312,7 +311,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             int counter = 0;
             int calcItems = TS_structures.Count;
 
-            foreach (RequestedTSStructure itr in TS_structures)
+            foreach (RequestedTSStructureModel itr in TS_structures)
             {
                 ProvideUIUpdate(100 * ++counter / calcItems, $"Adding {itr.StructureId} to the structure set!");
                 AddTSStructures(itr);
@@ -382,9 +381,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             int counter = 0;
             int calcItems = TSManipulationList.Count * prescriptions.Count;
             
-            Dictionary<string,string> tmpTSTargetList = new Dictionary<string, string> { };
+            List<TargetModel> tmpTSTargetList = new List<TargetModel> { };
             //prescriptions are inherently sorted by increasing cumulative Rx to targets
-            foreach (Prescription itr in prescriptions)
+            foreach (PrescriptionModel itr in prescriptions)
             {
                 Structure target = null;
                 //special logic. We want to actually manipulate ptv_body itself rather than a TS_PTV_Body structure
@@ -396,7 +395,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 {
                     //target Id is not ptv_body, generate a new TSTarget
                     target = GetTSTarget(itr.TargetId);
-                    tmpTSTargetList.Add(itr.TargetId, target.Id);
+                    tmpTSTargetList.Add(new TargetModel(itr.TargetId, itr.CumulativeDoseToTarget, target.Id));
                 }
                 if (target == null || target.IsEmpty)
                 {
@@ -406,7 +405,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (TSManipulationList.Any())
                 {
                     //perform all relevant TS manipulations for the specified target
-                    foreach (RequestedTSManipulation itr1 in TSManipulationList)
+                    foreach (RequestedTSManipulationModel itr1 in TSManipulationList)
                     {
                         if (ManipulateTuningStructures(itr1, target)) return true;
                         ProvideUIUpdate(100 * ++counter / calcItems);
@@ -418,12 +417,12 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     //ts_ptv_vmat needs to be handled AFTER ts manipulation because ptv_body itself needs to be cropped from all the relevant structures
                     (bool fail, string tsPTVVMATId) = GenerateTSPTVBodyTarget(target, "TS_PTV_VMAT");
                     if (fail) return true;
-                    tmpTSTargetList.Add(itr.TargetId, tsPTVVMATId);
+                    tmpTSTargetList.Add(new TargetModel(itr.TargetId, itr.CumulativeDoseToTarget, tsPTVVMATId));
                 }
             }
             //only one plan is allowed for the prescriptions --> last item is the highest Rx target for this plan and needs to be set as the normalization volume
-            NormalizationVolumes.Add(prescriptions.Last().PlanId, tmpTSTargetList.Last().Value);
-            tsTargets.Add(new Tuple<string, Dictionary<string,string>>(prescriptions.Last().PlanId, new Dictionary<string, string> (tmpTSTargetList)));
+            NormalizationVolumes.Add(prescriptions.Last().PlanId, tmpTSTargetList.OrderByDescending(x => x.TargetRxDose).First().TargetId);
+            PlanTargets.Add(new PlanTargetsModel(prescriptions.Last().PlanId, new List<TargetModel> (tmpTSTargetList)));
 
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
@@ -682,7 +681,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (GeneratePTVFromBody(ptvBodyFlash)) return true;
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Contoured {ptvBodyFlash.Id} structure from body structure");
 
-            foreach (RequestedTSManipulation itr in TSManipulationList.Where(x => x.ManipulationType == TSManipulationType.ContourOverlapWithTarget || x.ManipulationType == TSManipulationType.CropTargetFromStructure))
+            foreach (RequestedTSManipulationModel itr in TSManipulationList.Where(x => x.ManipulationType == TSManipulationType.ContourOverlapWithTarget || x.ManipulationType == TSManipulationType.CropTargetFromStructure))
             {
                 ManipulateTuningStructures(itr, ptvBodyFlash);
                 ProvideUIUpdate(100 * ++percentComplete / calcItems);
@@ -711,7 +710,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Cut {TSPTVFlash.Id} structure at matchline structure");
             }
             NormalizationVolumes = new Dictionary<string, string>(UpdateNormVolumesWithFlash(NormalizationVolumes));
-            tsTargets = new List<Tuple<string, Dictionary<string, string>>>(UpdateTsTargetsWithFlash(tsTargets));
+            PlanTargets = new List<PlanTargetsModel>(UpdateTsTargetsWithFlash(PlanTargets));
             return false;
         }
 
@@ -719,19 +718,15 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         /// Helper method to update the TS targets list with the analogous flash targets
         /// </summary>
         /// <returns></returns>
-        private List<Tuple<string, Dictionary<string,string>>> UpdateTsTargetsWithFlash(List<Tuple<string, Dictionary<string,string>>> targets)
+        private List<PlanTargetsModel> UpdateTsTargetsWithFlash(List<PlanTargetsModel> plantargets)
         {
             //we know ts_PTV_VMAT was listed as a ts target, so we will need to go in and replace that with the corresponding flash targets
-            Dictionary<string,string> tmpTargets = new Dictionary<string, string> { };
-            foreach (KeyValuePair<string,string> itr in targets.First().Item2)
+            List<TargetModel> targets = plantargets.First().Targets;
+            if(targets.Any(x => string.Equals(x.TsTargetId, "TS_PTV_VMAT", StringComparison.OrdinalIgnoreCase)))
             {
-                if (string.Equals(itr.Value, "TS_PTV_VMAT"))
-                {
-                    tmpTargets.Add(itr.Key, "TS_PTV_FLASH");
-                }
-                else tmpTargets.Add(itr.Key, itr.Value);
+                targets.First(x => string.Equals(x.TsTargetId, "TS_PTV_VMAT", StringComparison.OrdinalIgnoreCase)).TsTargetId = "TS_PTV_FLASH";
             }
-            return new List<Tuple<string, Dictionary<string, string>>> { Tuple.Create(prescriptions.First().PlanId, tmpTargets) };
+            return plantargets;
         }
 
         /// <summary>
@@ -828,15 +823,15 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             ProvideUIUpdate($"Calculated total number of Isos: {NumberofIsocenters}");
 
             //set isocenter names based on numIsos and numVMATIsos (determined these names from prior cases)
-            PlanIsocentersList.Add(new PlanIsocenters(prescriptions.First().PlanId, IsoNameHelper.GetTBIVMATIsoNames(NumberofVMATIsocenters, NumberofIsocenters)));
-            if (NumberofIsocenters > NumberofVMATIsocenters) PlanIsocentersList.Add(new PlanIsocenters("_Legs", IsoNameHelper.GetTBIAPPAIsoNames(NumberofVMATIsocenters, NumberofIsocenters)));
+            PlanIsocentersList.Add(new PlanIsocenterModel(prescriptions.First().PlanId, IsoNameHelper.GetTBIVMATIsoNames(NumberofVMATIsocenters, NumberofIsocenters)));
+            if (NumberofIsocenters > NumberofVMATIsocenters) PlanIsocentersList.Add(new PlanIsocenterModel("_Legs", IsoNameHelper.GetTBIAPPAIsoNames(NumberofVMATIsocenters, NumberofIsocenters)));
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved appropriate isocenter names:");
-            foreach(PlanIsocenters itr in PlanIsocentersList)
+            foreach(PlanIsocenterModel itr in PlanIsocentersList)
             {
                 ProvideUIUpdate($"Plan Id: {itr.PlanId}");
-                foreach(string itr1 in itr.IsocenterIds)
+                foreach(IsocenterModel itr1 in itr.Isocenters)
                 {
-                    ProvideUIUpdate($" {itr1}");
+                    ProvideUIUpdate($" {itr1.IsocenterId}");
                 }
             }
             return false;

@@ -21,7 +21,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         //data members
         private VMS.TPS.Common.Model.API.Image _image;
         private string _patID;
-        private ImportExportData _data;
+        private ImportExportDataModel _data;
 
         /// <summary>
         /// Constructor
@@ -32,7 +32,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="closePW"></param>
         public CTImageExport(VMS.TPS.Common.Model.API.Image img, 
                              string patientID,
-                             ImportExportData theData,
+                             ImportExportDataModel theData,
                              bool closePW) 
         {
             _image = img;
@@ -313,7 +313,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="daemon"></param>
         /// <returns></returns>
-        private bool VerifyDaemonIntegrity(Daemon daemon)
+        private bool VerifyDaemonIntegrity(DaemonModel daemon)
         {
             //check if anything was assigned to this daemon (the port, item3, is set to -1 by default)
             if (daemon.Port == -1) return true;

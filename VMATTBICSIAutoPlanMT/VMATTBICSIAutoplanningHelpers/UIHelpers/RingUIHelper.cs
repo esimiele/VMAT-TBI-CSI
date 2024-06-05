@@ -85,7 +85,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <returns></returns>
         public static StackPanel AddRing(StackPanel theSP, 
                                          List<string> targetIds, 
-                                         TSRing item, 
+                                         TSRingStructureModel item, 
                                          string clearBtnPrefix, 
                                          int clearSpareBtnCounter, 
                                          RoutedEventHandler clearEvtHndl, 
@@ -193,10 +193,10 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// </summary>
         /// <param name="theSP"></param>
         /// <returns></returns>
-        public static (List<TSRing>, StringBuilder) ParseCreateRingList(StackPanel theSP)
+        public static (List<TSRingStructureModel>, StringBuilder) ParseCreateRingList(StackPanel theSP)
         {
             StringBuilder sb = new StringBuilder();
-            List<TSRing> rings = new List<TSRing>();
+            List<TSRingStructureModel> rings = new List<TSRingStructureModel>();
             string target = "";
             double margin = -1000.0;
             double thickness = -1000.0;
@@ -239,7 +239,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                         return (null, sb);
                     }
                     //only add the current row to the structure sparing list if all the parameters were successful parsed
-                    else rings.Add(new TSRing(target, margin, thickness, dose));
+                    else rings.Add(new TSRingStructureModel(target, margin, thickness, dose));
                     margin = -1000.0;
                     thickness = -1000.0;
                     dose = -1000.0;
