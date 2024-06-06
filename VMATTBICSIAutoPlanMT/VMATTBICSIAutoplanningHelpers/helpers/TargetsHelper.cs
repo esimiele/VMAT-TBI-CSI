@@ -92,7 +92,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
 
             //sort the prescription list by the cumulative rx dose
             prescriptions.Sort((x, y) => x.CumulativeDoseToTarget.CompareTo(y.CumulativeDoseToTarget));
-            //prescriptions.Sort(delegate (Tuple<string, string, int, DoseValue, double> x, Tuple<string, string, int, DoseValue, double> y) { return x.Item5.CompareTo(y.Item5); });
 
             StringBuilder msg = new StringBuilder();
             msg.AppendLine("Targets set successfully!" + Environment.NewLine);
@@ -139,32 +138,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             }
             return (fail, sb);
         }
-
-        /// <summary>
-        /// Helper method to take the supplied target list and build a list of plan ids with an accompanying list of target ids and Rx doses
-        /// </summary>
-        /// <param name="targets"></param>
-        /// <returns></returns>
-        //private static List<Tuple<string,List<Tuple<string,double>>>> GetPlanTargetRxDoseList(List<PlanTargetsModel> targets)
-        //{
-        //    List<Tuple<string, List<Tuple<string, double>>>> theList = new List<Tuple<string, List<Tuple<string, double>>>> { };
-        //    List<Tuple<string, double>> tgtListTmp = new List<Tuple<string, double>> { };
-        //    List<PlanTargetsModel> tmpList = targets.OrderBy(x => x.TargetRxDose).ToList();
-        //    string tmpPlanId = tmpList.First().PlanId;
-        //    foreach(PlanTargetsModel itr in tmpList)
-        //    {
-        //        if(!string.Equals(itr.PlanId, tmpPlanId))
-        //        {
-        //            //new plan --> add the plan id and list of targets for that plan to the list
-        //            theList.Add(Tuple.Create(tmpPlanId, new List<Tuple<string, double>>(tgtListTmp)));
-        //            tmpPlanId = itr.PlanId;
-        //            tgtListTmp = new List<Tuple<string, double>> { };
-        //        }
-        //        tgtListTmp.Add(Tuple.Create(itr.TargetId, itr.TargetRxDose));
-        //    }
-        //    theList.Add(Tuple.Create(tmpPlanId, new List<Tuple<string, double>>(tgtListTmp)));
-        //    return theList;
-        //}
 
         /// <summary>
         /// Helper method to evaluate the target list for a given plan and return the target with the greatest extent in that plan
@@ -364,21 +337,21 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="prescriptions"></param>
         /// <returns></returns>
-        public static List<Tuple<string,double>> GetPlanIdHighesRxDoseFromPrescriptions(List<PrescriptionModel> prescriptions)
+        public static Dictionary<string,double> GetPlanIdHighesRxDoseFromPrescriptions(List<PrescriptionModel> prescriptions)
         {
-            List<Tuple<string, double>> planIdRx = new List<Tuple<string, double>> { };
+            Dictionary<string, double> planIdRx = new Dictionary<string, double> { };
             if(!prescriptions.Any()) return planIdRx;
             List<PrescriptionModel> tmpList = prescriptions.OrderBy(x => x.CumulativeDoseToTarget).ToList();
-            planIdRx.Add(Tuple.Create(tmpList.First().PlanId, GetHighestRxForPlan(prescriptions, tmpList.First().PlanId)));
-            if(tmpList.Any(x => !string.Equals(x.PlanId, planIdRx.First().Item1)))
+            planIdRx.Add(tmpList.First().PlanId, GetHighestRxForPlan(prescriptions, tmpList.First().PlanId));
+            if(tmpList.Any(x => !string.Equals(x.PlanId, planIdRx.First().Key)))
             {
-                planIdRx.Add(Tuple.Create(tmpList.Last().PlanId, GetHighestRxForPlan(prescriptions, tmpList.Last().PlanId)));
+                planIdRx.Add(tmpList.Last().PlanId, GetHighestRxForPlan(prescriptions, tmpList.Last().PlanId));
             }
             return planIdRx;
         }
 
         /// <summary>
-        /// Helper method to grab the highest Rx for each plan in the prescription list. Returns the entire tuple element for the highest found plan
+        /// Helper method to grab the highest Rx for each plan in the prescription list. Returns a list of precriptions that should each have one target model object, which is the highest dose target for that plan
         /// prescription
         /// </summary>
         /// <param name="prescriptions"></param>

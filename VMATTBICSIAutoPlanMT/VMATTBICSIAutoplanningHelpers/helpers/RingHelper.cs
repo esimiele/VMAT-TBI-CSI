@@ -26,7 +26,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                                                            double newBstRx)
         {
             List<TSRingStructureModel> scaledRings = new List<TSRingStructureModel> { };
-            List<Tuple<string, double>> planIdRx = TargetsHelper.GetPlanIdHighesRxDoseFromPrescriptions(prescriptions);
+            Dictionary<string, double> planIdRx = TargetsHelper.GetPlanIdHighesRxDoseFromPrescriptions(prescriptions);
             bool isInitPlan = true;
 
             foreach (TSRingStructureModel itr in existingRings)
@@ -38,7 +38,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     {
                         //multiple plan entries in planIdRx --> need to determine if this target belongs to the initial plan or boost plan
                         string planId = prescriptions.FirstOrDefault(x => string.Equals(x.TargetId, itr.TargetId)).PlanId;
-                        if (string.Equals(planId, planIdRx.Last().Item1))
+                        if (string.Equals(planId, planIdRx.Last().Key))
                         {
                             //plan id for this target matches the last entry in planIdRx --> belongs to boost plan
                             isInitPlan = false;

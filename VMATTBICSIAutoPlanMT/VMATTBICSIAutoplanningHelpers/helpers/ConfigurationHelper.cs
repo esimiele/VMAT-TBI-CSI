@@ -498,6 +498,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return constraints;
         }
 
+        /// <summary>
+        /// Helper method to parse a requested heater or cooler tuning structure that should be created after each iteration of the optimization loop
+        /// provded certain conditions are met
+        /// </summary>
+        /// <param name="line"></param>
+        /// <returns></returns>
         private static RequestedOptimizationTSStructureModel ParseOptimizationTSstructure(string line)
         {
             string structure;
@@ -530,12 +536,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             return requestedOptimizationTSStructure;
         }
 
-        /// <summary>
-        /// Helper method to parse a requested heater or cooler tuning structure that should be created after each iteration of the optimization loop
-        /// provded certain conditions are met
-        /// </summary>
-        /// <param name="line"></param>
-        /// <returns></returns>
+        
         //private static Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>> ParseOptimizationTSstructure(string line)
         //{
         //    //type (Dmax or V), dose value for volume constraint (N/A for Dmax), equality or inequality, volume (%) or dose (%)

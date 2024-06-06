@@ -33,7 +33,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             if (!ReferenceEquals(appaPlan,null)) isoNames.AddRange(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos));
 
             //vector to hold the x,y,z shifts from CT ref and the shifts between each adjacent iso for each axis (LR, AntPost, SupInf)
-            List<IsocenterShiftModel> shifts = CalculateShifts(isoPositions);
+            List<VVector> shifts = CalculateShifts(isoPositions);
 
             //create the message
             double TT = -1;
@@ -57,7 +57,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="numVMATIsos"></param>
         /// <param name="numIsos"></param>
         /// <returns></returns>
-        private static StringBuilder BuildTBIShiftNote(double TT, List<IsocenterModel> isoNames, List<IsocenterShiftModel> shifts, int numVMATIsos, int numIsos)
+        private static StringBuilder BuildTBIShiftNote(double TT, List<IsocenterModel> isoNames, List<VVector> shifts, int numVMATIsos, int numIsos)
         {
             StringBuilder sb = new StringBuilder();
             if (TT != -1)
@@ -72,7 +72,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             sb.AppendLine("Dosimetric shifts SUP to INF:");
 
             int count = 0;
-            foreach (IsocenterShiftModel itr in shifts)
+            foreach (VVector itr in shifts)
             {
                 if (count == numVMATIsos)
                 {
@@ -80,11 +80,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     sb.AppendLine("Rotate Spinning Manny, shift to opposite Couch Lat");
                     sb.AppendLine("Upper Leg iso - same Couch Lng as Pelvis iso");
                     //let the therapists know that they need to shift couch lateral to the opposite side if the initial lat shift was non-zero
-                    if (!CalculationHelper.AreEqual(itr.ShiftFromPreviousIsocenter.x, 0.0)) sb.AppendLine("Shift couch lateral to opposite side!");
+                    if (!CalculationHelper.AreEqual(itr.x, 0.0)) sb.AppendLine("Shift couch lateral to opposite side!");
                 }
                 else
                 {
-                    if (itr == shifts.First())
+                    if (count == 0)
                     {
                         sb.AppendLine($"{isoNames.ElementAt(count).IsocenterId} iso shift from CT REF:");
                     }
@@ -92,9 +92,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     {
                         sb.AppendLine($"{isoNames.ElementAt(count).IsocenterId} shift from **{isoNames.ElementAt(count - 1).IsocenterId} ISO**");
                     }
-                    if (!CalculationHelper.AreEqual(itr.ShiftFromPreviousIsocenter.x, 0.0)) sb.AppendLine($"X = {Math.Abs(itr.ShiftFromPreviousIsocenter.x):0.0} cm {(itr.ShiftFromPreviousIsocenter.x > 0 ? "LEFT" : "RIGHT")}");
-                    if (!CalculationHelper.AreEqual(itr.ShiftFromPreviousIsocenter.y, 0.0)) sb.AppendLine($"Y = {Math.Abs(itr.ShiftFromPreviousIsocenter.y):0.0} cm {(itr.ShiftFromPreviousIsocenter.y > 0 ? "POST" : "ANT")}");
-                    sb.AppendLine($"Z = {Math.Abs(itr.ShiftFromPreviousIsocenter.z):0.0} cm {(itr.ShiftFromPreviousIsocenter.z > 0 ? "SUP" : "INF")}");
+                    if (!CalculationHelper.AreEqual(itr.x, 0.0)) sb.AppendLine($"X = {Math.Abs(itr.x):0.0} cm {(itr.x > 0 ? "LEFT" : "RIGHT")}");
+                    if (!CalculationHelper.AreEqual(itr.y, 0.0)) sb.AppendLine($"Y = {Math.Abs(itr.y):0.0} cm {(itr.y > 0 ? "POST" : "ANT")}");
+                    sb.AppendLine($"Z = {Math.Abs(itr.z):0.0} cm {(itr.z > 0 ? "SUP" : "INF")}");
                 }
                 count++;
             }
@@ -113,7 +113,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             List<VVector> isoPositions = ExtractIsoPositions(vmatPlan);
 
             //vector to hold the isocenter name, the x,y,z shifts from CT ref, and the shifts between each adjacent iso for each axis (LR, AntPost, SupInf)
-            List<IsocenterShiftModel> shifts = CalculateShifts(isoPositions);
+            List<VVector> shifts = CalculateShifts(isoPositions);
 
             //create the message
             double TT = -1;
@@ -137,7 +137,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="numVMATIsos"></param>
         /// <param name="numIsos"></param>
         /// <returns></returns>
-        private static StringBuilder BuildCSIShiftNote(double TT, List<IsocenterModel> isoNames, List<IsocenterShiftModel> shiftsBetweenIsos)
+        private static StringBuilder BuildCSIShiftNote(double TT, List<IsocenterModel> isoNames, List<VVector> shiftsBetweenIsos)
         {
             StringBuilder sb = new StringBuilder();
             if(TT != -1)
@@ -151,9 +151,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             sb.AppendLine("Dosimetric shifts SUP to INF:");
 
             int count = 0;
-            foreach (IsocenterShiftModel itr in shiftsBetweenIsos)
+            foreach (VVector itr in shiftsBetweenIsos)
             {
-                if (itr == shiftsBetweenIsos.First())
+                if (count == 0)
                 {
                     sb.AppendLine($"{isoNames.ElementAt(count).IsocenterId} iso shift from CT REF:");
                 }
@@ -161,9 +161,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 {
                     sb.AppendLine($"{isoNames.ElementAt(count).IsocenterId} shift from **{isoNames.ElementAt(count - 1).IsocenterId} ISO**");
                 }
-                if (!CalculationHelper.AreEqual(itr.ShiftFromPreviousIsocenter.x, 0.0)) sb.AppendLine($"X = {Math.Abs(itr.ShiftFromPreviousIsocenter.x):0.0} cm {(itr.ShiftFromPreviousIsocenter.x > 0 ? "LEFT" : "RIGHT")}");
-                if (!CalculationHelper.AreEqual(itr.ShiftFromPreviousIsocenter.y, 0.0)) sb.AppendLine($"Y = {Math.Abs(itr.ShiftFromPreviousIsocenter.y):0.0} cm {(itr.ShiftFromPreviousIsocenter.y > 0 ? "POST" : "ANT")}");
-                sb.AppendLine($"Z = {Math.Abs(itr.ShiftFromPreviousIsocenter.z):0.0} cm {(itr.ShiftFromPreviousIsocenter.z > 0 ? "SUP" : "INF")}");
+                if (!CalculationHelper.AreEqual(itr.x, 0.0)) sb.AppendLine($"X = {Math.Abs(itr.x):0.0} cm {(itr.x > 0 ? "LEFT" : "RIGHT")}");
+                if (!CalculationHelper.AreEqual(itr.y, 0.0)) sb.AppendLine($"Y = {Math.Abs(itr.y):0.0} cm {(itr.y > 0 ? "POST" : "ANT")}");
+                sb.AppendLine($"Z = {Math.Abs(itr.z):0.0} cm {(itr.z > 0 ? "SUP" : "INF")}");
                 count++;
             }
             return sb;
@@ -226,13 +226,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         }
 
         /// <summary>
-        /// Helper method to calculate the shifts from the bbs and the shifts between isocenters for the supplied list of isocenters
+        /// Helper method to calculate the shifts between isocenters for the supplied list of isocenters
         /// </summary>
         /// <param name="isoPositions"></param>
         /// <returns></returns>
-        public static List<IsocenterShiftModel> CalculateShifts(List<VVector> isoPositions)
+        public static List<VVector> CalculateShifts(List<VVector> isoPositions)
         {
-            List<IsocenterShiftModel> shifts = new List<IsocenterShiftModel> { };
+            List<VVector> shifts = new List<VVector> { };
 
             double SupInfShifts;
             double AntPostShifts;
@@ -252,7 +252,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 priorAntPostPos = pos.y;
                 priorLRPos = pos.x;
 
-                shifts.Add(new IsocenterShiftModel(pos, new VVector(LRShifts, AntPostShifts, SupInfShifts)));
+                shifts.Add(new VVector(LRShifts, AntPostShifts, SupInfShifts));
                 count++;
             }
             return shifts;

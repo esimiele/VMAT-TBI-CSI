@@ -170,15 +170,15 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
                 new VVector(0.0,0.0,-35.0)
             };
 
-            List<IsocenterShiftModel> expectedShifts = new List<IsocenterShiftModel>
+            List<VVector> expectedShifts = new List<VVector >
             {
-                new IsocenterShiftModel(new VVector(0.0,0.0,-1.0), new VVector(0.0,0.0,-1.0)),
-                new IsocenterShiftModel(new VVector(0.0,0.0,-1.5), new VVector(0.0,0.0,-0.5)),
-                new IsocenterShiftModel(new VVector(0.0,0.0,-2.5), new VVector(0.0,0.0,-1.0)),
-                new IsocenterShiftModel(new VVector(0.0,0.0,-3.5), new VVector(0.0,0.0,-1.0)),
+                new VVector(0.0,0.0,-1.0),
+                new VVector(0.0,0.0,-0.5),
+                new VVector(0.0,0.0,-1.0),
+                new VVector(0.0,0.0,-1.0),
             };
 
-            List<IsocenterShiftModel> resultsShifts = PlanPrepHelper.CalculateShifts(testIsoPositions);
+            List<VVector> resultsShifts = PlanPrepHelper.CalculateShifts(testIsoPositions);
             CollectionAssert.AreEqual(expectedShifts, resultsShifts);
         }
 
