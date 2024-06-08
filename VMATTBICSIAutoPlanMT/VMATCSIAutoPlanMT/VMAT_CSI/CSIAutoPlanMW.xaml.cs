@@ -81,7 +81,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //plan id, list<original target id, ts target id>
         List<PlanTargetsModel> tsTargets = new List<PlanTargetsModel> { };
         //planId, lower dose target id, list<manipulation target id, operation>
-        List<Tuple<string, string, List<Tuple<string, string>>>> targetCropOverlapManipulations = new List<Tuple<string, string, List<Tuple<string, string>>>> { };
+        List<TSTargetCropOverlapModel> targetCropOverlapManipulations = new List<TSTargetCropOverlapModel> { };
         //target id, ring id, dose (cGy)
         List<TSRingStructureModel> addedRings = new List<TSRingStructureModel> { };
         //requested preliminary targets from configuration file (i.e., starting point for MD when contouring targets). Same structure as TSStructures below
@@ -1346,7 +1346,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //populate the beams and optimization tabs
             PopulateBeamsTab();
             if (generate.PlanTargets.Any()) tsTargets = generate.PlanTargets;
-            if (generate.GetTargetCropOverlapManipulations().Any()) targetCropOverlapManipulations = generate.GetTargetCropOverlapManipulations();
+            if (generate.TargetCropOverlapManipulations.Any()) targetCropOverlapManipulations = generate.TargetCropOverlapManipulations;
             if (generate.AddedRings.Any()) addedRings = generate.AddedRings;
 
             isModified = true;

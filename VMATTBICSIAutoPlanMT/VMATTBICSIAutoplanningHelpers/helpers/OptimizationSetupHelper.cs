@@ -73,50 +73,47 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="selectedTemplate"></param>
         /// <param name="currentList"></param>
         /// <returns></returns>
-        public static List<PlanOptimizationSetupModel> UpdateOptimizationConstraints(List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations,
-                                                                                                                                             List<PrescriptionModel> prescriptions,
-                                                                                                                                             object selectedTemplate,
-                                                                                                                                             List<PlanOptimizationSetupModel> currentList = null)
+        public static List<PlanOptimizationSetupModel> UpdateOptimizationConstraints(List<TSTargetCropOverlapModel> targetManipulations,
+                                                                                    List<PrescriptionModel> prescriptions,
+                                                                                    object selectedTemplate,
+                                                                                    List<PlanOptimizationSetupModel> currentList = null)
         {
             List<PlanOptimizationSetupModel> updatedList = new List<PlanOptimizationSetupModel> { };
             if(!currentList.Any()) currentList = RetrieveOptConstraintsFromTemplate(selectedTemplate, prescriptions).Item1;
             if (currentList.Any())
             {
-                string tmpPlanId = targetManipulations.First().Item1;
-                string tmpTargetId = targetManipulations.First().Item2;
+                string tmpPlanId = targetManipulations.First().PlanId;
+                string tmpTargetId = targetManipulations.First().TargetId;
                 List<OptimizationConstraintModel> tmpList = new List<OptimizationConstraintModel> { };
-                foreach (Tuple<string, string, List<Tuple<string, string>>> itr in targetManipulations)
+                foreach (TSTargetCropOverlapModel itr in targetManipulations)
                 {
-                    if (!string.Equals(itr.Item1, tmpPlanId))
+                    if (!string.Equals(itr.PlanId, tmpPlanId))
                     {
                         //new plan, update the list
                         tmpList.AddRange(currentList.FirstOrDefault(x => string.Equals(x.PlanId, tmpPlanId)).OptimizationConstraints.Where(y => !string.Equals(y.StructureId, tmpTargetId)));
                         updatedList.Add(new PlanOptimizationSetupModel(tmpPlanId, new List<OptimizationConstraintModel>(tmpList)));
                         tmpList = new List<OptimizationConstraintModel> { };
-                        tmpPlanId = itr.Item1;
+                        tmpPlanId = itr.PlanId;
                     }
-                    if (currentList.Any(x => string.Equals(x.PlanId, itr.Item1)))
+                    if (currentList.Any(x => string.Equals(x.PlanId, itr.PlanId)))
                     {
                         //grab all optimization constraints from the plan of interest that have the same structure id as item 2 of itr
-                        List<OptimizationConstraintModel> planOptList = currentList.FirstOrDefault(x => string.Equals(x.PlanId, itr.Item1)).OptimizationConstraints.Where(y => string.Equals(y.StructureId, itr.Item2)).ToList();
-                        foreach (Tuple<string, string> itr1 in itr.Item3)
+                        List<OptimizationConstraintModel> planOptList = currentList.FirstOrDefault(x => string.Equals(x.PlanId, itr.PlanId)).OptimizationConstraints.Where(y => string.Equals(y.StructureId, itr.TargetId)).ToList();
+                        foreach (OptimizationConstraintModel itr2 in planOptList)
                         {
-                            foreach (OptimizationConstraintModel itr2 in planOptList)
+                            if (itr.ManipulationType == TSManipulationType.CropTargetFromStructure)
                             {
-                                if (itr1.Item2.Contains("crop"))
-                                {
-                                    //simple copy of constraints
-                                    tmpList.Add(new OptimizationConstraintModel(itr1.Item1, itr2.ConstraintType, itr2.QueryDose, Units.cGy, itr2.QueryVolume, itr2.Priority));
-                                }
-                                else
-                                {
-                                    //need to reduce upper and lower constraints
-                                    tmpList.Add(new OptimizationConstraintModel(itr1.Item1, itr2.ConstraintType, itr2.QueryDose * 0.95, Units.cGy, itr2.QueryVolume, itr2.Priority));
-                                }
+                                //simple copy of constraints
+                                tmpList.Add(new OptimizationConstraintModel(itr.ManipulationTargetId, itr2.ConstraintType, itr2.QueryDose, Units.cGy, itr2.QueryVolume, itr2.Priority));
+                            }
+                            else
+                            {
+                                //need to reduce upper and lower constraints
+                                tmpList.Add(new OptimizationConstraintModel(itr.ManipulationTargetId, itr2.ConstraintType, itr2.QueryDose * 0.95, Units.cGy, itr2.QueryVolume, itr2.Priority));
                             }
                         }
                     }
-                    tmpTargetId = itr.Item2;
+                    tmpTargetId = itr.TargetId;
                 }
                 tmpList.AddRange(currentList.FirstOrDefault(x => string.Equals(x.PlanId, tmpPlanId)).OptimizationConstraints.Where(y => !string.Equals(y.StructureId, tmpTargetId)));
                 updatedList.Add(new PlanOptimizationSetupModel(tmpPlanId, new List<OptimizationConstraintModel>(tmpList)));

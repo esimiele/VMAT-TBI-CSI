@@ -51,15 +51,10 @@ namespace VMATTBICSIOptLoopMT
         //lower dose limit
         double lowDoseLimit = 0.1;
 
-        //plan id, list<structure id, optimization objective type, dose, volume, priority>
         List<PlanOptimizationSetupModel> optConstraintsFromLogs = new List<PlanOptimizationSetupModel> { };
 
         //structure, constraint type, dose, relative volume, dose value presentation (unless otherwise specified)
-        //note, if the constraint type is "mean", the relative volume value is ignored
         public List<PlanObjectiveModel> planObj = new List<PlanObjectiveModel> { };
-
-        //ID, lower dose level, upper dose level, volume (%), priority, list of criteria that must be met to add the requested cooler/heater structures
-        //public List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>{ };
         public List<RequestedOptimizationTSStructureModel> requestedTSstructures = new List<RequestedOptimizationTSStructureModel>();
 
         //structure id(or can put '<plan>' to get the plan dose value), metric requested(Dmax, Dmin, D<vol %>, V<dose %>), query value, return value representation(dose or volume as absolute or relative)

@@ -172,6 +172,7 @@
     <Compile Include="Models\TSHeaterStructureModel.cs" />
     <Compile Include="Models\TSRingStructureModel.cs" />
     <Compile Include="Helpers\RingHelper.cs" />
+    <Compile Include="Models\TSTargetCropOverlapModel.cs" />
     <Compile Include="Models\UnionStructureModel.cs" />
     <Compile Include="PlanTemplateClasses\TBIAutoPlanTemplate.cs" />
     <Compile Include="Models\ImportExportDataModel.cs" />

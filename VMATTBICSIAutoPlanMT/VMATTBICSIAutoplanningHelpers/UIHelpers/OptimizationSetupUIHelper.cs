@@ -80,7 +80,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                                                                                              object selectedTemplate,
                                                                                              List<PlanTargetsModel> tsTargets,
                                                                                              List<PlanFieldJunctionModel> jnxs,
-                                                                                             List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations = null,
+                                                                                             List<TSTargetCropOverlapModel> targetManipulations = null,
                                                                                              List<TSRingStructureModel> addedRings = null)
         {
             if (tsTargets.Any())

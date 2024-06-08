@@ -15,7 +15,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
     public class GenerateTS_CSI : GenerateTSbase
     {
         //get methods
-        public List<Tuple<string, string, List<Tuple<string, string>>>> GetTargetCropOverlapManipulations() { return targetManipulations; }
+        public List<TSTargetCropOverlapModel> TargetCropOverlapManipulations { get; private set; } = new List<TSTargetCropOverlapModel> { };
         public Dictionary<string, string> NormalizationVolumes { get; private set; } = new Dictionary<string, string> { };
         public List<TSRingStructureModel> AddedRings { get; private set; } = new List<TSRingStructureModel> { };
 
@@ -27,8 +27,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //plan id, structure id, num fx, dose per fx, cumulative dose
         private List<PrescriptionModel> prescriptions;
         private List<TSRingStructureModel> requestedRings;
-        //planId, lower dose target id, list<manipulation target id, operation>
-        private List<Tuple<string, string, List<Tuple<string, string>>>> targetManipulations = new List<Tuple<string, string, List<Tuple<string, string>>>> { };
         //plan id, normalization volume
         //structure id of oars requested for crop/overlap eval with targets
         private List<string> cropAndOverlapStructures = new List<string> { };
@@ -783,7 +781,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                             }
                         }
                         NormalizationVolumes.Add(sortedPrescriptions.ElementAt(i).PlanId, cropResult.Item2.Id);
-                        targetManipulations.Add(Tuple.Create(sortedPrescriptions.ElementAt(i).PlanId, target.Id, tmp));
+                        TargetCropOverlapManipulations.Add(new TSTargetCropOverlapModel(sortedPrescriptions.ElementAt(i).PlanId, target.Id, cropResult.cropStructure.Id, VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType.CropTargetFromStructure));
+                        TargetCropOverlapManipulations.Add(new TSTargetCropOverlapModel(sortedPrescriptions.ElementAt(i).PlanId, target.Id, overlapRresult.overlapStructure.Id, VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType.ContourOverlapWithTarget));
                     }
                     else ProvideUIUpdate($"Could not retrieve ts target: {targetId}");
                 }
