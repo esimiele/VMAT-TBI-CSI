@@ -290,7 +290,6 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         protected bool ContourFieldOverlap(PlanIsocenterModel isoLocations, int isoCount)
         {
             UpdateUILabel("Contour field overlap:");
-
             ProvideUIUpdate($"Contour overlap margin: {contourOverlapMargin:0.0} cm");
             contourOverlapMargin *= 10;
             ProvideUIUpdate($"Contour overlap margin: {contourOverlapMargin:0.00} mm");
@@ -322,29 +321,26 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             ProvideUIUpdate($"DICOM origin: ({dicomOrigin.x:0.00}, {dicomOrigin.y:0.00}, {dicomOrigin.z:0.00}) mm");
 
             //center position between adjacent isocenters, number of image slices to contour on, start image slice location for contouring
-            List<Tuple<double, int, int>> overlap = new List<Tuple<double, int, int>> { };
+            List<FieldJunctionModel> overlap = new List<FieldJunctionModel> { };
             //calculate the center position between adjacent isocenters, number of image slices to contour on based on overlap and with additional user-specified margin (from main UI)
             //and the slice where the contouring should begin
-            List<Structure> tmpJnxList = new List<Structure> { };
             for (int i = 1; i < isoLocations.Isocenters.Count; i++)
             {
-                (bool fail, Tuple<double, int, int> result) = CalculateOverlapParameters(i,
-                                                                                         VMATPlans.First(x => string.Equals(x.Id, isoLocations.PlanId,StringComparison.OrdinalIgnoreCase)),
-                                                                                         isoLocations.Isocenters.ElementAt(i - 1).IsocenterPosition,
-                                                                                         isoLocations.Isocenters.ElementAt(i).IsocenterPosition,
-                                                                                         zResolution,
-                                                                                         dicomOrigin.z);
+                (bool fail, FieldJunctionModel result) = CalculateOverlapParameters(i,
+                                                                                    VMATPlans.First(x => string.Equals(x.Id, isoLocations.PlanId,StringComparison.OrdinalIgnoreCase)),
+                                                                                    isoLocations.Isocenters.ElementAt(i - 1).IsocenterPosition,
+                                                                                    isoLocations.Isocenters.ElementAt(i).IsocenterPosition,
+                                                                                    zResolution,
+                                                                                    dicomOrigin.z);
                 if (fail) return true;
 
-                overlap.Add(result);
-
-                ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Starting slice to contour: {result.Item3}");
-                
+                ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Starting slice to contour: {result.StartSlice}");
                 //add a new junction structure (named TS_jnx<i>) to the stack. Contours will be added to these structure later
-                tmpJnxList.Add(selectedSS.AddStructure("CONTROL", $"TS_jnx{isoCount + i}"));
+                result.JunctionStructure = selectedSS.AddStructure("CONTROL", $"TS_jnx{isoCount + i}");
                 ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Added TS junction to stack: TS_jnx{isoCount + 1}");
+                overlap.Add(result);
             }
-            FieldJunctions.Add(new PlanFieldJunctionModel(VMATPlans.First(x => string.Equals(x.Id, isoLocations.PlanId, StringComparison.OrdinalIgnoreCase)), tmpJnxList));
+            FieldJunctions.Add(new PlanFieldJunctionModel(VMATPlans.First(x => string.Equals(x.Id, isoLocations.PlanId, StringComparison.OrdinalIgnoreCase)), overlap));
 
             //make a box at the min/max x,y positions of the target structure with no margin
             VVector[] targetBoundingBox = CreateTargetBoundingBox(target_tmp, 0.0);
@@ -352,19 +348,22 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
            
             //add the contours to each relevant plan for each structure in the jnxs stack
             int count = 0;
-            foreach (Tuple<double, int, int> value in overlap)
+            foreach(PlanFieldJunctionModel itr in FieldJunctions)
             {
-                percentCompletion = 0;
-                calcItems = value.Item2;
-                ProvideUIUpdate(0, $"Contouring junction: {tmpJnxList.ElementAt(count).Id}");
-                for (int i = value.Item3; i < (value.Item3 + value.Item2); i++)
+                foreach (FieldJunctionModel junction in overlap)
                 {
-                    tmpJnxList.ElementAt(count).AddContourOnImagePlane(targetBoundingBox, i);
-                    ProvideUIUpdate(100 * ++percentCompletion / calcItems);
+                    percentCompletion = 0;
+                    calcItems = junction.NumberOfCTSlices;
+                    ProvideUIUpdate(0, $"Contouring junction: {junction.JunctionStructure.Id}");
+                    for (int i = junction.StartSlice; i < (junction.StartSlice + junction.NumberOfCTSlices); i++)
+                    {
+                        junction.JunctionStructure.AddContourOnImagePlane(targetBoundingBox, i);
+                        ProvideUIUpdate(100 * ++percentCompletion / calcItems);
+                    }
+                    //only keep the portion of the box contour that overlaps with the target
+                    junction.JunctionStructure.SegmentVolume = junction.JunctionStructure.And(target_tmp.Margin(0));
+                    count++;
                 }
-                //only keep the portion of the box contour that overlaps with the target
-                tmpJnxList.ElementAt(count).SegmentVolume = tmpJnxList.ElementAt(count).And(target_tmp.Margin(0));
-                count++;
             }
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
@@ -380,7 +379,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="imageZResolution"></param>
         /// <param name="dicomOriginZ"></param>
         /// <returns></returns>
-        private (bool, Tuple<double,int,int>) CalculateOverlapParameters(int jnx, ExternalPlanSetup thePlan, VVector previousIso, VVector currentIso, double imageZResolution, double dicomOriginZ)
+        private (bool, FieldJunctionModel) CalculateOverlapParameters(int jnx, ExternalPlanSetup thePlan, VVector previousIso, VVector currentIso, double imageZResolution, double dicomOriginZ)
         {
             int percentCompletion = 0;
             int calcItems = 5;
@@ -411,9 +410,9 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             //calculate the center position between adjacent isocenters. NOTE: this calculation works from superior to inferior!
             double overlapCenter = previousIso.z + iso1Beam1.GetEditableParameters().ControlPoints.First().JawPositions.Y1 - contourOverlapMargin / 2 + numSlices / 2;
             ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Overlap center position: {overlapCenter:0.00} mm");
-            return (false, new Tuple<double, int, int>(overlapCenter, // the center location
-                                                       (int)(numSlices / imageZResolution), //total number of slices to contour
-                                                       (int)((overlapCenter - numSlices / 2 - dicomOriginZ) / imageZResolution))); // starting slice to contour
+            return (false, new FieldJunctionModel(overlapCenter, // the center location
+                                                  (int)(numSlices / imageZResolution), //total number of slices to contour
+                                                  (int)((overlapCenter - numSlices / 2 - dicomOriginZ) / imageZResolution))); // starting slice to contour
         }
 
         /// <summary>

@@ -69,7 +69,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         public void ParseCreateTSTestPass()
         {
             string testCreateTS = "create TS{CONTROL,TS_Eyes}";
-            Tuple<string, string> expected = Tuple.Create("CONTROL", "TS_Eyes");
+            RequestedTSStructureModel expected = new RequestedTSStructureModel("CONTROL", "TS_Eyes");
             RequestedTSStructureModel result = ConfigurationHelper.ParseCreateTS(testCreateTS);
             Assert.AreEqual(expected, result);
         }
@@ -78,10 +78,36 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         public void ParseCreateTSTestFail1()
         {
             string testCreateTS = "create TS{PTV,TS_Eyes}";
-            Tuple<string, string> expected = Tuple.Create("CONTROL", "TS_Eyes");
+            RequestedTSStructureModel expected = new RequestedTSStructureModel("CONTROL", "TS_Eyes");
             RequestedTSStructureModel result = ConfigurationHelper.ParseCreateTS(testCreateTS);
             Assert.AreNotEqual(expected, result);
         }
+
+        [TestMethod()]
+        public void ParseDaemonSettingsTest()
+        {
+            string dummyDaemon = "Aria DB daemon={VMSDBD,10.151.176.60,51402}";
+            DaemonModel expected = new DaemonModel("VMSDBD", "10.151.176.60", 51402);
+            Assert.AreEqual(expected, ConfigurationHelper.ParseDaemonSettings(dummyDaemon));
+        }
+
+        [TestMethod()]
+        public void ParseCreateRingTest()
+        {
+            string dummyRing = "create ring{PTV_CSI,1.5,2.0,600}";
+            TSRingStructureModel expected = new TSRingStructureModel("PTV_CSI", 1.5, 2.0, 600);
+            Assert.AreEqual(expected, ConfigurationHelper.ParseCreateRing(dummyRing));
+        }
+
+        [TestMethod()]
+        public void ParseTargetsTest()
+        {
+            string dummyTarget = "add target{PTV_CSI,1200,CSI-init}";
+            PlanTargetsModel expected = new PlanTargetsModel("PTV_CSI", new TargetModel("CSI-init", 1200));
+            Assert.AreEqual(expected, ConfigurationHelper.ParseTargets(dummyTarget));
+        }
+
+
 
         //Unit testing a private method
         //[TestMethod]

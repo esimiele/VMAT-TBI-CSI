@@ -169,7 +169,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 {
                     int index = itr.OptimizationConstraints.FindLastIndex(x => x.StructureId.ToLower().Contains("ptv") || x.StructureId.ToLower().Contains("ts_overlap"));
                     double rxDose = TargetsHelper.GetHighestRxForPlan(prescriptions, itr.PlanId);
-                    foreach (Structure itr1 in jnxs.First(x => string.Equals(x.PlanSetup.Id.ToLower(), itr.PlanId.ToLower())).FieldJunctionStructures)
+                    foreach (Structure itr1 in jnxs.First(x => string.Equals(x.PlanSetup.Id.ToLower(), itr.PlanId.ToLower())).FieldJunctions.Select(x => x.JunctionStructure))
                     {
                         //per Nataliya's instructions, add both a lower and upper constraint to the junction volumes. Make the constraints match those of the ptv target
                         itr.OptimizationConstraints.Insert(++index, new OptimizationConstraintModel(itr1.Id, OptimizationObjectiveType.Lower, rxDose, Units.cGy, 100.0, 100));

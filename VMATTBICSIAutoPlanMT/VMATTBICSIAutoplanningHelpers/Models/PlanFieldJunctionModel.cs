@@ -10,12 +10,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Models
     public class PlanFieldJunctionModel
     {
         public ExternalPlanSetup PlanSetup { get; set; } = null;
-        public List<Structure> FieldJunctionStructures { get; set; } = new List<Structure>();
-        public PlanFieldJunctionModel() { }
-        public PlanFieldJunctionModel(ExternalPlanSetup p, IEnumerable<Structure> jnxs) 
+        public List<FieldJunctionModel> FieldJunctions { get; set; } = new List<FieldJunctionModel> { };
+        public PlanFieldJunctionModel(ExternalPlanSetup p, IEnumerable<FieldJunctionModel> junctions) 
         {
             PlanSetup = p;
-            FieldJunctionStructures = new List<Structure>(jnxs);
+            FieldJunctions = new List<FieldJunctionModel>(junctions);
         }
     }
 }

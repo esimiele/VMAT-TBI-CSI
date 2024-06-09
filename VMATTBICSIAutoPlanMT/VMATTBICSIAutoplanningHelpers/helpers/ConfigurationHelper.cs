@@ -154,7 +154,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                             if (TSstructures_temp.Any()) tempTemplate.CreateTSStructures = TSstructures_temp;
                             if (initOptConst_temp.Any()) tempTemplate.InitialOptimizationConstraints = new List<OptimizationConstraintModel>(initOptConst_temp);
                             if (bstOptConst_temp.Any()) tempTemplate.BoostOptimizationConstraints = new List<OptimizationConstraintModel>(bstOptConst_temp);
-                            if (targets_temp.Any()) tempTemplate.PlanTargets = new List<PlanTargetsModel>(targets_temp);
+                            if (targets_temp.Any()) tempTemplate.PlanTargets = new List<PlanTargetsModel>(TargetsHelper.GroupTargetsByPlanIdAndOrderByTargetRx(targets_temp));
                             if (planObj_temp.Any()) tempTemplate.PlanObjectives = new List<PlanObjectiveModel>(planObj_temp);
                             if (requestedTSstructures_temp.Any()) tempTemplate.RequestedOptimizationTSStructures = new List<RequestedOptimizationTSStructureModel>(requestedTSstructures_temp);
                             if (planDoseInfo_temp.Any()) tempTemplate.RequestedPlanMetrics = new List<RequestedPlanMetricModel>(planDoseInfo_temp);
@@ -225,7 +225,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                             if (TSManipulation_temp.Any()) tempTemplate.TSManipulations = new List<RequestedTSManipulationModel>(TSManipulation_temp);
                             if (TSstructures_temp.Any()) tempTemplate.CreateTSStructures = TSstructures_temp;
                             if (initOptConst_temp.Any()) tempTemplate.InitialOptimizationConstraints = new List<OptimizationConstraintModel>(initOptConst_temp);
-                            if (targets_temp.Any()) tempTemplate.PlanTargets = new List<PlanTargetsModel>(targets_temp);
+                            if (targets_temp.Any()) tempTemplate.PlanTargets = new List<PlanTargetsModel>(TargetsHelper.GroupTargetsByPlanIdAndOrderByTargetRx(targets_temp));
                             if (planObj_temp.Any()) tempTemplate.PlanObjectives = new List<PlanObjectiveModel>(planObj_temp);
                             if (requestedTSstructures_temp.Any()) tempTemplate.RequestedOptimizationTSStructures = new List<RequestedOptimizationTSStructureModel>(requestedTSstructures_temp);
                             if (planDoseInfo_temp.Any()) tempTemplate.RequestedPlanMetrics = new List<RequestedPlanMetricModel>(planDoseInfo_temp);
@@ -312,7 +312,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        private static TSRingStructureModel ParseCreateRing(string line)
+        public static TSRingStructureModel ParseCreateRing(string line)
         {
             string structure;
             double margin;
@@ -334,10 +334,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        private static PlanTargetsModel ParseTargets(string line)
+        public static PlanTargetsModel ParseTargets(string line)
         {
-            //known array format --> can take shortcuts in parsing the data
-            //structure id, sparing type, added margin in cm (ignored if sparing type is Dmax ~ Rx Dose)
             string structure;
             string planId;
             double rx;

@@ -737,7 +737,6 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 NormalizationVolumes.Clear();
                 for (int i = 0; i < sortedPrescriptions.Count(); i++)
                 {
-                    List<Tuple<string, string>> tmp = new List<Tuple<string, string>> { };
                     string targetId = $"TS_{sortedPrescriptions.ElementAt(i).TargetId}";
                     if (StructureTuningHelper.DoesStructureExistInSS(targetId, selectedSS, true))
                     {
@@ -746,12 +745,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
                         (bool fail, Structure cropStructure) cropResult = CreateCropStructure(target);
                         if (cropResult.fail) return true;
-                        tmp.Add(Tuple.Create(cropResult.cropStructure.Id, "crop"));
                         ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added crop structure ({cropResult.Item2.Id}) to stack");
 
                         (bool fail, Structure overlapStructure) overlapRresult = CreateOverlapStructure(target, i);
                         if (overlapRresult.fail) return true;
-                        tmp.Add(Tuple.Create(overlapRresult.overlapStructure.Id, "overlap"));
                         ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added overlap structure ({overlapRresult.Item2.Id}) to stack");
 
                         foreach (string itr in cropAndOverlapStructures)

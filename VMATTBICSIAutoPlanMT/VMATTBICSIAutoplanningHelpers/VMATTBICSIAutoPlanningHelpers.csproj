@@ -152,6 +152,7 @@
     <Compile Include="DataContainers\OptDataContainer.cs" />
     <Compile Include="Interfaces\IPlanQualityEvaluation.cs" />
     <Compile Include="Models\DaemonModel.cs" />
+    <Compile Include="Models\FieldJunctionModel.cs" />
     <Compile Include="Models\IsocenterModel.cs" />
     <Compile Include="Models\OptimizationConstraintModel.cs" />
     <Compile Include="Models\OptTSCreationCriteriaModel.cs" />
