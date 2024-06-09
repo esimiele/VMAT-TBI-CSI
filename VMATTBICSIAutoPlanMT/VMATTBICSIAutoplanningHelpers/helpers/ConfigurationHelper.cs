@@ -397,7 +397,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             double volumeVal;
             int priorityVal;
             line = CropLine(line, "{");
-            structure = line.Substring(0, line.IndexOf(","));
+            structure = line.Substring(0, line.IndexOf(",")).Trim();
             line = CropLine(line, ",");
             constraintType = line.Substring(0, line.IndexOf(","));
             line = CropLine(line, ",");
