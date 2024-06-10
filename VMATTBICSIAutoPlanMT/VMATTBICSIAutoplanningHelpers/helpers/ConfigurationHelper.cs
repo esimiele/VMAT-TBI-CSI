@@ -414,7 +414,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        private static RequestedPlanMetricModel ParseRequestedPlanDoseInfo(string line)
+        public static RequestedPlanMetricModel ParseRequestedPlanDoseInfo(string line)
         {
             line = CropLine(line, "{");
             string structure = line.Substring(0, line.IndexOf(","));
@@ -502,7 +502,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        private static RequestedOptimizationTSStructureModel ParseOptimizationTSstructure(string line)
+        public static RequestedOptimizationTSStructureModel ParseOptimizationTSstructure(string line)
         {
             string structure;
             double lowDoseLevel;
@@ -520,17 +520,15 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             line = CropLine(line, ",");
             priority = int.Parse(line.Substring(0, line.IndexOf(",")));
             List<OptTSCreationCriteriaModel> creationCriteria = ParseOptTSCreationCriteria(line);
-            RequestedOptimizationTSStructureModel requestedOptimizationTSStructure;
+            RequestedOptimizationTSStructureModel requestedOptimizationTSStructure = null;
             if (structure.ToLower().Contains("heater"))
             {
-                requestedOptimizationTSStructure = new TSHeaterStructureModel(structure, lowDoseLevel, upperDoseLevel, priority);
+                requestedOptimizationTSStructure = new TSHeaterStructureModel(structure, lowDoseLevel, upperDoseLevel, priority, creationCriteria);
             }
             else if (structure.ToLower().Contains("cooler"))
             {
-                requestedOptimizationTSStructure = new TSCoolerStructureModel(structure, lowDoseLevel, upperDoseLevel, priority);
+                requestedOptimizationTSStructure = new TSCoolerStructureModel(structure, lowDoseLevel, upperDoseLevel, priority, creationCriteria);
             }
-            else return null;
-            requestedOptimizationTSStructure.CreationCriteria = new List<OptTSCreationCriteriaModel>(creationCriteria);
             return requestedOptimizationTSStructure;
         }
 

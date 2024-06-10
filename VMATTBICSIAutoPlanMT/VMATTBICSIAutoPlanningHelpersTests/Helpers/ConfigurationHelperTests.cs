@@ -10,6 +10,8 @@ using VMATTBICSIAutoPlanningHelpers.Models;
 using System.Windows.Input;
 using Telerik.JustMock.AutoMock.Ninject.Planning.Targets;
 using VMS.TPS.Common.Model.API;
+using Telerik.JustMock.AutoMock.Ninject.Planning;
+using VMS.TPS.Common.Model;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
 {
@@ -171,13 +173,282 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             };
 
             OptimizationConstraintComparer comparer = new OptimizationConstraintComparer();
-            for(int i = 0; i < expected.Count; i++)
+            for (int i = 0; i < expected.Count; i++)
             {
                 OptimizationConstraintModel resultTMP = ConfigurationHelper.ParseOptimizationConstraint(dummyConstraints.ElementAt(i));
-                Console.WriteLine($"{comparer.PrintConstraint(expected.ElementAt(i))} | {comparer.PrintConstraint(resultTMP)}");
-                Assert.IsTrue(comparer.Equals(expected.ElementAt(i),resultTMP));
+                Console.WriteLine($"{comparer.Print(expected.ElementAt(i))} | {comparer.Print(resultTMP)}");
+                Assert.IsTrue(comparer.Equals(expected.ElementAt(i), resultTMP));
             }
-            
+
+        }
+
+        [TestMethod()]
+        public void ParseRequestedPlanDoseInfoTest()
+        {
+            List<string> dummyRequests = new List<string>
+            {
+                "add plan dose info{<plan>,Dmax,%}",
+                "add plan dose info{<target>,Dmax,%}",
+                "add plan dose info{<target>,Dmin,%}",
+                "add plan dose info{<target>,DoseAtVolume,90,%,%}",
+                "add plan dose info{<target>,VolumeAtDose,95,%,%}"
+            };
+
+            List<RequestedPlanMetricModel> expected = new List<RequestedPlanMetricModel>
+            {
+                new RequestedPlanMetricModel("<plan>", Enums.DVHMetric.Dmax, Enums.Units.Percent),
+                new RequestedPlanMetricModel("<target>", Enums.DVHMetric.Dmax, Enums.Units.Percent),
+                new RequestedPlanMetricModel("<target>", Enums.DVHMetric.Dmin, Enums.Units.Percent),
+                new RequestedPlanMetricModel("<target>", Enums.DVHMetric.DoseAtVolume, 90.0,Enums.Units.Percent, Enums.Units.Percent),
+                new RequestedPlanMetricModel("<target>", Enums.DVHMetric.VolumeAtDose, 95.0,Enums.Units.Percent, Enums.Units.Percent),
+            };
+
+            RequestedPlanMetricComparer comparer = new RequestedPlanMetricComparer();
+            for (int i = 0; i < dummyRequests.Count; i++)
+            {
+                RequestedPlanMetricModel resultTmp = ConfigurationHelper.ParseRequestedPlanDoseInfo(dummyRequests.ElementAt(i));
+                Console.WriteLine($"{comparer.Print(expected.ElementAt(i))} | {comparer.Print(resultTmp)}");
+                Assert.IsTrue(comparer.Equals(expected.ElementAt(i), resultTmp));
+            }
+        }
+
+        
+
+        [TestMethod()]
+        public void ParseOptTSCreationCriteriaTest()
+        {
+            List<string> dummyRequestOptStructures = new List<string>
+            {
+                "{}}",
+                "{Dmax > 120 %}}",
+                "{Dmax > 130 %, V 110 % > 20.0 %}}",
+                "{Dmax > 130 %}}",
+                "{Dmax > 120 %, Dmax > 107 %, V 110 % > 10 %}}",
+                "{finalOpt, Dmax > 107 %, V 110 % > 10.0 %}}",
+                "{finalOpt, Dmax > 110 %}}",
+            };
+
+            List<List<OptTSCreationCriteriaModel>> expected = new List<List<OptTSCreationCriteriaModel>>
+            {
+                new List<OptTSCreationCriteriaModel>{ },
+                new List<OptTSCreationCriteriaModel>
+                {
+                   new OptTSCreationCriteriaModel(Enums.DVHMetric.Dmax, Enums.InequalityOperator.GreaterThan, 120, Enums.Units.Percent)
+                },
+                new List<OptTSCreationCriteriaModel>
+                {
+                   new OptTSCreationCriteriaModel(Enums.DVHMetric.Dmax, Enums.InequalityOperator.GreaterThan, 130, Enums.Units.Percent),
+                   new OptTSCreationCriteriaModel(Enums.DVHMetric.VolumeAtDose, 110, Enums.Units.Percent, Enums.InequalityOperator.GreaterThan, 20, Enums.Units.Percent)
+                },
+                new List<OptTSCreationCriteriaModel>
+                {
+                   new OptTSCreationCriteriaModel(Enums.DVHMetric.Dmax, Enums.InequalityOperator.GreaterThan, 130, Enums.Units.Percent)
+                },
+                new List<OptTSCreationCriteriaModel>
+                {
+                   new OptTSCreationCriteriaModel(Enums.DVHMetric.Dmax, Enums.InequalityOperator.GreaterThan, 120, Enums.Units.Percent),
+                   new OptTSCreationCriteriaModel(Enums.DVHMetric.Dmax, Enums.InequalityOperator.GreaterThan, 107, Enums.Units.Percent),
+                   new OptTSCreationCriteriaModel(Enums.DVHMetric.VolumeAtDose, 110, Enums.Units.Percent, Enums.InequalityOperator.GreaterThan, 10, Enums.Units.Percent)
+                },
+                new List<OptTSCreationCriteriaModel>
+                {
+                   new OptTSCreationCriteriaModel(true),
+                   new OptTSCreationCriteriaModel(Enums.DVHMetric.Dmax, Enums.InequalityOperator.GreaterThan, 107, Enums.Units.Percent),
+                   new OptTSCreationCriteriaModel(Enums.DVHMetric.VolumeAtDose, 110, Enums.Units.Percent, Enums.InequalityOperator.GreaterThan, 10, Enums.Units.Percent)
+                },
+                new List<OptTSCreationCriteriaModel>
+                {
+                   new OptTSCreationCriteriaModel(true),
+                   new OptTSCreationCriteriaModel(Enums.DVHMetric.Dmax, Enums.InequalityOperator.GreaterThan, 110, Enums.Units.Percent),
+                },
+            };
+
+            OptTSCreationCriteriaComparer comparer = new OptTSCreationCriteriaComparer();
+            for (int i = 0; i < dummyRequestOptStructures.Count; i++)
+            {
+                List<OptTSCreationCriteriaModel> resultTmp = ConfigurationHelper.ParseOptTSCreationCriteria(dummyRequestOptStructures[i]);
+                if (expected.ElementAt(i).Count == resultTmp.Count)
+                {
+                    if (resultTmp.Any())
+                    {
+                        for (int j = 0; j < resultTmp.Count; j++)
+                        {
+                            Console.WriteLine($"{comparer.Print(expected.ElementAt(i).ElementAt(j))} | {comparer.Print(resultTmp.ElementAt(j))}");
+                            Assert.IsTrue(comparer.Equals(expected.ElementAt(i).ElementAt(j), resultTmp.ElementAt(j)));
+                        }
+                    }
+                    else Console.WriteLine("No creation criteria present");
+                }
+                else
+                {
+                    Console.WriteLine($"Error! number of expected and acutal elements on itr {i} do not match! {expected.ElementAt(i).Count} vs {resultTmp.Count}");
+                    Assert.Fail();
+                }
+                Console.WriteLine("-----------------------------------------------");
+            }
+        }
+
+        public class OptTSCreationCriteriaComparer : IEqualityComparer<OptTSCreationCriteriaModel>
+        {
+            public string Print(OptTSCreationCriteriaModel x)
+            {
+                return $"{x.CreateForFinalOptimization} {x.DVHMetric} {x.Operator} {x.QueryValue} {x.QueryUnits} {x.Limit} {x.QueryResultUnits}";
+            }
+
+            public bool Equals(OptTSCreationCriteriaModel x, OptTSCreationCriteriaModel y)
+            {
+                if (x == null && y == null) return true;
+                else if (x == null || y == null) return false;
+                else if (object.ReferenceEquals(x, y)) return true;
+
+                return x.CreateForFinalOptimization == y.CreateForFinalOptimization
+                    && x.DVHMetric == y.DVHMetric
+                    && x.Operator == y.Operator
+                    && ((double.IsNaN(x.QueryValue) && double.IsNaN(y.QueryValue)) || CalculationHelper.AreEqual(x.QueryValue, y.QueryValue))
+                    && x.QueryUnits == y.QueryUnits
+                    && ((double.IsNaN(x.Limit) && double.IsNaN(y.Limit)) || CalculationHelper.AreEqual(x.Limit, y.Limit))
+                    && x.QueryResultUnits == y.QueryResultUnits;
+            }
+
+            public bool Equals(IEnumerable<OptTSCreationCriteriaModel> x, IEnumerable<OptTSCreationCriteriaModel> y)
+            {
+                if (x == null && y == null) return true;
+                else if (x == null || y == null) return false;
+                else if (object.ReferenceEquals(x, y)) return true;
+
+                List<bool> areEqual = new List<bool> { };
+                if (x.Count() == y.Count())
+                {
+                    for (int i = 0; i < x.Count(); i++)
+                    {
+                        areEqual.Add(Equals(x.ElementAt(i), y.ElementAt(i)));
+                    }
+                }
+                return areEqual.All(a => a);
+            }
+
+            public int GetHashCode(OptTSCreationCriteriaModel obj)
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        [TestMethod()]
+        public void ParseOptimizationTSstructureTest()
+        {
+            List<string> dummyRequestOptStructures = new List<string>
+            {
+                "add optimization TS structure{TS_heater90,90.0,100.0,100.0,60,{}}",
+                "add optimization TS structure{ TS_heater80,80.0,90.0,100.0,70,{ Dmax > 120 %}}",
+                "add optimization TS structure{ TS_heater70,70.0,80.0,100.0,80,{ Dmax > 130 %, V 110 % > 20.0 %}}",
+                "add optimization TS structure{TS_cooler120,110.0,108.0,0.0,80,{Dmax > 130 %}}",
+                "add optimization TS structure{ TS_cooler110,110.0,108,0.0,80,{ Dmax > 120 %, Dmax > 107 %, V 110 % > 10 %}}",
+                "add optimization TS structure{ TS_cooler105,105.0,101.0,0.0,70,{ finalOpt, Dmax > 107 %,V 110 % > 10.0 %}}",
+                "add optimization TS structure{ TS_cooler107,107.0,102.0,0.0,70,{ finalOpt, Dmax > 110 %}}",
+            };
+
+            List<RequestedOptimizationTSStructureModel> expected = new List<RequestedOptimizationTSStructureModel>
+            {
+                new TSHeaterStructureModel("TS_heater90", 90, 100, 60, new List<OptTSCreationCriteriaModel>{ }),
+                new TSHeaterStructureModel("TS_heater80", 80, 90, 70, new List<OptTSCreationCriteriaModel>
+                {
+                   new OptTSCreationCriteriaModel(Enums.DVHMetric.Dmax, Enums.InequalityOperator.GreaterThan, 120, Enums.Units.Percent)
+                }),
+                new TSHeaterStructureModel("TS_heater70", 70, 80, 80, new List<OptTSCreationCriteriaModel>
+                {
+                   new OptTSCreationCriteriaModel(Enums.DVHMetric.Dmax, Enums.InequalityOperator.GreaterThan, 130, Enums.Units.Percent),
+                   new OptTSCreationCriteriaModel(Enums.DVHMetric.VolumeAtDose, 110, Enums.Units.Percent, Enums.InequalityOperator.GreaterThan, 20, Enums.Units.Percent)
+                }),
+                new TSCoolerStructureModel("TS_cooler120", 110, 108, 80, new List<OptTSCreationCriteriaModel>
+                {
+                   new OptTSCreationCriteriaModel(Enums.DVHMetric.Dmax, Enums.InequalityOperator.GreaterThan, 130, Enums.Units.Percent)
+                }),
+                new TSCoolerStructureModel("TS_cooler110", 110, 108, 80, new List<OptTSCreationCriteriaModel>
+                {
+                   new OptTSCreationCriteriaModel(Enums.DVHMetric.Dmax, Enums.InequalityOperator.GreaterThan, 120, Enums.Units.Percent),
+                   new OptTSCreationCriteriaModel(Enums.DVHMetric.Dmax, Enums.InequalityOperator.GreaterThan, 107, Enums.Units.Percent),
+                   new OptTSCreationCriteriaModel(Enums.DVHMetric.VolumeAtDose, 110, Enums.Units.Percent, Enums.InequalityOperator.GreaterThan, 10, Enums.Units.Percent)
+                }),
+                new TSCoolerStructureModel("TS_cooler105", 105, 101, 70, new List<OptTSCreationCriteriaModel>
+                {
+                   new OptTSCreationCriteriaModel(true),
+                   new OptTSCreationCriteriaModel(Enums.DVHMetric.Dmax, Enums.InequalityOperator.GreaterThan, 107, Enums.Units.Percent),
+                   new OptTSCreationCriteriaModel(Enums.DVHMetric.VolumeAtDose, 110, Enums.Units.Percent, Enums.InequalityOperator.GreaterThan, 10, Enums.Units.Percent)
+                }),
+                new TSCoolerStructureModel("TS_cooler107", 107, 102, 70, new List<OptTSCreationCriteriaModel>
+                {
+                   new OptTSCreationCriteriaModel(true),
+                   new OptTSCreationCriteriaModel(Enums.DVHMetric.Dmax, Enums.InequalityOperator.GreaterThan, 110, Enums.Units.Percent),
+                }),
+            };
+
+            RequestedOptTSStructureComparer comparer = new RequestedOptTSStructureComparer();
+            for(int i = 0; i < dummyRequestOptStructures.Count; i++)
+            {
+                RequestedOptimizationTSStructureModel resultTmp = ConfigurationHelper.ParseOptimizationTSstructure(dummyRequestOptStructures[i]);
+                Console.WriteLine(comparer.Print(expected.ElementAt(i)));
+                Console.WriteLine("-----------------------------------------------");
+
+                Console.WriteLine(comparer.Print(resultTmp));
+                Console.WriteLine("-----------------------------------------------");
+                Console.WriteLine("-----------------------------------------------");
+
+                Assert.IsTrue(comparer.Equals(expected.ElementAt(i), resultTmp));
+            }
+        }
+
+        public class RequestedOptTSStructureComparer : IEqualityComparer<RequestedOptimizationTSStructureModel>
+        {
+
+            public string Print(RequestedOptimizationTSStructureModel x)
+            {
+                string result;
+                OptimizationConstraintComparer optComparer = new OptimizationConstraintComparer();
+                OptTSCreationCriteriaComparer creationComparer = new OptTSCreationCriteriaComparer();
+                if (x.GetType() == typeof(TSCoolerStructureModel))
+                {
+                    result = $"{x.TSStructureId} {(x as TSCoolerStructureModel).UpperDoseValue}" + Environment.NewLine;
+                }
+                else
+                {
+                    result = $"{x.TSStructureId} {(x as TSHeaterStructureModel).UpperDoseValue} {(x as TSHeaterStructureModel).LowerDoseValue}" + Environment.NewLine;
+                }
+                foreach (OptimizationConstraintModel itr in x.Constraints) result += $"{optComparer.Print(itr)}" + Environment.NewLine;
+                foreach (OptTSCreationCriteriaModel itr in x.CreationCriteria) result += $"{creationComparer.Print(itr)}" + Environment.NewLine;
+                return result;
+            }
+
+            public bool Equals(RequestedOptimizationTSStructureModel x, RequestedOptimizationTSStructureModel y)
+            {
+                if (x == null && y == null) return true;
+                else if (x == null || y == null) return false;
+                else if (object.ReferenceEquals(x, y)) return true;
+
+                OptimizationConstraintComparer optComparer = new OptimizationConstraintComparer();
+                OptTSCreationCriteriaComparer creationComparer = new OptTSCreationCriteriaComparer();
+
+                if (x.GetType() == typeof(TSCoolerStructureModel) && y.GetType() == typeof(TSCoolerStructureModel))
+                {
+                    return string.Equals(x.TSStructureId, x.TSStructureId)
+                        && CalculationHelper.AreEqual((x as TSCoolerStructureModel).UpperDoseValue, (y as TSCoolerStructureModel).UpperDoseValue)
+                        && optComparer.Equals(x.Constraints, y.Constraints)
+                        && creationComparer.Equals(x.CreationCriteria, y.CreationCriteria);
+                }
+                else if (x.GetType() == typeof(TSHeaterStructureModel) && y.GetType() == typeof(TSHeaterStructureModel))
+                {
+                    return string.Equals(x.TSStructureId, x.TSStructureId)
+                        && CalculationHelper.AreEqual((x as TSHeaterStructureModel).UpperDoseValue, (y as TSHeaterStructureModel).UpperDoseValue)
+                        && CalculationHelper.AreEqual((x as TSHeaterStructureModel).LowerDoseValue, (y as TSHeaterStructureModel).LowerDoseValue)
+                        && optComparer.Equals(x.Constraints, y.Constraints)
+                        && creationComparer.Equals(x.CreationCriteria, y.CreationCriteria);
+                }
+                else return false;
+            }
+
+            public int GetHashCode(RequestedOptimizationTSStructureModel obj)
+            {
+                throw new NotImplementedException();
+            }
         }
 
 
@@ -195,9 +466,34 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         //}
     }
 
+    public class RequestedPlanMetricComparer : IEqualityComparer<RequestedPlanMetricModel>
+    {
+        public string Print(RequestedPlanMetricModel x)
+        {
+            return $"{x.StructureId} {x.DVHMetric} {x.QueryValue} {x.QueryUnits} {x.QueryResultUnits}";
+        }
+        public bool Equals(RequestedPlanMetricModel x, RequestedPlanMetricModel y)
+        {
+            if (x == null && y == null) return true;
+            else if (x == null || y == null) return false;
+            else if (object.ReferenceEquals(x, y)) return true;
+
+            return string.Equals(x.StructureId, y.StructureId)
+                && x.DVHMetric == y.DVHMetric
+                && ((double.IsNaN(x.QueryValue) && double.IsNaN(y.QueryValue)) || CalculationHelper.AreEqual(x.QueryValue, y.QueryValue))
+                && x.QueryUnits == y.QueryUnits
+                && x.QueryResultUnits == y.QueryResultUnits;
+        }
+
+        public int GetHashCode(RequestedPlanMetricModel obj)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     public class OptimizationConstraintComparer : IEqualityComparer<OptimizationConstraintModel>
     {
-        public string PrintConstraint(OptimizationConstraintModel c)
+        public string Print(OptimizationConstraintModel c)
         {
             return $"{c.StructureId} {c.ConstraintType} {c.QueryDose} {c.QueryDoseUnits} {c.QueryVolume} {c.QueryVolumeUnits} {c.Priority}";
         }
@@ -215,6 +511,22 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
                 && CalculationHelper.AreEqual(x.QueryVolume, y.QueryVolume)
                 && x.QueryVolumeUnits == y.QueryVolumeUnits
                 && x.Priority == y.Priority;
+        }
+
+        public bool Equals(IEnumerable<OptimizationConstraintModel> x, IEnumerable<OptimizationConstraintModel> y)
+        {
+            if (x == null && y == null) return true;
+            else if (x == null || y == null) return false;
+            else if (object.ReferenceEquals(x, y)) return true;
+            List<bool> areEqual = new List<bool> { };
+            if(x.Count() == y.Count())
+            {
+                for(int i = 0; i < x.Count(); i++)
+                {
+                    areEqual.Add(Equals(x.ElementAt(i), y.ElementAt(i)));
+                }
+            }
+            return areEqual.All(a => a);
         }
 
         public int GetHashCode(OptimizationConstraintModel obj)

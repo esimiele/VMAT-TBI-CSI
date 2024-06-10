@@ -18,5 +18,16 @@ namespace VMATTBICSIAutoPlanningHelpers.Models
                 new OptimizationConstraintModel(TSStructureId, Enums.OptimizationObjectiveType.Upper, optDose, Enums.Units.cGy, optVol, priority),
             };
         }
+
+        public TSCoolerStructureModel(string structure, double high, double optDose, int priority, IEnumerable<OptTSCreationCriteriaModel> createCriteria, double optVol = 0.0)
+        {
+            TSStructureId = structure;
+            UpperDoseValue = high;
+            CreationCriteria = new List<OptTSCreationCriteriaModel>(createCriteria);
+            Constraints = new List<OptimizationConstraintModel>
+            {
+                new OptimizationConstraintModel(TSStructureId, Enums.OptimizationObjectiveType.Upper, optDose, Enums.Units.cGy, optVol, priority),
+            };
+        }
     }
 }
