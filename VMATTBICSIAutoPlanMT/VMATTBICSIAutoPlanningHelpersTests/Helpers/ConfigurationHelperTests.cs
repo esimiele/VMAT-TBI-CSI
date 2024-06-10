@@ -12,6 +12,8 @@ using Telerik.JustMock.AutoMock.Ninject.Planning.Targets;
 using VMS.TPS.Common.Model.API;
 using Telerik.JustMock.AutoMock.Ninject.Planning;
 using VMS.TPS.Common.Model;
+using System.Security.AccessControl;
+using VMATTBICSIAutoPlanningHelpersTests.EqualityComparerClasses;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
 {
@@ -76,16 +78,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             string testCreateTS = "create TS{CONTROL,TS_Eyes}";
             RequestedTSStructureModel expected = new RequestedTSStructureModel("CONTROL", "TS_Eyes");
             RequestedTSStructureModel result = ConfigurationHelper.ParseCreateTS(testCreateTS);
-            Assert.AreEqual(expected, result);
-        }
+            Assert.AreEqual(expected.StructureId, result.StructureId);
+            Assert.AreEqual(expected.DICOMType, result.DICOMType);
 
-        [TestMethod()]
-        public void ParseCreateTSTestFail1()
-        {
-            string testCreateTS = "create TS{PTV,TS_Eyes}";
-            RequestedTSStructureModel expected = new RequestedTSStructureModel("CONTROL", "TS_Eyes");
-            RequestedTSStructureModel result = ConfigurationHelper.ParseCreateTS(testCreateTS);
-            Assert.AreNotEqual(expected, result);
+            testCreateTS = "create TS{PTV,TS_Eyes}";
+            expected = new RequestedTSStructureModel("CONTROL", "TS_Eyes");
+            result = ConfigurationHelper.ParseCreateTS(testCreateTS);
+            Assert.AreEqual(expected.StructureId, result.StructureId);
+            Assert.AreNotEqual(expected.DICOMType, result.DICOMType);
         }
 
         [TestMethod()]
@@ -93,7 +93,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         {
             string dummyDaemon = "Aria DB daemon={VMSDBD,10.151.176.60,51402}";
             DaemonModel expected = new DaemonModel("VMSDBD", "10.151.176.60", 51402);
-            Assert.AreEqual(expected, ConfigurationHelper.ParseDaemonSettings(dummyDaemon));
+            DaemonModelComparer comparer = new DaemonModelComparer();
+            Assert.IsTrue(comparer.Equals(expected, ConfigurationHelper.ParseDaemonSettings(dummyDaemon)));
         }
 
         [TestMethod()]
@@ -101,15 +102,17 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
         {
             string dummyRing = "create ring{PTV_CSI,1.5,2.0,600}";
             TSRingStructureModel expected = new TSRingStructureModel("PTV_CSI", 1.5, 2.0, 600);
-            Assert.AreEqual(expected, ConfigurationHelper.ParseCreateRing(dummyRing));
+            RingModelComparer comparer = new RingModelComparer();
+            Assert.IsTrue(comparer.Equals(expected, ConfigurationHelper.ParseCreateRing(dummyRing)));
         }
 
         [TestMethod()]
         public void ParseTargetsTest()
         {
             string dummyTarget = "add target{PTV_CSI,1200,CSI-init}";
-            PlanTargetsModel expected = new PlanTargetsModel("PTV_CSI", new TargetModel("CSI-init", 1200));
-            Assert.AreEqual(expected, ConfigurationHelper.ParseTargets(dummyTarget));
+            PlanTargetsModel expected = new PlanTargetsModel("CSI-init", new TargetModel("PTV_CSI", 1200));
+            PlanTargetModelComparer comparer = new PlanTargetModelComparer();
+            Assert.IsTrue(comparer.Equals(expected, ConfigurationHelper.ParseTargets(dummyTarget)));
         }
 
         [TestMethod()]
@@ -212,8 +215,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             }
         }
 
-        
-
         [TestMethod()]
         public void ParseOptTSCreationCriteriaTest()
         {
@@ -288,63 +289,18 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             }
         }
 
-        public class OptTSCreationCriteriaComparer : IEqualityComparer<OptTSCreationCriteriaModel>
-        {
-            public string Print(OptTSCreationCriteriaModel x)
-            {
-                return $"{x.CreateForFinalOptimization} {x.DVHMetric} {x.Operator} {x.QueryValue} {x.QueryUnits} {x.Limit} {x.QueryResultUnits}";
-            }
-
-            public bool Equals(OptTSCreationCriteriaModel x, OptTSCreationCriteriaModel y)
-            {
-                if (x == null && y == null) return true;
-                else if (x == null || y == null) return false;
-                else if (object.ReferenceEquals(x, y)) return true;
-
-                return x.CreateForFinalOptimization == y.CreateForFinalOptimization
-                    && x.DVHMetric == y.DVHMetric
-                    && x.Operator == y.Operator
-                    && ((double.IsNaN(x.QueryValue) && double.IsNaN(y.QueryValue)) || CalculationHelper.AreEqual(x.QueryValue, y.QueryValue))
-                    && x.QueryUnits == y.QueryUnits
-                    && ((double.IsNaN(x.Limit) && double.IsNaN(y.Limit)) || CalculationHelper.AreEqual(x.Limit, y.Limit))
-                    && x.QueryResultUnits == y.QueryResultUnits;
-            }
-
-            public bool Equals(IEnumerable<OptTSCreationCriteriaModel> x, IEnumerable<OptTSCreationCriteriaModel> y)
-            {
-                if (x == null && y == null) return true;
-                else if (x == null || y == null) return false;
-                else if (object.ReferenceEquals(x, y)) return true;
-
-                List<bool> areEqual = new List<bool> { };
-                if (x.Count() == y.Count())
-                {
-                    for (int i = 0; i < x.Count(); i++)
-                    {
-                        areEqual.Add(Equals(x.ElementAt(i), y.ElementAt(i)));
-                    }
-                }
-                return areEqual.All(a => a);
-            }
-
-            public int GetHashCode(OptTSCreationCriteriaModel obj)
-            {
-                throw new NotImplementedException();
-            }
-        }
-
         [TestMethod()]
         public void ParseOptimizationTSstructureTest()
         {
             List<string> dummyRequestOptStructures = new List<string>
             {
                 "add optimization TS structure{TS_heater90,90.0,100.0,100.0,60,{}}",
-                "add optimization TS structure{ TS_heater80,80.0,90.0,100.0,70,{ Dmax > 120 %}}",
-                "add optimization TS structure{ TS_heater70,70.0,80.0,100.0,80,{ Dmax > 130 %, V 110 % > 20.0 %}}",
+                "add optimization TS structure{TS_heater80,80.0,90.0,100.0,70,{Dmax > 120 %}}",
+                "add optimization TS structure{TS_heater70,70.0,80.0,100.0,80,{Dmax > 130 %, V 110 % > 20.0 %}}",
                 "add optimization TS structure{TS_cooler120,110.0,108.0,0.0,80,{Dmax > 130 %}}",
-                "add optimization TS structure{ TS_cooler110,110.0,108,0.0,80,{ Dmax > 120 %, Dmax > 107 %, V 110 % > 10 %}}",
-                "add optimization TS structure{ TS_cooler105,105.0,101.0,0.0,70,{ finalOpt, Dmax > 107 %,V 110 % > 10.0 %}}",
-                "add optimization TS structure{ TS_cooler107,107.0,102.0,0.0,70,{ finalOpt, Dmax > 110 %}}",
+                "add optimization TS structure{TS_cooler110,110.0,108,0.0,80,{Dmax > 120 %, Dmax > 107 %, V 110 % > 10 %}}",
+                "add optimization TS structure{TS_cooler105,105.0,101.0,0.0,70,{finalOpt, Dmax > 107 %,V 110 % > 10.0 %}}",
+                "add optimization TS structure{TS_cooler107,107.0,102.0,0.0,70,{finalOpt, Dmax > 110 %}}",
             };
 
             List<RequestedOptimizationTSStructureModel> expected = new List<RequestedOptimizationTSStructureModel>
@@ -383,12 +339,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             };
 
             RequestedOptTSStructureComparer comparer = new RequestedOptTSStructureComparer();
-            for(int i = 0; i < dummyRequestOptStructures.Count; i++)
+            for (int i = 0; i < dummyRequestOptStructures.Count; i++)
             {
                 RequestedOptimizationTSStructureModel resultTmp = ConfigurationHelper.ParseOptimizationTSstructure(dummyRequestOptStructures[i]);
+                Console.WriteLine("Expected:");
                 Console.WriteLine(comparer.Print(expected.ElementAt(i)));
-                Console.WriteLine("-----------------------------------------------");
 
+                Console.WriteLine("Result:");
                 Console.WriteLine(comparer.Print(resultTmp));
                 Console.WriteLine("-----------------------------------------------");
                 Console.WriteLine("-----------------------------------------------");
@@ -397,164 +354,65 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             }
         }
 
-        public class RequestedOptTSStructureComparer : IEqualityComparer<RequestedOptimizationTSStructureModel>
+        [TestMethod()]
+        public void ParsePlanObjectiveTest()
         {
-
-            public string Print(RequestedOptimizationTSStructureModel x)
+            List<string> dummyPlanObj = new List<string>
             {
-                string result;
-                OptimizationConstraintComparer optComparer = new OptimizationConstraintComparer();
-                OptTSCreationCriteriaComparer creationComparer = new OptTSCreationCriteriaComparer();
-                if (x.GetType() == typeof(TSCoolerStructureModel))
-                {
-                    result = $"{x.TSStructureId} {(x as TSCoolerStructureModel).UpperDoseValue}" + Environment.NewLine;
-                }
-                else
-                {
-                    result = $"{x.TSStructureId} {(x as TSHeaterStructureModel).UpperDoseValue} {(x as TSHeaterStructureModel).LowerDoseValue}" + Environment.NewLine;
-                }
-                foreach (OptimizationConstraintModel itr in x.Constraints) result += $"{optComparer.Print(itr)}" + Environment.NewLine;
-                foreach (OptTSCreationCriteriaModel itr in x.CreationCriteria) result += $"{creationComparer.Print(itr)}" + Environment.NewLine;
-                return result;
-            }
+                "add plan objective{PTV_Boost,Lower,100.0,95.0,Relative}",
+                "add plan objective{PTV_Boost,Upper,110.0,0.0,Relative}",
+                "add plan objective{PTV_CSI,Lower,3600.0,95.0,cGy}",
+                "add plan objective{PTV_CSI,Upper,3750.0,0.0,cGy}",
+                "add plan objective{Brainstem,Upper,104.0,0.0,Relative}",
+                "add plan objective{OpticChiasm,Upper,100.0,0.0,Relative}",
+                "add plan objective{SpinalCord,Upper,104.0,0.0,Relative}",
+                "add plan objective{OpticNrvs,Upper,100.0,0.0,Relative}",
+                "add plan objective{Cochleas,Upper,102.0,0.0,Relative}",
+                "add plan objective{Cochleas,Mean,3700.0,0.0,cGy}",
+                "add plan objective{Parotids,Mean,1500.0,0.0,cGy}",
+                "add plan objective{Pituitary,Upper,110.0,0.0,Relative}",
+                "add plan objective{Eyes,Upper,4500,0.0,cGy}",
+                "add plan objective{Eyes,Mean,3600,0.0,cGy}"
+            };
 
-            public bool Equals(RequestedOptimizationTSStructureModel x, RequestedOptimizationTSStructureModel y)
+            List<PlanObjectiveModel> expected = new List<PlanObjectiveModel>
             {
-                if (x == null && y == null) return true;
-                else if (x == null || y == null) return false;
-                else if (object.ReferenceEquals(x, y)) return true;
+                new PlanObjectiveModel("PTV_Boost", Enums.OptimizationObjectiveType.Lower, 100, Enums.Units.Percent, 95),
+                new PlanObjectiveModel("PTV_Boost", Enums.OptimizationObjectiveType.Upper, 110, Enums.Units.Percent, 0),
+                new PlanObjectiveModel("PTV_CSI", Enums.OptimizationObjectiveType.Lower, 3600, Enums.Units.cGy, 95),
+                new PlanObjectiveModel("PTV_CSI", Enums.OptimizationObjectiveType.Upper, 3750, Enums.Units.cGy, 0),
+                new PlanObjectiveModel("Brainstem", Enums.OptimizationObjectiveType.Upper, 104, Enums.Units.Percent, 0),
+                new PlanObjectiveModel("OpticChiasm", Enums.OptimizationObjectiveType.Upper, 100, Enums.Units.Percent, 0),
+                new PlanObjectiveModel("SpinalCord", Enums.OptimizationObjectiveType.Upper, 104, Enums.Units.Percent, 0),
+                new PlanObjectiveModel("OpticNrvs", Enums.OptimizationObjectiveType.Upper, 100, Enums.Units.Percent, 0),
+                new PlanObjectiveModel("Cochleas", Enums.OptimizationObjectiveType.Upper, 102, Enums.Units.Percent, 0),
+                new PlanObjectiveModel("Cochleas", Enums.OptimizationObjectiveType.Mean, 3700, Enums.Units.cGy, 0),
+                new PlanObjectiveModel("Parotids", Enums.OptimizationObjectiveType.Mean, 1500, Enums.Units.cGy, 0),
+                new PlanObjectiveModel("Pituitary", Enums.OptimizationObjectiveType.Upper, 110, Enums.Units.Percent, 0),
+                new PlanObjectiveModel("Eyes", Enums.OptimizationObjectiveType.Upper, 4500, Enums.Units.cGy, 0),
+                new PlanObjectiveModel("Eyes", Enums.OptimizationObjectiveType.Mean, 3600, Enums.Units.cGy, 0),
+            };
 
-                OptimizationConstraintComparer optComparer = new OptimizationConstraintComparer();
-                OptTSCreationCriteriaComparer creationComparer = new OptTSCreationCriteriaComparer();
-
-                if (x.GetType() == typeof(TSCoolerStructureModel) && y.GetType() == typeof(TSCoolerStructureModel))
-                {
-                    return string.Equals(x.TSStructureId, x.TSStructureId)
-                        && CalculationHelper.AreEqual((x as TSCoolerStructureModel).UpperDoseValue, (y as TSCoolerStructureModel).UpperDoseValue)
-                        && optComparer.Equals(x.Constraints, y.Constraints)
-                        && creationComparer.Equals(x.CreationCriteria, y.CreationCriteria);
-                }
-                else if (x.GetType() == typeof(TSHeaterStructureModel) && y.GetType() == typeof(TSHeaterStructureModel))
-                {
-                    return string.Equals(x.TSStructureId, x.TSStructureId)
-                        && CalculationHelper.AreEqual((x as TSHeaterStructureModel).UpperDoseValue, (y as TSHeaterStructureModel).UpperDoseValue)
-                        && CalculationHelper.AreEqual((x as TSHeaterStructureModel).LowerDoseValue, (y as TSHeaterStructureModel).LowerDoseValue)
-                        && optComparer.Equals(x.Constraints, y.Constraints)
-                        && creationComparer.Equals(x.CreationCriteria, y.CreationCriteria);
-                }
-                else return false;
-            }
-
-            public int GetHashCode(RequestedOptimizationTSStructureModel obj)
+            PlanObjectiveModelComparer comparer = new PlanObjectiveModelComparer();
+            for(int i = 0; i < dummyPlanObj.Count; i++)
             {
-                throw new NotImplementedException();
+                PlanObjectiveModel resultTmp = ConfigurationHelper.ParsePlanObjective(dummyPlanObj[i]);
+                Console.WriteLine($"{comparer.Print(expected.ElementAt(i))} | {comparer.Print(resultTmp)}");
+                Assert.IsTrue(comparer.Equals(expected.ElementAt(i), resultTmp));
             }
-        }
-
-
-        //Unit testing a private method
-        //[TestMethod]
-        //public void IsLifeBeautiful_returns_true_when_your_name_is_God()
-        //{
-        //    God sut = new God();
-        //    object[] parameters = { "God" };
-        //    PrivateObject po = new PrivateObject(sut);
-
-        //    var returnValue = po.Invoke("IsLifeBeautiful", parameters);
-
-        //    Assert.IsTrue((bool)returnValue);
-        //}
-    }
-
-    public class RequestedPlanMetricComparer : IEqualityComparer<RequestedPlanMetricModel>
-    {
-        public string Print(RequestedPlanMetricModel x)
-        {
-            return $"{x.StructureId} {x.DVHMetric} {x.QueryValue} {x.QueryUnits} {x.QueryResultUnits}";
-        }
-        public bool Equals(RequestedPlanMetricModel x, RequestedPlanMetricModel y)
-        {
-            if (x == null && y == null) return true;
-            else if (x == null || y == null) return false;
-            else if (object.ReferenceEquals(x, y)) return true;
-
-            return string.Equals(x.StructureId, y.StructureId)
-                && x.DVHMetric == y.DVHMetric
-                && ((double.IsNaN(x.QueryValue) && double.IsNaN(y.QueryValue)) || CalculationHelper.AreEqual(x.QueryValue, y.QueryValue))
-                && x.QueryUnits == y.QueryUnits
-                && x.QueryResultUnits == y.QueryResultUnits;
-        }
-
-        public int GetHashCode(RequestedPlanMetricModel obj)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    public class OptimizationConstraintComparer : IEqualityComparer<OptimizationConstraintModel>
-    {
-        public string Print(OptimizationConstraintModel c)
-        {
-            return $"{c.StructureId} {c.ConstraintType} {c.QueryDose} {c.QueryDoseUnits} {c.QueryVolume} {c.QueryVolumeUnits} {c.Priority}";
-        }
-
-        public bool Equals(OptimizationConstraintModel x, OptimizationConstraintModel y)
-        {
-            if (x == null && y == null) return true;
-            else if (x == null || y == null) return false;
-            else if (object.ReferenceEquals(x, y)) return true;
-
-            return string.Equals(x.StructureId, y.StructureId)
-                && x.ConstraintType == y.ConstraintType
-                && CalculationHelper.AreEqual(x.QueryDose, y.QueryDose)
-                && x.QueryDoseUnits == y.QueryDoseUnits
-                && CalculationHelper.AreEqual(x.QueryVolume, y.QueryVolume)
-                && x.QueryVolumeUnits == y.QueryVolumeUnits
-                && x.Priority == y.Priority;
-        }
-
-        public bool Equals(IEnumerable<OptimizationConstraintModel> x, IEnumerable<OptimizationConstraintModel> y)
-        {
-            if (x == null && y == null) return true;
-            else if (x == null || y == null) return false;
-            else if (object.ReferenceEquals(x, y)) return true;
-            List<bool> areEqual = new List<bool> { };
-            if(x.Count() == y.Count())
-            {
-                for(int i = 0; i < x.Count(); i++)
-                {
-                    areEqual.Add(Equals(x.ElementAt(i), y.ElementAt(i)));
-                }
-            }
-            return areEqual.All(a => a);
-        }
-
-        public int GetHashCode(OptimizationConstraintModel obj)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    public class TSManipulationComparer : IEqualityComparer<RequestedTSManipulationModel>
-    {
-        public string Print(RequestedTSManipulationModel x)
-        {
-            return $"{x.StructureId} {x.ManipulationType} {x.MarginInCM}";
-        }
-        public bool Equals(RequestedTSManipulationModel x, RequestedTSManipulationModel y)
-        {
-            if (x == null && y == null) return true;
-            else if (x == null || y == null) return false;
-            else if (object.ReferenceEquals(x,y)) return true;
-
-            return string.Equals(x.StructureId, y.StructureId)
-                && x.ManipulationType == y.ManipulationType
-                && CalculationHelper.AreEqual(x.MarginInCM, y.MarginInCM);
-        }
-
-        public int GetHashCode(RequestedTSManipulationModel obj)
-        {
-            throw new NotImplementedException();
         }
     }
 }
+
+//Unit testing a private method
+//[TestMethod]
+//public void IsLifeBeautiful_returns_true_when_your_name_is_God()
+//{
+//    God sut = new God();
+//    object[] parameters = { "God" };
+//    PrivateObject po = new PrivateObject(sut);
+
+//    var returnValue = po.Invoke("IsLifeBeautiful", parameters);
+
+//    Assert.IsTrue((bool)returnValue);
+//}
