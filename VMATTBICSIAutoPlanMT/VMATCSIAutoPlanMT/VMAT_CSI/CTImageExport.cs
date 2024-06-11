@@ -14,7 +14,7 @@ using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Models;
 using System.Threading;
 
-namespace VMATTBICSIAutoPlanningHelpers.Helpers
+namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
     public class CTImageExport : SimpleMTbase
     {

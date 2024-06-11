@@ -153,8 +153,10 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="VMAT_CSI\AutoResConverter.cs" />
+    <Compile Include="VMAT_CSI\CTImageExport.cs" />
     <Compile Include="VMAT_CSI\GenerateTargets_CSI.cs" />
     <Compile Include="VMAT_CSI\GenerateTS_CSI.cs" />
+    <Compile Include="VMAT_CSI\ImportListenerHelper.cs" />
     <Compile Include="VMAT_CSI\PlaceBeams_CSI.cs" />
     <Compile Include="VMAT_CSI\PlanPrep_CSI.cs" />
     <Compile Include="VMAT_CSI\CSIAutoPlanMW.xaml.cs">

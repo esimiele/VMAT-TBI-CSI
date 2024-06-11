@@ -125,7 +125,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             {
                 Assert.AreEqual(expectedpts[i].x, outputpts[i].x, tolerance);
                 Assert.AreEqual(expectedpts[i].y, outputpts[i].y, tolerance);
-                //Console.WriteLine($"({expectedpts[i].x}, {expectedpts[i].y}) | ({outputpts[i].x}, {outputpts[i].y})");
+                Console.WriteLine($"({expectedpts[i].x}, {expectedpts[i].y}) | ({outputpts[i].x}, {outputpts[i].y})");
                 //Console.WriteLine($"{CalculationHelper.AreEqual(expectedpts[i].x, outputpts[i].x, tolerance)}");
             }
         }

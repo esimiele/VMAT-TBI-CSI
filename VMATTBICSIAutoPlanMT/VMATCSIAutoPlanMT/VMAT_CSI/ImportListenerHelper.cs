@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using VMATTBICSIAutoPlanningHelpers.Models;
 
-namespace VMATTBICSIAutoPlanningHelpers.Helpers
+namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
     public static class ImportListenerHelper
     {

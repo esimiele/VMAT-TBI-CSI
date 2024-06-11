@@ -14,23 +14,15 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
     public class ExportFormatTypeHelperTests
     {
         [TestMethod()]
-        public void GetExportFormatTypeTestPass()
+        public void GetExportFormatTypeTest()
         {
             string format = "dcm";
             Assert.AreEqual(ExportFormatTypeHelper.GetExportFormatType(format), ImgExportFormat.DICOM);
-        }
 
-        [TestMethod()]
-        public void GetExportFormatTypeTestPassPNG()
-        {
-            string format = "png";
+            format = "png";
             Assert.AreEqual(ExportFormatTypeHelper.GetExportFormatType(format), ImgExportFormat.PNG);
-        }
 
-        [TestMethod()]
-        public void GetExportFormatTypeTestFail()
-        {
-            string format = "dcn";
+            format = "dcn";
             Assert.AreNotEqual(ExportFormatTypeHelper.GetExportFormatType(format), ImgExportFormat.DICOM);
         }
     }

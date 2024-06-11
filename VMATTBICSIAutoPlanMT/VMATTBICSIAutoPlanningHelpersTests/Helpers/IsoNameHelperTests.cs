@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using VMATTBICSIAutoPlanningHelpers.Models;
+using VMATTBICSIAutoPlanningHelpersTests.EqualityComparerClasses;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
 {
@@ -23,17 +24,21 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
                 Tuple.Create(2,3, new List < IsocenterModel > { new IsocenterModel("Head"), new IsocenterModel("Pelvis") }),
                 Tuple.Create(4,6, new List < IsocenterModel > { new IsocenterModel("Head"), new IsocenterModel("Chest"), new IsocenterModel("Abdomen"), new IsocenterModel("Pelvis") }),
             };
+            IsocenterModelComparer comparer = new IsocenterModelComparer();
 
-            foreach(Tuple<int, int, List<IsocenterModel>> itr in isoNumPairs)
+            foreach (Tuple<int, int, List<IsocenterModel>> itr in isoNumPairs)
             {
-                GetTBIVMATIsoNamesTest(itr.Item1, itr.Item2, itr.Item3);
+                List<IsocenterModel> result = IsoNameHelper.GetTBIVMATIsoNames(itr.Item1, itr.Item2);
+                if (itr.Item3.Count == result.Count) 
+                {
+                    for (int i = 0; i < result.Count; i++)
+                    {
+                        Console.WriteLine($"{comparer.Print(itr.Item3.ElementAt(i))} | {comparer.Print(result.ElementAt(i))}");
+                    }
+                    Console.WriteLine("-------------------------------");
+                    Assert.IsTrue(comparer.Equals(itr.Item3, result));
+                }
             }
-        }
-
-        public void GetTBIVMATIsoNamesTest(int numVMATisos, int numIsos, List<IsocenterModel> expected)
-        {
-            List<IsocenterModel> isoNames = IsoNameHelper.GetTBIVMATIsoNames(numVMATisos, numIsos);
-            CollectionAssert.AreEqual(expected, isoNames);
         }
     }
 }

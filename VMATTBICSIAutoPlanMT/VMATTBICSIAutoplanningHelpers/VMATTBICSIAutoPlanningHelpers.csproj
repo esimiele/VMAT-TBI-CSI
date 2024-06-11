@@ -145,7 +145,6 @@
     <Compile Include="Helpers\CalculationHelper.cs" />
     <Compile Include="EnumTypeHelpers\ExportFormatTypeHelper.cs" />
     <Compile Include="EnumTypeHelpers\FlashTypeHelper.cs" />
-    <Compile Include="Helpers\ImportListenerHelper.cs" />
     <Compile Include="Helpers\PlanObjectiveHelper.cs" />
     <Compile Include="Helpers\PlanPrepHelper.cs" />
     <Compile Include="Interfaces\IPlanConstraint.cs" />
@@ -204,7 +203,6 @@
     <Compile Include="Logging\Logger.cs" />
     <Compile Include="UIHelpers\BeamPlacementUIHelper.cs" />
     <Compile Include="Helpers\ConfigurationHelper.cs" />
-    <Compile Include="Helpers\CTImageExport.cs" />
     <Compile Include="UIHelpers\CropOverlapOARUIHelper.cs" />
     <Compile Include="UIHelpers\ExportCTUIHelper.cs" />
     <Compile Include="UIHelpers\GeneralUIHelper.cs" />
