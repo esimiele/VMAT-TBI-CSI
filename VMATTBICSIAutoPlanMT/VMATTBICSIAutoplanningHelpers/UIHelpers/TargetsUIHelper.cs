@@ -9,6 +9,7 @@ using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 using VMATTBICSIAutoPlanningHelpers.Models;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
+using VMATTBICSIAutoPlanningHelpers.Logging;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
@@ -197,9 +198,8 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// </summary>
         /// <param name="theSP"></param>
         /// <returns></returns>
-        public static (List<PlanTargetsModel>, StringBuilder) ParseTargets(StackPanel theSP)
+        public static List<PlanTargetsModel> ParseTargets(StackPanel theSP)
         {
-            StringBuilder sb = new StringBuilder();
             List<PlanTargetsModel> listTargets = new List<PlanTargetsModel> { };
             List<PlanTargetsModel> ungroupedList = new List<PlanTargetsModel> { };
             string structure = "";
@@ -232,14 +232,14 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                     }
                     if (structure == "--select--" || planID == "--select--")
                     {
-                        sb.AppendLine("Error! \nStructure or plan not selected! \nSelect an option and try again");
-                        return (listTargets, sb);
+                        Logger.GetInstance().LogError("Error! \nStructure or plan not selected! \nSelect an option and try again");
+                        return listTargets;
                     }
                     //margin will not be assigned from the default value (-1000) if the input is empty, a whitespace, or NaN
                     else if (tgtRx == -1000.0)
                     {
-                        sb.AppendLine("Error! \nEntered Rx value is invalid! \nEnter a new Rx and try again");
-                        return (listTargets, sb);
+                        Logger.GetInstance().LogError("Error! \nEntered Rx value is invalid! \nEnter a new Rx and try again");
+                        return listTargets;
                     }
                     else
                     {
@@ -258,7 +258,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             
             //plan targets model list grouped by plan Id and targets sorted according to target Rx
             listTargets = new List<PlanTargetsModel>(TargetsHelper.GroupTargetsByPlanIdAndOrderByTargetRx(ungroupedList));
-            return (listTargets, sb);
+            return listTargets;
         }
     }
 }

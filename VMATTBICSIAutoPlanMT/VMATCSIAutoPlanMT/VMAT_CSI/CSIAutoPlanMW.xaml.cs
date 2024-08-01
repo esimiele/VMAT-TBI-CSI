@@ -20,6 +20,7 @@ using VMATTBICSIAutoPlanningHelpers.UIHelpers;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
 using VMATTBICSIAutoPlanningHelpers.Models;
 using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
+using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 
 namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
@@ -719,20 +720,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
 
             //target id, target Rx, plan id
-            (List<PlanTargetsModel>, StringBuilder) parsedTargets = TargetsUIHelper.ParseTargets(targetsSP);
-            if (!parsedTargets.Item1.Any())
-            {
-                Logger.GetInstance().LogError(parsedTargets.Item2);
-                return;
-            }
-            (bool isTargetError, StringBuilder errorMessage) = VerifySelectedTargetsIntegrity(parsedTargets.Item1);
-            if(isTargetError)
-            {
-                Logger.GetInstance().LogError(errorMessage);
-                return;
-            }
+            List<PlanTargetsModel> parsedTargets = TargetsUIHelper.ParseTargets(targetsSP);
+            if (!parsedTargets.Any()) return;
+            if (VerifySelectedTargetsIntegrity(parsedTargets)) return;
 
-            (List<PrescriptionModel>, StringBuilder) parsedPrescriptions = TargetsHelper.BuildPrescriptionList(parsedTargets.Item1,
+            (List<PrescriptionModel>, StringBuilder) parsedPrescriptions = TargetsHelper.BuildPrescriptionList(parsedTargets,
                                                                                                           initDosePerFxTB.Text,
                                                                                                           initNumFxTB.Text,
                                                                                                           initRxTB.Text,
@@ -759,19 +751,17 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             TSManipulationTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
         }
 
-        private (bool, StringBuilder) VerifySelectedTargetsIntegrity(List<PlanTargetsModel> parsedTargets)
+        private bool VerifySelectedTargetsIntegrity(List<PlanTargetsModel> parsedTargets)
         {
             //verify selected targets are APPROVED
-            bool fail = false;
-            StringBuilder sb = new StringBuilder();
             foreach (PlanTargetsModel itr in parsedTargets)
             {
                 foreach(TargetModel target in itr.Targets)
                 {
                     if (!StructureTuningHelper.DoesStructureExistInSS(target.TargetId, selectedSS, true))
                     {
-                        sb.AppendLine($"Error! {target.TargetId} is either NOT present in structure set or is not contoured!");
-                        fail = true;
+                        Logger.GetInstance().LogError($"Error! {target.TargetId} is either NOT present in structure set or is not contoured!");
+                        return true;
                     }
                     else
                     {
@@ -779,14 +769,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                         Structure tgt = StructureTuningHelper.GetStructureFromId(target.TargetId, selectedSS);
                         if (tgt.ApprovalHistory.First().ApprovalStatus != StructureApprovalStatus.Approved)
                         {
-                            sb.AppendLine($"Error! {tgt.Id} is NOT approved!");
-                            sb.AppendLine($"{tgt.Id} approval status: {tgt.ApprovalHistory.First().ApprovalStatus}");
-                            fail = true;
+                            Logger.GetInstance().LogError($"Error! {tgt.Id} is NOT approved!" + Environment.NewLine + $"{tgt.Id} approval status: {tgt.ApprovalHistory.First().ApprovalStatus}");
+                            return true;
                         }
                     }
                 }
             }
-            return (fail, sb);
+            return false;
         }
         #endregion
 
@@ -947,10 +936,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             //selected plan is valid
             //get prescription
-            double initRx = 0.1;
             double bstRx = 0.1;
 
-            if (!double.TryParse(initRxText, out initRx))
+            if (!double.TryParse(initRxText, out double initRx))
             {
                 Logger.GetInstance().LogError("Warning! Entered initial plan prescription is not valid! \nCannot scale optimization objectives to requested Rx! Exiting!");
                 return;
@@ -1531,9 +1519,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             if (updateTsStructureJnxObjectives)
             {
-                defaultListList = OptimizationSetupUIHelper.UpdateOptObjectivesWithTsStructuresAndJnxs(defaultListList,
+                defaultListList = OptimizationSetupHelper.UpdateOptObjectivesWithTsStructuresAndJnxs(defaultListList,
                                                                                                        prescriptions,
-                                                                                                       templateList.SelectedItem,
+                                                                                                       templateList.SelectedItem as AutoPlanTemplateBase,
                                                                                                        tsTargets,
                                                                                                        jnxs,
                                                                                                        targetCropOverlapManipulations,
@@ -1608,11 +1596,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 //entered prescription differs from prescription in template --> need to rescale all objectives by ratio of prescriptions
                 List<PlanOptimizationSetupModel> scaledConstraints = new List<PlanOptimizationSetupModel>
                 {
-                    new PlanOptimizationSetupModel(parsedConstraints.constraints.First().PlanId, OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.First().OptimizationConstraints, selectedTemplate.InitialRxDosePerFx * selectedTemplate.InitialRxNumberOfFractions, initRx))
+                    new PlanOptimizationSetupModel(parsedConstraints.constraints.First().PlanId, OptimizationSetupHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.First().OptimizationConstraints, selectedTemplate.InitialRxDosePerFx * selectedTemplate.InitialRxNumberOfFractions, initRx))
                 };
                 if(bstRx != 0.1)
                 {
-                    scaledConstraints.Add(new PlanOptimizationSetupModel(parsedConstraints.constraints.Last().PlanId, OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.Last().OptimizationConstraints, selectedTemplate.BoostRxDosePerFx * selectedTemplate.BoostRxNumberOfFractions, bstRx)));
+                    scaledConstraints.Add(new PlanOptimizationSetupModel(parsedConstraints.constraints.Last().PlanId, OptimizationSetupHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.Last().OptimizationConstraints, selectedTemplate.BoostRxDosePerFx * selectedTemplate.BoostRxNumberOfFractions, bstRx)));
                 }
                 PopulateOptimizationTab(theSP, scaledConstraints, checkIfStructIsInSS, true);
             }
@@ -1646,7 +1634,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     {
                         foreach (OptimizationObjective o in plan.OptimizationSetup.Objectives) plan.OptimizationSetup.RemoveObjective(o);
                     }
-                    OptimizationSetupUIHelper.AssignOptConstraints(itr.OptimizationConstraints, plan, true, 0.0);
+                    OptimizationSetupHelper.AssignOptConstraints(itr.OptimizationConstraints, plan, true, 0.0);
                     constraintsAssigned = true;
                 }
                 else Logger.GetInstance().LogError($"_{itr.PlanId} not found!");
@@ -2044,12 +2032,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             else if(templateBuildOptionCB.SelectedItem.ToString().ToLower() == "current parameters")
             {
                 //add targets (checked first to ensure the user has actually input some parameters into the UI before trying to make a template based on the current settings)
-                (List<PlanTargetsModel> planTargetList, StringBuilder errorMsg) = TargetsUIHelper.ParseTargets(targetsSP);
-                if (!planTargetList.Any())
-                {
-                    Logger.GetInstance().LogError("Error! Enter parameters into the UI before trying to use them to make a new plan template!");
-                    return;
-                }
+                List<PlanTargetsModel> planTargetList = TargetsUIHelper.ParseTargets(targetsSP);
+                if (!planTargetList.Any()) return;
                 ClearAllTargetItems(templateClearTargetList);
                 AddTargetVolumes(planTargetList, templateTargetsSP);
 
@@ -2163,7 +2147,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
 
             //sort targets by prescription dose (ascending order)
-            prospectiveTemplate.PlanTargets = TargetsUIHelper.ParseTargets(templateTargetsSP).Item1;
+            prospectiveTemplate.PlanTargets = TargetsUIHelper.ParseTargets(templateTargetsSP);
             prospectiveTemplate.CreateTSStructures = StructureTuningUIHelper.ParseCreateTSStructureList(templateTSSP).Item1;
             prospectiveTemplate.Rings = RingUIHelper.ParseCreateRingList(templateCreateRingsSP).Item1;
             prospectiveTemplate.CropAndOverlapStructures = new List<string>(CropOverlapOARUIHelper.ParseCropOverlapOARList(templateCropOverlapOARsSP).Item1);

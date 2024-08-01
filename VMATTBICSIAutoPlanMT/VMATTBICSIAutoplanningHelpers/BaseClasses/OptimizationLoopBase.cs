@@ -514,7 +514,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 //the same plan!
                 if (!_data.IsDemo && _data.CopyAndSaveEachOptimizedPlan && (_data.OneMoreOptimization || ((count + 1) != _data.NumberOfIterations))) CopyAndSavePlan(plan, count);
 
-                ProvideUIUpdate(OptimizationLoopUIHelper.PrintPlanOptimizationResultVsConstraints(plan, OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan), e.PlanDifferenceFromOptConstraints, e.TotalOptimizationCostOptConstraints));
+                ProvideUIUpdate(OptimizationLoopUIHelper.PrintPlanOptimizationResultVsConstraints(plan, OptimizationSetupHelper.ReadConstraintsFromPlan(plan), e.PlanDifferenceFromOptConstraints, e.TotalOptimizationCostOptConstraints));
                 ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.RequestedPlanMetrics, plan, _data.NormalizationVolumes));
 
                 //really crank up the priority and lower the dose objective on the cooler on the last iteration of the optimization loop
@@ -630,7 +630,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         protected virtual bool InitializeOptimizationConstriants(ExternalPlanSetup plan)
         {
             int percentComplete = 0;
-            List<OptimizationConstraintModel> originalOptObj = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
+            List<OptimizationConstraintModel> originalOptObj = OptimizationSetupHelper.ReadConstraintsFromPlan(plan);
             int calcItems = originalOptObj.Count();
             List<OptimizationConstraintModel> optObj = new List<OptimizationConstraintModel> { };
             int priority;
@@ -763,7 +763,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             PlanEvaluationDataContainer e = new PlanEvaluationDataContainer();
 
             ProvideUIUpdate($"Parsing optimization objectives from plan: {plan.Id}");
-            List<OptimizationConstraintModel> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
+            List<OptimizationConstraintModel> optParams = OptimizationSetupHelper.ReadConstraintsFromPlan(plan);
             //get current optimization objectives from plan (we could use the optParams list, but we want the actual instances of the OptimizationObjective class so we can get the results from each objective)
             (int numComparison, List<PlanObjectivesDeviationModel> differenceFromPlanObj) = EvaluateResultVsPlanObjectives(plan, planObj, optParams);
             if (GetAbortStatus())
@@ -1021,7 +1021,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             if(removeExistingHeaterCoolerStructures) RemoveCoolHeatStructures(plan);
 
             //list to hold info related to optimization constraints for any added heater and cooler structures
-            List<OptimizationConstraintModel> heaterCoolerOptConstraints = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan).Where(x => x.StructureId.ToLower().Contains("cooler") || x.StructureId.ToLower().Contains("heater")).ToList();
+            List<OptimizationConstraintModel> heaterCoolerOptConstraints = OptimizationSetupHelper.ReadConstraintsFromPlan(plan).Where(x => x.StructureId.ToLower().Contains("cooler") || x.StructureId.ToLower().Contains("heater")).ToList();
             //now create new cooler and heating structures
             ProvideUIUpdate($"Retrieving target structure for plan: {plan.Id}");
             Dictionary<string, string> plansTargets = TargetsHelper.GetHighestRxPlanTargetList(_data.Prescriptions);

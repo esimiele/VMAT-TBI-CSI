@@ -11,7 +11,7 @@ using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.EnumTypeHelpers;
 
-namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
+namespace VMATTBICSIAutoPlanningHelpers.EnumTypeHelpers.Tests
 {
     [TestClass()]
     public class OptimizationTypeHelperTests

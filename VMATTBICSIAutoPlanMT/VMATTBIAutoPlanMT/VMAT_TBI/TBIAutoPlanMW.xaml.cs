@@ -20,6 +20,7 @@ using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
 using System.Collections.ObjectModel;
 using System.Text;
 using VMATTBICSIAutoPlanningHelpers.Models;
+using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 
 namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
@@ -560,20 +561,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
 
             //target id, target Rx, plan id
-            (List<PlanTargetsModel>, StringBuilder) parsedTargets = TargetsUIHelper.ParseTargets(targetsSP);
-            if (!parsedTargets.Item1.Any())
-            {
-                Logger.GetInstance().LogError(parsedTargets.Item2);
-                return;
-            }
-            (bool fail, StringBuilder errorMessage) = VerifySelectedTargetsIntegrity(parsedTargets.Item1);
-            if(fail)
-            {
-                Logger.GetInstance().LogError(errorMessage);
-                return;
-            }
+            List<PlanTargetsModel> parsedTargets = TargetsUIHelper.ParseTargets(targetsSP);
+            if (VerifySelectedTargetsIntegrity(parsedTargets)) return;
 
-            (List<PrescriptionModel>, StringBuilder) parsedPrescriptions = TargetsHelper.BuildPrescriptionList(parsedTargets.Item1,
+            (List<PrescriptionModel>, StringBuilder) parsedPrescriptions = TargetsHelper.BuildPrescriptionList(parsedTargets,
                                                                                                           dosePerFxTB.Text,
                                                                                                           numFxTB.Text,
                                                                                                           RxTB.Text);
@@ -589,18 +580,17 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             Logger.GetInstance().Prescriptions = prescriptions;
         }
 
-        private (bool, StringBuilder) VerifySelectedTargetsIntegrity(List<PlanTargetsModel> parsedTargets)
+        private bool VerifySelectedTargetsIntegrity(List<PlanTargetsModel> parsedTargets)
         {
             //verify selected targets are APPROVED
-            bool fail = false;
-            StringBuilder sb = new StringBuilder();
             //for tbi, we only want to make there is one plan (not configured for sequential boosts)
+            if(!parsedTargets.Any()) return true;
             if(parsedTargets.Select(x => x.PlanId).Distinct().Count() > 1)
             {
-                sb.AppendLine($"Error! Multiple plan Ids entered! This script is only configured to auto-plan one TBI plan!");
-                fail = true;
+                Logger.GetInstance().LogError($"Error! Multiple plan Ids entered! This script is only configured to auto-plan one TBI plan!");
+                return true;
             }
-            return (fail, sb);
+            return false;
         }
         #endregion
 
@@ -1208,9 +1198,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
             if (updateTsStructureJnxObjectives)
             {
-                defaultListList = OptimizationSetupUIHelper.UpdateOptObjectivesWithTsStructuresAndJnxs(defaultListList,
+                defaultListList = OptimizationSetupHelper.UpdateOptObjectivesWithTsStructuresAndJnxs(defaultListList,
                                                                                                        prescriptions,
-                                                                                                       templateList.SelectedItem,
+                                                                                                       templateList.SelectedItem as AutoPlanTemplateBase,
                                                                                                        tsTargets,
                                                                                                        jnxs);
             }
@@ -1335,7 +1325,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 string planId = parsedConstraints.constraints.First().PlanId;
                 List<PlanOptimizationSetupModel> scaledConstraints = new List<PlanOptimizationSetupModel>
                 {
-                    new PlanOptimizationSetupModel(planId, OptimizationSetupUIHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.First().OptimizationConstraints, selectedTemplate.InitialRxDosePerFx * selectedTemplate.InitialRxNumberOfFractions, Rx))
+                    new PlanOptimizationSetupModel(planId, OptimizationSetupHelper.RescalePlanObjectivesToNewRx(parsedConstraints.constraints.First().OptimizationConstraints, selectedTemplate.InitialRxDosePerFx * selectedTemplate.InitialRxNumberOfFractions, Rx))
                 };
                 PopulateOptimizationTab(theSP, scaledConstraints, checkIfStructIsInSS, true);
             }
@@ -1367,7 +1357,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 {
                     foreach (OptimizationObjective o in VMATplan.OptimizationSetup.Objectives) VMATplan.OptimizationSetup.RemoveObjective(o);
                 }
-                OptimizationSetupUIHelper.AssignOptConstraints(constraints, VMATplan, true, 0.0);
+                OptimizationSetupHelper.AssignOptConstraints(constraints, VMATplan, true, 0.0);
                 constraintsAssigned = true;
             }
             else
@@ -1687,14 +1677,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             else if (templateBuildOptionCB.SelectedItem.ToString().ToLower() == "current parameters")
             {
                 //add targets (checked first to ensure the user has actually input some parameters into the UI before trying to make a template based on the current settings)
-                (List<PlanTargetsModel> targetList, StringBuilder) parsedTargetList = TargetsUIHelper.ParseTargets(targetsSP);
-                if (!parsedTargetList.targetList.Any())
+                List<PlanTargetsModel> parsedTargetList = TargetsUIHelper.ParseTargets(targetsSP);
+                if (!parsedTargetList.Any())
                 {
-                    Logger.GetInstance().LogError("Error! Enter parameters into the UI before trying to use them to make a new plan template!");
                     return;
                 }
                 ClearAllTargetItems(templateClearTargetList);
-                AddTargetVolumes(parsedTargetList.targetList, templateTargetsSP);
+                AddTargetVolumes(parsedTargetList, templateTargetsSP);
 
                 //set name
                 templateNameTB.Text = "--new template--";
@@ -1765,7 +1754,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
 
             //sort targets by prescription dose (ascending order)
-            prospectiveTemplate.PlanTargets = TargetsUIHelper.ParseTargets(templateTargetsSP).Item1;
+            prospectiveTemplate.PlanTargets = TargetsUIHelper.ParseTargets(templateTargetsSP);
             prospectiveTemplate.CreateTSStructures = StructureTuningUIHelper.ParseCreateTSStructureList(templateTSSP).Item1;
             prospectiveTemplate.TSManipulations = StructureTuningUIHelper.ParseTSManipulationList(templateStructuresSP).Item1;
             List<PlanOptimizationSetupModel> templateOptParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(templateOptParamsSP).Item1;

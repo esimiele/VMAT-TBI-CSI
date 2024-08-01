@@ -261,7 +261,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 return true;
             }
             ProvideUIUpdate(100 * ++percentComplete / calcItems);
-            List<OptimizationConstraintModel> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(initialPlan);
+            List<OptimizationConstraintModel> optParams = OptimizationSetupHelper.ReadConstraintsFromPlan(initialPlan);
             optParams.AddRange(addedTSCoolerConstraint);
             ProvideUIUpdate(100 * ++percentComplete / calcItems, OptimizationLoopUIHelper.PrintPlanOptimizationConstraints(initialPlan.Id, optParams));
 
@@ -356,7 +356,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                     foreach (ExternalPlanSetup itr in plans)
                     {
                         ProvideUIUpdate($"Adjusting optimization parameters for plan: {itr.Id}!");
-                        List<OptimizationConstraintModel> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(itr);
+                        List<OptimizationConstraintModel> optParams = OptimizationSetupHelper.ReadConstraintsFromPlan(itr);
                         ProvideUIUpdate($"Evaluating quality of plan: {itr.Id}!");
                         PlanEvaluationDataContainer e = EvaluatePlanSumComponentPlans(itr, optParams);
                         if (e.OptimizationKilledByUser) return true;
@@ -404,7 +404,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
         {
             UpdateUILabel($"Plan sum evaluation: {plan.Id}");
             ProvideUIUpdate($"Parsing optimization objectives from plan: {plan.Id}");
-            List<OptimizationConstraintModel> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
+            List<OptimizationConstraintModel> optParams = OptimizationSetupHelper.ReadConstraintsFromPlan(plan);
             //get current optimization objectives from plan (we could use the optParams list, but we want the actual instances of the OptimizationObjective class so we can get the results from each objective)
             (int numComparisons, List<PlanObjectivesDeviationModel> diffPlanObj) = EvaluateResultVsPlanObjectives(plan, planObj, optParams);
             //all constraints met, exiting

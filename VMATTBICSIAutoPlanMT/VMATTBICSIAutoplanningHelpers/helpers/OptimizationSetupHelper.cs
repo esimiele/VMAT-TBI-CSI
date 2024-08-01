@@ -7,11 +7,112 @@ using VMATTBICSIAutoPlanningHelpers.Models;
 using VMATTBICSIAutoPlanningHelpers.PlanTemplateClasses;
 using System.Text;
 using VMS.TPS.Common.Model.API;
+using VMATTBICSIAutoPlanningHelpers.EnumTypeHelpers;
+using VMATTBICSIAutoPlanningHelpers.Logging;
+using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
     public static class OptimizationSetupHelper
     {
+        /// <summary>
+        /// Helper method to take the supplied optimization constraints and rescale the dose objectives by the ratio of the supplied prescription doses (new Rx/ old Rx)
+        /// </summary>
+        /// <param name="currentList"></param>
+        /// <param name="oldRx"></param>
+        /// <param name="newRx"></param>
+        /// <returns></returns>
+        public static List<OptimizationConstraintModel> RescalePlanObjectivesToNewRx(List<OptimizationConstraintModel> currentList,
+                                                                                                                       double oldRx,
+                                                                                                                       double newRx)
+        {
+            List<OptimizationConstraintModel> tmpList = new List<OptimizationConstraintModel> { };
+            foreach (OptimizationConstraintModel itr in currentList)
+            {
+                tmpList.Add(new OptimizationConstraintModel(itr.StructureId, itr.ConstraintType, itr.QueryDose * newRx / oldRx, Units.cGy, itr.QueryVolume, itr.Priority));
+            }
+            return tmpList;
+        }
+
+        /// <summary>
+        /// Helper method to control the flow of adding additional optimization constraints to the supplied list. Additional constraints are added for TS targets, TS manipulations, adding rings, and adding overlap junctions
+        /// </summary>
+        /// <param name="defaultListList"></param>
+        /// <param name="prescriptions"></param>
+        /// <param name="selectedTemplate"></param>
+        /// <param name="tsTargets"></param>
+        /// <param name="jnxs"></param>
+        /// <param name="targetManipulations"></param>
+        /// <param name="addedRings"></param>
+        /// <returns></returns>
+        public static List<PlanOptimizationSetupModel> UpdateOptObjectivesWithTsStructuresAndJnxs(List<PlanOptimizationSetupModel> defaultListList,
+                                                                                             List<PrescriptionModel> prescriptions,
+                                                                                             AutoPlanTemplateBase selectedTemplate,
+                                                                                             List<PlanTargetsModel> tsTargets,
+                                                                                             List<PlanFieldJunctionModel> jnxs,
+                                                                                             List<TSTargetCropOverlapModel> targetManipulations = null,
+                                                                                             List<TSRingStructureModel> addedRings = null)
+        {
+            if (tsTargets.Any())
+            {
+                //handles if crop/overlap operations were performed for all targets and the optimization constraints need to be updated
+                defaultListList = UpdateOptimizationConstraints(tsTargets, prescriptions, selectedTemplate, defaultListList);
+            }
+            if (targetManipulations != null && targetManipulations.Any())
+            {
+                //handles if crop/overlap operations were performed for all targets and the optimization constraints need to be updated
+                defaultListList = UpdateOptimizationConstraints(targetManipulations, prescriptions, selectedTemplate, defaultListList);
+            }
+            if (addedRings != null && addedRings.Any())
+            {
+                defaultListList = UpdateOptimizationConstraints(addedRings, prescriptions, selectedTemplate, defaultListList);
+            }
+            if (jnxs.Any())
+            {
+                defaultListList = InsertTSJnxOptConstraints(defaultListList, jnxs, prescriptions);
+            }
+            return defaultListList;
+        }
+
+        /// <summary>
+        /// Simple helper method to remove all optimization constraints from the supplied plan
+        /// </summary>
+        /// <param name="plan"></param>
+        /// <returns></returns>
+        public static void RemoveOptimizationConstraintsFromPLan(ExternalPlanSetup plan)
+        {
+            foreach (OptimizationObjective o in plan.OptimizationSetup.Objectives) plan.OptimizationSetup.RemoveObjective(o);
+        }
+
+        /// <summary>
+        /// Helper method to take the supplied plan and read the optimization constraints attached to the plan. Returns the list of 
+        /// optimization constraints
+        /// </summary>
+        /// <param name="plan"></param>
+        /// <returns></returns>
+        public static List<OptimizationConstraintModel> ReadConstraintsFromPlan(ExternalPlanSetup plan)
+        {
+            List<OptimizationConstraintModel> defaultList = new List<OptimizationConstraintModel> { };
+            foreach (OptimizationObjective itr in plan.OptimizationSetup.Objectives)
+            {
+                //do NOT include any cooler or heater tuning structures in the list
+                if (!itr.StructureId.ToLower().Contains("ts_cooler") && !itr.StructureId.ToLower().Contains("ts_heater"))
+                {
+                    if (itr.GetType() == typeof(OptimizationPointObjective))
+                    {
+                        OptimizationPointObjective pt = (itr as OptimizationPointObjective);
+                        defaultList.Add(new OptimizationConstraintModel(pt.StructureId, OptimizationTypeHelper.GetObjectiveType(pt), pt.Dose.Dose, Units.cGy, pt.Volume, (int)pt.Priority, Units.Percent));
+                    }
+                    else if (itr.GetType() == typeof(OptimizationMeanDoseObjective))
+                    {
+                        OptimizationMeanDoseObjective mean = (itr as OptimizationMeanDoseObjective);
+                        defaultList.Add(new OptimizationConstraintModel(mean.StructureId, OptimizationObjectiveType.Mean, mean.Dose.Dose, Units.cGy, 0.0, (int)mean.Priority));
+                    }
+                }
+            }
+            return defaultList;
+        }
+
         /// <summary>
         /// Helper method to update the optimization constraint list by replacing the target Ids in the original list with the associated TS target Ids
         /// </summary>
@@ -22,7 +123,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <returns></returns>
         public static List<PlanOptimizationSetupModel> UpdateOptimizationConstraints(List<PlanTargetsModel> tsTargets,
                                                                                 List<PrescriptionModel> prescriptions,
-                                                                                object selectedTemplate,
+                                                                                AutoPlanTemplateBase selectedTemplate,
                                                                                 List<PlanOptimizationSetupModel> currentList = null)
         {
             List<PlanOptimizationSetupModel> updatedList = new List<PlanOptimizationSetupModel> { };
@@ -75,7 +176,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <returns></returns>
         public static List<PlanOptimizationSetupModel> UpdateOptimizationConstraints(List<TSTargetCropOverlapModel> targetManipulations,
                                                                                     List<PrescriptionModel> prescriptions,
-                                                                                    object selectedTemplate,
+                                                                                    AutoPlanTemplateBase selectedTemplate,
                                                                                     List<PlanOptimizationSetupModel> currentList = null)
         {
             List<PlanOptimizationSetupModel> updatedList = new List<PlanOptimizationSetupModel> { };
@@ -131,7 +232,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <returns></returns>
         public static List<PlanOptimizationSetupModel> UpdateOptimizationConstraints(List<TSRingStructureModel> addedRings,
                                                                                                       List<PrescriptionModel> prescriptions,
-                                                                                                      object selectedTemplate,
+                                                                                                      AutoPlanTemplateBase selectedTemplate,
                                                                                                       List<PlanOptimizationSetupModel> currentList = null)
         { 
             if (!currentList.Any()) currentList = RetrieveOptConstraintsFromTemplate(selectedTemplate, prescriptions).Item1;
@@ -158,8 +259,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="prescriptions"></param>
         /// <returns></returns>
         public static List<PlanOptimizationSetupModel> InsertTSJnxOptConstraints(List<PlanOptimizationSetupModel> list,
-                                                                                                  List<PlanFieldJunctionModel> jnxs,
-                                                                                                  List<PrescriptionModel> prescriptions)
+                                                                                List<PlanFieldJunctionModel> jnxs,
+                                                                                List<PrescriptionModel> prescriptions)
         {
             //we want to insert the optimization constraints for these junction structure right after the ptv constraints, so find the last index of the target ptv structure and insert
             //the junction structure constraints directly after the target structure constraints
@@ -186,7 +287,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="selectedTemplate"></param>
         /// <param name="prescriptions"></param>
         /// <returns></returns>
-        public static (List<PlanOptimizationSetupModel>, StringBuilder) RetrieveOptConstraintsFromTemplate(object selectedTemplate, List<PrescriptionModel> prescriptions)
+        public static (List<PlanOptimizationSetupModel>, StringBuilder) RetrieveOptConstraintsFromTemplate(AutoPlanTemplateBase selectedTemplate, List<PrescriptionModel> prescriptions)
         {
             StringBuilder sb = new StringBuilder();
             List<PlanOptimizationSetupModel> list = new List<PlanOptimizationSetupModel> { };
@@ -205,7 +306,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="selectedTemplate"></param>
         /// <param name="targets"></param>
         /// <returns></returns>
-        public static (List<PlanOptimizationSetupModel>, StringBuilder) RetrieveOptConstraintsFromTemplate(object selectedTemplate, List<PlanTargetsModel> targets)
+        public static (List<PlanOptimizationSetupModel>, StringBuilder) RetrieveOptConstraintsFromTemplate(AutoPlanTemplateBase selectedTemplate, List<PlanTargetsModel> targets)
         {
             StringBuilder sb = new StringBuilder();
             List<PlanOptimizationSetupModel> list = new List<PlanOptimizationSetupModel> { };
@@ -224,7 +325,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="selectedTemplate"></param>
         /// <param name="planTargets"></param>
         /// <returns></returns>
-        public static List<PlanOptimizationSetupModel> CreateOptimizationConstraintList(object selectedTemplate, Dictionary<string,string> planTargets)
+        public static List<PlanOptimizationSetupModel> CreateOptimizationConstraintList(AutoPlanTemplateBase selectedTemplate, Dictionary<string,string> planTargets)
         {
             List<PlanOptimizationSetupModel> list = new List<PlanOptimizationSetupModel> { };
             //no treatment template selected => scale optimization objectives by ratio of entered Rx dose to closest template treatment Rx dose
@@ -252,6 +353,42 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 }
             }
             return list;
+        }
+
+        /// <summary>
+        /// Helper method to take the supplied optimization constaints and assign them to the supplied plan. Jaw tracking and NTO priority are also assigned
+        /// </summary>
+        /// <param name="parameters"></param>
+        /// <param name="VMATplan"></param>
+        /// <param name="useJawTracking"></param>
+        /// <param name="NTOpriority"></param>
+        /// <returns></returns>
+        public static bool AssignOptConstraints(List<OptimizationConstraintModel> parameters,
+                                                                 ExternalPlanSetup VMATplan,
+                                                                 bool useJawTracking,
+                                                                 double NTOpriority)
+        {
+            foreach (OptimizationConstraintModel opt in parameters)
+            {
+                Structure s = StructureTuningHelper.GetStructureFromId(opt.StructureId, VMATplan.StructureSet);
+                if (opt.ConstraintType != OptimizationObjectiveType.Mean) VMATplan.OptimizationSetup.AddPointObjective(s,
+                                                                                                                       OptimizationTypeHelper.GetObjectiveOperator(opt.ConstraintType),
+                                                                                                                       new DoseValue(opt.QueryDose, opt.QueryDoseUnits == Units.Percent ? DoseValue.DoseUnit.Percent : DoseValue.DoseUnit.cGy),
+                                                                                                                       opt.QueryVolume,
+                                                                                                                       (double)opt.Priority);
+                else VMATplan.OptimizationSetup.AddMeanDoseObjective(s,
+                                                                     new DoseValue(opt.QueryDose, opt.QueryDoseUnits == Units.Percent ? DoseValue.DoseUnit.Percent : DoseValue.DoseUnit.cGy),
+                                                                     (double)opt.Priority);
+            }
+            //turn on/turn off jaw tracking
+            try { VMATplan.OptimizationSetup.UseJawTracking = useJawTracking; }
+            catch (Exception except)
+            {
+                Logger.GetInstance().LogError($"Warning! Could not set jaw tracking for VMAT plan because: {except.Message}" + Environment.NewLine + "Jaw tacking will have to be set manually!");
+            }
+            //set auto NTO priority to zero (i.e., shut it off). It has to be done this way because every plan created in ESAPI has an instance of an automatic NTO, which CAN'T be deleted.
+            VMATplan.OptimizationSetup.AddAutomaticNormalTissueObjective(NTOpriority);
+            return false;
         }
     }
 }

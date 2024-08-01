@@ -195,7 +195,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
         {
             ProvideUIUpdate("Running coverage check..." + Environment.NewLine);
             //zero all optimization objectives except those in the target
-            List<OptimizationConstraintModel> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
+            List<OptimizationConstraintModel> optParams = OptimizationSetupHelper.ReadConstraintsFromPlan(plan);
             List<OptimizationConstraintModel> targetOnlyObj = new List<OptimizationConstraintModel> { };
 
             ProvideUIUpdate(OptimizationLoopUIHelper.GetOptimizationObjectivesHeader(plan.Id));

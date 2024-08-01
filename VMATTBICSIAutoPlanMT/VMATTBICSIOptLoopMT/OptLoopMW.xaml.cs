@@ -52,7 +52,6 @@ namespace VMATTBICSIOptLoopMT
         double lowDoseLimit = 0.1;
 
         List<PlanOptimizationSetupModel> optConstraintsFromLogs = new List<PlanOptimizationSetupModel> { };
-
         //structure, constraint type, dose, relative volume, dose value presentation (unless otherwise specified)
         public List<PlanObjectiveModel> planObj = new List<PlanObjectiveModel> { };
         public List<RequestedOptimizationTSStructureModel> requestedTSstructures = new List<RequestedOptimizationTSStructureModel>();
@@ -510,7 +509,7 @@ namespace VMATTBICSIOptLoopMT
         {
             //clear the current list of optimization constraints and ones obtained from the plan to the user
             ClearAllItemsFromUIList(theSP);
-            foreach(ExternalPlanSetup itr in plans) AddListItemsToUI(OptimizationSetupUIHelper.ReadConstraintsFromPlan(itr), itr.Id, theSP);
+            foreach(ExternalPlanSetup itr in plans) AddListItemsToUI(OptimizationSetupHelper.ReadConstraintsFromPlan(itr), itr.Id, theSP);
         }
 
         private void PopulatePlanObjectivesTab(StackPanel theSP)
@@ -654,8 +653,8 @@ namespace VMATTBICSIOptLoopMT
                 thePlan = plans.FirstOrDefault(x => string.Equals(x.Id, itr.PlanId));
                 if (thePlan != null)
                 {
-                    OptimizationSetupUIHelper.RemoveOptimizationConstraintsFromPLan(thePlan);
-                    OptimizationSetupUIHelper.AssignOptConstraints(itr.OptimizationConstraints, thePlan, true, 0.0);
+                    OptimizationSetupHelper.RemoveOptimizationConstraintsFromPLan(thePlan);
+                    OptimizationSetupHelper.AssignOptConstraints(itr.OptimizationConstraints, thePlan, true, 0.0);
                 }
                 else
                 {
