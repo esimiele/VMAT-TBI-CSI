@@ -362,7 +362,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             sb.AppendLine($" yMax: {yMax}");
             sb.AppendLine($" yMin: {yMin}");
 
-             boundingBox = new[] {
+            boundingBox = new[] {
                                 new VVector(xMax, yMax, 0),
                                 new VVector(xMax, 0, 0),
                                 new VVector(xMax, yMin, 0),

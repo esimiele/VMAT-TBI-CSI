@@ -143,7 +143,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             logPath = ConfigurationHelper.ReadLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
             //if the log file path in the configuration file is empty, use the default path
             if (string.IsNullOrEmpty(logPath)) logPath = ConfigurationHelper.GetDefaultLogPath();
-            log = new Logger(logPath, PlanType.VMAT_TBI, mrn);
+            Logger.GetInstance().LogPath = logPath;
+            Logger.GetInstance().PlanType = PlanType.VMAT_TBI;
+            Logger.GetInstance().MRN = mrn;
             LoadDefaultConfigurationFiles();
             if (app != null)
             {
@@ -151,8 +153,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 InitializeStructureSetSelection(ss);
 
                 //check the version information of Eclipse installed on this machine. If it is older than version 15.6, let the user know that this script may not work properly on their system
-                if (!double.TryParse(app.ScriptEnvironment.VersionInfo.Substring(0, app.ScriptEnvironment.VersionInfo.LastIndexOf(".")), out double vinfo)) log.LogError("Warning! Could not parse Eclise version number! Proceed with caution!");
-                else if (vinfo < 15.6) log.LogError(String.Format("Warning! Detected Eclipse version: {0:0.0} is older than v15.6! Proceed with caution!", vinfo));
+                if (!double.TryParse(app.ScriptEnvironment.VersionInfo.Substring(0, app.ScriptEnvironment.VersionInfo.LastIndexOf(".")), out double vinfo)) Logger.GetInstance().LogError("Warning! Could not parse Eclise version number! Proceed with caution!");
+                else if (vinfo < 15.6) Logger.GetInstance().LogError(String.Format("Warning! Detected Eclipse version: {0:0.0} is older than v15.6! Proceed with caution!", vinfo));
             }
 
             PlanTemplates = new ObservableCollection<TBIAutoPlanTemplate>() { new TBIAutoPlanTemplate("--select--") };
@@ -196,12 +198,12 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     {
                         if (app != null) pi = app.OpenPatientById(EMIP.GetEnteredValue());
                         mrn = EMIP.GetEnteredValue();
-                        log.MRN = mrn;
+                        Logger.GetInstance().MRN = mrn;
                     }
                     catch (Exception except)
                     {
-                        log.LogError(string.Format("Error! Could not open patient because: {0}! Please try again!", except.Message));
-                        log.LogError(except.StackTrace, true);
+                        Logger.GetInstance().LogError(string.Format("Error! Could not open patient because: {0}! Please try again!", except.Message));
+                        Logger.GetInstance().LogError(except.StackTrace, true);
                         pi = null;
                     }
                 }
@@ -226,10 +228,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     selectedSS = pi.StructureSets.First(x => string.Equals(x.Id, ss));
                     SSID.Text = selectedSS.Id;
                 }
-                else log.LogError("Warning! No structure set in context! Please select a structure set at the top of the GUI!");
+                else Logger.GetInstance().LogError("Warning! No structure set in context! Please select a structure set at the top of the GUI!");
                 patientMRNLabel.Content = pi.Id;
             }
-            else log.LogError("Could not open patient!");
+            else Logger.GetInstance().LogError("Could not open patient!");
         }
         #endregion
 
@@ -258,7 +260,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
             //update selected structure set
             selectedSS = pi.StructureSets.FirstOrDefault(x => string.Equals(x.Id, SSID.SelectedItem.ToString()));
-            log.StructureSet = selectedSS.Id;
+            Logger.GetInstance().StructureSet = selectedSS.Id;
 
             //update volumes in flash volume combobox with the structures from the current structure set
             flashVolume.Items.Clear();
@@ -294,7 +296,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 SetPresciptionInfo(selectedTemplate.InitialRxDosePerFx, selectedTemplate.InitialRxNumberOfFractions);
                 ClearAllCurrentParameters();
                 LoadTemplateDefaults();
-                log.Template = selectedTemplate.TemplateName;
+                Logger.GetInstance().Template = selectedTemplate.TemplateName;
             }
             else
             {
@@ -326,7 +328,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             {
                 flashStructure = StructureTuningHelper.GetStructureFromId(flashVolume.SelectedItem.ToString(), selectedSS);
             }
-            else log.LogError($"Error! Could not set flash structure because {flashVolume.SelectedItem.ToString()} does not exist or is empty! Please try again");
+            else Logger.GetInstance().LogError($"Error! Could not set flash structure because {flashVolume.SelectedItem.ToString()} does not exist or is empty! Please try again");
         }
         #endregion
 
@@ -378,7 +380,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (!int.TryParse(numFxTB.Text, out int newNumFx)) RxTB.Text = "";
             else if (newNumFx < 1)
             {
-                log.LogError("Error! The number of fractions must be non-negative integer and greater than zero!");
+                Logger.GetInstance().LogError("Error! The number of fractions must be non-negative integer and greater than zero!");
                 RxTB.Text = "";
             }
             else ResetInitRxDose();
@@ -389,7 +391,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (!double.TryParse(dosePerFxTB.Text, out double newDoseFx)) RxTB.Text = "";
             else if (newDoseFx <= 0)
             {
-                log.LogError("Error! The dose per fraction must be a number and non-negative!");
+                Logger.GetInstance().LogError("Error! The dose per fraction must be a number and non-negative!");
                 RxTB.Text = "";
             }
             else ResetInitRxDose();
@@ -437,7 +439,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             if (selectedSS == null)
             {
-                log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
+                Logger.GetInstance().LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
                 return;
             }
             List<PlanTargetsModel> targetList = new List<PlanTargetsModel>(TargetsUIHelper.AddTargetDefaults((templateList.SelectedItem as TBIAutoPlanTemplate)));
@@ -548,12 +550,12 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             if (selectedSS == null)
             {
-                log.LogError("Please select a structure set before setting the targets!");
+                Logger.GetInstance().LogError("Please select a structure set before setting the targets!");
                 return;
             }
             if (targetsSP.Children.Count == 0)
             {
-                log.LogError("No targets present in list! Please add some targets to the list before setting the target structures!");
+                Logger.GetInstance().LogError("No targets present in list! Please add some targets to the list before setting the target structures!");
                 return;
             }
 
@@ -561,13 +563,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             (List<PlanTargetsModel>, StringBuilder) parsedTargets = TargetsUIHelper.ParseTargets(targetsSP);
             if (!parsedTargets.Item1.Any())
             {
-                log.LogError(parsedTargets.Item2);
+                Logger.GetInstance().LogError(parsedTargets.Item2);
                 return;
             }
             (bool fail, StringBuilder errorMessage) = VerifySelectedTargetsIntegrity(parsedTargets.Item1);
             if(fail)
             {
-                log.LogError(errorMessage);
+                Logger.GetInstance().LogError(errorMessage);
                 return;
             }
 
@@ -577,14 +579,14 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                                                                                                           RxTB.Text);
             if (!parsedPrescriptions.Item1.Any())
             {
-                log.LogError(parsedPrescriptions.Item2);
+                Logger.GetInstance().LogError(parsedPrescriptions.Item2);
                 return;
             }
             prescriptions = new List<PrescriptionModel>(parsedPrescriptions.Item1);
             targetsTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             structureTuningTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             TSManipulationTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
-            log.Prescriptions = prescriptions;
+            Logger.GetInstance().Prescriptions = prescriptions;
         }
 
         private (bool, StringBuilder) VerifySelectedTargetsIntegrity(List<PlanTargetsModel> parsedTargets)
@@ -649,7 +651,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             if (selectedSS == null)
             {
-                log.LogError("Error! Please select a Structure Set before adding tuning structure manipulations!");
+                Logger.GetInstance().LogError("Error! Please select a Structure Set before adding tuning structure manipulations!");
                 return;
             }
             if (!defaultList.Any()) return;
@@ -745,7 +747,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             if (selectedSS == null)
             {
-                log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
+                Logger.GetInstance().LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
                 return;
             }
             //copy the sparing structures in the defaultSpareStruct list to a temporary vector
@@ -757,12 +759,12 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
             if (!templateManipulationList.Any())
             {
-                if (fromButtonClickEvent) log.LogError("Warning! No default tuning structure manipulations contained in the selected template!");
+                if (fromButtonClickEvent) Logger.GetInstance().LogError("Warning! No default tuning structure manipulations contained in the selected template!");
                 return;
             }
 
             (List<string> missingEmptyStructures, StringBuilder warnings) = StructureTuningUIHelper.VerifyTSManipulationIntputIntegrity(templateManipulationList.Select(x => x.StructureId).Distinct().ToList(), structureIdsPostUnion, selectedSS);
-            if (missingEmptyStructures.Any()) log.LogError(warnings);
+            if (missingEmptyStructures.Any()) Logger.GetInstance().LogError(warnings);
             
             List<RequestedTSManipulationModel> defaultList = new List<RequestedTSManipulationModel> { };
             foreach (RequestedTSManipulationModel itr in templateManipulationList)
@@ -782,7 +784,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             if (selectedSS == null)
             {
-                log.LogError("Error! Please select a Structure Set before add tuning structure manipulations!");
+                Logger.GetInstance().LogError("Error! Please select a Structure Set before add tuning structure manipulations!");
                 return;
             }
             int counter;
@@ -877,7 +879,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             {
                 if (!double.TryParse(flashMarginTB.Text, out flashMargin))
                 {
-                    log.LogError("Error! Added flash margin is NaN! \nExiting!");
+                    Logger.GetInstance().LogError("Error! Added flash margin is NaN! \nExiting!");
                     fail = true;
                     return (fail, flashMargin);
 
@@ -885,7 +887,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //ESAPI has a limit on the margin for structure of 5.0 cm. The margin should always be positive (i.e., an outer margin)
                 if (flashMargin < 0.0 || flashMargin > 5.0)
                 {
-                    log.LogError("Error! Added flash margin is either < 0.0 or > 5.0 cm \nExiting!");
+                    Logger.GetInstance().LogError("Error! Added flash margin is either < 0.0 or > 5.0 cm \nExiting!");
                     fail = true;
                     return (fail, flashMargin);
 
@@ -895,7 +897,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     //if flash type is local, grab an instance of the structure class associated with the selected structure 
                     if (!StructureTuningHelper.DoesStructureExistInSS(flashVolume.SelectedItem.ToString(), selectedSS, true))
                     {
-                        log.LogError("Error! Selected local flash structure is either null or empty! \nExiting!");
+                        Logger.GetInstance().LogError("Error! Selected local flash structure is either null or empty! \nExiting!");
                         fail = true;
                         return (fail, flashMargin);
 
@@ -912,13 +914,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             double targetMargin;
             if (!double.TryParse(targetMarginTB.Text, out targetMargin))
             {
-                log.LogError("Error! PTV margin from body is NaN! \nExiting!");
+                Logger.GetInstance().LogError("Error! PTV margin from body is NaN! \nExiting!");
                 fail = true;
                 return (fail, targetMargin);
             }
             if (targetMargin < 0.0 || targetMargin > 5.0)
             {
-                log.LogError("Error! PTV margin from body is either < 0.0 or > 5.0 cm \nExiting!");
+                Logger.GetInstance().LogError("Error! PTV margin from body is either < 0.0 or > 5.0 cm \nExiting!");
                 fail = true;
                 return (fail, targetMargin);
 
@@ -931,14 +933,14 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //ensure the targets have been specified prior to generating and manipulating the tuning structures
             if (!prescriptions.Any())
             {
-                log.LogError("Please set the targets first on the 'Set Targets' tab!");
+                Logger.GetInstance().LogError("Please set the targets first on the 'Set Targets' tab!");
                 return;
             }
 
             //check that there are actually structures to spare in the sparing list
             if (structureManipulationSP.Children.Count == 0 && TSGenerationSP.Children.Count == 0)
             {
-                log.LogError("No structures present to generate tuning structures!");
+                Logger.GetInstance().LogError("No structures present to generate tuning structures!");
                 return;
             }
 
@@ -954,12 +956,12 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             (List<RequestedTSManipulationModel>, StringBuilder) parseTSManipulationList = StructureTuningUIHelper.ParseTSManipulationList(structureManipulationSP);
             if (!string.IsNullOrEmpty(parseCreateTSList.Item2.ToString()))
             {
-                log.LogError(parseCreateTSList.Item2);
+                Logger.GetInstance().LogError(parseCreateTSList.Item2);
                 return;
             }
             if (!string.IsNullOrEmpty(parseTSManipulationList.Item2.ToString()))
             {
-                log.LogError(parseTSManipulationList.Item2);
+                Logger.GetInstance().LogError(parseTSManipulationList.Item2);
                 return;
             }
             createTSStructureList = new List<RequestedTSStructureModel>(parseCreateTSList.Item1);
@@ -974,7 +976,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             pi.BeginModifications();
             bool result = generate.Execute();
             //grab the log output regardless if it passes or fails
-            log.AppendLogOutput("TS Generation and manipulation output:", generate.GetLogOutput());
+            Logger.GetInstance().AppendLogOutput("TS Generation and manipulation output:", generate.GetLogOutput());
             if (result) return;
 
             //does the structure sparing list need to be updated? This occurs when structures the user elected to spare with option of 'Mean Dose < Rx Dose' are high resolution. Since Eclipse can't perform
@@ -999,11 +1001,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             structureTuningTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             TSManipulationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             beamPlacementTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
-            log.AddedStructures = generate.AddedStructureIds;
-            log.StructureManipulations = TSManipulationList;
-            log.TSTargets = generate.PlanTargets.SelectMany(x => x.Targets).ToDictionary(x => x.TargetId, x => x.TsTargetId);
-            log.NormalizationVolumes = generate.NormalizationVolumes;
-            log.PlanIsocenters = planIsocenters;
+            Logger.GetInstance().AddedStructures = generate.AddedStructureIds;
+            Logger.GetInstance().StructureManipulations = TSManipulationList;
+            Logger.GetInstance().TSTargets = generate.PlanTargets.SelectMany(x => x.Targets).ToDictionary(x => x.TargetId, x => x.TsTargetId);
+            Logger.GetInstance().NormalizationVolumes = generate.NormalizationVolumes;
+            Logger.GetInstance().PlanIsocenters = planIsocenters;
         }
         #endregion
 
@@ -1048,11 +1050,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         private void UpdateVMATisos_Click(object sender, RoutedEventArgs e)
         {
-            if (!planIsocenters.Any()) log.LogError("Error! Please generate the tuning structures before updating the requested number of VMAT isocenters!");
-            else if (VMATplan != null) log.LogError("Error! VMAT plan has already been generated! Cannot place beams again!");
-            else if (!int.TryParse(numVMATisosTB.Text, out int tmp)) log.LogError("Error! Requested number of VMAT isocenters is NaN! Please try again!");
-            else if (tmp == numVMATIsos) log.LogError("Warning! Requested number of VMAT isocenters = current number of VMAT isocenters!");
-            else if (tmp < 2 || tmp > 4) log.LogError("Error! Requested number of VMAT isocenters is less than 2 or greater than 4! Please try again!");
+            if (!planIsocenters.Any()) Logger.GetInstance().LogError("Error! Please generate the tuning structures before updating the requested number of VMAT isocenters!");
+            else if (VMATplan != null) Logger.GetInstance().LogError("Error! VMAT plan has already been generated! Cannot place beams again!");
+            else if (!int.TryParse(numVMATisosTB.Text, out int tmp)) Logger.GetInstance().LogError("Error! Requested number of VMAT isocenters is NaN! Please try again!");
+            else if (tmp == numVMATIsos) Logger.GetInstance().LogError("Warning! Requested number of VMAT isocenters = current number of VMAT isocenters!");
+            else if (tmp < 2 || tmp > 4) Logger.GetInstance().LogError("Error! Requested number of VMAT isocenters is less than 2 or greater than 4! Please try again!");
             else
             {
                 //if (!optParameters.Where(x => x.Item1.ToLower().Contains("brain")).Any()) beamsPerIso[0]++;
@@ -1061,7 +1063,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 planIsocenters.Clear();
                 planIsocenters = new List<PlanIsocenterModel> { new PlanIsocenterModel(prescriptions.First().PlanId, IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos))};
                 if(numIsos > numVMATIsos) planIsocenters.Add(new PlanIsocenterModel("_Legs", IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos)));
-                log.PlanIsocenters = planIsocenters;
+                Logger.GetInstance().PlanIsocenters = planIsocenters;
                 PopulateBeamsTab();
             }
         }
@@ -1070,14 +1072,14 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             if (beamPlacementSP.Children.Count == 0)
             {
-                log.LogError("No isocenters present to place beams!");
+                Logger.GetInstance().LogError("No isocenters present to place beams!");
                 return;
             }
 
             (string, string, List<List<int>>, StringBuilder) parseSelections = BeamPlacementUIHelper.GetBeamSelections(beamPlacementSP, planIsocenters);
             if (string.IsNullOrEmpty(parseSelections.Item1))
             {
-                log.LogError(parseSelections.Item4);
+                Logger.GetInstance().LogError(parseSelections.Item4);
                 return;
             }
 
@@ -1106,7 +1108,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //ensure the value entered in the added margin text box for contouring field overlap is a valid double
                 if (!double.TryParse(contourOverlapTB.Text, out contourOverlapMargin))
                 {
-                    log.LogError("Error! The entered added margin for the contour overlap text box is NaN! Please enter a valid number and try again!");
+                    Logger.GetInstance().LogError("Error! The entered added margin for the contour overlap text box is NaN! Please enter a valid number and try again!");
                     return;
                 }
             }
@@ -1133,13 +1135,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
             place.Initialize(courseId, prescriptions);
             bool result = place.Execute();
-            log.AppendLogOutput("Plan generation and beam placement output:", place.GetLogOutput());
+            Logger.GetInstance().AppendLogOutput("Plan generation and beam placement output:", place.GetLogOutput());
             if (result) return;
             VMATplan = place.VMATPlans.First();
             if (VMATplan == null) return;
             if(place.GetCheckIsoPlacementStatus())
             {
-               log.LogError($"WARNING: < {place.GetCheckIsoPlacementLimit() / 10:0.00} cm margin at most superior and inferior locations of body! Verify isocenter placement!");
+               Logger.GetInstance().LogError($"WARNING: < {place.GetCheckIsoPlacementLimit() / 10:0.00} cm margin at most superior and inferior locations of body! Verify isocenter placement!");
             }
 
             //if the user elected to contour the overlap between fields in adjacent isocenters, get this list of structures from the placeBeams class and copy them to the jnxs vector
@@ -1154,7 +1156,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             beamPlacementTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             optimizationSetupTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             //list the plan UIDs by creation date (initial always gets created first, then boost)
-            log.PlanUIDs = new List<string> { VMATplan.UID };
+            Logger.GetInstance().PlanUIDs = new List<string> { VMATplan.UID };
             isModified = true;
         }
         #endregion
@@ -1171,7 +1173,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 (List<PlanOptimizationSetupModel> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(templateList.SelectedItem as TBIAutoPlanTemplate, prescriptions);
                 if (!parsedConstraints.constraints.Any())
                 {
-                    log.LogError(parsedConstraints.errorMessage);
+                    Logger.GetInstance().LogError(parsedConstraints.errorMessage);
                     return;
                 }
                 tmpList = parsedConstraints.constraints;
@@ -1225,7 +1227,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             if (selectedSS == null)
             {
-                log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
+                Logger.GetInstance().LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
                 return;
             }
             int counter;
@@ -1303,7 +1305,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 string selectedTemplateId = GeneralUIHelper.PromptUserToSelectPlanTemplate(PlanTemplates.Select(x => x.TemplateName).ToList());
                 if (string.IsNullOrEmpty(selectedTemplateId))
                 {
-                    log.LogError("Template not found! Exiting!");
+                    Logger.GetInstance().LogError("Template not found! Exiting!");
                     return;
                 }
                 selectedTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.TemplateName, selectedTemplateId));
@@ -1312,13 +1314,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             double Rx = 0.1;
             if (!double.TryParse(RxText, out Rx))
             {
-                log.LogError("Warning! Entered initial plan prescription is not valid! \nCannot scale optimization objectives to requested Rx! Exiting!");
+                Logger.GetInstance().LogError("Warning! Entered initial plan prescription is not valid! \nCannot scale optimization objectives to requested Rx! Exiting!");
                 return;
             }
             (List<PlanOptimizationSetupModel> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(selectedTemplate, prescriptions);
             if (!parsedConstraints.constraints.Any())
             {
-                log.LogError(parsedConstraints.errorMessage);
+                Logger.GetInstance().LogError(parsedConstraints.errorMessage);
                 return;
             }
             //assumes you set all targets and upstream items correctly (as you would have had to place beams prior to this point)
@@ -1344,7 +1346,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             (List<PlanOptimizationSetupModel>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optParametersSP);
             if (!parsedOptimizationConstraints.Item1.Any())
             {
-                log.LogError(parsedOptimizationConstraints.Item2);
+                Logger.GetInstance().LogError(parsedOptimizationConstraints.Item2);
                 return;
             }
             bool constraintsAssigned = false;
@@ -1370,7 +1372,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
             else
             {
-                log.LogError($"VMAT TBI plan not found! Exiting!");
+                Logger.GetInstance().LogError($"VMAT TBI plan not found! Exiting!");
                 return;
             }
 
@@ -1386,7 +1388,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 MessageBox.Show(message);
                 isModified = true;
                 optimizationSetupTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
-                log.OptimizationConstraints = parsedOptimizationConstraints.Item1;
+                Logger.GetInstance().OptimizationConstraints = parsedOptimizationConstraints.Item1;
             }
 
             //confirmUI CUI = new confirmUI();
@@ -1451,7 +1453,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     {
                         tmpListList.Add(new PlanOptimizationSetupModel(VMATplan.Id, new List<OptimizationConstraintModel> { new OptimizationConstraintModel("--select--", OptimizationObjectiveType.None, 0.0, Units.cGy, 0.0, 0) }));
                     }
-                    else log.LogError("Error! Please generate a VMAT plan and place beams prior to adding optimization constraints!");
+                    else Logger.GetInstance().LogError("Error! Please generate a VMAT plan and place beams prior to adding optimization constraints!");
                 }
             }
             ClearOptimizationConstraintsList(theSP);
@@ -1476,7 +1478,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             (ExternalPlanSetup thePlan, StringBuilder errorMessage) = PlanPrepUIHelper.RetrieveVMATPlan(pi, logPath, "VMAT TBI");
             if (thePlan == null)
             {
-                log.LogError(errorMessage);
+                Logger.GetInstance().LogError(errorMessage);
                 return;
             }
             VMATplan = thePlan;
@@ -1490,7 +1492,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     StringBuilder sb = new StringBuilder();
                     sb.AppendLine($"The AP/PA plan {appaPlan.Id} is NOT in the FFS orientation!");
                     sb.AppendLine("THE COUCH SHIFTS FOR THESE PLANS WILL NOT BE ACCURATE! Please fix and try again!");
-                    log.LogError(sb.ToString());
+                    Logger.GetInstance().LogError(sb.ToString());
                     return;
                 }
             }
@@ -1501,7 +1503,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //let the user know this step has been completed (they can now do the other steps like separate plans and calculate dose)
             shiftTB.Background = System.Windows.Media.Brushes.ForestGreen;
             shiftTB.Text = "YES";
-            log.OpType = ScriptOperationType.PlanPrep;
+            Logger.GetInstance().OpType = ScriptOperationType.PlanPrep;
 
             //let the user know this step has been completed (they can now do the other steps like separate plans and calculate dose)
             shiftTB.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -1513,7 +1515,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //The shift note has to be retrieved first! Otherwise, we don't have instances of the plan objects
             if (VMATplan == null)
             {
-                log.LogError("Please generate the shift note before separating the plans!");
+                Logger.GetInstance().LogError("Please generate the shift note before separating the plans!");
                 return;
             }
 
@@ -1547,8 +1549,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             pi.BeginModifications();
             PlanPrep_TBI planPrep = new PlanPrep_TBI(VMATplan, appaPlan, removeFlash, closePWOnFinish);
             bool result = planPrep.Execute();
-            log.AppendLogOutput("Plan preparation:", planPrep.GetLogOutput());
-            log.OpType = ScriptOperationType.PlanPrep;
+            Logger.GetInstance().AppendLogOutput("Plan preparation:", planPrep.GetLogOutput());
+            Logger.GetInstance().OpType = ScriptOperationType.PlanPrep;
             if (result) return;
 
             //inform the user it's done
@@ -1574,7 +1576,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //the shift note must be retireved and the plans must be separated before calculating dose
             if (shiftTB.Text == "NO" || separateTB.Text == "NO")
             {
-                log.LogError("Error! \nYou must generate the shift note AND separate the plan before calculating dose to each plan!");
+                Logger.GetInstance().LogError("Error! \nYou must generate the shift note AND separate the plan before calculating dose to each plan!");
                 return;
             }
 
@@ -1610,7 +1612,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (!double.TryParse(dosePerFxTB.Text, out double newDoseFx)) planRxTB.Text = "";
             else if (newDoseFx <= 0)
             {
-                log.LogError("Error! The dose per fraction must be a number and non-negative!");
+                Logger.GetInstance().LogError("Error! The dose per fraction must be a number and non-negative!");
                 planRxTB.Text = "";
             }
             else ResetTemplateRxDose(dosePerFxTB, numFxTB, planRxTB);
@@ -1625,7 +1627,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (!int.TryParse(numFxTB.Text, out int newNumFx)) planRxTB.Text = "";
             else if (newNumFx < 1)
             {
-                log.LogError("Error! The number of fractions must be an integer and greater than 0!");
+                Logger.GetInstance().LogError("Error! The number of fractions must be an integer and greater than 0!");
                 planRxTB.Text = "";
             }
             else ResetTemplateRxDose(dosePerFxTB, numFxTB, planRxTB);
@@ -1640,7 +1642,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             if (selectedSS == null)
             {
-                log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
+                Logger.GetInstance().LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
                 return;
             }
             if (templateBuildOptionCB.SelectedItem.ToString().ToLower() == "existing template")
@@ -1649,7 +1651,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 string selectedTemplateId = GeneralUIHelper.PromptUserToSelectPlanTemplate(PlanTemplates.Select(x => x.TemplateName).ToList());
                 if (string.IsNullOrEmpty(selectedTemplateId))
                 {
-                    log.LogError("Template not found! Exiting!");
+                    Logger.GetInstance().LogError("Template not found! Exiting!");
                     return;
                 }
                 theTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.TemplateName, selectedTemplateId));
@@ -1677,7 +1679,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 (List<PlanOptimizationSetupModel>, StringBuilder) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(theTemplate, targetList);
                 if (!parsedConstraints.Item1.Any())
                 {
-                    log.LogError(parsedConstraints.Item2);
+                    Logger.GetInstance().LogError(parsedConstraints.Item2);
                     return;
                 }
                 PopulateOptimizationTab(templateOptParamsSP, parsedConstraints.Item1, false);
@@ -1688,7 +1690,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 (List<PlanTargetsModel> targetList, StringBuilder) parsedTargetList = TargetsUIHelper.ParseTargets(targetsSP);
                 if (!parsedTargetList.targetList.Any())
                 {
-                    log.LogError("Error! Enter parameters into the UI before trying to use them to make a new plan template!");
+                    Logger.GetInstance().LogError("Error! Enter parameters into the UI before trying to use them to make a new plan template!");
                     return;
                 }
                 ClearAllTargetItems(templateClearTargetList);
@@ -1705,7 +1707,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 (List<RequestedTSStructureModel>, StringBuilder) parsedCreateTSList = StructureTuningUIHelper.ParseCreateTSStructureList(TSGenerationSP);
                 if (!string.IsNullOrEmpty(parsedCreateTSList.Item2.ToString()))
                 {
-                    log.LogError(parsedCreateTSList.Item2);
+                    Logger.GetInstance().LogError(parsedCreateTSList.Item2);
                     return;
                 }
                 GeneralUIHelper.ClearList(templateTSSP);
@@ -1715,7 +1717,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 (List<RequestedTSManipulationModel>, StringBuilder) parsedTSManipulationList = StructureTuningUIHelper.ParseTSManipulationList(structureManipulationSP);
                 if (!string.IsNullOrEmpty(parsedTSManipulationList.Item2.ToString()))
                 {
-                    log.LogError(parsedTSManipulationList.Item2);
+                    Logger.GetInstance().LogError(parsedTSManipulationList.Item2);
                     return;
                 }
                 ClearStructureManipulationsList(templateClearSpareStructuresBtn);
@@ -1725,7 +1727,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 (List<PlanOptimizationSetupModel>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optParametersSP);
                 if (parsedOptimizationConstraints.Item1.Any())
                 {
-                    log.LogError(parsedOptimizationConstraints.Item2);
+                    Logger.GetInstance().LogError(parsedOptimizationConstraints.Item2);
                     return;
                 }
                 ClearOptimizationConstraintsList(templateOptParamsSP);
@@ -1737,7 +1739,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             if (selectedSS == null)
             {
-                log.LogError("Error! Please select a Structure Set before add sparing volumes!");
+                Logger.GetInstance().LogError("Error! Please select a Structure Set before add sparing volumes!");
                 return;
             }
             prospectiveTemplate = new TBIAutoPlanTemplate();
@@ -1749,7 +1751,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
             else
             {
-                log.LogError("Error! Initial plan dose per fx not parsed successfully! Fix and try again!");
+                Logger.GetInstance().LogError("Error! Initial plan dose per fx not parsed successfully! Fix and try again!");
                 return;
             }
             if (int.TryParse(templateInitPlanNumFxTB.Text, out int initNumFx))
@@ -1758,7 +1760,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
             else
             {
-                log.LogError("Error! Initial plan dose per fx not parsed successfully! Fix and try again!");
+                Logger.GetInstance().LogError("Error! Initial plan dose per fx not parsed successfully! Fix and try again!");
                 return;
             }
 
@@ -1777,12 +1779,12 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             if (selectedSS == null)
             {
-                log.LogError("Error! Please select a Structure Set before add sparing volumes!");
+                Logger.GetInstance().LogError("Error! Please select a Structure Set before add sparing volumes!");
                 return;
             }
             if (prospectiveTemplate == null)
             {
-                log.LogError("Error! Please preview the requested template before building!");
+                Logger.GetInstance().LogError("Error! Please preview the requested template before building!");
                 return;
             }
             string fileName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\TBI\\TBI_" + prospectiveTemplate.TemplateName + ".ini";
@@ -1824,7 +1826,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if (openFileDialog.ShowDialog().Value) 
             { 
                 if (!LoadConfigurationSettings(openFileDialog.FileName)) DisplayConfigurationParameters(); 
-                else log.LogError("Error! Selected file is NOT valid!"); 
+                else Logger.GetInstance().LogError("Error! Selected file is NOT valid!"); 
             }
         }
 
@@ -1939,7 +1941,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                                     {
                                         string path = ConfigurationHelper.VerifyPathIntegrity(value);
                                         if (!string.IsNullOrEmpty(path)) documentationPath = path;
-                                        else log.LogError($"Warning! {value} does NOT exist!");
+                                        else Logger.GetInstance().LogError($"Warning! {value} does NOT exist!");
                                     }
                                 }
                                 else if (parameter == "close progress windows on finish")
@@ -2011,8 +2013,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                                 (bool fail, VRect<double> parsedPositions) = ConfigurationHelper.ParseJawPositions(line);
                                 if (fail)
                                 {
-                                    log.LogError("Error! Jaw positions not defined correctly!");
-                                    log.LogError(line);
+                                    Logger.GetInstance().LogError("Error! Jaw positions not defined correctly!");
+                                    Logger.GetInstance().LogError(line);
                                 }
                                 else jawPos_temp.Add(parsedPositions);
                             }
@@ -2030,8 +2032,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //let the user know if the data parsing failed
             catch (Exception e)
             {
-                log.LogError($"Error could not load configuration file because: {e.Message}\n\nAssuming default parameters");
-                log.LogError(e.StackTrace, true);
+                Logger.GetInstance().LogError($"Error could not load configuration file because: {e.Message}\n\nAssuming default parameters");
+                Logger.GetInstance().LogError(e.StackTrace, true);
                 return true;
             }
         }
@@ -2049,8 +2051,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
             catch (Exception e)
             {
-                log.LogError($"Error could not load plan template file because: {e.Message}");
-                log.LogError(e.StackTrace, true);
+                Logger.GetInstance().LogError($"Error could not load plan template file because: {e.Message}");
+                Logger.GetInstance().LogError(e.StackTrace, true);
                 return true;
             }
             return false;
@@ -2059,7 +2061,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            if(app != null) AppClosingHelper.CloseApplication(app, pi != null, isModified, autoSave, log);
+            if(app != null) AppClosingHelper.CloseApplication(app, pi != null, isModified, autoSave);
         }
 
         private void MainWindow_SizeChanged(object sender, RoutedEventArgs e)

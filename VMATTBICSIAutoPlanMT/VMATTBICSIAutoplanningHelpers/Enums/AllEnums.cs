@@ -40,7 +40,8 @@
     public enum PlanType
     {
         VMAT_TBI,
-        VMAT_CSI
+        VMAT_CSI,
+        None
     };
 
     /// <summary>

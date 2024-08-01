@@ -309,7 +309,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             (bool fail, StringBuilder errorMessage) = ContourHelper.CropStructureFromBody(combinedTarget, selectedSS, -0.3, selectedSS.Structures.First(x => x.Id.ToLower().Contains("body")).Id);
             if (fail)
             {
-                ProvideUIUpdate(errorMessage.ToString());
+                ProvideUIUpdate(errorMessage.ToString(), true);
                 return true;
             }
             ProvideUIUpdate(100 * ++counter / calcItems, "PTV_CSI cropped from body with 3 mm inner margin");

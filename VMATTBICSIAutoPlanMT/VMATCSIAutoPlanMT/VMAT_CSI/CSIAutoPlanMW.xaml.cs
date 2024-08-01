@@ -143,7 +143,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             logPath = ConfigurationHelper.ReadLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
             //if the log file path in the configuration file is empty, use the default path
             if (string.IsNullOrEmpty(logPath)) logPath = ConfigurationHelper.GetDefaultLogPath();
-            log = new Logger(logPath, PlanType.VMAT_CSI, mrn);
+            Logger.GetInstance().LogPath = logPath;
+            Logger.GetInstance().PlanType = PlanType.VMAT_CSI;
+            Logger.GetInstance().MRN = mrn;
             LoadDefaultConfigurationFiles();
             if (app != null)
             {
@@ -151,8 +153,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 InitializeStructureSetSelection(ss);
 
                 //check the version information of Eclipse installed on this machine. If it is older than version 15.6, let the user know that this script may not work properly on their system
-                if (!double.TryParse(app.ScriptEnvironment.VersionInfo.Substring(0, app.ScriptEnvironment.VersionInfo.LastIndexOf(".")), out double vinfo)) log.LogError("Warning! Could not parse Eclise version number! Proceed with caution!");
-                else if (vinfo < 15.6) log.LogError($"Warning! Detected Eclipse version: {vinfo} is older than v15.6! Proceed with caution!");
+                if (!double.TryParse(app.ScriptEnvironment.VersionInfo.Substring(0, app.ScriptEnvironment.VersionInfo.LastIndexOf(".")), out double vinfo)) Logger.GetInstance().LogError("Warning! Could not parse Eclise version number! Proceed with caution!");
+                else if (vinfo < 15.6) Logger.GetInstance().LogError($"Warning! Detected Eclipse version: {vinfo} is older than v15.6! Proceed with caution!");
             }
 
             PlanTemplates = new ObservableCollection<CSIAutoPlanTemplate>() { new CSIAutoPlanTemplate("--select--") };
@@ -178,12 +180,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     {
                         if (app != null) pi = app.OpenPatientById(EMIP.GetEnteredValue());
                         mrn = EMIP.GetEnteredValue();
-                        log.MRN = mrn;
+                        Logger.GetInstance().MRN = mrn;
                     }
                     catch (Exception except)
                     {
-                        log.LogError(string.Format("Error! Could not open patient because: {0}! Please try again!", except.Message));
-                        log.LogError(except.StackTrace, true);
+                        Logger.GetInstance().LogError(string.Format("Error! Could not open patient because: {0}! Please try again!", except.Message));
+                        Logger.GetInstance().LogError(except.StackTrace, true);
                         pi = null;
                     }
                 }
@@ -208,23 +210,23 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     selectedSS = pi.StructureSets.First(x => string.Equals(x.Id, ss));
                     SSID.Text = selectedSS.Id;
                 }
-                else log.LogError("Warning! No structure set in context! Please select a structure set at the top of the GUI!");
+                else Logger.GetInstance().LogError("Warning! No structure set in context! Please select a structure set at the top of the GUI!");
                 PopulateExportCTTab();
                 patientMRNLabel.Content = pi.Id;
             }
-            else log.LogError("Could not open patient!");
+            else Logger.GetInstance().LogError("Could not open patient!");
         }
         #endregion
 
         private void HelpButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!File.Exists(documentationPath + "VMAT-CSI_PrepScript_Guide.pdf")) log.LogError("VMAT-CSI_PrepScript_Guide PDF file does not exist!");
+            if (!File.Exists(documentationPath + "VMAT-CSI_PrepScript_Guide.pdf")) Logger.GetInstance().LogError("VMAT-CSI_PrepScript_Guide PDF file does not exist!");
             else Process.Start(documentationPath + "VMAT-CSI_PrepScript_Guide.pdf");
         }
 
         private void QuickStart_Click(object sender, RoutedEventArgs e)
         {
-            if (!File.Exists(documentationPath + "VMAT-CSI_PrepScript_QuickStartGuide.pdf")) log.LogError("VMAT-CSI_PrepScript_QuickStartGuide PDF file does not exist!");
+            if (!File.Exists(documentationPath + "VMAT-CSI_PrepScript_QuickStartGuide.pdf")) Logger.GetInstance().LogError("VMAT-CSI_PrepScript_QuickStartGuide PDF file does not exist!");
             else Process.Start(documentationPath + "VMAT-CSI_PrepScript_QuickStartGuide.pdf");
         }
 
@@ -234,7 +236,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             //update selected structure set
             selectedSS = pi.StructureSets.FirstOrDefault(x => string.Equals(x.Id, SSID.SelectedItem.ToString()));
-            log.StructureSet = selectedSS.Id;
+            Logger.GetInstance().StructureSet = selectedSS.Id;
             structureIdsPostUnion = CheckLRStructures();
         }
 
@@ -268,7 +270,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 if (selectedTemplate.BoostRxDosePerFx != 0.1 && selectedTemplate.BoostRxNumberOfFractions != 1) SetBoostPrescriptionInfo(selectedTemplate.BoostRxDosePerFx, selectedTemplate.BoostRxNumberOfFractions);
                 ClearAllCurrentParameters();
                 LoadTemplateDefaults();
-                log.Template = selectedTemplate.TemplateName;
+                Logger.GetInstance().Template = selectedTemplate.TemplateName;
             }
             else
             {
@@ -297,7 +299,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (!int.TryParse(initNumFxTB.Text, out int newNumFx)) initRxTB.Text = "";
             else if (newNumFx < 1)
             {
-                log.LogError("Error! The number of fractions must be non-negative integer and greater than zero!");
+                Logger.GetInstance().LogError("Error! The number of fractions must be non-negative integer and greater than zero!");
                 initRxTB.Text = "";
             }
             else ResetInitRxDose();
@@ -308,7 +310,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (!double.TryParse(initDosePerFxTB.Text, out double newDoseFx)) initRxTB.Text = "";
             else if (newDoseFx <= 0)
             {
-                log.LogError("Error! The dose per fraction must be a number and non-negative!");
+                Logger.GetInstance().LogError("Error! The dose per fraction must be a number and non-negative!");
                 initRxTB.Text = "";
             }
             else ResetInitRxDose();
@@ -328,7 +330,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (!double.TryParse(boostDosePerFxTB.Text, out double newDoseFx)) boostRxTB.Text = "";
             else if (newDoseFx <= 0)
             {
-                log.LogError("Error! The dose per fraction must be a number and non-negative!");
+                Logger.GetInstance().LogError("Error! The dose per fraction must be a number and non-negative!");
                 initRxTB.Text = "";
             }
             else ResetBoostRxDose();
@@ -339,7 +341,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (!int.TryParse(boostNumFxTB.Text, out int newNumFx)) boostRxTB.Text = "";
             else if (newNumFx < 1)
             {
-                log.LogError("Error! The number of fractions must be non-negative integer and greater than zero!");
+                Logger.GetInstance().LogError("Error! The number of fractions must be non-negative integer and greater than zero!");
                 initRxTB.Text = "";
             }
             else ResetBoostRxDose();
@@ -378,14 +380,14 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 CTImageExport exporter = new CTImageExport(selectedImage, pi.Id, IEData, closePWOnFinish);
                 bool result = exporter.Execute();
-                log.AppendLogOutput("Export CT data:", exporter.GetLogOutput());
-                log.OpType = ScriptOperationType.ExportCT;
+                Logger.GetInstance().AppendLogOutput("Export CT data:", exporter.GetLogOutput());
+                Logger.GetInstance().OpType = ScriptOperationType.ExportCT;
                 if (result) return;
                 imgExported = true;
                 exportCTTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
                 this.Close();
             }
-            else log.LogError("No image selected for export!");
+            else Logger.GetInstance().LogError("No image selected for export!");
         }
 
         private void ImportSSInfo_Click(object sender, RoutedEventArgs e)
@@ -402,13 +404,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 string listener = ImportListenerHelper.GetImportListenerExePath();
                 if (ImportListenerHelper.LaunchImportListener(listener, IEData, pi.Id))
                 {
-                    log.LogError("Error! Could not find listener executable or could not launch executable! Exiting!");
+                    Logger.GetInstance().LogError("Error! Could not find listener executable or could not launch executable! Exiting!");
                     return;
                 }
-                log.OpType = ScriptOperationType.ImportSS;
+                Logger.GetInstance().OpType = ScriptOperationType.ImportSS;
                 this.Close();
             }
-            else log.LogError($"No Structure set files found in import location: {IEData.ImportLocation}");
+            else Logger.GetInstance().LogError($"No Structure set files found in import location: {IEData.ImportLocation}");
         }
         #endregion
 
@@ -493,7 +495,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if (selectedSS == null)
             {
-                log.LogError("Error! Please select a Structure Set before adding items to the prepare structure set tab!");
+                Logger.GetInstance().LogError("Error! Please select a Structure Set before adding items to the prepare structure set tab!");
                 return;
             }
             if (theSP.Children.Count == 0) theSP.Children.Add(StructureTuningUIHelper.AddTemplateTSHeader(theSP));
@@ -524,7 +526,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             (List<RequestedTSStructureModel> createTSStructureList, StringBuilder errorMessage) parseCreatePrelimTargetList = StructureTuningUIHelper.ParseCreateTSStructureList(PrelimTargetGenerationSP);
             if (!string.IsNullOrEmpty(parseCreatePrelimTargetList.errorMessage.ToString()))
             {
-                log.LogError(parseCreatePrelimTargetList.errorMessage);
+                Logger.GetInstance().LogError(parseCreatePrelimTargetList.errorMessage);
                 return;
             }
 
@@ -532,10 +534,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             pi.BeginModifications();
             bool result = generateTargets.Execute();
             //grab the log output regardless if it passes or fails
-            log.AppendLogOutput("TS Generation and manipulation output:", generateTargets.GetLogOutput());
-            log.OpType = ScriptOperationType.GeneratePrelimTargets;
+            Logger.GetInstance().AppendLogOutput("TS Generation and manipulation output:", generateTargets.GetLogOutput());
+            Logger.GetInstance().OpType = ScriptOperationType.GeneratePrelimTargets;
             if (result) return;
-            log.AddedPrelimTargetsStructures = generateTargets.GetAddedTargetStructures();
+            Logger.GetInstance().AddedPrelimTargetsStructures = generateTargets.GetAddedTargetStructures();
             PrelimTargetsTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             isModified = true;
             MessageBox.Show("Structure set is prepared and ready for physician to contour targets!");
@@ -566,7 +568,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if (selectedSS == null)
             {
-                log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
+                Logger.GetInstance().LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
                 return;
             }
             (ScrollViewer, StackPanel) SVSP = GetSVAndSPTargetsTab(sender);
@@ -578,7 +580,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if (selectedSS == null) 
             { 
-                log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!"); 
+                Logger.GetInstance().LogError("Error! The structure set has not been assigned! Choose a structure set and try again!"); 
                 return; 
             }
             List<PlanTargetsModel> targetList = new List<PlanTargetsModel>(TargetsUIHelper.AddTargetDefaults((templateList.SelectedItem as CSIAutoPlanTemplate)));
@@ -591,7 +593,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if (selectedSS == null) 
             { 
-                log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!"); 
+                Logger.GetInstance().LogError("Error! The structure set has not been assigned! Choose a structure set and try again!"); 
                 return; 
             }
             
@@ -707,12 +709,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if(selectedSS == null)
             {
-                log.LogError("Please select a structure set before setting the targets!");
+                Logger.GetInstance().LogError("Please select a structure set before setting the targets!");
                 return;
             }
             if (targetsSP.Children.Count == 0)
             {
-                log.LogError("No targets present in list! Please add some targets to the list before setting the target structures!");
+                Logger.GetInstance().LogError("No targets present in list! Please add some targets to the list before setting the target structures!");
                 return;
             }
 
@@ -720,13 +722,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             (List<PlanTargetsModel>, StringBuilder) parsedTargets = TargetsUIHelper.ParseTargets(targetsSP);
             if (!parsedTargets.Item1.Any())
             {
-                log.LogError(parsedTargets.Item2);
+                Logger.GetInstance().LogError(parsedTargets.Item2);
                 return;
             }
             (bool isTargetError, StringBuilder errorMessage) = VerifySelectedTargetsIntegrity(parsedTargets.Item1);
             if(isTargetError)
             {
-                log.LogError(errorMessage);
+                Logger.GetInstance().LogError(errorMessage);
                 return;
             }
 
@@ -739,11 +741,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                                                                                           boostRxTB.Text);
             if(!parsedPrescriptions.Item1.Any())
             {
-                log.LogError(parsedPrescriptions.Item2);
+                Logger.GetInstance().LogError(parsedPrescriptions.Item2);
                 return;
             }
             prescriptions = new List<PrescriptionModel>(parsedPrescriptions.Item1);
-            log.Prescriptions = prescriptions;
+            Logger.GetInstance().Prescriptions = prescriptions;
 
             //need targets to be assigned prior to populating the tuning structure tabs
             AddDefaultRings_Click(null, null);
@@ -840,7 +842,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if (selectedSS == null) 
             { 
-                log.LogError("Error! Please select a Structure Set before adding tuning structure manipulations!"); 
+                Logger.GetInstance().LogError("Error! Please select a Structure Set before adding tuning structure manipulations!"); 
                 return; 
             }
             if (theSP.Children.Count == 0) theSP.Children.Add(StructureTuningUIHelper.AddTemplateTSHeader(theSP));
@@ -917,12 +919,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if (selectedSS == null)
             {
-                log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
+                Logger.GetInstance().LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
                 return;
             }
             if (!prescriptions.Any())
             {
-                log.LogError("Please set the targets first on the 'Set Targets' tab!");
+                Logger.GetInstance().LogError("Please set the targets first on the 'Set Targets' tab!");
                 return;
             }
             Button theBtn = sender as Button;
@@ -938,7 +940,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 string selectedTemplateId = GeneralUIHelper.PromptUserToSelectPlanTemplate(PlanTemplates.Select(x => x.TemplateName).ToList());
                 if (string.IsNullOrEmpty(selectedTemplateId))
                 {
-                    log.LogError("Template not found! Exiting!");
+                    Logger.GetInstance().LogError("Template not found! Exiting!");
                     return;
                 }
                 selectedTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.TemplateName, selectedTemplateId));
@@ -950,12 +952,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             if (!double.TryParse(initRxText, out initRx))
             {
-                log.LogError("Warning! Entered initial plan prescription is not valid! \nCannot scale optimization objectives to requested Rx! Exiting!");
+                Logger.GetInstance().LogError("Warning! Entered initial plan prescription is not valid! \nCannot scale optimization objectives to requested Rx! Exiting!");
                 return;
             }
             if (selectedTemplate.BoostRxDosePerFx != 0.1 && !double.TryParse(bstRxText, out bstRx))
             {
-                log.LogError("Warning! Entered boost plan prescription is not valid! \nCannot verify template Rx vs entered Rx! Exiting!");
+                Logger.GetInstance().LogError("Warning! Entered boost plan prescription is not valid! \nCannot verify template Rx vs entered Rx! Exiting!");
                 return;
             }
                 
@@ -983,7 +985,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if (selectedSS == null)
             {
-                log.LogError("Error! Please select a Structure Set before adding ring structures!");
+                Logger.GetInstance().LogError("Error! Please select a Structure Set before adding ring structures!");
                 return;
             }
             if (!rings.Any()) return;
@@ -1077,7 +1079,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if (selectedSS == null)
             {
-                log.LogError("Error! Please select a Structure Set before adding ring structures!");
+                Logger.GetInstance().LogError("Error! Please select a Structure Set before adding ring structures!");
                 return;
             }
             if (!OARs.Any()) return;
@@ -1152,7 +1154,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if (selectedSS == null) 
             { 
-                log.LogError("Error! Please select a Structure Set before add tuning structure manipulations!"); 
+                Logger.GetInstance().LogError("Error! Please select a Structure Set before add tuning structure manipulations!"); 
                 return; 
             }
             int counter;
@@ -1225,7 +1227,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if (selectedSS == null)
             {
-                log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
+                Logger.GetInstance().LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
                 return;
             }
             //copy the sparing structures in the defaultSpareStruct list to a temporary vector
@@ -1237,12 +1239,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             if (!templateManipulationList.Any())
             {
-                if(fromButtonClickEvent) log.LogError("Warning! No default tuning structure manipulations contained in the selected template!");
+                if(fromButtonClickEvent) Logger.GetInstance().LogError("Warning! No default tuning structure manipulations contained in the selected template!");
                 return;
             }
 
             (List<string> missingEmptyStructures, StringBuilder warnings) = StructureTuningUIHelper.VerifyTSManipulationIntputIntegrity(templateManipulationList.Select(x => x.StructureId).Distinct().ToList(), structureIdsPostUnion, selectedSS);
-            if (missingEmptyStructures.Any()) log.LogError(warnings);
+            if (missingEmptyStructures.Any()) Logger.GetInstance().LogError(warnings);
 
             List<RequestedTSManipulationModel> defaultList = new List<RequestedTSManipulationModel> { };
             foreach (RequestedTSManipulationModel itr in templateManipulationList)
@@ -1282,7 +1284,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //ensure the targets have been specified prior to generating and manipulating the tuning structures
             if(!prescriptions.Any())
             {
-                log.LogError("Please set the targets first on the 'Set Targets' tab!");
+                Logger.GetInstance().LogError("Please set the targets first on the 'Set Targets' tab!");
                 return;
             }
 
@@ -1297,22 +1299,22 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             (List<RequestedTSManipulationModel>, StringBuilder) parseTSManipulationList = StructureTuningUIHelper.ParseTSManipulationList(structureManipulationSP);
             if (!string.IsNullOrEmpty(parseCreateTSList.Item2.ToString()))
             {
-                log.LogError(parseCreateTSList.Item2);
+                Logger.GetInstance().LogError(parseCreateTSList.Item2);
                 return;
             }
             if (!string.IsNullOrEmpty(parseCreateRingList.Item2.ToString()))
             {
-                log.LogError(parseCreateRingList.Item2);
+                Logger.GetInstance().LogError(parseCreateRingList.Item2);
                 return;
             }
             if (!string.IsNullOrEmpty(parseCropOverlapOARList.Item2.ToString()))
             {
-                log.LogError(parseCropOverlapOARList.Item2);
+                Logger.GetInstance().LogError(parseCropOverlapOARList.Item2);
                 return;
             }
             if (!string.IsNullOrEmpty(parseTSManipulationList.Item2.ToString()))
             {
-                log.LogError(parseTSManipulationList.Item2);
+                Logger.GetInstance().LogError(parseTSManipulationList.Item2);
                 return;
             }
 
@@ -1326,7 +1328,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             pi.BeginModifications();
             bool result = generate.Execute();
             //grab the log output regardless if it passes or fails
-            log.AppendLogOutput("TS Generation and manipulation output:", generate.GetLogOutput());
+            Logger.GetInstance().AppendLogOutput("TS Generation and manipulation output:", generate.GetLogOutput());
             if (result) return;
 
             //does the structure sparing list need to be updated? This occurs when structures the user elected to perform manipulations on are high resolution. Since Eclipse can't perform
@@ -1353,11 +1355,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             structureTuningTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             TSManipulationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             beamPlacementTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
-            log.AddedStructures = generate.AddedStructureIds;
-            log.TSTargets = generate.PlanTargets.SelectMany(x => x.Targets).ToDictionary(x => x.TargetId, x => x.TsTargetId);
-            log.StructureManipulations = TSManipulationList;
-            log.NormalizationVolumes = generate.NormalizationVolumes;
-            log.PlanIsocenters = planIsocenters;
+            Logger.GetInstance().AddedStructures = generate.AddedStructureIds;
+            Logger.GetInstance().TSTargets = generate.PlanTargets.SelectMany(x => x.Targets).ToDictionary(x => x.TargetId, x => x.TsTargetId);
+            Logger.GetInstance().StructureManipulations = TSManipulationList;
+            Logger.GetInstance().NormalizationVolumes = generate.NormalizationVolumes;
+            Logger.GetInstance().PlanIsocenters = planIsocenters;
         }
         #endregion
 
@@ -1402,14 +1404,14 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if (beamPlacementSP.Children.Count == 0)
             {
-                log.LogError("No isocenters present to place beams!");
+                Logger.GetInstance().LogError("No isocenters present to place beams!");
                 return;
             }
 
             (string, string, List<List<int>>, StringBuilder) parseSelections = BeamPlacementUIHelper.GetBeamSelections(beamPlacementSP, planIsocenters);
             if (string.IsNullOrEmpty(parseSelections.Item1))
             {
-                log.LogError(parseSelections.Item4);
+                Logger.GetInstance().LogError(parseSelections.Item4);
                 return;
             }
 
@@ -1438,7 +1440,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 //ensure the value entered in the added margin text box for contouring field overlap is a valid double
                 if (!double.TryParse(contourOverlapTB.Text, out contourOverlapMargin))
                 {
-                    log.LogError("Error! The entered added margin for the contour overlap text box is NaN! Please enter a valid number and try again!");
+                    Logger.GetInstance().LogError("Error! The entered added margin for the contour overlap text box is NaN! Please enter a valid number and try again!");
                     return;
                 }
             }
@@ -1458,7 +1460,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             place.Initialize(courseId, prescriptions);
             bool result = place.Execute();
-            log.AppendLogOutput("Plan generation and beam placement output:", place.GetLogOutput());
+            Logger.GetInstance().AppendLogOutput("Plan generation and beam placement output:", place.GetLogOutput());
             if (result) return;
             VMATplans = new List<ExternalPlanSetup>(place.VMATPlans);
             if (!VMATplans.Any()) return;
@@ -1475,7 +1477,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             beamPlacementTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
             optimizationSetupTabItem.Background = System.Windows.Media.Brushes.PaleVioletRed;
             //list the plan UIDs by creation date (initial always gets created first, then boost)
-            log.PlanUIDs = VMATplans.OrderBy(x => x.CreationDateTime).Select(y => y.UID).ToList();
+            Logger.GetInstance().PlanUIDs = VMATplans.OrderBy(x => x.CreationDateTime).Select(y => y.UID).ToList();
             isModified = true;
         }
         #endregion
@@ -1494,7 +1496,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 (List<PlanOptimizationSetupModel> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(templateList.SelectedItem as CSIAutoPlanTemplate, prescriptions);
                 if(!parsedConstraints.constraints.Any())
                 {
-                    log.LogError(parsedConstraints.errorMessage);
+                    Logger.GetInstance().LogError(parsedConstraints.errorMessage);
                     return;
                 }
                 tmpList = parsedConstraints.constraints;
@@ -1569,7 +1571,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 string selectedTemplateId = GeneralUIHelper.PromptUserToSelectPlanTemplate(PlanTemplates.Select(x => x.TemplateName).ToList());
                 if (string.IsNullOrEmpty(selectedTemplateId))
                 {
-                    log.LogError("Template not found! Exiting!");
+                    Logger.GetInstance().LogError("Template not found! Exiting!");
                     return;
                 }
                 selectedTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.TemplateName, selectedTemplateId));
@@ -1581,18 +1583,18 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             if (!double.TryParse(initRxText, out initRx))
             {
-                log.LogError("Warning! Entered initial plan prescription is not valid! \nCannot scale optimization objectives to requested Rx! Exiting!");
+                Logger.GetInstance().LogError("Warning! Entered initial plan prescription is not valid! \nCannot scale optimization objectives to requested Rx! Exiting!");
                 return;
             }
             if (selectedTemplate.BoostRxDosePerFx != 0.1 && !double.TryParse(bstRxText, out bstRx))
             {
-                log.LogError("Warning! Entered boost plan prescription is not valid! \nCannot verify template Rx vs entered Rx! Exiting!");
+                Logger.GetInstance().LogError("Warning! Entered boost plan prescription is not valid! \nCannot verify template Rx vs entered Rx! Exiting!");
                 return;
             }
             (List<PlanOptimizationSetupModel> constraints, StringBuilder errorMessage) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(selectedTemplate, prescriptions);
             if (!parsedConstraints.constraints.Any())
             {
-                log.LogError(parsedConstraints.errorMessage);
+                Logger.GetInstance().LogError(parsedConstraints.errorMessage);
                 return;
             }
             //assumes you set all targets and upstream items correctly (as you would have had to place beams prior to this point)
@@ -1621,7 +1623,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             (List<PlanOptimizationSetupModel>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optParametersSP);
             if (!parsedOptimizationConstraints.Item1.Any())
             {
-                log.LogError(parsedOptimizationConstraints.Item2);
+                Logger.GetInstance().LogError(parsedOptimizationConstraints.Item2);
                 return;
             }
             bool constraintsAssigned = false;
@@ -1647,7 +1649,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     OptimizationSetupUIHelper.AssignOptConstraints(itr.OptimizationConstraints, plan, true, 0.0);
                     constraintsAssigned = true;
                 }
-                else log.LogError($"_{itr.PlanId} not found!");
+                else Logger.GetInstance().LogError($"_{itr.PlanId} not found!");
             }
             if(constraintsAssigned)
             {
@@ -1655,7 +1657,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 MessageBox.Show(message);
                 isModified = true;
                 optimizationSetupTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
-                log.OptimizationConstraints = parsedOptimizationConstraints.Item1;
+                Logger.GetInstance().OptimizationConstraints = parsedOptimizationConstraints.Item1;
             }
 
             //ConfirmPrompt CUI = new ConfirmPrompt();
@@ -1702,7 +1704,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 else return;
                 if (thePlan == null) 
                 { 
-                    log.LogError("Plan not found! Exiting!"); 
+                    Logger.GetInstance().LogError("Plan not found! Exiting!"); 
                     return; 
                 }
             }
@@ -1718,7 +1720,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     (List<PlanOptimizationSetupModel>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(theSP, false);
                     if(!parsedOptimizationConstraints.Item1.Any())
                     {
-                        log.LogError(parsedOptimizationConstraints.Item2);
+                        Logger.GetInstance().LogError(parsedOptimizationConstraints.Item2);
                         return;
                     }
                     foreach(PlanOptimizationSetupModel itr in parsedOptimizationConstraints.Item1)
@@ -1753,7 +1755,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                             if (selectedTemplate.InitialOptimizationConstraints.Any()) tmpListList.Add(new PlanOptimizationSetupModel(prescriptions.FirstOrDefault(x => x.PlanId != thePlan.Id).PlanId, selectedTemplate.InitialOptimizationConstraints));
                             else
                             {
-                                log.LogError("Error! There should not be a boost plan with no initial plan!");
+                                Logger.GetInstance().LogError("Error! There should not be a boost plan with no initial plan!");
                                 return;
                             }
 
@@ -1777,7 +1779,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if (selectedSS == null) 
             { 
-                log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
+                Logger.GetInstance().LogError("Error! The structure set has not been assigned! Choose a structure set and try again!");
                 return; 
             }
             int counter;
@@ -1839,7 +1841,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             (ExternalPlanSetup VMATPlan, StringBuilder errorMessage) = PlanPrepUIHelper.RetrieveVMATPlan(pi, logPath, "VMAT CSI");
             if (VMATPlan == null)
             {
-                log.LogError(errorMessage);
+                Logger.GetInstance().LogError(errorMessage);
                 return;
             }
 
@@ -1857,7 +1859,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //The shift note has to be retrieved first! Otherwise, we don't have instances of the plan objects
             if (!VMATplans.Any())
             {
-                log.LogError("Please generate the shift note before separating the plans!");
+                Logger.GetInstance().LogError("Please generate the shift note before separating the plans!");
                 return;
             }
 
@@ -1873,8 +1875,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             pi.BeginModifications();
             PlanPrep_CSI planPrep = new PlanPrep_CSI(vmatPlan, closePWOnFinish);
             bool result = planPrep.Execute();
-            log.AppendLogOutput("Plan preparation:", planPrep.GetLogOutput());
-            log.OpType = ScriptOperationType.PlanPrep;
+            Logger.GetInstance().AppendLogOutput("Plan preparation:", planPrep.GetLogOutput());
+            Logger.GetInstance().OpType = ScriptOperationType.PlanPrep;
             if (result) return;
 
             //inform the user it's done
@@ -1900,7 +1902,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ////the shift note must be retireved and the plans must be separated before calculating dose
             //if (shiftTB.Text == "NO" || separateTB.Text == "NO")
             //{
-            //    log.LogError("Error! \nYou must generate the shift note AND separate the plan before calculating dose to each plan!");
+            //    Logger.GetInstance().LogError("Error! \nYou must generate the shift note AND separate the plan before calculating dose to each plan!");
             //    return;
             //}
 
@@ -1940,7 +1942,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (!double.TryParse(dosePerFxTB.Text, out double newDoseFx)) planRxTB.Text = "";
             else if (newDoseFx <= 0)
             {
-                log.LogError("Error! The dose per fraction must be a number and non-negative!");
+                Logger.GetInstance().LogError("Error! The dose per fraction must be a number and non-negative!");
                 planRxTB.Text = "";
             }
             else ResetTemplateRxDose(dosePerFxTB, numFxTB, planRxTB);
@@ -1963,7 +1965,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (!int.TryParse(numFxTB.Text, out int newNumFx)) planRxTB.Text = "";
             else if (newNumFx < 1)
             {
-                log.LogError("Error! The number of fractions must be an integer and greater than 0!");
+                Logger.GetInstance().LogError("Error! The number of fractions must be an integer and greater than 0!");
                 planRxTB.Text = "";
             }
             else ResetTemplateRxDose(dosePerFxTB, numFxTB, planRxTB);
@@ -1978,12 +1980,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if (app == null)
             {
-                log.LogError("Error! No connection to ESAPI! Exiting");
+                Logger.GetInstance().LogError("Error! No connection to ESAPI! Exiting");
                 return;
             }
             if (selectedSS == null) 
             { 
-                log.LogError("Error! The structure set has not been assigned! Choose a structure set and try again!"); 
+                Logger.GetInstance().LogError("Error! The structure set has not been assigned! Choose a structure set and try again!"); 
                 return; 
             }
             if (templateBuildOptionCB.SelectedItem.ToString().ToLower() == "existing template")
@@ -1995,7 +1997,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 else return;
                 if (theTemplate == null) 
                 { 
-                    log.LogError("Template not found! Exiting!"); 
+                    Logger.GetInstance().LogError("Template not found! Exiting!"); 
                     return; 
                 }
 
@@ -2034,7 +2036,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 (List<PlanOptimizationSetupModel>, StringBuilder) parsedConstraints = OptimizationSetupHelper.RetrieveOptConstraintsFromTemplate(theTemplate, targetList);
                 if(!parsedConstraints.Item1.Any())
                 {
-                    log.LogError(parsedConstraints.Item2);
+                    Logger.GetInstance().LogError(parsedConstraints.Item2);
                     return;
                 }
                 PopulateOptimizationTab(templateOptParamsSP, parsedConstraints.Item1, false);
@@ -2045,7 +2047,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 (List<PlanTargetsModel> planTargetList, StringBuilder errorMsg) = TargetsUIHelper.ParseTargets(targetsSP);
                 if (!planTargetList.Any())
                 {
-                    log.LogError("Error! Enter parameters into the UI before trying to use them to make a new plan template!");
+                    Logger.GetInstance().LogError("Error! Enter parameters into the UI before trying to use them to make a new plan template!");
                     return;
                 }
                 ClearAllTargetItems(templateClearTargetList);
@@ -2068,7 +2070,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 (List<RequestedTSStructureModel>, StringBuilder) parsedCreateTSList = StructureTuningUIHelper.ParseCreateTSStructureList(TSGenerationSP);
                 if(!string.IsNullOrEmpty(parsedCreateTSList.Item2.ToString()))
                 {
-                    log.LogError(parsedCreateTSList.Item2);
+                    Logger.GetInstance().LogError(parsedCreateTSList.Item2);
                     return;
                 }
                 GeneralUIHelper.ClearList(templateTSSP);
@@ -2078,7 +2080,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 (List<TSRingStructureModel>, StringBuilder) parsedCreateRingList = RingUIHelper.ParseCreateRingList(createRingsSP);
                 if(!string.IsNullOrEmpty(parsedCreateRingList.Item2.ToString()))
                 {
-                    log.LogError(parsedCreateRingList.Item2);
+                    Logger.GetInstance().LogError(parsedCreateRingList.Item2);
                     return;
                 }
                 AddRingStructures(parsedCreateRingList.Item1, templateCreateRingsSP);
@@ -2086,7 +2088,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 (List<string>, StringBuilder) parseCropOverlapOARList = CropOverlapOARUIHelper.ParseCropOverlapOARList(cropOverlapOARsSP);
                 if (!string.IsNullOrEmpty(parseCropOverlapOARList.Item2.ToString()))
                 {
-                    log.LogError(parseCropOverlapOARList.Item2);
+                    Logger.GetInstance().LogError(parseCropOverlapOARList.Item2);
                     return;
                 }
                 AddCropOverlapOARs(parseCropOverlapOARList.Item1, templateCropOverlapOARsSP);
@@ -2095,7 +2097,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 (List<RequestedTSManipulationModel>, StringBuilder) parsedTSManipulationList = StructureTuningUIHelper.ParseTSManipulationList(structureManipulationSP);
                 if(!string.IsNullOrEmpty(parsedTSManipulationList.Item2.ToString()))
                 {
-                    log.LogError(parsedTSManipulationList.Item2);
+                    Logger.GetInstance().LogError(parsedTSManipulationList.Item2);
                     return;
                 }
                 ClearStructureManipulationsList(templateClearSpareStructuresBtn);
@@ -2105,7 +2107,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 (List<PlanOptimizationSetupModel>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optParametersSP);
                 if(parsedOptimizationConstraints.Item1.Any())
                 {
-                    log.LogError(parsedOptimizationConstraints.Item2);
+                    Logger.GetInstance().LogError(parsedOptimizationConstraints.Item2);
                     return;
                 }
                 ClearOptimizationConstraintsList(templateOptParamsSP);
@@ -2117,7 +2119,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if (selectedSS == null) 
             { 
-                log.LogError("Error! Please select a Structure Set before add sparing volumes!"); 
+                Logger.GetInstance().LogError("Error! Please select a Structure Set before add sparing volumes!"); 
                 return; 
             }
             prospectiveTemplate = new CSIAutoPlanTemplate();
@@ -2129,7 +2131,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             else
             {
-                log.LogError("Error! Initial plan dose per fx not parsed successfully! Fix and try again!"); 
+                Logger.GetInstance().LogError("Error! Initial plan dose per fx not parsed successfully! Fix and try again!"); 
                 return; 
             }
             if (int.TryParse(templateInitPlanNumFxTB.Text, out int initNumFx))
@@ -2138,7 +2140,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             else 
             {
-                log.LogError("Error! Initial plan dose per fx not parsed successfully! Fix and try again!");
+                Logger.GetInstance().LogError("Error! Initial plan dose per fx not parsed successfully! Fix and try again!");
                 return; 
             }
             if (double.TryParse(templateBstPlanDosePerFxTB.Text, out double bstDosePerFx))
@@ -2147,7 +2149,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             else
             { 
-                log.LogError("Error! Boost plan dose per fx not parsed successfully! Fix and try again!"); 
+                Logger.GetInstance().LogError("Error! Boost plan dose per fx not parsed successfully! Fix and try again!"); 
                 return; 
             }
             if (int.TryParse(templateBstPlanNumFxTB.Text, out int bstNumFx))
@@ -2156,7 +2158,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             else
             {
-                log.LogError("Error! Boost plan dose per fx not parsed successfully! Fix and try again!"); 
+                Logger.GetInstance().LogError("Error! Boost plan dose per fx not parsed successfully! Fix and try again!"); 
                 return; 
             }
 
@@ -2178,12 +2180,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         {
             if (selectedSS == null) 
             { 
-                log.LogError("Error! Please select a Structure Set before add sparing volumes!"); 
+                Logger.GetInstance().LogError("Error! Please select a Structure Set before add sparing volumes!"); 
                 return; 
             }
             if (prospectiveTemplate == null) 
             { 
-                log.LogError("Error! Please preview the requested template before building!"); 
+                Logger.GetInstance().LogError("Error! Please preview the requested template before building!"); 
                 return; 
             }
             string fileName = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\templates\\CSI\\CSI_" + prospectiveTemplate.TemplateName + ".ini";
@@ -2323,7 +2325,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             if (openFileDialog.ShowDialog().Value) 
             { 
                 if (!LoadConfigurationSettings(openFileDialog.FileName)) DisplayConfigurationParameters(); 
-                else log.LogError("Error! Selected file is NOT valid!"); 
+                else Logger.GetInstance().LogError("Error! Selected file is NOT valid!"); 
             }
         }
 
@@ -2362,7 +2364,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                     {
                                         string path = ConfigurationHelper.VerifyPathIntegrity(value);
                                         if (!string.IsNullOrEmpty(path)) documentationPath = path;
-                                        else log.LogError($"Warning! {value} does NOT exist!");
+                                        else Logger.GetInstance().LogError($"Warning! {value} does NOT exist!");
                                     }
                                 }
                                 else if (parameter == "close progress windows on finish")
@@ -2373,18 +2375,18 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                 {
                                     string result = ConfigurationHelper.VerifyPathIntegrity(value);
                                     if (!string.IsNullOrEmpty(result)) IEData.WriteLocation = result;
-                                    else log.LogError($"Warning! {value} does NOT exist!");
+                                    else Logger.GetInstance().LogError($"Warning! {value} does NOT exist!");
                                 }
                                 else if (parameter == "RTStruct import location")
                                 {
                                     string result = ConfigurationHelper.VerifyPathIntegrity(value);
                                     if (!string.IsNullOrEmpty(result)) IEData.ImportLocation = result;
-                                    else log.LogError($"Warning! {value} does NOT exist!");
+                                    else Logger.GetInstance().LogError($"Warning! {value} does NOT exist!");
                                 }
                                 else if (parameter == "img export format")
                                 {
                                     if (string.Equals(value, "dcm") || string.Equals(value, "png")) IEData.ExportFormat = ExportFormatTypeHelper.GetExportFormatType(value);
-                                    else log.LogError("Only png and dcm image formats are supported for export!");
+                                    else Logger.GetInstance().LogError("Only png and dcm image formats are supported for export!");
                                 }
                                 else if (parameter.Contains("daemon"))
                                 {
@@ -2397,10 +2399,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                         else if (parameter.ToLower().Contains("local")) IEData.LocalDaemon = result;
                                         else
                                         {
-                                            log.LogError($"Error! Daemon type {parameter} not recognized! Skipping!");
+                                            Logger.GetInstance().LogError($"Error! Daemon type {parameter} not recognized! Skipping!");
                                         }
                                     }
-                                    else log.LogError($"Error! Daemon configuration settings for {line} not parsed successfully! Skipping!");
+                                    else Logger.GetInstance().LogError($"Error! Daemon configuration settings for {line} not parsed successfully! Skipping!");
                                 }
                                 else if (parameter == "beams per iso")
                                 {
@@ -2479,8 +2481,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //let the user know if the data parsing failed
             catch (Exception e) 
             { 
-                log.LogError($"Error could not load configuration file because: {e.Message}\n\nAssuming default parameters");
-                log.LogError(e.StackTrace, true);
+                Logger.GetInstance().LogError($"Error could not load configuration file because: {e.Message}\n\nAssuming default parameters");
+                Logger.GetInstance().LogError(e.StackTrace, true);
                 return true; 
             }
         }
@@ -2498,8 +2500,8 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
             catch(Exception e)
             {
-                log.LogError($"Error could not load plan template file because: {e.Message}");
-                log.LogError(e.StackTrace, true);
+                Logger.GetInstance().LogError($"Error could not load plan template file because: {e.Message}");
+                Logger.GetInstance().LogError(e.StackTrace, true);
                 return true;
             }
             return false;
@@ -2508,7 +2510,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            if(app != null) AppClosingHelper.CloseApplication(app, pi != null, isModified, autoSave, log);
+            if(app != null) AppClosingHelper.CloseApplication(app, pi != null, isModified, autoSave);
         }
 
         private void MainWindow_SizeChanged(object sender, RoutedEventArgs e)

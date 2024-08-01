@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using VMATTBICSIAutoPlanningHelpers.Models;
-using VMS.TPS.Common.Model.API;
 
 namespace VMATTBICSIAutoPlanningHelpers.DataContainers
 {

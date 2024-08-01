@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Text;
 using System.IO;
-using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
 using FolderBrowserDialog = System.Windows.Forms.FolderBrowserDialog;
@@ -16,14 +15,23 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
 {
     public class Logger
     {
+        /// <summary>
+        /// Helpful trick to force a static instance of the logger class and has this one instance accesible everywhere
+        /// </summary>
+        /// <returns></returns>
+        public static Logger GetInstance()
+        {
+            if (_instance != null) return _instance;
+            else return _instance = new Logger();
+        }
         #region Set methods
         //general patient info
-        public string MRN { set { mrn = value; } }
+        public string MRN { set => mrn = value; }
         public string Template { set => template = value; }
         public string StructureSet { set => selectedSS = value; }
         public bool ChangesSaved { set => changesSaved = value; }
         public string User { set => userId = value; }
-        public string LogPath { get { return logPath; } set { logPath = value; } }
+        public string LogPath { set => logPath = value;  }
         //plan ID, target Id, numFx, dosePerFx, cumulative dose
         public List<PrescriptionModel> Prescriptions { set => prescriptions = new List<PrescriptionModel>(value); }
         public List<string> AddedPrelimTargetsStructures { set => addedPrelimTargets = new List<string>(value); }
@@ -43,50 +51,35 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         //plan ID, <structure, constraint type, dose cGy, volume %, priority>
         public List<PlanOptimizationSetupModel> OptimizationConstraints { get; set; } = new List<PlanOptimizationSetupModel>();
         public ScriptOperationType OpType { set => opType = value; }
+        public PlanType PlanType { set => planType = value; }
         #endregion
 
+        private static Logger _instance;
         //path to location to write log file
-        private string logPath = "";
+        private string logPath = string.Empty;
         //stringbuilder object to log output from ts generation/manipulation and beam placement
-        private StringBuilder _logFromOperations;
-        private StringBuilder _logFromErrors;
-        private string userId;
-        private string mrn;
-        private PlanType planType;
-        private string template;
-        private string selectedSS;
+        private StringBuilder _logFromOperations = new StringBuilder();
+        private StringBuilder _logFromErrors = new StringBuilder();
+        private string userId = string.Empty;
+        private string mrn = string.Empty;
+        private PlanType planType = PlanType.None;
+        private string template = string.Empty;
+        private string selectedSS = string.Empty;
         bool changesSaved = false;
-        List<PrescriptionModel> prescriptions;
-        private List<string> addedPrelimTargets;
-        private List<string> addedStructures;
-        private Dictionary<string, string> tsTargets;
-        private Dictionary<string, string> normVolumes;
-        private List<PlanIsocenterModel> planIsocenters;
-        private List<string> planUIDs;
+        List<PrescriptionModel> prescriptions = new List<PrescriptionModel>();
+        private List<string> addedPrelimTargets = new List<string>();
+        private List<string> addedStructures = new List<string>();
+        private Dictionary<string, string> tsTargets = new Dictionary<string, string>();
+        private Dictionary<string, string> normVolumes = new Dictionary<string, string>();
+        private List<PlanIsocenterModel> planIsocenters = new List<PlanIsocenterModel>();
+        private List<string> planUIDs = new List<string>();
         private ScriptOperationType opType = ScriptOperationType.General;
 
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="path"></param>
-        /// <param name="theType"></param>
-        /// <param name="patient"></param>
-        public Logger(string path, PlanType theType, string patient)
+        public Logger()
         {
-            logPath = path;
-            planType = theType;
-            mrn = patient;
-
-            selectedSS = "";
-            prescriptions = new List<PrescriptionModel> { };
-            addedPrelimTargets = new List<string> { };
-            addedStructures = new List<string> { };
-            tsTargets = new Dictionary<string, string> { };
-            normVolumes = new Dictionary<string, string> { };
-            planIsocenters = new List<PlanIsocenterModel> { };
-            planUIDs = new List<string> { };
-            _logFromOperations = new StringBuilder();
-            _logFromErrors = new StringBuilder();
         }
 
         /// <summary>
