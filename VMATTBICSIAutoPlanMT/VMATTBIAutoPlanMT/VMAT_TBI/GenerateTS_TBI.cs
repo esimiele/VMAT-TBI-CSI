@@ -824,7 +824,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
             //set isocenter names based on numIsos and numVMATIsos (determined these names from prior cases)
             PlanIsocentersList.Add(new PlanIsocenterModel(prescriptions.First().PlanId, IsoNameHelper.GetTBIVMATIsoNames(NumberofVMATIsocenters, NumberofIsocenters)));
-            if (NumberofIsocenters > NumberofVMATIsocenters) PlanIsocentersList.Add(new PlanIsocenterModel("_Legs", IsoNameHelper.GetTBIAPPAIsoNames(NumberofVMATIsocenters, NumberofIsocenters)));
+            if (NumberofIsocenters > NumberofVMATIsocenters)
+            {
+                PlanIsocentersList.Add(new PlanIsocenterModel("AP / PA upper legs", new IsocenterModel("AP / PA upper legs")));
+                if(NumberofIsocenters == NumberofVMATIsocenters + 2) PlanIsocentersList.Add(new PlanIsocenterModel("AP / PA lower legs", new IsocenterModel("AP / PA lower legs")));
+            }
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved appropriate isocenter names:");
             foreach(PlanIsocenterModel itr in PlanIsocentersList)
             {

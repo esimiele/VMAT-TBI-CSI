@@ -178,7 +178,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                         TextAlignment = TextAlignment.Center
                     };
                     //ugly provision to override suggested number of beams per iso to 2 for leg AP/PA isocenters for TBI plans
-                    if (!itr.PlanId.Contains("_Legs")) beams_tb.Text = beamsPerIso[isoCount].ToString();
+                    if (!itr.PlanId.Contains("legs")) beams_tb.Text = beamsPerIso[isoCount].ToString();
                     else beams_tb.Text = "2";
 
                     sp.Children.Add(beams_tb);

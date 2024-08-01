@@ -20,7 +20,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         //list plan, list<iso name, num beams for iso>
         private List<PlanIsocenterModel> planIsocenters;
         private ExternalPlanSetup vmatPlan = null;
-        private ExternalPlanSetup legsPlan = null;
+        private List<ExternalPlanSetup> legsPlans = null;
 
         //data members
         private double[] collRot;
@@ -112,7 +112,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (CheckExistingPlans()) return true;
                 if (CreateVMATPlans()) return true;
                 vmatPlan = VMATPlans.First();
-                if (planIsocenters.Count > 1 && CreateAPPAPlan()) return true;
+                if (planIsocenters.Count > 1)
+                {
+                    foreach (var planIso in planIsocenters.Where(x => x.PlanId.Contains("legs")))
+                    {
+                        if (CreateAPPAPlan(planIso)) return true;
+                    }
+                }
                 //plan, List<isocenter position, isocenter name, number of beams per isocenter>
                 List<PlanIsocenterModel> isoLocations = GetIsocenterPositions();
                 UpdateUILabel("Assigning isocenters and beams: ");
@@ -121,7 +127,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (contourOverlap && isoLocations.First().Isocenters.Count > 1) if (ContourFieldOverlap(isoLocations.First(), 0)) return true;
                 if (isoLocations.Count > 1)
                 {
-                    if (SetAPPABeams(isoLocations.Last())) return true;
+                    foreach(PlanIsocenterModel planIso in isoLocations.Where(x => x.PlanId.Contains("legs")))
+                    {
+                        if (SetAPPABeams(isoLocations.Last())) return true;
+                    }
                 }
                 UpdateUILabel("Finished!");
                 return false;
@@ -159,15 +168,15 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         /// Helper method to create the legs AP/PA plan
         /// </summary>
         /// <returns></returns>
-        private bool CreateAPPAPlan()
+        private bool CreateAPPAPlan(PlanIsocenterModel planIso)
         {
-            UpdateUILabel("Creating AP/PA plan: ");
+            UpdateUILabel($"Creating AP/PA plan: {planIso.PlanId}");
             int percentComplete = 0;
             int calcItems = 4;
-            legsPlan = theCourse.AddExternalPlanSetup(selectedSS);
+            ExternalPlanSetup legsPlan = theCourse.AddExternalPlanSetup(selectedSS);
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Creating AP/PA plan");
 
-            legsPlan.Id = "_Legs";
+            legsPlan.Id = planIso.PlanId;
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Set plan Id for {legsPlan.Id}");
 
             //grab the highest Rx prescription for this plan (should only be one entry since no boost plans are permitted for TBI)
@@ -177,6 +186,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Set prescription for plan {legsPlan.Id}");
             legsPlan.SetCalculationModel(CalculationType.PhotonVolumeDose, calculationModel);
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Set calculation model to {calculationModel}");
+            legsPlans.Add(legsPlan);
             return false;
         }
 
@@ -213,9 +223,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //6-10-2020 EAS, want to count up from matchplane to ensure distance from matchplane is fixed at 190 mm
                 v.z = targetInfExtent + (numVMATIsos - isoCount - 1) * isoSeparation + (maxFieldYExtent / 2 - supInfTargetMargin);
                 //round z position to the nearest integer
-                v = RoundIsocenterPosition(v, vmatPlan);
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated isocenter position {isoCount + 1}");
-                itr.IsocenterPosition = RoundIsocenterPosition(v, vmatPlan);
                 isoCount++;
             }
 
@@ -256,11 +264,23 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 v.y = userOrigin.y + offsetY;
                 //5-11-2020 update EAS (the first isocenter immediately inferior to the matchline is now a distance = offset away). This ensures the isocenters immediately inferior and superior to the 
                 //matchline are equidistant from the matchline
-                v.z = targetSupExtent - isoCount * isoSeparation - offsetZ;
-
-                v = RoundIsocenterPosition(v, legsPlan);
+                if(isoCount < 1)
+                {
+                    v.z = targetSupExtent - isoCount * isoSeparation - offsetZ;
+                }
+                else
+                {
+                    double legsTargetExtent = StructureTuningHelper.GetStructureFromId("matchline", selectedSS).CenterPoint.z - targetInfExtent;
+                    if (legsTargetExtent < 600.0)
+                    {
+                        ProvideUIUpdate($"Separation between matchline center z and target inferior extent: {legsTargetExtent:0.0} mm");
+                        ProvideUIUpdate($"legs target extent is < 60 cm! Adjusting isocenter z position from {v.z:0.0} mm to {v.z:0.0} mm");
+                        v.z = isos.First().IsocenterPosition.z - 200.0;
+                    }
+                    else v.z = v.z - 390.0;
+                }
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated isocenter position {isoCount + 1}");
-                itr.IsocenterPosition = RoundIsocenterPosition(v, legsPlan);
+                itr.IsocenterPosition = RoundIsocenterPosition(v);
                 isoCount++;
             }
             return tmp;
@@ -342,13 +362,18 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             {
                 Structure matchline = StructureTuningHelper.GetStructureFromId("matchline", selectedSS);
                 allIsocenters.Add(new PlanIsocenterModel(vmatPlan.Id, CalculateVMATIsoPositions(targetSupExtent, matchline.CenterPoint.z, 10.0, 400.0, 20.0, offsetY, planIsocenters.First().Isocenters)));
-                allIsocenters.Add(new PlanIsocenterModel(legsPlan.Id, CalculateAPPAIsoPositions(matchline.CenterPoint.z, 
-                                                                                             targetInfExtent, 
-                                                                                             400.0, 
-                                                                                             20.0, 
-                                                                                             allIsocenters.First().Isocenters.OrderByDescending(x => x.IsocenterPosition.z).Last().IsocenterPosition.z,
-                                                                                             offsetY,
-                                                                                             planIsocenters.Last().Isocenters)));
+                List<IsocenterModel> legsIsoModels = CalculateAPPAIsoPositions(matchline.CenterPoint.z,
+                                                                                                targetInfExtent,
+                                                                                                400.0,
+                                                                                                20.0,
+                                                                                                allIsocenters.First().Isocenters.OrderByDescending(x => x.IsocenterPosition.z).Last().IsocenterPosition.z,
+                                                                                                offsetY,
+                                                                                                planIsocenters.Where(x => x.PlanId.Contains("legs")).SelectMany(x => x.Isocenters).ToList());
+                int ind = 0;
+                foreach (IsocenterModel itr in legsIsoModels)
+                {
+                    allIsocenters.Add(new PlanIsocenterModel(legsPlans.ElementAt(ind++).Id, new List<IsocenterModel> { itr }));
+                }
             }
             else
             {
@@ -465,12 +490,19 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //place the beams for the VMAT plan
             int count = totalNumVMATBeams;
             ProvideUIUpdate($"Assigning isocenter: {1}");
+            ExternalPlanSetup plan = legsPlans.First(x => string.Equals(planIso.PlanId, x.Id, StringComparison.OrdinalIgnoreCase));
 
             double x1, y1, x2, y2;
             x1 = y1 = -200.0;
             y2 = 200;
             //adjust x2 jaw (furthest from matchline) so that it covers edge of target volume
             x2 = CalculateX2JawPosition(planIso.Isocenters.First().IsocenterPosition.z, targetInfExtent, 20.0);
+            double legsTargetExtent = StructureTuningHelper.GetStructureFromId("matchline", selectedSS).CenterPoint.z - targetInfExtent;
+            if (legsTargetExtent < 600.0)
+            {
+                ProvideUIUpdate($"Setting X1 jaw position to 0.0 --> Half beam block");
+                x1 = 0.0;
+            }
             VRect<double> jaws = GenerateJawsPositions(x1, y1, x2, y2, planIso.Isocenters.First().IsocenterId);
             ProvideUIUpdate(100 * ++percentComplete / calcItems);
 
@@ -478,55 +510,14 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             float[,] MLCpos = BuildMLCArray(x1, x2);
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Generated MLC positions for iso: {planIso.Isocenters.First().IsocenterId}");
             
-            CreateStaticBeam(++count, "Upper", 0.0, MLCpos, jaws, planIso.Isocenters.First().IsocenterPosition);
+            CreateStaticBeam(++count, plan, planIso.PlanId.Contains("upper") ? "Upper" : "Lower", 0.0, MLCpos, jaws, planIso.Isocenters.First().IsocenterPosition);
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added AP beam to iso: {planIso.Isocenters.First().IsocenterId}");
 
             //PA field
-            CreateStaticBeam(++count, "Upper", 180.0, MLCpos, jaws, planIso.Isocenters.First().IsocenterPosition);
+            CreateStaticBeam(++count, plan, planIso.PlanId.Contains("upper") ? "Upper" : "Lower", 180.0, MLCpos, jaws, planIso.Isocenters.First().IsocenterPosition);
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added PA beam to iso: {planIso.Isocenters.First().IsocenterId}");
 
-            //lower legs field if applicable
-            if (planIso.Isocenters.Count > 1)
-            {
-                ProvideUIUpdate($"Added beams to lower leg isocenter: {planIso.Isocenters.Last().IsocenterId}");
-                calcItems += planIso.Isocenters.Last().NumberOfBeams * 5;
-                VVector infIso = new VVector
-                {
-                    //the element at numVMATIsos in isoLocations vector is the first AP/PA isocenter
-                    x = planIso.Isocenters.Last().IsocenterPosition.x,
-                    y = planIso.Isocenters.Last().IsocenterPosition.y
-                };
-
-                //if the distance between the matchline and the inferior edge of the target is < 600 mm, set the beams in the second isocenter (inferior-most) to be half-beam blocks
-                double legsTargetExtent = StructureTuningHelper.GetStructureFromId("matchline", selectedSS).CenterPoint.z - targetInfExtent;
-                if (legsTargetExtent < 600.0)
-                {
-                    ProvideUIUpdate($"Separation between matchline center z and target inferior extent: {legsTargetExtent:0.0} mm");
-                    infIso.z = planIso.Isocenters.Last().IsocenterPosition.z - 200.0;
-                    ProvideUIUpdate($"legs target extent is < 60 cm! Adjusting isocenter z position from {planIso.Isocenters.Last().IsocenterPosition.z:0.0} mm to {infIso.z:0.0} mm");
-                    ProvideUIUpdate($"Setting X1 jaw position to 0.0 --> Half beam block");
-                    x1 = 0.0;
-                }
-                else infIso.z = planIso.Isocenters.Last().IsocenterPosition.z - 390.0;
-                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated lower leg isocenter: ({infIso.x:0.0}, {infIso.y:0.0}, {infIso.z:0.0}) mm");
-
-                //fit x1 jaw to extent of patient
-                x2 = CalculateX2JawPosition(infIso.z, targetInfExtent, 20.0);
-                jaws = GenerateJawsPositions(x1, y1, x2, y2, planIso.Isocenters.Last().IsocenterId);
-                ProvideUIUpdate(100 * ++percentComplete / calcItems);
-
-                //set MLC positions
-                MLCpos = BuildMLCArray(x1, x2);
-                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Generated MLC positions for iso: {planIso.Isocenters.Last().IsocenterId}");
-                
-                //AP field
-                CreateStaticBeam(++count, "Lower", 0.0, MLCpos, jaws, infIso);
-                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added AP beam to iso: {planIso.Isocenters.Last().IsocenterId}");
-
-                //PA field
-                CreateStaticBeam(++count, "Lower", 180.0, MLCpos, jaws, infIso);
-                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added PA beam to iso: {planIso.Isocenters.Last().IsocenterId}");
-            }
+            
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
         }
@@ -540,9 +531,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         /// <param name="MLCs"></param>
         /// <param name="jaws"></param>
         /// <param name="iso"></param>
-        private void CreateStaticBeam(int beamCount, string beamPositionId, double gantryAngle, float[,] MLCs, VRect<double> jaws, VVector iso)
+        private void CreateStaticBeam(int beamCount, ExternalPlanSetup plan, string beamPositionId, double gantryAngle, float[,] MLCs, VRect<double> jaws, VVector iso)
         {
-            Beam b = legsPlan.AddMLCBeam(ebmpStatic, MLCs, jaws, 90.0, gantryAngle, 0.0, iso);
+            Beam b = plan.AddMLCBeam(ebmpStatic, MLCs, jaws, 90.0, gantryAngle, 0.0, iso);
             b.CreateOrReplaceDRR(GenerateDRRParameters());
             b.Id = $"{beamCount} {(CalculationHelper.AreEqual(gantryAngle, 0.0) ? "AP" : "PA")} {beamPositionId} Legs";
         }

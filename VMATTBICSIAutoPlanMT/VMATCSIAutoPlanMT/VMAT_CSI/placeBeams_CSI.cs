@@ -358,7 +358,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                     };
 
                     ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated isocenter position {1}");
-                    IsocenterModel iso = new IsocenterModel(itr.Isocenters.First().IsocenterId, itr.Isocenters.First().NumberOfBeams, RoundIsocenterPosition(v, VMATPlans.First(x => string.Equals(x.Id, itr.PlanId, StringComparison.OrdinalIgnoreCase))));
+                    IsocenterModel iso = new IsocenterModel(itr.Isocenters.First().IsocenterId, itr.Isocenters.First().NumberOfBeams, RoundIsocenterPosition(v));
                     allIsocenters.Add(new PlanIsocenterModel(itr.PlanId, iso));
                 }
 
@@ -421,7 +421,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated isocenter position {isoCount + 1}");
                 ProvideUIUpdate($"Isocenter position: ({v.x:0.0}, {v.y:0.0}, {v.z:0.0}) mm");
-                itr.IsocenterPosition = RoundIsocenterPosition(v, thePlan);
+                itr.IsocenterPosition = RoundIsocenterPosition(v);
             }
             return (false, isos);
         }

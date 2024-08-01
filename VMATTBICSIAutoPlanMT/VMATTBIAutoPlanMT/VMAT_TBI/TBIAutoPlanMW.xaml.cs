@@ -1052,7 +1052,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 numVMATIsos = tmp;
                 planIsocenters.Clear();
                 planIsocenters = new List<PlanIsocenterModel> { new PlanIsocenterModel(prescriptions.First().PlanId, IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos))};
-                if(numIsos > numVMATIsos) planIsocenters.Add(new PlanIsocenterModel("_Legs", IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos)));
+                if (numIsos > numVMATIsos)
+                {
+                    planIsocenters.Add(new PlanIsocenterModel("AP / PA upper legs", new IsocenterModel("AP / PA upper legs")));
+                    if(numIsos == numVMATIsos + 2) planIsocenters.Add(new PlanIsocenterModel("AP / PA lower legs", new IsocenterModel("AP / PA lower legs")));
+                }
                 Logger.GetInstance().PlanIsocenters = planIsocenters;
                 PopulateBeamsTab();
             }
