@@ -30,6 +30,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImportListener", "ImportLis
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VMATTBICSIAutoPlanningHelpersTests", "VMATTBICSIAutoPlanningHelpersTests\VMATTBICSIAutoPlanningHelpersTests.csproj", "{683DF748-F200-4F90-8343-57920E92EEFD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VMATTBICSIOptLoopMTTests", "VMATTBICSIOptLoopMTTests\VMATTBICSIOptLoopMTTests.csproj", "{22BFFEFD-0469-40B6-B578-11B66C92C6D0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -102,6 +104,14 @@ Global
 		{683DF748-F200-4F90-8343-57920E92EEFD}.Release|Any CPU.Build.0 = Release|Any CPU
 		{683DF748-F200-4F90-8343-57920E92EEFD}.Release|x64.ActiveCfg = Release|x64
 		{683DF748-F200-4F90-8343-57920E92EEFD}.Release|x64.Build.0 = Release|x64
+		{22BFFEFD-0469-40B6-B578-11B66C92C6D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{22BFFEFD-0469-40B6-B578-11B66C92C6D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{22BFFEFD-0469-40B6-B578-11B66C92C6D0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{22BFFEFD-0469-40B6-B578-11B66C92C6D0}.Debug|x64.Build.0 = Debug|Any CPU
+		{22BFFEFD-0469-40B6-B578-11B66C92C6D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{22BFFEFD-0469-40B6-B578-11B66C92C6D0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{22BFFEFD-0469-40B6-B578-11B66C92C6D0}.Release|x64.ActiveCfg = Release|Any CPU
+		{22BFFEFD-0469-40B6-B578-11B66C92C6D0}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

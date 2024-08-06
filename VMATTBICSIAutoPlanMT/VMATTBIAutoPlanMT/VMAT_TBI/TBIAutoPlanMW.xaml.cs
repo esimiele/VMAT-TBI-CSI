@@ -1477,21 +1477,21 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             }
             VMATplan = thePlan;
 
-            ExternalPlanSetup appaPlan = null;
+            List<ExternalPlanSetup> appaPlans = new List<ExternalPlanSetup> { };
             if (VMATplan.Course.ExternalPlanSetups.Any(x => x.Id.ToLower().Contains("legs")))
             {
-                appaPlan = VMATplan.Course.ExternalPlanSetups.First(x => x.Id.ToLower().Contains("legs"));
-                if (appaPlan.TreatmentOrientation != PatientOrientation.FeetFirstSupine)
+                appaPlans = VMATplan.Course.ExternalPlanSetups.Where(x => x.Id.ToLower().Contains("legs")).ToList();
+                if (appaPlans.Any(x => x.TreatmentOrientation != PatientOrientation.FeetFirstSupine))
                 {
                     StringBuilder sb = new StringBuilder();
-                    sb.AppendLine($"The AP/PA plan {appaPlan.Id} is NOT in the FFS orientation!");
+                    sb.AppendLine($"The AP/PA plan {appaPlans.First(x => x.TreatmentOrientation != PatientOrientation.FeetFirstSupine).Id} is NOT in the FFS orientation!");
                     sb.AppendLine("THE COUCH SHIFTS FOR THESE PLANS WILL NOT BE ACCURATE! Please fix and try again!");
                     Logger.GetInstance().LogError(sb.ToString());
                     return;
                 }
             }
 
-            Clipboard.SetText(PlanPrepHelper.GetTBIShiftNote(VMATplan, appaPlan).ToString());
+            Clipboard.SetText(PlanPrepHelper.GetTBIShiftNote(VMATplan, appaPlans).ToString());
             MessageBox.Show("Shifts have been copied to the clipboard! \r\nPaste them into the journal note!");
 
             //let the user know this step has been completed (they can now do the other steps like separate plans and calculate dose)
@@ -1520,10 +1520,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (!CUI.GetSelection()) return;
             }
 
-            ExternalPlanSetup appaPlan = null;
+            List<ExternalPlanSetup> appaPlan = new List<ExternalPlanSetup> { };
             if (VMATplan.Course.ExternalPlanSetups.Any(x => x.Id.ToLower().Contains("legs")))
             {
-                appaPlan = VMATplan.Course.ExternalPlanSetups.First(x => x.Id.ToLower().Contains("legs"));
+                appaPlan = VMATplan.Course.ExternalPlanSetups.Where(x => x.Id.ToLower().Contains("legs")).ToList();
             }
 
             bool removeFlash = false;

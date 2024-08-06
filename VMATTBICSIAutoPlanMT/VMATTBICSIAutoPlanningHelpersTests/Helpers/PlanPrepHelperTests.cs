@@ -240,17 +240,25 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
                 Mock.Arrange(() => img.DicomToUser(b.IsocenterPosition, vmatPlan)).Returns(b.IsocenterPosition);
             }
 
-            ExternalPlanSetup appaPlan = Mock.Create<ExternalPlanSetup>();
-            List<Beam> appaBeams = TBITestBeamBuilder.GenerateAPPATestBeamSet(2);
-            Mock.Arrange(() => appaPlan.Beams).Returns(appaBeams);
             StructureSet ss1 = Mock.Create<StructureSet>();
-            Mock.Arrange(() => appaPlan.StructureSet).Returns(ss1);
             Image img1 = Mock.Create<Image>();
             Mock.Arrange(() => ss1.Image).Returns(img1);
             Mock.Arrange(() => img1.Origin).Returns(new VVector());
-            foreach (Beam b in appaBeams)
+            List<ExternalPlanSetup> appaPlans = new List<ExternalPlanSetup> { };
+            for(int i = 0; i < 2; i++)
             {
-                Mock.Arrange(() => img1.DicomToUser(b.IsocenterPosition, appaPlan)).Returns(b.IsocenterPosition);
+                ExternalPlanSetup p = Mock.Create<ExternalPlanSetup>();
+                List<Beam> beams = new List<Beam>();
+                for(int j = 0; j < 2; j++)
+                {
+                    Beam b = Mock.Create<Beam>();
+                    Mock.Arrange(() => b.IsocenterPosition).Returns(new VVector(0, 0, -35 - i * 10));
+                    Mock.Arrange(() => img1.DicomToUser(b.IsocenterPosition, p)).Returns(b.IsocenterPosition);
+                    beams.Add(b);
+                }
+                Mock.Arrange(() => p.Beams).Returns(beams);
+                Mock.Arrange(() => p.StructureSet).Returns(ss1);
+                appaPlans.Add(p);
             }
 
             StringBuilder expected = new StringBuilder();
@@ -270,7 +278,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             expected.AppendLine($"Lower Leg iso shift from **Upper Leg ISO**:");
             expected.AppendLine($"Z = 1.0 cm INF");
 
-            StringBuilder result = PlanPrepHelper.GetTBIShiftNote(vmatPlan, appaPlan);
+            StringBuilder result = PlanPrepHelper.GetTBIShiftNote(vmatPlan, appaPlans);
             Console.WriteLine(result.ToString());
             StringAssert.Equals(expected.ToString(), result.ToString());
         }

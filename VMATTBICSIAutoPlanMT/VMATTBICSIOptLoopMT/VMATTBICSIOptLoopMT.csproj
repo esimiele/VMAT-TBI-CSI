@@ -88,6 +88,9 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Prompts\ReminderPrompt.xaml.cs">
+      <DependentUpon>ReminderPrompt.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Prompts\SelectPatient.xaml.cs">
       <DependentUpon>SelectPatient.xaml</DependentUpon>
     </Compile>
@@ -105,6 +108,10 @@
       <DependentUpon>OptLoopMW.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="Prompts\ReminderPrompt.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Prompts\SelectPatient.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>

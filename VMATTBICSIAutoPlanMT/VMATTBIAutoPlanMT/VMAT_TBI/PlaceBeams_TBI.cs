@@ -129,7 +129,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 {
                     foreach(PlanIsocenterModel planIso in isoLocations.Where(x => x.PlanId.Contains("legs")))
                     {
-                        if (SetAPPABeams(isoLocations.Last())) return true;
+                        if (SetAPPABeams(planIso, planIso == isoLocations.Last())) return true;
                     }
                 }
                 UpdateUILabel("Finished!");
@@ -474,7 +474,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         /// </summary>
         /// <param name="iso"></param>
         /// <returns></returns>
-        private bool SetAPPABeams(PlanIsocenterModel planIso)
+        private bool SetAPPABeams(PlanIsocenterModel planIso, bool isLastIso)
         {
             ProvideUIUpdate(0, $"Preparing to set isocenters for plan: {planIso.PlanId}");
             int percentComplete = 0;
@@ -497,12 +497,16 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             y2 = 200;
             //adjust x2 jaw (furthest from matchline) so that it covers edge of target volume
             x2 = CalculateX2JawPosition(planIso.Isocenters.First().IsocenterPosition.z, targetInfExtent, 20.0);
-            double legsTargetExtent = StructureTuningHelper.GetStructureFromId("matchline", selectedSS).CenterPoint.z - targetInfExtent;
-            if (legsTargetExtent < 600.0)
+            if(isLastIso)
             {
-                ProvideUIUpdate($"Setting X1 jaw position to 0.0 --> Half beam block");
-                x1 = 0.0;
+                double legsTargetExtent = StructureTuningHelper.GetStructureFromId("matchline", selectedSS).CenterPoint.z - targetInfExtent;
+                if (legsTargetExtent < 600.0)
+                {
+                    ProvideUIUpdate($"Setting X1 jaw position to 0.0 --> Half beam block");
+                    x1 = 0.0;
+                }
             }
+            
             VRect<double> jaws = GenerateJawsPositions(x1, y1, x2, y2, planIso.Isocenters.First().IsocenterId);
             ProvideUIUpdate(100 * ++percentComplete / calcItems);
 

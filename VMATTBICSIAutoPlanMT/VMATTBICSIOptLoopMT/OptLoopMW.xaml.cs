@@ -28,58 +28,54 @@ namespace VMATTBICSIOptLoopMT
 {
     public partial class OptLoopMW : Window
     {
-        //configuration file
-        string configFile = "";
-        //point this to the directory holding the documentation files
-        string documentationPath;
-        //default number of optimizations to perform
-        string defautlNumOpt = "3";
-        //default plan normaliBzation (i.e., PTV100% = 90%) 
-        string defaultPlanNorm = "90";
-        //run coverage check
-        bool runCoverageCheckOption = false;
-        //run additional optimization option
-        bool runAdditionalOptOption = true;
-        //copy and save each optimized plan
-        bool copyAndSaveOption = false;
-        //is demo
-        bool demo = false;
-        //log file directory
-        string logFilePath;
-        //decision threshold
-        double threshold = 0.15;
-        //lower dose limit
-        double lowDoseLimit = 0.1;
-
-        List<PlanOptimizationSetupModel> optConstraintsFromLogs = new List<PlanOptimizationSetupModel> { };
-        //structure, constraint type, dose, relative volume, dose value presentation (unless otherwise specified)
         public List<PlanObjectiveModel> planObj = new List<PlanObjectiveModel> { };
         public List<RequestedOptimizationTSStructureModel> requestedTSstructures = new List<RequestedOptimizationTSStructureModel>();
-
-        //structure id(or can put '<plan>' to get the plan dose value), metric requested(Dmax, Dmin, D<vol %>, V<dose %>), query value, return value representation(dose or volume as absolute or relative)
         public List<RequestedPlanMetricModel> planDoseInfo = new List<RequestedPlanMetricModel> { };
-
-        private VMS.TPS.Common.Model.API.Application app = null;
-
-        List<ExternalPlanSetup> plans;
-        StructureSet selectedSS;
-        Patient pi = null;
-        bool runCoverageCheck = false;
-        bool runOneMoreOpt = false;
-        bool copyAndSavePlanItr = false;
-        bool useFlash = false;
-        bool logFileLoaded = false;
+        public List<PlanOptimizationSetupModel> optConstraintsFromLogs = new List<PlanOptimizationSetupModel> { };
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
         public ObservableCollection<AutoPlanTemplateBase> PlanTemplates { get; set; }
         public AutoPlanTemplateBase selectedTemplate;
-        string selectedTemplateName = "";
+
+        private VMS.TPS.Common.Model.API.Application app = null;
+        //configuration file
+        private string configFile = "";
+        //point this to the directory holding the documentation files
+        private string documentationPath;
+        //default number of optimizations to perform
+        private string defautlNumOpt = "3";
+        //default plan normaliBzation (i.e., PTV100% = 90%) 
+        private string defaultPlanNorm = "90";
+        //run coverage check
+        private bool runCoverageCheckOption = false;
+        //run additional optimization option
+        private bool runAdditionalOptOption = true;
+        //copy and save each optimized plan
+        private bool copyAndSaveOption = false;
+        //is demo
+        private bool demo = false;
+        //log file directory
+        private string logFilePath;
+        //decision threshold
+        private double threshold = 0.15;
+        //lower dose limit
+        private double lowDoseLimit = 0.1;
+        private List<string> reminders = new List<string> { };
+        private List<ExternalPlanSetup> plans;
+        private StructureSet selectedSS;
+        private Patient pi = null;
+        private bool runCoverageCheck = false;
+        private bool runOneMoreOpt = false;
+        private bool copyAndSavePlanItr = false;
+        private bool useFlash = false;
+        private bool logFileLoaded = false;
+        
+        private string selectedTemplateName = "";
         //to be read from the plan prep log files
-        PlanType planType;
-        List<string> planUIDs = new List<string> { };
-        //plan id, target id, num fx, dose per fx, cumulative rx for this target
-        List<PrescriptionModel> prescriptions = new List<PrescriptionModel> { };
+        private PlanType planType;
+        private List<string> planUIDs = new List<string> { };
+        private List<PrescriptionModel> prescriptions = new List<PrescriptionModel> { };
         //plan id, volume id
-        Dictionary<string, string> normalizationVolumes = new Dictionary<string, string> { };
+        private Dictionary<string, string> normalizationVolumes = new Dictionary<string, string> { };
         //list<original target id, ts target id>
         private Dictionary<string, string> tsTargets = new Dictionary<string, string> { };
 
@@ -116,7 +112,6 @@ namespace VMATTBICSIOptLoopMT
 
                 LoadPatient(patmrn);
             }
-            
             DisplayConfigurationParameters();
             return false;
         }
@@ -597,6 +592,17 @@ namespace VMATTBICSIOptLoopMT
                 MessageBox.Show("Error! Missing plan objectives! Please add plan objectives and try again!");
                 return;
             }
+            if(reminders.Any())
+            {
+                ReminderPrompt rp = new ReminderPrompt(reminders);
+                rp.ShowDialog();
+                if(!rp.ConfirmAll)
+                {
+                    MessageBox.Show("Error! Not all reminders confirmed and signed off. Exiting.");
+                    return;
+                }
+            }
+
             //determine if flash was used to prep the plan
             if (parsedOptimizationConstraints.Item1.Any(x => x.OptimizationConstraints.Any(y => y.StructureId.ToLower().Contains("flash")))) useFlash = true;
 
@@ -837,6 +843,11 @@ namespace VMATTBICSIOptLoopMT
                                 {
                                     if (value != "") copyAndSaveOption = bool.Parse(value); 
                                 }
+                            }
+                            else if (line.Contains("add reminder"))
+                            {
+                                reminders.Add(line.Substring(line.IndexOf("{") + 1, line.IndexOf("}") - line.IndexOf("{") - 1));
+                                MessageBox.Show(line.Substring(line.IndexOf("{") + 1, line.IndexOf("}") - line.IndexOf("{") - 1));
                             }
                         }
                     }

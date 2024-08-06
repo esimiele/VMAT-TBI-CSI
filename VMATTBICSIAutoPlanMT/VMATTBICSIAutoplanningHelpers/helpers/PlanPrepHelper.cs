@@ -15,22 +15,25 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// Helper method to gather the relevant information that should be put in the TBI shift note
         /// </summary>
         /// <param name="vmatPlan"></param>
-        /// <param name="appaPlan"></param>
+        /// <param name="appaPlans"></param>
         /// <returns></returns>
-        public static StringBuilder GetTBIShiftNote(ExternalPlanSetup vmatPlan, ExternalPlanSetup appaPlan)
+        public static StringBuilder GetTBIShiftNote(ExternalPlanSetup vmatPlan, List<ExternalPlanSetup> appaPlans)
         {
             StringBuilder sb = new StringBuilder();
             List<VVector> isoPositions = ExtractIsoPositions(vmatPlan);
             int numVMATIsos = isoPositions.Count;
             int numIsos = numVMATIsos;
 
-            if (!ReferenceEquals(appaPlan,null))
+            if (appaPlans.Any())
             {
-                isoPositions.AddRange(ExtractIsoPositions(appaPlan));
+                foreach(ExternalPlanSetup itr in appaPlans)
+                {
+                    isoPositions.AddRange(ExtractIsoPositions(itr));
+                }
                 numIsos = isoPositions.Count;
             }
             List<IsocenterModel> isoNames = new List<IsocenterModel>(IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos));
-            if (!ReferenceEquals(appaPlan,null)) isoNames.AddRange(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos));
+            if (appaPlans.Any()) isoNames.AddRange(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos));
 
             //vector to hold the x,y,z shifts from CT ref and the shifts between each adjacent iso for each axis (LR, AntPost, SupInf)
             List<VVector> shifts = CalculateShifts(isoPositions);
