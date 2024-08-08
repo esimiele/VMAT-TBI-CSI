@@ -210,7 +210,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             int percentComplete = 0;
             int calcItems = 10;
-            List<IsocenterModel> tmp = new List<IsocenterModel> { };
             Image _image = selectedSS.Image;
             VVector userOrigin = _image.UserOrigin;
             double isoSeparation = CalculateIsocenterSeparation(targetSupExtent, targetInfExtent, maxFieldYExtent, minOverlap, numVMATIsos);
@@ -222,12 +221,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 v.y = userOrigin.y + offsetY;
                 //6-10-2020 EAS, want to count up from matchplane to ensure distance from matchplane is fixed at 190 mm
                 v.z = targetInfExtent + (numVMATIsos - isoCount - 1) * isoSeparation + (maxFieldYExtent / 2 - supInfTargetMargin);
+                itr.IsocenterPosition = RoundIsocenterPosition(v, vmatPlan);
                 //round z position to the nearest integer
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated isocenter position {isoCount + 1}");
                 isoCount++;
             }
 
-            return tmp;
+            return isos;
         }
 
         /// <summary>
@@ -250,7 +250,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         {
             int percentComplete = 0;
             int calcItems = 10;
-            List<IsocenterModel> tmp = new List<IsocenterModel> { };
             Image _image = selectedSS.Image;
             VVector userOrigin = _image.UserOrigin;
             double isoSeparation = CalculateIsocenterSeparation(targetSupExtent, targetInfExtent, maxFieldYExtent, minOverlap, totalNumIsos - numVMATIsos);
@@ -280,10 +279,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     else v.z = v.z - 390.0;
                 }
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated isocenter position {isoCount + 1}");
-                itr.IsocenterPosition = RoundIsocenterPosition(v);
+                itr.IsocenterPosition = RoundIsocenterPosition(v, legsPlans.First());
                 isoCount++;
             }
-            return tmp;
+            return isos;
         }
 
         /// <summary>

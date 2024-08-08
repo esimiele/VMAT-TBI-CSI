@@ -669,18 +669,20 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             //assign the new optimization constraints (passed as an argument to this method)
             foreach (OptimizationConstraintModel opt in obj)
             {
+                double dose = opt.QueryDose;
+                if (opt.QueryDoseUnits == Units.Percent) dose *= plan.TotalDose.Dose / 100.0;
                 if (opt.ConstraintType != OptimizationObjectiveType.Mean)
                 {
                     plan.OptimizationSetup.AddPointObjective(StructureTuningHelper.GetStructureFromId(opt.StructureId, plan.StructureSet),
                                                              OptimizationTypeHelper.GetObjectiveOperator(opt.ConstraintType),
-                                                             new DoseValue(opt.QueryDose, opt.QueryDoseUnits != Units.Percent ? DoseValue.DoseUnit.cGy : DoseValue.DoseUnit.Percent),
+                                                             new DoseValue(dose, DoseValue.DoseUnit.cGy),
                                                              opt.QueryVolume,
                                                              opt.Priority);
                 }
                 else
                 {
-                    plan.OptimizationSetup.AddMeanDoseObjective(StructureTuningHelper.GetStructureFromId(opt.StructureId, plan.StructureSet), 
-                                                                new DoseValue(opt.QueryDose, opt.QueryDoseUnits != Units.Percent ? DoseValue.DoseUnit.cGy : DoseValue.DoseUnit.Percent), 
+                    plan.OptimizationSetup.AddMeanDoseObjective(StructureTuningHelper.GetStructureFromId(opt.StructureId, plan.StructureSet),
+                                                                new DoseValue(dose, DoseValue.DoseUnit.cGy),
                                                                 opt.Priority);
                 }
                 ProvideUIUpdate(100 * ++percentComplete / calcItems);
@@ -845,7 +847,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 if (StructureTuningHelper.DoesStructureExistInSS(itr.StructureId, plan.StructureSet, true))
                 {
                     //similar to code to the foreach loop used to cycle through the optimization parameters
-                    Structure s = StructureTuningHelper.GetStructureFromId(itr.StructureId, plan.StructureSet);;
+                    Structure s = StructureTuningHelper.GetStructureFromId(itr.StructureId, plan.StructureSet);
                     //this statement is difference from the dvh statement in the previous foreach loop because the dose is always expressed as an absolute value in the optimization objectives, but can be either relative or absolute in the plan objectives
                     //(itr.Item5 is the dose representation for this objective)
                     DVHData dvh = plan.GetDVHCumulativeData(s, itr.QueryDoseUnits == Units.Percent ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute, VolumePresentation.Relative, 0.1);

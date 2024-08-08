@@ -148,7 +148,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                         return new List<PlanObjectiveModel> { };
                     }
                     //if the row of data passes the above checks, add it the optimization parameter list
-                    else tmp.Add(new PlanObjectiveModel(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), Math.Round(dose, 3, MidpointRounding.AwayFromZero), Units.cGy, Math.Round(vol, 3, MidpointRounding.AwayFromZero), presentation));
+                    else tmp.Add(new PlanObjectiveModel(structure, OptimizationTypeHelper.GetObjectiveType(constraintType), Math.Round(dose, 3, MidpointRounding.AwayFromZero), presentation, Math.Round(vol, 3, MidpointRounding.AwayFromZero)));
                     //reset the values of the variables used to parse the data
                     firstCombo = true;
                     txtbxNum = 1;

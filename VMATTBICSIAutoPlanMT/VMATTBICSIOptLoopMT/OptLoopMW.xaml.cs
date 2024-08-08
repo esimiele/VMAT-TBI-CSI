@@ -847,7 +847,6 @@ namespace VMATTBICSIOptLoopMT
                             else if (line.Contains("add reminder"))
                             {
                                 reminders.Add(line.Substring(line.IndexOf("{") + 1, line.IndexOf("}") - line.IndexOf("{") - 1));
-                                MessageBox.Show(line.Substring(line.IndexOf("{") + 1, line.IndexOf("}") - line.IndexOf("{") - 1));
                             }
                         }
                     }

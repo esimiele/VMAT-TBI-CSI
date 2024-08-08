@@ -25,11 +25,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             //calculate the dose difference between the actual plan dose and the optimization dose constraint (separate based on constraint type). If the difference is less than 0, truncate the dose difference to 0
             if (goal.ConstraintType == OptimizationObjectiveType.Upper)
             {
-                diff = plan.GetDoseAtVolume(theStructure, goal.QueryVolume, VolumePresentation.Relative, DoseValuePresentation.Absolute).Dose - goal.QueryDose;
+                diff = plan.GetDoseAtVolume(theStructure, goal.QueryVolume, VolumePresentation.Relative, goal.QueryDoseUnits == Units.Percent ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute).Dose - goal.QueryDose;
             }
             else if (goal.ConstraintType == OptimizationObjectiveType.Lower)
             {
-                diff = goal.QueryDose - plan.GetDoseAtVolume(theStructure, goal.QueryVolume, VolumePresentation.Relative, DoseValuePresentation.Absolute).Dose;
+                diff = goal.QueryDose - plan.GetDoseAtVolume(theStructure, goal.QueryVolume, VolumePresentation.Relative, goal.QueryDoseUnits == Units.Percent ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute).Dose;
             }
             else if (goal.ConstraintType == OptimizationObjectiveType.Mean)
             {

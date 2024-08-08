@@ -123,6 +123,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         public TBIAutoPlanMW(List<string> args)
         {
+            args = new List<string> { "$TBIDryRun_4", "TBIDryRun_4" };
             InitializeComponent();
             if (InitializeScript(args)) this.Close();
         }
@@ -975,7 +976,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //structure sparing list needs to be updated with the new low resolution structures.
             if (generate.DoesTSManipulationListRequireUpdating)
             {
-
+                structureIdsPostUnion = new List<string>(selectedSS.Structures.Select(x => x.Id));
                 ClearStructureManipulationsList(ClearStructureManipulationsBtn);
                 //update the structure sparing list in this class and update the structure sparing list displayed to the user in TS Generation tab
                 AddStructureManipulationVolumes(generate.TSManipulationList, structureManipulationSP);
@@ -1088,8 +1089,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             {
                 foreach(IsocenterModel iso in itr.Isocenters)
                 {
-                    iso.NumberOfBeams = numBeams.ElementAt(planCount++).ElementAt(isoCount++);
+                    iso.NumberOfBeams = numBeams.ElementAt(planCount).ElementAt(isoCount++);
                 }
+                planCount++;
                 isoCount = 0;
             }
 

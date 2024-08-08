@@ -265,18 +265,19 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="v"></param>
         /// <param name="plan"></param>
         /// <returns></returns>
-        protected VVector RoundIsocenterPosition(VVector v)
+        protected VVector RoundIsocenterPosition(VVector v, ExternalPlanSetup plan)
         {
             int counter = 0;
             int calcItems = 3;
             ProvideUIUpdate(100 * ++counter / calcItems, "Rounding Y- and Z-positions to nearest integer values");
+            v = plan.StructureSet.Image.DicomToUser(v, plan);
             //round z position to the nearest integer
             v.x = Math.Round(v.x / 10.0f) * 10.0f;
             v.y = Math.Round(v.y / 10.0f) * 10.0f;
             v.z = Math.Round(v.z / 10.0f) * 10.0f;
             ProvideUIUpdate(100 * ++counter / calcItems, $"Calculated isocenter position (user coordinates): ({v.x}, {v.y}, {v.z})");
             ProvideUIUpdate(100 * ++counter / calcItems, "Adding calculated isocenter position to stack!");
-            return v;
+            return plan.StructureSet.Image.UserToDicom(v, plan);
         }
 
         /// <summary>

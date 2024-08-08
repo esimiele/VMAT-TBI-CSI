@@ -35,7 +35,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     }
                     if (StructureTuningHelper.DoesStructureExistInSS(volume, selectedSS, true))
                     {
-                        tmp.Add(new PlanObjectiveModel(volume, itr.ConstraintType, itr.QueryDose, Units.cGy, itr.QueryVolume, Units.Percent));
+                        tmp.Add(new PlanObjectiveModel(volume, itr.ConstraintType, itr.QueryDose, itr.QueryDoseUnits, itr.QueryVolume, Units.Percent));
                     }
                 }
             }

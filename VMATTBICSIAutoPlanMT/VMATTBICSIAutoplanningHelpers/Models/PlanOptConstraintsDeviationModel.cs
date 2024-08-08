@@ -19,7 +19,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Models
 
         public PlanOptConstraintsDeviationModel() { }
 
-        public PlanOptConstraintsDeviationModel(Structure s, DVHData d, double doseDiff, double cost, double constraint, int prioirty)
+        public PlanOptConstraintsDeviationModel(Structure s, DVHData d, double constraint ,double doseDiff, double cost, int prioirty)
         {
             Structure = s;
             DVHData = d;
