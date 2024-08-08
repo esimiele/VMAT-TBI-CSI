@@ -180,6 +180,10 @@ namespace VMATTBICSIOptLoopMT
                         LoadConfigurationSettingsForPlanType(planType);
                         OpenPatient(mrn);
                         LoadTemplatePlanChoices(planType);
+                        if(planType == PlanType.VMAT_TBI && reminders.Any(x => x.ToLower().Contains("base dose")))
+                        {
+                            if (!plans.First().Course.ExternalPlanSetups.Any(x => x.Id.ToLower().Contains("legs"))) reminders.Remove(reminders.First(x => x.ToLower().Contains("base dose")));
+                        }
                         selectPatientBtn.Background = System.Windows.Media.Brushes.DarkGray;
                     }
                 }

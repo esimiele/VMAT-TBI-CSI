@@ -406,9 +406,9 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             ProvideUIUpdate($"Parsing optimization objectives from plan: {plan.Id}");
             List<OptimizationConstraintModel> optParams = OptimizationSetupHelper.ReadConstraintsFromPlan(plan);
             //get current optimization objectives from plan (we could use the optParams list, but we want the actual instances of the OptimizationObjective class so we can get the results from each objective)
-            (int numComparisons, List<PlanObjectivesDeviationModel> diffPlanObj) = EvaluateResultVsPlanObjectives(plan, planObj, optParams);
+            List<PlanObjectivesDeviationModel> diffPlanObj = EvaluateResultVsPlanObjectives(plan, planObj, optParams);
             //all constraints met, exiting
-            if (numComparisons == diffPlanObj.Count(x => x.ObjectiveMet == true)) return true;
+            if ( diffPlanObj.All(x => x.ObjectiveMet == true)) return true;
             return false;
         }
         #endregion

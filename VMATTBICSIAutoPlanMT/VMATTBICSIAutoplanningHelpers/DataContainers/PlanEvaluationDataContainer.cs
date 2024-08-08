@@ -13,8 +13,6 @@ namespace VMATTBICSIAutoPlanningHelpers.DataContainers
         public List<OptimizationConstraintModel> UpdatedOptimizationObjectives { get; set; } = new List<OptimizationConstraintModel> { };
         //the total cost sum(dose diff^2 * priority) for all structures in the optimization objective vector list
         public double TotalOptimizationCostOptConstraints { get; set; } = double.NaN;
-        //same for plan objective vector
-        public double TotalOptimizationCostPlanObjectives { get; set; } = double.NaN;
         //did plan meet all plan objectives?
         public bool AllPlanObjectivesMet { get; set; } = false;
         //bool to indicate plan evaluation failed or the user killed the optimization loop while evaluation was going on

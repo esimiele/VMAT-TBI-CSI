@@ -12,6 +12,5 @@ namespace VMATTBICSIAutoPlanningHelpers.Interfaces
         Structure Structure { get; set; }
         DVHData DVHData { get; set; }
         double DoseDifferenceSquared { get; set; }
-        double OptimizationCost { get; set; }
     }
 }

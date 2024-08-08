@@ -13,16 +13,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Models
         public Structure Structure { get; set; } = null;
         public DVHData DVHData { get; set; } = null;
         public double DoseDifferenceSquared { get; set; } = double.NaN;
-        public double OptimizationCost { get; set; } = double.NaN;
         public bool ObjectiveMet { get; set; } = false;
 
         public PlanObjectivesDeviationModel() { }
-        public PlanObjectivesDeviationModel(Structure structure, DVHData dVHData, double doseDifferenceSquared, double optimizationCost, bool met)
+        public PlanObjectivesDeviationModel(Structure structure, DVHData dVHData, double doseDifferenceSquared, bool met)
         {
             Structure = structure;
             DVHData = dVHData;
             DoseDifferenceSquared = doseDifferenceSquared;
-            OptimizationCost = optimizationCost;
             ObjectiveMet = met;
         }
     }

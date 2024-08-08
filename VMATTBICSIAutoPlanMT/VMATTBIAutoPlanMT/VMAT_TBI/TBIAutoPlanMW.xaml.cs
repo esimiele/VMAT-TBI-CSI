@@ -78,7 +78,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         //data members
         string configFile = "";
-        Logger log = null;
         public Patient pi = null;
         StructureSet selectedSS = null;
         public int clearTargetBtnCounter = 0;

@@ -767,7 +767,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             ProvideUIUpdate($"Parsing optimization objectives from plan: {plan.Id}");
             List<OptimizationConstraintModel> optParams = OptimizationSetupHelper.ReadConstraintsFromPlan(plan);
             //get current optimization objectives from plan (we could use the optParams list, but we want the actual instances of the OptimizationObjective class so we can get the results from each objective)
-            (int numComparison, List<PlanObjectivesDeviationModel> differenceFromPlanObj) = EvaluateResultVsPlanObjectives(plan, planObj, optParams);
+            List<PlanObjectivesDeviationModel> differenceFromPlanObj = EvaluateResultVsPlanObjectives(plan, planObj, optParams);
             if (GetAbortStatus())
             {
                 KillOptimizationLoop();
@@ -776,9 +776,8 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             }
 
             e.PlanDifferenceFromPlanObjectives = differenceFromPlanObj;
-            e.TotalOptimizationCostPlanObjectives = differenceFromPlanObj.Sum(x => x.OptimizationCost);
             //all constraints met, exiting
-            if (numComparison == differenceFromPlanObj.Count(x => x.ObjectiveMet == true))
+            if (differenceFromPlanObj.All(x => x.ObjectiveMet == true))
             {
                 e.AllPlanObjectivesMet = true;
                 return e;
@@ -826,15 +825,13 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="planObj"></param>
         /// <param name="optParams"></param>
         /// <returns></returns>
-        protected (int, List<PlanObjectivesDeviationModel>) EvaluateResultVsPlanObjectives(ExternalPlanSetup plan, 
+        protected List<PlanObjectivesDeviationModel> EvaluateResultVsPlanObjectives(ExternalPlanSetup plan, 
                                                                                                                      List<PlanObjectiveModel> planObj, 
                                                                                                                      List<OptimizationConstraintModel> optParams)
         {
             ProvideUIUpdate("Evluating optimization result vs plan objectives");
             int percentComplete = 0;
             int calcItems = 1 + planObj.Count();
-            //counter to record the number of plan objective comparisons performed
-            int numComparisons = 0;
             List<PlanObjectivesDeviationModel> differenceFromPlanObj = new List<PlanObjectivesDeviationModel> { };
             
             //loop through all the plan objectives for this case and compare the actual dose to the dose in the plan objective.
@@ -851,31 +848,8 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                     //this statement is difference from the dvh statement in the previous foreach loop because the dose is always expressed as an absolute value in the optimization objectives, but can be either relative or absolute in the plan objectives
                     //(itr.Item5 is the dose representation for this objective)
                     DVHData dvh = plan.GetDVHCumulativeData(s, itr.QueryDoseUnits == Units.Percent ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute, VolumePresentation.Relative, 0.1);
-                    double diff = 0.0;
-                    double cost = 0.0;
-                    int optPriority = 0;
 
-                    //NOTE: THERE MAY BE CASES WHERE A STRUCTURE MIGHT HAVE A PLAN OBJECTIVE, BUT NOT AN OPTIMIZATION OBJECTIVE(e.g., ovaries). Check if the structure of interest also has an optimization objective. If so, this indicates the user actually wanted to spare this
-                    //structure for this plan and we should increment the number of comparisons counter. In addition, we need to copy the objective priority from the optimization objective if there is one
-                    //If so, do a three-way comparison to find the correct optimization objective for this plan objective (compare based structureId, constraint type, and constraint volume). These three objectives will remain constant
-                    //throughout the optimization process whereas the dose constraint will vary
-                    List<OptimizationConstraintModel> copyOpt = (from p in optParams
-                                                            where p.StructureId.ToLower() == s.Id.ToLower()
-                                                            where p.ConstraintType == itr.ConstraintType
-                                                            where p.QueryVolume == itr.QueryVolume
-                                                            select p).ToList();
-
-                    //If the appropriate constraint was found, calculate the cost as the (dose diff)^2 * priority 
-                    if (copyOpt.Any())
-                    {
-                        optPriority = copyOpt.First().Priority;
-                        //ProvideUIUpdate(String.Format("Corresponding optimization objective found for plan objective: ({0},{1},{2},{3},{4})", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5.ToString()));
-                        //increment the number of comparisons since an optimization constraint was found
-                        numComparisons++;
-                    }
-                    //if no exact constraint was found, leave the priority at zero (per Nataliya's instructions)
-
-                    diff = PlanEvaluationHelper.GetDifferenceFromGoal(plan, itr, s, dvh);
+                    double diff = PlanEvaluationHelper.GetDifferenceFromGoal(plan, itr, s, dvh);
                     if (diff <= 0.0)
                     {
                         //objective was met. Increment the counter for the number of objecives met
@@ -883,16 +857,15 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                     }
                     else
                     {
-                        cost = diff * diff * optPriority;
                         ProvideUIUpdate($"Plan objective NOT met for: ({itr.StructureId},{itr.ConstraintType},{itr.QueryDose} {itr.QueryDoseUnits}, {itr.QueryVolume} {itr.QueryVolumeUnits})");
                     }
 
                     //add this comparison to the list and increment the running total of the cost for the plan objectives
-                    differenceFromPlanObj.Add(new PlanObjectivesDeviationModel(s, dvh, diff * diff, cost, diff <= 0));
+                    differenceFromPlanObj.Add(new PlanObjectivesDeviationModel(s, dvh, diff * diff, diff <= 0));
                 }
             }
             ProvideUIUpdate(100, $"Elapsed time: {GetElapsedTime()}");
-            return (numComparisons, differenceFromPlanObj);
+            return differenceFromPlanObj;
         }
 
         /// <summary>
