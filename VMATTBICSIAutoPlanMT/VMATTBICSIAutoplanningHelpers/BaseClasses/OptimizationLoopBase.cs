@@ -522,7 +522,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 if (isFinalOpt) e.UpdatedOptimizationObjectives = OptimizationLoopHelper.IncreaseOptConstraintPrioritiesForFinalOpt(e.UpdatedOptimizationObjectives);
 
                 //print updated optimization constraints
-                ProvideUIUpdate(100 * ++percentComplete / calcItems, OptimizationLoopUIHelper.PrintPlanOptimizationConstraints(plan.Id, e.UpdatedOptimizationObjectives));
+                ProvideUIUpdate(100 * ++percentComplete / calcItems, OptimizationLoopUIHelper.PrintPlanOptimizationConstraints(plan, e.UpdatedOptimizationObjectives));
 
                 //update the optimization constraints in the plan
                 UpdateConstraints(e.UpdatedOptimizationObjectives, plan);

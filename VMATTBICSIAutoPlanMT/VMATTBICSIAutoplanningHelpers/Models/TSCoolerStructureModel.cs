@@ -15,7 +15,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Models
             UpperDoseValue = high;
             Constraints = new List<OptimizationConstraintModel>
             {
-                new OptimizationConstraintModel(TSStructureId, Enums.OptimizationObjectiveType.Upper, optDose, Enums.Units.cGy, optVol, priority),
+                new OptimizationConstraintModel(TSStructureId, Enums.OptimizationObjectiveType.Upper, optDose, Enums.Units.Percent, optVol, priority),
             };
         }
 
@@ -26,7 +26,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Models
             CreationCriteria = new List<OptTSCreationCriteriaModel>(createCriteria);
             Constraints = new List<OptimizationConstraintModel>
             {
-                new OptimizationConstraintModel(TSStructureId, Enums.OptimizationObjectiveType.Upper, optDose, Enums.Units.cGy, optVol, priority),
+                new OptimizationConstraintModel(TSStructureId, Enums.OptimizationObjectiveType.Upper, optDose, Enums.Units.Percent, optVol, priority),
             };
         }
     }

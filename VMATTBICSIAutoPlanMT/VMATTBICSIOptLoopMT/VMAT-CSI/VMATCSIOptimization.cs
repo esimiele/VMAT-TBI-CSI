@@ -263,7 +263,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             ProvideUIUpdate(100 * ++percentComplete / calcItems);
             List<OptimizationConstraintModel> optParams = OptimizationSetupHelper.ReadConstraintsFromPlan(initialPlan);
             optParams.AddRange(addedTSCoolerConstraint);
-            ProvideUIUpdate(100 * ++percentComplete / calcItems, OptimizationLoopUIHelper.PrintPlanOptimizationConstraints(initialPlan.Id, optParams));
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, OptimizationLoopUIHelper.PrintPlanOptimizationConstraints(initialPlan, optParams));
 
             UpdateConstraints(optParams, initialPlan);
             ProvideUIUpdate(100 * ++percentComplete / calcItems);
@@ -369,7 +369,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
 
                         if(oneMoreOptNextItr) e.UpdatedOptimizationObjectives = OptimizationLoopHelper.IncreaseOptConstraintPrioritiesForFinalOpt(e.UpdatedOptimizationObjectives);
 
-                        ProvideUIUpdate(100 * ++percentComplete / calcItems, OptimizationLoopUIHelper.PrintPlanOptimizationConstraints(itr.Id, e.UpdatedOptimizationObjectives));
+                        ProvideUIUpdate(100 * ++percentComplete / calcItems, OptimizationLoopUIHelper.PrintPlanOptimizationConstraints(itr, e.UpdatedOptimizationObjectives));
                         UpdateConstraints(e.UpdatedOptimizationObjectives, itr);
                     }
                 }

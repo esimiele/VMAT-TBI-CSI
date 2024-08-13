@@ -76,7 +76,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 //get maximum priority and assign it to the cooler structure to really push the hotspot down. Also lower dose objective
                 if (itr.StructureId.ToLower().Contains("ts_cooler"))
                 {
-                    finalObj.Add(new OptimizationConstraintModel(itr.StructureId, itr.ConstraintType, 0.98 * itr.QueryDose, Units.cGy, itr.QueryVolume, Math.Max(itr.Priority, (int)(0.9 * maxPriority))));
+                    finalObj.Add(new OptimizationConstraintModel(itr.StructureId, itr.ConstraintType, 0.98 * itr.QueryDose, itr.QueryDoseUnits, itr.QueryVolume, Math.Max(itr.Priority, (int)(0.9 * maxPriority))));
                 }
                 else finalObj.Add(itr);
             }

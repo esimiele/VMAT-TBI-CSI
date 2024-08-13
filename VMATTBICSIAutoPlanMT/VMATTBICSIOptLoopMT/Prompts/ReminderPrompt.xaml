@@ -108,7 +108,7 @@
                             
                 </StackPanel>
             </ScrollViewer>
-            <Button Content="Confirm" Margin="5" Click="ConfirmClick"></Button>
+            <Button Content="Confirm" Margin="5" Width="80" Click="ConfirmClick"></Button>
         </StackPanel>
     </Grid>
 </Window>

@@ -232,16 +232,18 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <summary>
         /// Helper method to print the optimization constraints for the plan to the optimization loop UI
         /// </summary>
-        /// <param name="planId"></param>
+        /// <param name="plan"></param>
         /// <param name="constraints"></param>
         /// <returns></returns>
-        public static string PrintPlanOptimizationConstraints(string planId, List<OptimizationConstraintModel> constraints)
+        public static string PrintPlanOptimizationConstraints(ExternalPlanSetup plan, List<OptimizationConstraintModel> constraints)
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine(GetOptimizationObjectivesHeader(planId));
+            sb.AppendLine(GetOptimizationObjectivesHeader(plan.Id));
             foreach (OptimizationConstraintModel itr in constraints)
             {
-                sb.AppendLine(String.Format("{0, -16} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", itr.StructureId, itr.ConstraintType, itr.QueryDose, itr.QueryVolume, itr.Priority));
+                double dose = itr.QueryDose;
+                if (itr.QueryDoseUnits == Units.Percent) dose *= plan.TotalDose.Dose / 100;
+                sb.AppendLine(String.Format("{0, -16} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", itr.StructureId, itr.ConstraintType, dose, itr.QueryVolume, itr.Priority));
             }
             return sb.ToString();
         }
