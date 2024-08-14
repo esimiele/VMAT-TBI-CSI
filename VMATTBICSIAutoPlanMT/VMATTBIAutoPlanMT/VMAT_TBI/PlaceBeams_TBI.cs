@@ -20,7 +20,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         //list plan, list<iso name, num beams for iso>
         private List<PlanIsocenterModel> planIsocenters;
         private ExternalPlanSetup vmatPlan = null;
-        private List<ExternalPlanSetup> legsPlans = null;
+        private List<ExternalPlanSetup> legsPlans = new List<ExternalPlanSetup> { };
 
         //data members
         private double[] collRot;
@@ -425,7 +425,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     if (isoCount == 1 && j == 2) jp = jawPos.ElementAt(j + 1);
                     else if (isoCount == 1 && j == 3) jp = jawPos.ElementAt(j - 1);
                     else jp = jawPos.ElementAt(j);
-                    ;
                     
                     double coll = collRot[j];
                     if ((totalNumIsos > numVMATIsos) && (isoCount == (numVMATIsos - 1)))
@@ -463,6 +462,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
                     totalNumVMATBeams++;
                 }
+                isoCount++;
             }
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
@@ -499,7 +499,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             if(isLastIso)
             {
                 double legsTargetExtent = StructureTuningHelper.GetStructureFromId("matchline", selectedSS).CenterPoint.z - targetInfExtent;
-                if (legsTargetExtent < 600.0)
+                
+                if (legsPlans.Count() > 1 && legsTargetExtent < 600.0)
                 {
                     ProvideUIUpdate($"Setting X1 jaw position to 0.0 --> Half beam block");
                     x1 = 0.0;

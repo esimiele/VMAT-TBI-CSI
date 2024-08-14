@@ -75,10 +75,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
 
             List<ExternalPlanSetup> expected = new List<ExternalPlanSetup>{p1, p3};
 
-            (List<ExternalPlanSetup>, StringBuilder) result = OptimizationLoopHelper.GetOtherPlansWithSameSSWithCalculatedDose(courses, ss);
+            (IEnumerable<ExternalPlanSetup>, StringBuilder) result = OptimizationLoopHelper.GetOtherPlansWithSameSSWithCalculatedDose(courses, ss);
             Console.WriteLine(result.Item2.ToString());
-            Console.WriteLine($"{expected.Count} | {result.Item1.Count}");
-            CollectionAssert.AreEqual(expected, result.Item1);
+            Console.WriteLine($"{expected.Count} | {result.Item1.Count()}");
+            CollectionAssert.AreEqual(expected, result.Item1.ToList());
         }
 
         [TestMethod()]

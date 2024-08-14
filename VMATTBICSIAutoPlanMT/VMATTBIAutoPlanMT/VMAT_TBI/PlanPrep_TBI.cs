@@ -139,7 +139,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 }
             }
 
-            (bool isError, List<ExternalPlanSetup> otherPlans) = CheckExistingPlansUsingSameSSWIthDoseCalculated(VMATPlan, VMATPlan.StructureSet);
+            (bool isError, IEnumerable<ExternalPlanSetup> otherPlans) = CheckExistingPlansUsingSameSSWIthDoseCalculated(VMATPlan, VMATPlan.StructureSet);
             if (isError) return true;
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Finished checking for existing plans that have dose calculated and use the same structure set!");
 
@@ -242,13 +242,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         /// <param name="thePlan"></param>
         /// <param name="ss"></param>
         /// <returns></returns>
-        private (bool, List<ExternalPlanSetup>) CheckExistingPlansUsingSameSSWIthDoseCalculated(ExternalPlanSetup thePlan, StructureSet ss)
+        private (bool, IEnumerable<ExternalPlanSetup>) CheckExistingPlansUsingSameSSWIthDoseCalculated(ExternalPlanSetup thePlan, StructureSet ss)
         {
             List<Course> courses = thePlan.Course.Patient.Courses.ToList();
             ProvideUIUpdate("Checking for existing plans that have dose calculated and use the same structure set");
             bool isError = false;
             //remove the structures used to generate flash in the plan
-            (List<ExternalPlanSetup> otherPlans, StringBuilder planIdList) = OptimizationLoopHelper.GetOtherPlansWithSameSSWithCalculatedDose(courses, ss);
+            (IEnumerable<ExternalPlanSetup> otherPlans, StringBuilder planIdList) = OptimizationLoopHelper.GetOtherPlansWithSameSSWithCalculatedDose(courses, ss);
 
             if (otherPlans.Any())
             {

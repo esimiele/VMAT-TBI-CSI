@@ -16,9 +16,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="courses"></param>
         /// <param name="ss"></param>
         /// <returns></returns>
-        public static (List<ExternalPlanSetup>, StringBuilder) GetOtherPlansWithSameSSWithCalculatedDose(List<Course> courses, StructureSet ss)
+        public static (IEnumerable<ExternalPlanSetup>, StringBuilder) GetOtherPlansWithSameSSWithCalculatedDose(IEnumerable<Course> courses, StructureSet ss)
         {
-            List<ExternalPlanSetup> otherPlans = new List<ExternalPlanSetup> (courses.SelectMany(x => x.ExternalPlanSetups).Where(x => x.IsDoseValid && ReferenceEquals(x.StructureSet,ss)));
+            IEnumerable<ExternalPlanSetup> otherPlans = courses.SelectMany(x => x.ExternalPlanSetups).Where(x => x.IsDoseValid && string.Equals(x.StructureSet.UID,ss.UID));
             StringBuilder sb = new StringBuilder();
 
             foreach (ExternalPlanSetup p in otherPlans)

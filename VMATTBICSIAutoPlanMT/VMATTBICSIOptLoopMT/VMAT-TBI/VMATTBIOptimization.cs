@@ -147,8 +147,8 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                     ProvideUIUpdate($"Error! Could not retrieve bolus structure! Exiting!", true);
                     return true;
                 }
-                (List<ExternalPlanSetup> otherPlans, StringBuilder planIdList) = OptimizationLoopHelper.GetOtherPlansWithSameSSWithCalculatedDose(_data.Plans.First().Course.Patient.Courses.ToList(), _data.StructureSet);
-                calcItems += otherPlans.Count;
+                (IEnumerable<ExternalPlanSetup> otherPlans, StringBuilder planIdList) = OptimizationLoopHelper.GetOtherPlansWithSameSSWithCalculatedDose(_data.Plans.First().Course.Patient.Courses, _data.StructureSet);
+                calcItems += otherPlans.Count();
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved list of plans that use structure set: {_data.StructureSet.Id} and have dose calculated");
 
                 List<ExternalPlanSetup> planRecalcList = new List<ExternalPlanSetup> { };
@@ -171,7 +171,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                     ContourHelper.CropStructureFromStructure(bolus, itr, 0.0);
                 }
                 //only recalculate dose for all plans that are not currently up for optimization
-                if (otherPlans.Any()) ReCalculateDose(planRecalcList, percentComplete, calcItems);
+                if (planRecalcList.Any()) ReCalculateDose(planRecalcList, percentComplete, calcItems);
                 ProvideUIUpdate(100, "Finished cropping bolus from support structures");
             }
             else

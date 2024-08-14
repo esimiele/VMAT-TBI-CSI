@@ -186,7 +186,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, "Retrieved all plans that use this structure set that have dose calculated");
 
-                (List<ExternalPlanSetup> otherPlans, StringBuilder planIdList) = OptimizationLoopHelper.GetOtherPlansWithSameSSWithCalculatedDose(courses, ss);
+                (IEnumerable<ExternalPlanSetup> otherPlans, StringBuilder planIdList) = OptimizationLoopHelper.GetOtherPlansWithSameSSWithCalculatedDose(courses, ss);
                 if (otherPlans.Any())
                 {
                     string message = "The following plans have dose calculated and use the same structure set:" + Environment.NewLine;
@@ -232,9 +232,9 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="plans"></param>
         /// <param name="percentComplete"></param>
         /// <param name="calcItems"></param>
-        protected void ResetDoseMatrix(List<ExternalPlanSetup> plans, int percentComplete, int calcItems)
+        protected void ResetDoseMatrix(IEnumerable<ExternalPlanSetup> plans, int percentComplete, int calcItems)
         {
-            calcItems += plans.Count;
+            calcItems += plans.Count();
             foreach (ExternalPlanSetup itr in plans)
             {
                 string calcModel = itr.GetCalculationModel(CalculationType.PhotonVolumeDose);
