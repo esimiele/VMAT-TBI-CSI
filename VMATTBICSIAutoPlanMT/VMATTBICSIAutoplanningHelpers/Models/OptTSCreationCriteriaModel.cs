@@ -34,7 +34,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Models
 
         public bool CriteriaMet(bool isFinalOpt)
         {
-            if(double.IsNaN(Limit) || double.IsNaN(QueryResult) || Operator == InequalityOperator.None) return false;
+            if(!CreateForFinalOptimization && (double.IsNaN(Limit) || double.IsNaN(QueryResult) || Operator == InequalityOperator.None)) return false;
             if(CreateForFinalOptimization && isFinalOpt) return true;
             if (Operator == InequalityOperator.Equal) return CalculationHelper.AreEqual(QueryResult, Limit);
             else if (Operator == InequalityOperator.GreaterThan) return QueryResult > Limit;
