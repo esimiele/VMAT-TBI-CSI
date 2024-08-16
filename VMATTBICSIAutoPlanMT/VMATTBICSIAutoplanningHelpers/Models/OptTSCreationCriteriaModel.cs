@@ -1,10 +1,12 @@
-﻿using VMATTBICSIAutoPlanningHelpers.Enums;
+﻿using System.Windows.Navigation;
+using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 
 namespace VMATTBICSIAutoPlanningHelpers.Models
 {
     public class OptTSCreationCriteriaModel : RequestedPlanMetricModel
     {
+        public bool IsValidCriteria { get => (CreateForFinalOptimization || (!double.IsNaN(Limit) && !double.IsNaN(QueryResult) && Operator != InequalityOperator.None)); }
         public bool CreateForFinalOptimization { get; set; } = false;
         public double Limit { get; set; } = double.NaN;
         public InequalityOperator Operator { get; set; } = InequalityOperator.None;
@@ -34,7 +36,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Models
 
         public bool CriteriaMet(bool isFinalOpt)
         {
-            if(!CreateForFinalOptimization && (double.IsNaN(Limit) || double.IsNaN(QueryResult) || Operator == InequalityOperator.None)) return false;
+            if(!IsValidCriteria) return false;
             if(CreateForFinalOptimization && isFinalOpt) return true;
             if (Operator == InequalityOperator.Equal) return CalculationHelper.AreEqual(QueryResult, Limit);
             else if (Operator == InequalityOperator.GreaterThan) return QueryResult > Limit;
