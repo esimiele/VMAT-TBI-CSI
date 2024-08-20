@@ -421,7 +421,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 }
             }
             //only one plan is allowed for the prescriptions --> last item is the highest Rx target for this plan and needs to be set as the normalization volume
-            NormalizationVolumes.Add(prescriptions.Last().PlanId, tmpTSTargetList.OrderByDescending(x => x.TargetRxDose).First().TargetId);
+            NormalizationVolumes.Add(prescriptions.Last().PlanId, tmpTSTargetList.OrderByDescending(x => x.TargetRxDose).First().TsTargetId);
             PlanTargets.Add(new PlanTargetsModel(prescriptions.Last().PlanId, new List<TargetModel> (tmpTSTargetList)));
 
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
