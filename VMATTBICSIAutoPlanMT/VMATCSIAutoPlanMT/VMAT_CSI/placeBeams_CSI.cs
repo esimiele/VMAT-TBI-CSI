@@ -422,6 +422,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated isocenter position {isoCount + 1}");
                 ProvideUIUpdate($"Isocenter position: ({v.x:0.0}, {v.y:0.0}, {v.z:0.0}) mm");
                 itr.IsocenterPosition = RoundIsocenterPosition(v, thePlan);
+                isoCount++;
             }
             return (false, isos);
         }

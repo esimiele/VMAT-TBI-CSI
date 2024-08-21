@@ -405,12 +405,12 @@ namespace ImportListener
                         if (pi.StructureSets.Count(x => string.Equals(SSID, x.Id)) == 1)
                         {
                             StructureSet ss = pi.StructureSets.First(x => string.Equals(SSID, x.Id));
-                            if (ss.Structures.Any(x => (string.Equals(x.Id.ToLower(), "spinalcord") && !x.IsEmpty && x.IsHighResolution)))
+                            if (ss.Structures.Any(x => x.Id.ToLower().Contains("spinalcord") && !x.IsEmpty && x.IsHighResolution))
                             {
                                 Console.WriteLine($"Spinal cord was imported as high resolution!");
                                 isHighRes = true;
                             }
-                            else if (ss.Structures.Any(x => (string.Equals(x.Id.ToLower(), "brain") && !x.IsEmpty && x.IsHighResolution)))
+                            else if (ss.Structures.Any(x => x.Id.ToLower().Contains("brain") && !x.IsEmpty && x.IsHighResolution))
                             {
                                 Console.WriteLine($"Brain was imported as high resolution!");
                                 isHighRes = true;

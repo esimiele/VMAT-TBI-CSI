@@ -113,6 +113,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
         public CSIAutoPlanMW(List<string> args)
         {
+            args = new List<string> { "$CSIDryRun_1", "C240821_CSI" };
             InitializeComponent();
             if(InitializeScript(args)) this.Close();
         }
@@ -1413,9 +1414,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 foreach (IsocenterModel iso in itr.Isocenters)
                 {
-                    iso.NumberOfBeams = numBeams.ElementAt(planCount++).ElementAt(isoCount++);
+                    iso.NumberOfBeams = numBeams.ElementAt(planCount).ElementAt(isoCount++);
                 }
                 isoCount = 0;
+                planCount++;
             }
 
             //Added code to account for the scenario where the user either requested or did not request to contour the overlap between fields in adjacent isocenew OptimizationSetupUIHelper()nters
