@@ -218,7 +218,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                                     else if (line.Contains("add target")) targets_temp.Add(ParseTargets(line));
                                     else if (line.Contains("add optimization TS structure")) requestedTSstructures_temp.Add(ParseOptimizationTSstructure(line));
                                     else if (line.Contains("add plan objective")) planObj_temp.Add(ParsePlanObjective(line));
-                                    else if (line.Contains("add plan dose info")) planDoseInfo_temp.Add(ParseRequestedPlanDoseInfo(line));
+                                    else if (line.Contains("add requested plan metric")) planDoseInfo_temp.Add(ParseRequestedPlanDoseInfo(line));
                                 }
                             }
 

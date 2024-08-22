@@ -124,6 +124,7 @@ namespace VMATTBICSIOptLoopMT.Prompts
 
         private void ConfirmClick(object sender, RoutedEventArgs e)
         {
+            DialogResult = true;
             this.Close();
         }
     }

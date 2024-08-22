@@ -600,6 +600,7 @@ namespace VMATTBICSIOptLoopMT
             {
                 ReminderPrompt rp = new ReminderPrompt(reminders);
                 rp.ShowDialog();
+                if (!rp.DialogResult.HasValue || !rp.DialogResult.Value) return;
                 if(!rp.ConfirmAll)
                 {
                     MessageBox.Show("Error! Not all reminders confirmed and signed off. Exiting.");
