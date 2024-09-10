@@ -42,8 +42,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         {
             //left structure, right structure, unioned structure name
             List<UnionStructureModel> structuresToUnion = new List<UnionStructureModel> { };
-            List<Structure> LStructs = selectedSS.Structures.Where(x => x.Id.Substring(x.Id.Length - 2, 2).ToLower() == "_l" || x.Id.Substring(x.Id.Length - 2, 2).ToLower() == " l").ToList();
-            List<Structure> RStructs = selectedSS.Structures.Where(x => x.Id.Substring(x.Id.Length - 2, 2).ToLower() == "_r" || x.Id.Substring(x.Id.Length - 2, 2).ToLower() == " r").ToList();
+            List<Structure> LStructs = selectedSS.Structures.Where(x => !x.IsEmpty && (x.Id.Substring(x.Id.Length - 2, 2).ToLower() == "_l" || x.Id.Substring(x.Id.Length - 2, 2).ToLower() == " l")).ToList();
+            List<Structure> RStructs = selectedSS.Structures.Where(x => !x.IsEmpty && (x.Id.Substring(x.Id.Length - 2, 2).ToLower() == "_r" || x.Id.Substring(x.Id.Length - 2, 2).ToLower() == " r")).ToList();
             foreach (Structure itr in LStructs)
             {
                 Structure RStruct = RStructs.FirstOrDefault(x => x.Id.Substring(0, x.Id.Length - 2) == itr.Id.Substring(0, itr.Id.Length - 2));

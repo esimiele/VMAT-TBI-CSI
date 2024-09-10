@@ -56,7 +56,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             List<OptimizationConstraintModel> updatedOpt = new List<OptimizationConstraintModel> { };
             foreach (OptimizationConstraintModel itr in originalConstraints)
             {
-                updatedOpt.Add(new OptimizationConstraintModel(itr.StructureId, itr.ConstraintType, itr.QueryDose * planTotalDose / sumTotalDose, Units.cGy, itr.QueryVolume, itr.Priority));
+                double dose = itr.QueryDose;
+                if (itr.QueryDoseUnits == Units.Percent) dose *= sumTotalDose / 100;
+                updatedOpt.Add(new OptimizationConstraintModel(itr.StructureId, itr.ConstraintType, dose * planTotalDose / sumTotalDose, Units.cGy, itr.QueryVolume, itr.Priority));
             }
             return updatedOpt;
         }

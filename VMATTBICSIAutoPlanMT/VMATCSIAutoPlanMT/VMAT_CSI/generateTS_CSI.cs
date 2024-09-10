@@ -151,8 +151,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                         string ringName = $"TS_ring{itr.DoseLevel}";
                         if(selectedSS.Structures.Any(x => string.Equals(x.Id, ringName)))
                         {
-                            ProvideUIUpdate($"Error! Structure Id is taken {ringName}! Exiting!", true);
-                            return true;
+                            ProvideUIUpdate($"Warning! Structure Id is taken: {ringName}! Attempting to update Id!");
+                            ringName += "_1";
+                            if (selectedSS.Structures.Any(x => string.Equals(x.Id, ringName)))
+                            {
+                                ProvideUIUpdate($"Error! Unable to update ring structure Id to: {ringName}! Exiting", true);
+                                return true;
+                            }
                         }
 
                         Structure ring = AddTSStructures(new RequestedTSStructureModel("CONTROL", ringName));

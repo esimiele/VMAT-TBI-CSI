@@ -140,6 +140,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                     if (itr.StructureId.Contains("<target>"))
                     {
                         structureId = OptimizationLoopHelper.GetNormaliztionVolumeIdForPlan(plan.Id, normalizationVolumes);
+                        if(string.IsNullOrEmpty(structureId))
+                        {
+                            //no normalization volume found for plan. Should only occur for plan sum for VMAT CSI --> grab TS_PTV_CSI structure
+                            structureId = "TS_PTV_CSI";
+                        }
                     }
                     else structureId = itr.StructureId;
                     Structure structure = StructureTuningHelper.GetStructureFromId(structureId, plan.StructureSet);
