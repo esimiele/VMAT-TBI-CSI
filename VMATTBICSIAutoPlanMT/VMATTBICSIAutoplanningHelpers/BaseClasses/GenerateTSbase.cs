@@ -307,7 +307,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// </summary>
         /// <param name="highResStructure"></param>
         /// <returns></returns>
-        private (bool, Structure) CreateLowResStructure(Structure highResStructure)
+        protected (bool, Structure) CreateLowResStructure(Structure highResStructure)
         {
             Structure lowRes = null;
             bool fail = false;
@@ -371,7 +371,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="startSlice"></param>
         /// <param name="stopSlice"></param>
         /// <returns></returns>
-        private bool ContourLowResStructure(Structure highResStructure, Structure lowRes, int startSlice, int stopSlice)
+        protected bool ContourLowResStructure(Structure highResStructure, Structure lowRes, int startSlice, int stopSlice)
         {
             int percentComplete = 0;
             int calcItems = stopSlice - startSlice + 1;

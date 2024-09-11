@@ -164,17 +164,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="target"></param>
         /// <param name="normal"></param>
-        /// <param name="selectedSS"></param>
-        /// <param name="marginInCm"></param>
         /// <returns></returns>
-        public static bool IsOverlap(Structure target, Structure normal, StructureSet selectedSS, double marginInCm)
+        public static bool IsOverlap(Structure target, System.Windows.Media.Media3D.Point3DCollection normal)
         {
-            bool isOverlap = false;
-            Structure dummy = selectedSS.AddStructure("CONTROL", "Dummy");
-            dummy.SegmentVolume = target.And(normal.Margin(marginInCm * 10.0));
-            if (!dummy.IsEmpty) isOverlap = true;
-            selectedSS.RemoveStructure(dummy);
-            return isOverlap;
+            return normal.Any(x => target.IsPointInsideSegment(new VMS.TPS.Common.Model.Types.VVector(x.X, x.Y, x.Z)));
         }
     }
 }

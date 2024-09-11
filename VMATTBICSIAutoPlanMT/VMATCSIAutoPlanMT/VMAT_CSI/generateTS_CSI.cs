@@ -589,7 +589,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             int percentCompletion = 0;
             int calcItems = ((1 + 2 * tgts.Count) * cropAndOverlapStructures.Count) + 1;
             ProvideUIUpdate(100 * ++percentCompletion / calcItems, "Retrieved plan-target list");
-
+            Dictionary<string, string> highResCropOverlapStructures = new Dictionary<string, string> { };
             foreach (string itr in cropAndOverlapStructures)
             {
                 Structure normal = StructureTuningHelper.GetStructureFromId(itr, selectedSS);
@@ -603,6 +603,27 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                         ProvideUIUpdate("Removing from TS manipulation list!");
                         structuresToRemove.Add(itr);
                     }
+                    else
+                    {
+                        //structure does overlap with all targets. Need to check if structure is high resolution
+                        if(normal.IsHighResolution)
+                        {
+                            ProvideUIUpdate($"Structure {normal.Id} is high resolution. Converting to low resolution now");
+                            //get the high res structure mesh geometry
+                            MeshGeometry3D mesh = normal.MeshGeometry;
+                            //get the start and stop image planes for this structure
+                            int startSlice = CalculationHelper.ComputeSlice(mesh.Positions.Min(p => p.Z), selectedSS);
+                            int stopSlice = CalculationHelper.ComputeSlice(mesh.Positions.Max(p => p.Z), selectedSS);
+
+                            //create an Id for the low resolution struture that will be created. The name will be '_lowRes' appended to the current structure Id
+                            (bool fail, Structure lowRes) = CreateLowResStructure(normal);
+                            if (fail) return true;
+                            ProvideUIUpdate($"Contouring {lowRes.Id} now");
+
+                            ContourLowResStructure(normal, lowRes, startSlice, stopSlice);
+                            highResCropOverlapStructures.Add(itr, lowRes.Id);
+                        }
+                    }
                 }
                 else
                 {
@@ -612,6 +633,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             }
 
             if(structuresToRemove.Any()) RemoveStructuresFromCropOverlapList(structuresToRemove);
+            foreach(KeyValuePair<string,string> itr in highResCropOverlapStructures)
+            {
+                int index = cropAndOverlapStructures.IndexOf(itr.Key);
+                cropAndOverlapStructures.RemoveAt(index);
+                cropAndOverlapStructures.Insert(index, itr.Value);
+            }
             ProvideUIUpdate(100, "Removed missing structures or normals that do not overlap with all targets from crop/overlap list");
             return false;
         }
@@ -632,7 +659,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 if (target != null)
                 {
                     ProvideUIUpdate(100 * ++percentComplete/ calcItems, $"Retrieved target structure: {target.Id}");
-                    if (!StructureTuningHelper.IsOverlap(target, normal, selectedSS, 0.0))
+                    if (!StructureTuningHelper.IsOverlap(target, normal.MeshGeometry.Positions))
                     {
                         ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Warning! {normal.Id} does not overlap with all plan target ({target.Id}) structures!");
                         return false;
