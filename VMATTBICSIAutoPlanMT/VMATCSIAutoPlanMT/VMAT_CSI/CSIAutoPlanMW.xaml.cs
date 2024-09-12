@@ -113,7 +113,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
         public CSIAutoPlanMW(List<string> args)
         {
-            args = new List<string> { "$CSIDryRun_3", "C230822_CSI" };
+            //args = new List<string> { "$CSIDryRun_4", "C240912_CSI" };
             InitializeComponent();
             if(InitializeScript(args)) this.Close();
         }
