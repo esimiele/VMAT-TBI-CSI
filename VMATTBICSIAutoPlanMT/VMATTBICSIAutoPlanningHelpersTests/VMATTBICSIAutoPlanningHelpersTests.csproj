@@ -66,8 +66,8 @@
     <Reference Include="Microsoft.VisualStudio.TestPlatform.TestFramework.Extensions, Version=14.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\MSTest.TestFramework.2.2.7\lib\net45\Microsoft.VisualStudio.TestPlatform.TestFramework.Extensions.dll</HintPath>
     </Reference>
-    <Reference Include="Telerik.JustMock, Version=2024.2.514.325, Culture=neutral, PublicKeyToken=721b6c5bc0326b3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\JustMock.Commercial.2024.2.514.325\lib\net472\Telerik.JustMock.dll</HintPath>
+    <Reference Include="Telerik.JustMock, Version=2024.3.805.336, Culture=neutral, PublicKeyToken=721b6c5bc0326b3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\JustMock.Commercial.2024.3.805.336\lib\net472\Telerik.JustMock.dll</HintPath>
     </Reference>
     <Reference Include="VMS.TPS.Common.BusinessLogic.Interface">
       <HintPath>..\..\..\VMS_TPS_resources\16.1\VMS.TPS.Common.BusinessLogic.Interface.dll</HintPath>

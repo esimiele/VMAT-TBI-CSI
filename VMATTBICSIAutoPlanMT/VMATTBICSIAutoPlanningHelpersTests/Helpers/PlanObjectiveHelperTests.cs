@@ -10,6 +10,7 @@ using VMS.TPS.Common.Model.Types;
 using Telerik.JustMock;
 using VMS.TPS.Common.Model.API;
 using VMATTBICSIAutoPlanningHelpers.Models;
+using VMATTBICSIAutoPlanningHelpersTests.EqualityComparerClasses;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
 {
@@ -62,8 +63,15 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             };
 
             List<PlanObjectiveModel> result = PlanObjectiveHelper.ConstructPlanObjectives(testPlanObj, ss, testTSTargets);
+            PlanObjectiveModelComparer comparer = new PlanObjectiveModelComparer();
 
-            CollectionAssert.AreEqual(expected, result);
+            Assert.AreEqual(expected.Count(), result.Count());
+            int count = 0;
+            foreach(PlanObjectiveModel itr in result)
+            {
+                Assert.IsTrue(comparer.Equals(itr, expected.ElementAt(count)));
+                count++;
+            }
         }
     }
 }

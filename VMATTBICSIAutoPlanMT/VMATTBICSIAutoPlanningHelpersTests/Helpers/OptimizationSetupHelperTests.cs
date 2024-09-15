@@ -11,6 +11,8 @@ using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Models;
 using Telerik.JustMock;
 using VMS.TPS.Common.Model.API;
+using VMATTBICSIAutoPlanningHelpersTests.EqualityComparerClasses;
+using System.Collections;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
 {
@@ -102,21 +104,20 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             };
 
             List<PlanOptimizationSetupModel> result = OptimizationSetupHelper.CreateOptimizationConstraintList(testTemplate, testPlanTargets);
+            OptimizationConstraintComparer comparer = new OptimizationConstraintComparer();
 
             //CollectionAssert.AreEqual(expected, result);
             int count = 0;
             foreach (PlanOptimizationSetupModel itr in result)
             {
                 Assert.AreEqual(itr.PlanId, expected.ElementAt(count).PlanId);
-                CollectionAssert.AreEqual(itr.OptimizationConstraints, expected.ElementAt(count).OptimizationConstraints);
+                Assert.AreEqual(itr.OptimizationConstraints.Count(), expected.ElementAt(count).OptimizationConstraints.Count());
+                for (int i = 0; i < itr.OptimizationConstraints.Count(); i++)
+                {
+                    Assert.IsTrue(comparer.Equals(itr.OptimizationConstraints.ElementAt(i), expected.ElementAt(count).OptimizationConstraints.ElementAt(i)));
+                }
                 count++;
             }
-
-            expected = new List<PlanOptimizationSetupModel>
-            {
-                new PlanOptimizationSetupModel("initial", SetupDummyInitialOptObjList()),
-                new PlanOptimizationSetupModel("boost", SetupDummyBoostOptObjList())
-            };
         }
 
         [TestMethod()]
@@ -130,13 +131,17 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             };
 
             List<PlanOptimizationSetupModel> result = OptimizationSetupHelper.CreateOptimizationConstraintList(testTemplate, new Dictionary<string, string> { });
+            OptimizationConstraintComparer comparer = new OptimizationConstraintComparer();
 
-            //CollectionAssert.AreEqual(expected, result);
             int count = 0;
             foreach (PlanOptimizationSetupModel itr in result)
             {
                 Assert.AreEqual(itr.PlanId, expected.ElementAt(count).PlanId);
-                CollectionAssert.AreEqual(itr.OptimizationConstraints, expected.ElementAt(count).OptimizationConstraints);
+                Assert.AreEqual(itr.OptimizationConstraints.Count(), expected.ElementAt(count).OptimizationConstraints.Count());
+                for(int i = 0; i < itr.OptimizationConstraints.Count(); i++)
+                {
+                    Assert.IsTrue(comparer.Equals(itr.OptimizationConstraints.ElementAt(i), expected.ElementAt(count).OptimizationConstraints.ElementAt(i)));
+                }
                 count++;
             }
         }
@@ -151,13 +156,18 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             };
 
             List<PlanOptimizationSetupModel> result = OptimizationSetupHelper.CreateOptimizationConstraintList(testTemplate, new Dictionary<string, string> { });
+            OptimizationConstraintComparer comparer = new OptimizationConstraintComparer();
 
             //CollectionAssert.AreEqual(expected, result);
             int count = 0;
             foreach (PlanOptimizationSetupModel itr in result)
             {
                 Assert.AreEqual(itr.PlanId, expected.ElementAt(count).PlanId);
-                CollectionAssert.AreEqual(itr.OptimizationConstraints, expected.ElementAt(count).OptimizationConstraints);
+                Assert.AreEqual(itr.OptimizationConstraints.Count(), expected.ElementAt(count).OptimizationConstraints.Count());
+                for (int i = 0; i < itr.OptimizationConstraints.Count(); i++)
+                {
+                    Assert.IsTrue(comparer.Equals(itr.OptimizationConstraints.ElementAt(i), expected.ElementAt(count).OptimizationConstraints.ElementAt(i)));
+                }
                 count++;
             }
         }
@@ -221,12 +231,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             List<OptimizationConstraintModel> expected = BuildExpectedObjectiveList();
 
             List<OptimizationConstraintModel> result = OptimizationSetupHelper.ReadConstraintsFromPlan(plan);
+            OptimizationConstraintComparer comparer = new OptimizationConstraintComparer();
+            int count = 0;
             foreach (OptimizationConstraintModel itr in result)
             {
                 Console.WriteLine($"{itr.StructureId}, {itr.ConstraintType}, {itr.QueryDose}, {itr.QueryVolume}, {itr.Priority}");
+                Assert.IsTrue(comparer.Equals(itr, expected.ElementAt(count)));
+                count++;
             }
-
-            CollectionAssert.AreEqual(expected, result);
         }
 
         [TestMethod()]
@@ -248,12 +260,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             };
 
             List<OptimizationConstraintModel> result = OptimizationSetupHelper.RescalePlanObjectivesToNewRx(initialList, oldRx, newRx);
+            OptimizationConstraintComparer comparer = new OptimizationConstraintComparer();
+            int count = 0;
             foreach (OptimizationConstraintModel itr in result)
             {
                 Console.WriteLine($"{itr.StructureId}, {itr.ConstraintType}, {itr.QueryDose}, {itr.QueryVolume}, {itr.Priority}");
+                Assert.IsTrue(comparer.Equals(itr, expected.ElementAt(count)));
+                count++;
             }
-
-            CollectionAssert.AreEqual(expected, result);
         }
     }
 }

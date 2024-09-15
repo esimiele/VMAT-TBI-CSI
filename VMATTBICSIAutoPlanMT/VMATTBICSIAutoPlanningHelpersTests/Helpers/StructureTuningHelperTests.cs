@@ -45,7 +45,15 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
                                                                                                                   defaultManipulationList,
                                                                                                                   sex);
 
-            CollectionAssert.AreEqual(expected, result);
+            Assert.AreEqual(expected.Count(), result.Count());
+            int count = 0;
+            foreach(RequestedTSManipulationModel itr in result)
+            {
+                Assert.AreEqual(itr.StructureId, expected.ElementAt(count).StructureId);
+                Assert.AreEqual(itr.ManipulationType, expected.ElementAt(count).ManipulationType);
+                Assert.AreEqual(itr.MarginInCM, expected.ElementAt(count).MarginInCM);
+                count++;
+            }
         }
 
         [TestMethod()]
@@ -61,11 +69,15 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             };
 
             List<UnionStructureModel> result = StructureTuningHelper.CheckStructuresToUnion(ss);
+            int count = 0;
             foreach (UnionStructureModel itr in result)
             {
                 Console.WriteLine($"{itr.Structure_Left.Id}, {itr.Structure_Right.Id}, {itr.ProposedUnionStructureId}");
+                Assert.AreEqual(itr.Structure_Left, expected.ElementAt(count).Structure_Left);
+                Assert.AreEqual(itr.Structure_Right, expected.ElementAt(count).Structure_Right);
+                Assert.AreEqual(itr.ProposedUnionStructureId, expected.ElementAt(count).ProposedUnionStructureId);
+                count++;
             }
-            CollectionAssert.AreEqual(expected, result);
         }
 
         public StructureSet BuildTestStructureSet()

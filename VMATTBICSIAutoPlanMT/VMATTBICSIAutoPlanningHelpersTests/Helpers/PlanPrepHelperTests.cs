@@ -215,7 +215,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             expected.AppendLine($"Legs iso shift from **Pelvis ISO**:");
             expected.AppendLine($"Z = 1.0 cm INF");
 
-            StringBuilder result = PlanPrepHelper.GetTBIShiftNote(plan, null);
+            StringBuilder result = PlanPrepHelper.GetTBIShiftNote(plan, new List<ExternalPlanSetup> { });
             Console.WriteLine(result.ToString());
             StringAssert.Equals(expected.ToString(), result.ToString());
         }

@@ -36,9 +36,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             ExternalPlanSetup p6 = Mock.Create<ExternalPlanSetup>();
 
             StructureSet ss = Mock.Create<StructureSet>();
+            Mock.Arrange(() => ss.UID).Returns("1");
             StructureSet ss1 = Mock.Create<StructureSet>();
+            Mock.Arrange(() => ss.UID).Returns("2");
             StructureSet ss2 = Mock.Create<StructureSet>();
+            Mock.Arrange(() => ss.UID).Returns("3");
             StructureSet ss3 = Mock.Create<StructureSet>();
+            Mock.Arrange(() => ss.UID).Returns("4");
 
             Mock.Arrange(() => p1.StructureSet).Returns(ss);
             Mock.Arrange(() => p2.StructureSet).Returns(ss1);
@@ -129,12 +133,12 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
                 new OptimizationConstraintModel("TS_cooler107", OptimizationObjectiveType.Upper, 2448.0, Units.cGy,0.0, 80)
             };
             List<OptimizationConstraintModel> result = OptimizationLoopHelper.ScaleHeaterCoolerOptConstraints(planDose, sumDose, dummyList);
-            CollectionAssert.AreEqual(expected, result);
 
             OptimizationConstraintComparer comparer = new OptimizationConstraintComparer();
             for (int i = 0; i < expected.Count; i++)
             {
                 Console.WriteLine($"{comparer.Print(expected.ElementAt(i))} | {comparer.Print(result.ElementAt(i))}");
+                Assert.IsTrue(comparer.Equals(expected.ElementAt(i), result.ElementAt(i)));
             }
         }
 
