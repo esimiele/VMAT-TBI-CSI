@@ -6,13 +6,14 @@ using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using System.Text;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBIAutoPlanMT.VMAT_TBI
 {
     public class PlanPrep_TBI : PlanPrepBase
     {
         //data members
-        private ExternalPlanSetup appaPlan;
+        private List<ExternalPlanSetup> appaPlans = new List<ExternalPlanSetup> { };
         private bool removeFlash;
 
         /// <summary>
@@ -22,11 +23,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         /// <param name="appa"></param>
         /// <param name="flash"></param>
         /// <param name="closePW"></param>
-        public PlanPrep_TBI(ExternalPlanSetup vmat, ExternalPlanSetup appa, bool flash, bool closePW)
+        public PlanPrep_TBI(ExternalPlanSetup vmat, List<ExternalPlanSetup> appa, bool flash, bool closePW)
         {
             //copy arguments into local variables
             VMATPlan = vmat;
-            appaPlan = appa;
+            appaPlans = appa;
             removeFlash = flash;
             SetCloseOnFinish(closePW, 3000);
         }
@@ -64,11 +65,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             ProvideUIUpdate($"Checking {VMATPlan.Id} ({VMATPlan.UID}) is valid for preparation");
             if (CheckBeamNameFormatting(VMATPlan)) return true;
             if (removeFlash || CheckIfDoseRecalcNeeded(VMATPlan)) recalcNeeded = true;
-            if(appaPlan != null)
+            if(appaPlans.Any())
             {
-                ProvideUIUpdate($"Checking {appaPlan.Id} ({appaPlan.UID}) is valid for preparation");
-                if (CheckBeamNameFormatting(appaPlan)) return true;
-                if (!recalcNeeded && CheckIfDoseRecalcNeeded(appaPlan)) recalcNeeded = true;
+                foreach(ExternalPlanSetup itr in appaPlans)
+                {
+                    ProvideUIUpdate($"Checking {itr.Id} ({itr.UID}) is valid for preparation");
+                    if (CheckBeamNameFormatting(itr)) return true;
+                }
             }
             ProvideUIUpdate(100, "Preliminary checks complete");
             return false;
@@ -90,34 +93,26 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved list of beams for each isocenter for plan: {VMATPlan.Id}");
 
             numVMATIsos = vmatBeamsPerIso.Count;
-            List<List<Beam>> appaBeamsPerIso = new List<List<Beam>> { };
-            if (appaPlan != null)
+            if (appaPlans.Any())
             {
-                appaBeamsPerIso = PlanPrepHelper.ExtractBeamsPerIso(appaPlan);
-                numIsos = appaBeamsPerIso.Count + numVMATIsos;
-                ProvideUIUpdate(100 * ++percentComplete / ++calcItems, $"Retrieved list of beams for each isocenter for plan: {appaPlan.Id}");
+                numIsos = appaPlans.Count() + numVMATIsos;
+                ProvideUIUpdate(100 * ++percentComplete / ++calcItems, $"Retrieved list of beams for each isocenter for appa plans");
             }
 
             //get the isocenter names using the isoNameHelper class
-            List<string> isoNames = new List<string>(IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos));
+            List<IsocenterModel> isoNames = new List<IsocenterModel>(IsoNameHelper.GetTBIVMATIsoNames(numVMATIsos, numIsos));
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved isocenter names for plan: {VMATPlan.Id}");
 
-            if (appaPlan != null)
+            if (appaPlans.Any())
             {
                 isoNames.AddRange(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos));
-                ProvideUIUpdate(100 * ++percentComplete / ++calcItems, $"Retrieved isocenter names for plan: {appaPlan.Id}");
+                ProvideUIUpdate(100 * ++percentComplete / ++calcItems, $"Retrieved isocenter names for appa plans");
             }
 
             ProvideUIUpdate($"Separating isocenters in plan {VMATPlan.Id} into separate plans");
             if (SeparatePlan(VMATPlan, vmatBeamsPerIso, isoNames)) return true;
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Successfully separated isocenters in plan {VMATPlan.Id}");
 
-            if (appaPlan != null)
-            {
-                ProvideUIUpdate($"Separating isocenters in plan {appaPlan.Id} into separate plans");
-                if(SeparatePlan(appaPlan, appaBeamsPerIso, isoNames, true, numVMATIsos)) return true;
-                ProvideUIUpdate(100 * ++percentComplete / ++calcItems, $"Successfully separated isocenters in plan {appaPlan.Id}");
-            }
             return false;
         }
         #endregion
@@ -135,13 +130,16 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             List<ExternalPlanSetup> plans = new List<ExternalPlanSetup> { VMATPlan };
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added VMAT plan ({VMATPlan.Id}) to list of plans requiring dose recalculation");
 
-            if (appaPlan != null)
+            if (appaPlans.Any())
             {
-                plans.Add(appaPlan);
-                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added APPA plan ({appaPlan.Id}) to list of plans requiring dose recalculation");
+                foreach (ExternalPlanSetup itr in appaPlans)
+                {
+                    plans.Add(itr);
+                    ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added APPA plan {itr.Id} to list of plans requiring dose recalculation");
+                }
             }
 
-            (bool isError, List<ExternalPlanSetup> otherPlans) = CheckExistingPlansUsingSameSSWIthDoseCalculated(VMATPlan, VMATPlan.StructureSet);
+            (bool isError, IEnumerable<ExternalPlanSetup> otherPlans) = CheckExistingPlansUsingSameSSWIthDoseCalculated(VMATPlan, VMATPlan.StructureSet);
             if (isError) return true;
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Finished checking for existing plans that have dose calculated and use the same structure set!");
 
@@ -244,13 +242,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         /// <param name="thePlan"></param>
         /// <param name="ss"></param>
         /// <returns></returns>
-        private (bool, List<ExternalPlanSetup>) CheckExistingPlansUsingSameSSWIthDoseCalculated(ExternalPlanSetup thePlan, StructureSet ss)
+        private (bool, IEnumerable<ExternalPlanSetup>) CheckExistingPlansUsingSameSSWIthDoseCalculated(ExternalPlanSetup thePlan, StructureSet ss)
         {
             List<Course> courses = thePlan.Course.Patient.Courses.ToList();
             ProvideUIUpdate("Checking for existing plans that have dose calculated and use the same structure set");
             bool isError = false;
             //remove the structures used to generate flash in the plan
-            (List<ExternalPlanSetup> otherPlans, StringBuilder planIdList) = OptimizationLoopHelper.GetOtherPlansWithSameSSWithCalculatedDose(courses, ss);
+            (IEnumerable<ExternalPlanSetup> otherPlans, StringBuilder planIdList) = OptimizationLoopHelper.GetOtherPlansWithSameSSWithCalculatedDose(courses, ss);
 
             if (otherPlans.Any())
             {

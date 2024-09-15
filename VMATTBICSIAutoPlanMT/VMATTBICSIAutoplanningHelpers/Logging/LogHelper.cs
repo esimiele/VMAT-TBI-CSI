@@ -7,6 +7,7 @@ using System.Text;
 using System.Windows;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
+using VMATTBICSIAutoPlanningHelpers.Models;
 using VMS.TPS.Common.Model.Types;
 
 namespace VMATTBICSIAutoPlanningHelpers.Logging
@@ -37,7 +38,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        public static Tuple<string, string, int, DoseValue, double> ParsePrescriptionsFromLogFile(string line)
+        public static PrescriptionModel ParsePrescriptionsFromLogFile(string line)
         {
             string planId;
             string targetId;
@@ -54,7 +55,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             dosePerFx = double.Parse(line.Substring(0, line.IndexOf(",")));
             line = ConfigurationHelper.CropLine(line, ",");
             RxDose = double.Parse(line.Substring(0, line.IndexOf("}")));
-            return Tuple.Create(planId, targetId, numFx, new DoseValue(dosePerFx, DoseValue.DoseUnit.cGy), RxDose);
+            return new PrescriptionModel(planId, targetId, numFx, new DoseValue(dosePerFx, DoseValue.DoseUnit.cGy), RxDose);
         }
 
         /// <summary>
@@ -62,7 +63,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         /// </summary>
         /// <param name="line"></param>
         /// <returns></returns>
-        public static Tuple<string, string> ParseKeyValuePairFromLogFile(string line)
+        public static KeyValuePair<string, string> ParseKeyValuePairFromLogFile(string line)
         {
             string planId;
             string volumeId;
@@ -70,7 +71,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             planId = line.Substring(0, line.IndexOf(","));
             line = ConfigurationHelper.CropLine(line, ",");
             volumeId = line.Substring(0, line.IndexOf("}"));
-            return Tuple.Create(planId, volumeId);
+            return new KeyValuePair<string, string>(planId, volumeId);
         }
 
         /// <summary>

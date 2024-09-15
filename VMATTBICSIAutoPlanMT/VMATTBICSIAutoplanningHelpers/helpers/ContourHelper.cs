@@ -26,7 +26,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             if(!string.IsNullOrEmpty(bodyId))
             {
                 Structure body = StructureTuningHelper.GetStructureFromId(bodyId, selectedSS);
-                if (body != null)
+                if (!ReferenceEquals(body, null))
                 {
                     if (marginInCm >= -5.0 && marginInCm <= 5.0) theStructure.SegmentVolume = theStructure.SegmentVolume.And(body.SegmentVolume.Margin(marginInCm * 10));
                     else
@@ -61,7 +61,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             StringBuilder sb = new StringBuilder();
             bool fail = false;
             //margin is in cm
-            if (structureToCrop != null && baseStructure != null)
+            if (!ReferenceEquals(structureToCrop, null) && !ReferenceEquals(baseStructure, null))
             {
                 if (marginInCm >= -5.0 && marginInCm <= 5.0) structureToCrop.SegmentVolume = structureToCrop.SegmentVolume.Sub(baseStructure.SegmentVolume.Margin(marginInCm * 10));
                 else 
@@ -90,7 +90,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             StringBuilder sb = new StringBuilder();
             bool fail = false;
             //margin is in cm
-            if (target != null && normal != null)
+            if (!ReferenceEquals(target,null) && !ReferenceEquals(normal,null))
             {
                 if (marginInCm >= -5.0 && marginInCm <= 5.0) normal.SegmentVolume = target.SegmentVolume.And(normal.SegmentVolume.Margin(marginInCm * 10));
                 else
@@ -119,7 +119,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             StringBuilder sb = new StringBuilder();
             bool fail = false;
             //margin is in cm
-            if (baseStructure != null && structureToUnion != null)
+            if (!ReferenceEquals(baseStructure, null) && !ReferenceEquals(structureToUnion,null))
             {
                 if (marginInCm >= -5.0 && marginInCm <= 5.0) structureToUnion.SegmentVolume = baseStructure.SegmentVolume.Or(structureToUnion.SegmentVolume.Margin(marginInCm * 10));
                 else
@@ -148,7 +148,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             bool fail = false;
             foreach(Structure itr in structuresToCombine)
             {
-                if (itr != null && structureToUnion != null)
+                if (!ReferenceEquals(itr, null) && !ReferenceEquals(structureToUnion, null))
                 {
                     structureToUnion.SegmentVolume = itr.SegmentVolume.Or(structureToUnion.SegmentVolume.Margin(0.0));
                 }
@@ -202,7 +202,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             StringBuilder sb = new StringBuilder();
             bool fail = false;
             Structure baseStructure = StructureTuningHelper.GetStructureFromId(baseStructureId, selectedSS);
-            if (baseStructure != null)
+            if (!ReferenceEquals(baseStructure,null))
             {
                 if (marginInCm >= -5.0 && marginInCm <= 5.0) PRVStructure.SegmentVolume = baseStructure.SegmentVolume.Margin(marginInCm * 10);
                 else
@@ -255,7 +255,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             StringBuilder sb = new StringBuilder();
             bool fail = false;
             //margin is in cm
-            if (target != null && normal != null)
+            if (!ReferenceEquals(target, null) && !ReferenceEquals(normal,null))
             {
                 if (marginInCm >= -5.0 && marginInCm <= 5.0)
                 {
@@ -305,16 +305,16 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="target"></param>
         /// <param name="v"></param>
         /// <returns></returns>
-        public static (double, StringBuilder) GetMaxLatProjectionDistance(Structure target, VVector v)
+        public static (double, StringBuilder) GetMaxLatProjectionDistance(Structure target, VVector isoPos)
         {
             StringBuilder sb = new StringBuilder();
             double maxDimension = 0;
             Point3DCollection pts = target.MeshGeometry.Positions;
-            if (Math.Abs(pts.Max(p => p.X) - v.x) > maxDimension) maxDimension = Math.Abs(pts.Max(p => p.X) - v.x);
-            if (Math.Abs(pts.Min(p => p.X) - v.x) > maxDimension) maxDimension = Math.Abs(pts.Min(p => p.X) - v.x);
-            if (Math.Abs(pts.Max(p => p.Y) - v.y) > maxDimension) maxDimension = Math.Abs(pts.Max(p => p.Y) - v.y);
-            if (Math.Abs(pts.Min(p => p.Y) - v.y) > maxDimension) maxDimension = Math.Abs(pts.Min(p => p.Y) - v.y);
-            sb.AppendLine($"Iso position: ({v.x:0.0}, {v.y:0.0}, {v.z:0.0}) mm");
+            if (Math.Abs(pts.Max(p => p.X) - isoPos.x) > maxDimension) maxDimension = Math.Abs(pts.Max(p => p.X) - isoPos.x);
+            if (Math.Abs(pts.Min(p => p.X) - isoPos.x) > maxDimension) maxDimension = Math.Abs(pts.Min(p => p.X) - isoPos.x);
+            if (Math.Abs(pts.Max(p => p.Y) - isoPos.y) > maxDimension) maxDimension = Math.Abs(pts.Max(p => p.Y) - isoPos.y);
+            if (Math.Abs(pts.Min(p => p.Y) - isoPos.y) > maxDimension) maxDimension = Math.Abs(pts.Min(p => p.Y) - isoPos.y);
+            sb.AppendLine($"Iso position: ({isoPos.x:0.0}, {isoPos.y:0.0}, {isoPos.z:0.0}) mm");
             sb.AppendLine($"Max lateral dimension: {maxDimension:0.0} mm");
             return (maxDimension, sb);
         }
@@ -325,15 +325,15 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="boundingBox"></param>
         /// <param name="v"></param>
         /// <returns></returns>
-        public static (double, StringBuilder) GetMaxLatProjectionDistance(VVector[] boundingBox, VVector v)
+        public static (double, StringBuilder) GetMaxLatProjectionDistance(VVector[] boundingBox, VVector isoPos)
         {
             StringBuilder sb = new StringBuilder();
             double maxDimension = 0;
-            if (Math.Abs(boundingBox.Max(p => p.x) - v.x) > maxDimension) maxDimension = Math.Abs(boundingBox.Max(p => p.x) - v.x);
-            if (Math.Abs(boundingBox.Min(p => p.x) - v.x) > maxDimension) maxDimension = Math.Abs(boundingBox.Min(p => p.x) - v.x);
-            if (Math.Abs(boundingBox.Max(p => p.y) - v.y) > maxDimension) maxDimension = Math.Abs(boundingBox.Max(p => p.y) - v.y);
-            if (Math.Abs(boundingBox.Min(p => p.y) - v.y) > maxDimension) maxDimension = Math.Abs(boundingBox.Min(p => p.y) - v.y);
-            sb.AppendLine($"Iso position: ({v.x:0.0}, {v.y:0.0}, {v.z:0.0}) mm");
+            if (Math.Abs(boundingBox.Max(p => p.x) - isoPos.x) > maxDimension) maxDimension = Math.Abs(boundingBox.Max(p => p.x) - isoPos.x);
+            if (Math.Abs(boundingBox.Min(p => p.x) - isoPos.x) > maxDimension) maxDimension = Math.Abs(boundingBox.Min(p => p.x) - isoPos.x);
+            if (Math.Abs(boundingBox.Max(p => p.y) - isoPos.y) > maxDimension) maxDimension = Math.Abs(boundingBox.Max(p => p.y) - isoPos.y);
+            if (Math.Abs(boundingBox.Min(p => p.y) - isoPos.y) > maxDimension) maxDimension = Math.Abs(boundingBox.Min(p => p.y) - isoPos.y);
+            sb.AppendLine($"Iso position: ({isoPos.x:0.0}, {isoPos.y:0.0}, {isoPos.z:0.0}) mm");
             sb.AppendLine($"Max lateral dimension: {maxDimension:0.0} mm");
             return (maxDimension, sb);
         }
@@ -362,7 +362,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             sb.AppendLine($" yMax: {yMax}");
             sb.AppendLine($" yMin: {yMin}");
 
-             boundingBox = new[] {
+            boundingBox = new[] {
                                 new VVector(xMax, yMax, 0),
                                 new VVector(xMax, 0, 0),
                                 new VVector(xMax, yMin, 0),

@@ -5,6 +5,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
@@ -24,7 +25,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         public static List<StackPanel> PopulateBeamsTabHelper(double width, 
                                                               List<string> linacs, 
                                                               List<string> beamEnergies, 
-                                                              List<Tuple<string, List<string>>> isoNames, 
+                                                              List<PlanIsocenterModel> isoNames, 
                                                               int[] beamsPerIso)
         {
             List<StackPanel> theSPList = new List<StackPanel> { };
@@ -117,7 +118,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             theSPList.Add(sp);
 
             //add iso names and suggested number of beams
-            for (int i = 0; i < isoNames.Count; i++)
+            foreach(PlanIsocenterModel itr in isoNames)
             {
                 sp = new StackPanel
                 {
@@ -130,7 +131,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 
                 Label planID = new Label
                 {
-                    Content = "Plan Id: " + isoNames.ElementAt(i).Item1,
+                    Content = "Plan Id: " + itr.PlanId,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Top,
                     Width = 230,
@@ -140,7 +141,8 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 sp.Children.Add(planID);
                 theSPList.Add(sp);
 
-                for (int j = 0; j < isoNames.ElementAt(i).Item2.Count; j++)
+                int isoCount = 0;
+                foreach(string isoId in itr.Isocenters.Select(x => x.IsocenterId))
                 {
                     sp = new StackPanel
                     {
@@ -155,7 +157,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                     {
                         //11/1/22
                         //interesting issue where the first character of the first plan Id is ignored and not printed on the place beams tab
-                        Content = String.Format("Isocenter {0} <{1}>:", (j + 1).ToString(), isoNames.ElementAt(i).Item2.ElementAt(j)),
+                        Content = String.Format("Isocenter {0} <{1}>:", (isoCount + 1).ToString(), isoId),
                         HorizontalAlignment = HorizontalAlignment.Right,
                         VerticalAlignment = VerticalAlignment.Top,
                         Width = 230,
@@ -176,11 +178,12 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                         TextAlignment = TextAlignment.Center
                     };
                     //ugly provision to override suggested number of beams per iso to 2 for leg AP/PA isocenters for TBI plans
-                    if (!isoNames.ElementAt(i).Item1.Contains("_Legs")) beams_tb.Text = beamsPerIso[j].ToString();
+                    if (!itr.PlanId.Contains("legs")) beams_tb.Text = beamsPerIso[isoCount].ToString();
                     else beams_tb.Text = "2";
 
                     sp.Children.Add(beams_tb);
                     theSPList.Add(sp);
+                    isoCount++;
                 }
             }
             return theSPList;
@@ -192,10 +195,11 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <param name="theSP"></param>
         /// <param name="isos"></param>
         /// <returns></returns>
-        public static (string, string, List<List<int>>, StringBuilder) GetBeamSelections(StackPanel theSP, List<Tuple<string,List<string>>> isos)
+        public static (string, string, List<List<int>>, StringBuilder) GetBeamSelections(StackPanel theSP, List<PlanIsocenterModel> isos)
         {
             StringBuilder sb = new StringBuilder();
-            int count = 0;
+            int isocount = 0;
+            int plancount = 0;
             bool firstCombo = true;
             string chosenLinac = "";
             string chosenEnergy = "";
@@ -221,21 +225,20 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                         // MessageBox.Show(count.ToString());
                         if (!int.TryParse((obj1 as TextBox).Text, out int beamTMP))
                         {
-                            sb.AppendLine(String.Format("Error! \nNumber of beams entered in iso {0} is NaN!", isos.ElementAt(count)));
+                            sb.AppendLine(String.Format("Error! \nNumber of beams entered in iso {0} is NaN!", isos.ElementAt(plancount).Isocenters.ElementAt(isocount++).IsocenterId));
                             return ("","",new List<List<int>>(), sb);
                         }
                         else if (beamTMP < 1)
                         {
-                            sb.AppendLine(String.Format("Error! \nNumber of beams entered in iso {0} is < 1!", isos.ElementAt(count)));
+                            sb.AppendLine(String.Format("Error! \nNumber of beams entered in iso {0} is < 1!", isos.ElementAt(plancount).Isocenters.ElementAt(isocount++).IsocenterId));
                             return ("", "", new List<List<int>>(), sb);
                         }
                         else if (beamTMP > 4)
                         {
-                            sb.AppendLine(String.Format("Error! \nNumber of beams entered in iso {0} is > 4!", isos.ElementAt(count)));
+                            sb.AppendLine(String.Format("Error! \nNumber of beams entered in iso {0} is > 4!", isos.ElementAt(plancount).Isocenters.ElementAt(isocount++).IsocenterId));
                             return ("", "", new List<List<int>>(), sb);
                         }
                         else numBeams_temp.Add(beamTMP);
-                        count++;
                     }
                     numElementsPerRow++;
                 }
@@ -244,6 +247,8 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                     //indicates only one item was in this stack panel indicating it was only a label indicating the code has finished reading the number of isos and beams per isos for this plan
                     numBeams.Add(new List<int>(numBeams_temp));
                     numBeams_temp = new List<int> { };
+                    plancount++;
+                    isocount = 0;
                 }
                 numElementsPerRow = 0;
             }

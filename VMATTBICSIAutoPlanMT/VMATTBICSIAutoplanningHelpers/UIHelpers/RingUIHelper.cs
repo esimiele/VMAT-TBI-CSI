@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Controls;
 using System.Windows;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
@@ -84,7 +85,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <returns></returns>
         public static StackPanel AddRing(StackPanel theSP, 
                                          List<string> targetIds, 
-                                         Tuple<string, double, double, double> listItem, 
+                                         TSRingStructureModel item, 
                                          string clearBtnPrefix, 
                                          int clearSpareBtnCounter, 
                                          RoutedEventHandler clearEvtHndl, 
@@ -117,12 +118,12 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             foreach (string itr in targetIds)
             {
                 str_cb.Items.Add(itr);
-                if (itr.ToLower() == listItem.Item1.ToLower()) index = j;
+                if (itr.ToLower() == item.TargetId.ToLower()) index = j;
                 j++;
             }
-            if (addTargetEvenIfNotInSS && !targetIds.Any(x => string.Equals(x.ToLower(), listItem.Item1.ToLower())))
+            if (addTargetEvenIfNotInSS && !targetIds.Any(x => string.Equals(x.ToLower(), item.TargetId.ToLower())))
             {
-                str_cb.Items.Add(listItem.Item1);
+                str_cb.Items.Add(item.TargetId);
                 str_cb.SelectedIndex = str_cb.Items.Count - 1;
             }
             else str_cb.SelectedIndex = index;
@@ -139,7 +140,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 TextAlignment = TextAlignment.Center,
                 VerticalContentAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(5, 5, 0, 0),
-                Text = Convert.ToString(listItem.Item2)
+                Text = Convert.ToString(item.MarginFromTargetInCM)
             };
             sp.Children.Add(addMargin);
 
@@ -153,7 +154,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 TextAlignment = TextAlignment.Center,
                 VerticalContentAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(5, 5, 0, 0),
-                Text = Convert.ToString(listItem.Item3)
+                Text = Convert.ToString(item.RingThicknessInCM)
             };
             sp.Children.Add(addThickness);
 
@@ -167,7 +168,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 TextAlignment = TextAlignment.Center,
                 VerticalContentAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(5, 5, 0, 0),
-                Text = Convert.ToString(listItem.Item4)
+                Text = Convert.ToString(item.DoseLevel)
             };
             sp.Children.Add(addDose);
 
@@ -192,10 +193,10 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// </summary>
         /// <param name="theSP"></param>
         /// <returns></returns>
-        public static (List<Tuple<string, double, double, double>>, StringBuilder) ParseCreateRingList(StackPanel theSP)
+        public static (List<TSRingStructureModel>, StringBuilder) ParseCreateRingList(StackPanel theSP)
         {
             StringBuilder sb = new StringBuilder();
-            List<Tuple<string, double, double, double>> CreateRingList = new List<Tuple<string, double, double, double>> { };
+            List<TSRingStructureModel> rings = new List<TSRingStructureModel>();
             string target = "";
             double margin = -1000.0;
             double thickness = -1000.0;
@@ -229,16 +230,16 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                     if (target == "--select--")
                     {
                         sb.AppendLine("Error! \nTarget not selected for ring! \nSelect an option and try again");
-                        return (new List<Tuple<string, double, double, double>> { }, sb);
+                        return (null, sb);
                     }
                     //margin will not be assigned from the default value (-1000) if the input is empty, a whitespace, or NaN
                     else if (margin <= 0.0 || thickness <= 0.0 || dose <= 0.0)
                     {
                         sb.AppendLine("Error! \nEntered margin, thickness, or dose value(s) is/are invalid for ring! \nEnter new values and try again");
-                        return (new List<Tuple<string, double, double, double>> { }, sb);
+                        return (null, sb);
                     }
                     //only add the current row to the structure sparing list if all the parameters were successful parsed
-                    else CreateRingList.Add(Tuple.Create(target, margin, thickness, dose));
+                    else rings.Add(new TSRingStructureModel(target, margin, thickness, dose));
                     margin = -1000.0;
                     thickness = -1000.0;
                     dose = -1000.0;
@@ -246,7 +247,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 }
                 else headerObj = false;
             }
-            return (CreateRingList, sb);
+            return (rings, sb);
         }
     }
 }

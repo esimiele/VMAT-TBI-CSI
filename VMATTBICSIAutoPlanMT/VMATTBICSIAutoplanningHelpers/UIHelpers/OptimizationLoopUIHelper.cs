@@ -7,6 +7,8 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
+using VMATTBICSIAutoPlanningHelpers.Models;
+using VMATTBICSIAutoPlanningHelpers.EnumTypeHelpers;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
@@ -61,14 +63,14 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// </summary>
         /// <param name="planObj"></param>
         /// <returns></returns>
-        public static string PrintPlanObjectives(List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> planObj)
+        public static string PrintPlanObjectives(List<PlanObjectiveModel> planObj)
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine(GetPlanObjectivesHeader());
-            foreach (Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation> itr in planObj)
+            foreach (PlanObjectiveModel itr in planObj)
             {
                 //"structure Id", "constraint type", "dose (cGy or %)", "volume (%)", "Dose display (absolute or relative)"
-                sb.AppendLine(String.Format("{0, -16} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-9} |", itr.Item1, itr.Item2.ToString(), itr.Item3, itr.Item4, itr.Item5));
+                sb.AppendLine(String.Format("{0, -16} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-9} |", itr.StructureId, itr.ConstraintType, itr.QueryDose, itr.QueryVolume, itr.QueryDoseUnits));
             }
             sb.Append(Environment.NewLine);
             return sb.ToString();
@@ -118,64 +120,71 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <param name="plan"></param>
         /// <param name="normalizationVolumes"></param>
         /// <returns></returns>
-        public static string PrintAdditionalPlanDoseInfo(List<Tuple<string, string, double, string>> requestedInfo, 
+        public static string PrintAdditionalPlanDoseInfo(List<RequestedPlanMetricModel> requestedInfo, 
                                                          ExternalPlanSetup plan, 
-                                                         List<Tuple<string, string>> normalizationVolumes)
+                                                         Dictionary<string, string> normalizationVolumes)
         {
             StringBuilder sb = new StringBuilder();
 
             sb.AppendLine(Environment.NewLine + $"Additional infomation for plan: {plan.Id}");
-            foreach (Tuple<string, string, double, string> itr in requestedInfo)
+            foreach (RequestedPlanMetricModel itr in requestedInfo)
             {
-                if (itr.Item1.Contains("<plan>"))
+                if (itr.StructureId.Contains("<plan>"))
                 {
-                    if (itr.Item2 == "Dmax") sb.AppendLine($"Plan global Dmax = {100 * (plan.Dose.DoseMax3D.Dose / plan.TotalDose.Dose):0.0}%");
-                    else sb.AppendLine($"Cannot retrive metric ({itr.Item1},{itr.Item2},{itr.Item3},{itr.Item4})! Skipping!");
+                    if (itr.DVHMetric == DVHMetric.Dmax) sb.AppendLine($"Plan global Dmax = {100 * (plan.Dose.DoseMax3D.Dose / plan.TotalDose.Dose):0.0}%");
+                    else sb.AppendLine($"Cannot retrive metric ({itr.StructureId},{itr.DVHMetric},{itr.QueryResultUnits})! Skipping!");
                 }
                 else
                 {
                     string structureId;
-                    if (itr.Item1.Contains("<target>"))
+                    if (itr.StructureId.Contains("<target>"))
                     {
                         structureId = OptimizationLoopHelper.GetNormaliztionVolumeIdForPlan(plan.Id, normalizationVolumes);
+                        if(string.IsNullOrEmpty(structureId))
+                        {
+                            //no normalization volume found for plan. Should only occur for plan sum for VMAT CSI --> grab TS_PTV_CSI structure
+                            structureId = "TS_PTV_CSI";
+                        }
                     }
-                    else structureId = itr.Item1;
+                    else structureId = itr.StructureId;
                     Structure structure = StructureTuningHelper.GetStructureFromId(structureId, plan.StructureSet);
                     if (structure != null)
                     {
-                        if (itr.Item2.Contains("max") || itr.Item2.Contains("min"))
+                        if (itr.DVHMetric == DVHMetric.Dmax || itr.DVHMetric == DVHMetric.Dmin)
                         {
                             sb.AppendLine(String.Format("{0} {1} = {2:0.0}{3}",
                                             structure.Id,
-                                            itr.Item2,
-                                            plan.GetDoseAtVolume(structure, itr.Item2 == "Dmax" ? 0.0 : 100.0, VolumePresentation.Relative, itr.Item4 == "Relative" ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute).Dose,
-                                            itr.Item4 == "Relative" ? "%" : "cGy"));
+                                            itr.DVHMetric,
+                                            plan.GetDoseAtVolume(structure, itr.DVHMetric == DVHMetric.Dmax ? 0.0 : 100.0, VolumePresentation.Relative, itr.QueryResultUnits == Units.Percent ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute).Dose,
+                                            itr.QueryResultUnits));
                         }
                         else
                         {
-                            if (itr.Item2 == "D")
+                            if (itr.DVHMetric == DVHMetric.DoseAtVolume)
                             {
                                 //dose at specified volume requested
-                                sb.AppendLine(String.Format("{0} {1}{2}% = {3:0.0}{4}",
+                                sb.AppendLine(String.Format("{0} {1}{2}{3} = {4:0.0}{5}",
                                             structure.Id,
-                                            itr.Item2,
-                                            itr.Item3,
-                                            plan.GetDoseAtVolume(structure, itr.Item3, VolumePresentation.Relative, itr.Item4 == "Relative" ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute).Dose,
-                                            itr.Item4 == "Relative" ? "%" : "cGy"));
+                                            itr.DVHMetric,
+                                            itr.QueryValue,
+                                            itr.QueryUnits,
+                                            plan.GetDoseAtVolume(structure, itr.QueryValue, itr.QueryUnits == Units.Percent ? VolumePresentation.Relative : VolumePresentation.AbsoluteCm3, itr.QueryResultUnits == Units.Percent ? DoseValuePresentation.Relative : DoseValuePresentation.Absolute).Dose,
+                                            itr.QueryResultUnits));
                             }
                             else
                             {
                                 //volume at specified dose requested
-                                sb.AppendLine(String.Format("{0} {1}{2}% = {3:0.0}{4}",
+                                sb.AppendLine(String.Format("{0} {1}{2}{3} = {4:0.0}{5}",
                                             structure.Id,
-                                            itr.Item2,
-                                            itr.Item3,
-                                            plan.GetVolumeAtDose(structure, new DoseValue(itr.Item3, DoseValue.DoseUnit.Percent), itr.Item4 == "Relative" ? VolumePresentation.Relative : VolumePresentation.AbsoluteCm3),
-                                            itr.Item4 == "Relative" ? "%" : "cc"));
+                                            itr.DVHMetric,
+                                            itr.QueryValue,
+                                            itr.QueryUnits,
+                                            plan.GetVolumeAtDose(structure, new DoseValue(itr.QueryValue, UnitsTypeHelper.GetDoseUnit(itr.QueryUnits)), itr.QueryResultUnits == Units.Percent ? VolumePresentation.Relative : VolumePresentation.AbsoluteCm3),
+                                            itr.QueryResultUnits));
                             }
                         }
                     }
-                    else sb.AppendLine($"Cannot retrive metric ({itr.Item1},{itr.Item2},{itr.Item3},{itr.Item4})! Skipping!");
+                    else sb.AppendLine($"Cannot retrive metric ({itr.StructureId},{itr.DVHMetric},{itr.QueryValue},{itr.QueryUnits})! Skipping!");
                 }
             }
             return sb.ToString();
@@ -187,56 +196,59 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// </summary>
         /// <param name="requestedTSstructures"></param>
         /// <returns></returns>
-        public static string PrintRequestedTSStructures(List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures)
+        public static string PrintRequestedTSStructures(List<RequestedOptimizationTSStructureModel> requestedTSstructures)
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("Requested tuning structures:");
             sb.AppendLine("--------------------------------------------------------------------------");
             sb.AppendLine(String.Format("{0, -16} | {1, -9} | {2, -10} | {3, -5} | {4, -8} | {5, -10} |", "structure Id", "low D (%)", "high D (%)", "V (%)", "priority", "constraint"));
             sb.AppendLine("--------------------------------------------------------------------------");
-
-            foreach (Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>> itr in requestedTSstructures)
+            foreach (RequestedOptimizationTSStructureModel ts in requestedTSstructures)
             {
-                sb.Append(String.Format("{0, -16} | {1, -9:N1} | {2,-10:N1} | {3,-5:N1} | {4,-8} |", itr.Item1, itr.Item2, itr.Item3, itr.Item4, itr.Item5));
-                if (!itr.Item6.Any()) sb.AppendLine(String.Format(" {0,-10} |", "none"));
+                if (ts.GetType() == typeof(TSCoolerStructureModel)) sb.Append(String.Format(" {0, -15} | {1, -9:N1} | {2,-10:N1} | {3,-5:N1} | {4,-8} |", ts.TSStructureId, "", (ts as TSCoolerStructureModel).UpperDoseValue, ts.Constraints.First().QueryVolume, ts.Constraints.First().Priority));
+                else sb.Append(String.Format(" {0, -15} | {1, -9:N1} | {2,-10:N1} | {3,-5:N1} | {4,-8} |", ts.TSStructureId, (ts as TSHeaterStructureModel).LowerDoseValue, (ts as TSHeaterStructureModel).UpperDoseValue, ts.Constraints.First().QueryVolume, ts.Constraints.First().Priority));
+
+                if (!ts.CreationCriteria.Any()) sb.AppendLine(String.Format(" {0,-10} |", "none"));
                 else
                 {
-                    int index = 0;
-                    foreach (Tuple<string, double, string, double> itr1 in itr.Item6)
+                    int count = 0;
+                    foreach (OptTSCreationCriteriaModel ts1 in ts.CreationCriteria)
                     {
-                        if (index == 0)
+                        if (count == 0)
                         {
-                            if (itr1.Item1.Contains("Dmax")) sb.Append(String.Format(" {0,-10} |", $"{itr1.Item1}{itr1.Item3}{itr1.Item4}%"));
-                            else if (itr1.Item1.Contains("V")) sb.Append(String.Format(" {0,-10} |", $"{itr1.Item1}{itr1.Item2}%{itr1.Item3}{itr1.Item4}%"));
-                            else sb.Append(String.Format(" {0,-10} |", $"{itr1.Item1}"));
+                            if (ts1.DVHMetric == DVHMetric.DoseAtVolume || ts1.DVHMetric == DVHMetric.VolumeAtDose) sb.AppendLine(String.Format(" {0,-10} |", $"{ts1.DVHMetric}{ts1.QueryValue}{ts1.QueryUnits} {ts1.Operator} {ts1.Limit}{ts1.QueryResultUnits}"));
+                            else if (ts1.CreateForFinalOptimization) sb.AppendLine(String.Format(" {0,-10} |", $"FinalOpt"));
+                            else sb.AppendLine(String.Format(" {0,-10} |", $"{ts1.DVHMetric} {ts1.Operator} {ts1.Limit}{ts1.QueryResultUnits}"));
                         }
                         else
                         {
-                            if (itr1.Item1.Contains("Dmax")) sb.Append(String.Format(" {0,-59} | {1,-10} |", " ", $"{itr1.Item1}{itr1.Item3}{itr1.Item4}%"));
-                            else if (itr1.Item1.Contains("V")) sb.Append(String.Format(" {0,-59} | {1,-10} |", " ", $"{itr1.Item1}{itr1.Item2}%{itr1.Item3}{itr1.Item4}%"));
-                            else sb.Append(String.Format(" {0,-59} | {1,-10} |", " ", $"{itr1.Item1}"));
+                            if (ts1.DVHMetric == DVHMetric.DoseAtVolume || ts1.DVHMetric == DVHMetric.VolumeAtDose) sb.AppendLine(String.Format(" {0,-59} | {1,-10} |", " ", $"{ts1.DVHMetric}{ts1.QueryValue}{ts1.QueryUnits} {ts1.Operator} {ts1.Limit}{ts1.QueryResultUnits}"));
+                            else if (ts1.CreateForFinalOptimization) sb.AppendLine(String.Format(" {0,-59} | {1,-10} |", " ", $"FinalOpt"));
+                            else sb.AppendLine(String.Format(" {0,-59} | {1,-10} |", " ", $"{ts1.DVHMetric} {ts1.Operator} {ts1.Limit}{ts1.QueryResultUnits}"));
                         }
-                        index++;
-                        if (index <= itr.Item6.Count) sb.Append(Environment.NewLine);
+                        count++;
                     }
                 }
             }
+            sb.AppendLine(Environment.NewLine);
             return sb.ToString();
         }
 
         /// <summary>
         /// Helper method to print the optimization constraints for the plan to the optimization loop UI
         /// </summary>
-        /// <param name="planId"></param>
+        /// <param name="plan"></param>
         /// <param name="constraints"></param>
         /// <returns></returns>
-        public static string PrintPlanOptimizationConstraints(string planId, List<Tuple<string, OptimizationObjectiveType, double, double, int>> constraints)
+        public static string PrintPlanOptimizationConstraints(ExternalPlanSetup plan, List<OptimizationConstraintModel> constraints)
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine(GetOptimizationObjectivesHeader(planId));
-            foreach (Tuple<string, OptimizationObjectiveType, double, double, int> itr in constraints)
+            sb.AppendLine(GetOptimizationObjectivesHeader(plan.Id));
+            foreach (OptimizationConstraintModel itr in constraints)
             {
-                sb.AppendLine(String.Format("{0, -16} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", itr.Item1, itr.Item2.ToString(), itr.Item3, itr.Item4, itr.Item5));
+                double dose = itr.QueryDose;
+                if (itr.QueryDoseUnits == Units.Percent) dose *= plan.TotalDose.Dose / 100;
+                sb.AppendLine(String.Format("{0, -16} | {1, -16} | {2,-10:N1} | {3,-10:N1} | {4,-8} |", itr.StructureId, itr.ConstraintType, dose, itr.QueryVolume, itr.Priority));
             }
             return sb.ToString();
         }
@@ -250,20 +262,19 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <param name="totalCostPlanOpt"></param>
         /// <returns></returns>
         public static string PrintPlanOptimizationResultVsConstraints(ExternalPlanSetup plan, 
-                                                                      List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams, 
-                                                                      List<Tuple<Structure, DVHData, double, double, double, int>> diffPlanOpt, 
+                                                                      List<OptimizationConstraintModel> optParams, 
+                                                                      List<PlanOptConstraintsDeviationModel> diffPlanOpt, 
                                                                       double totalCostPlanOpt)
         {
             StringBuilder sb = new StringBuilder();
             //print the results of the quality check for this optimization
             sb.AppendLine(GetOptimizationResultsHeader(plan.Id));
             int index = 0;
-            //structure, dvh data, current dose obj, dose diff^2, cost, current priority, priority difference
-            foreach (Tuple<Structure, DVHData, double, double, double, int> itr in diffPlanOpt)
+            foreach (PlanOptConstraintsDeviationModel itr in diffPlanOpt)
             {
                 //"structure Id", "constraint type", "dose diff^2 (cGy^2)", "current priority", "cost", "cost (%)"
                 sb.AppendLine(String.Format("{0, -16} | {1, -16} | {2, -20:N1} | {3, -16} | {4, -12:N1} | {5, -9:N1} |",
-                                                itr.Item1.Id, optParams.ElementAt(index).Item2.ToString(), itr.Item4, itr.Item6, itr.Item5, 100 * itr.Item5 / totalCostPlanOpt));
+                                                itr.Structure.Id, optParams.ElementAt(index).ConstraintType.ToString(), itr.DoseDifferenceSquared, itr.Prioirty, itr.OptimizationCost, 100 * itr.OptimizationCost / totalCostPlanOpt));
                 index++;
             }
             return sb.ToString();

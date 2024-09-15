@@ -2,6 +2,7 @@
 using VMS.TPS.Common.Model.API;
 using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATCSIAutoPlanMT.VMAT_CSI
 {
@@ -65,7 +66,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             ProvideUIUpdate(0, "Initializing...");
             List<List<Beam>> beamsPerIso = PlanPrepHelper.ExtractBeamsPerIso(VMATPlan);
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved list of beams for each isocenter for plan: {VMATPlan.Id}");
-            List<string> isoNames = IsoNameHelper.GetCSIIsoNames(beamsPerIso.Count);
+            List<IsocenterModel> isoNames = IsoNameHelper.GetCSIIsoNames(beamsPerIso.Count);
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved isocenter names for plan: {VMATPlan.Id}");
             ProvideUIUpdate($"Separating isocenters in plan {VMATPlan.Id} into separate plans");
             if (SeparatePlan(VMATPlan, beamsPerIso, isoNames)) return true;

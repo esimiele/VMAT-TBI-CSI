@@ -5,6 +5,7 @@ using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using SimpleProgressWindow;
 using System.Text;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 {
@@ -74,7 +75,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="names"></param>
         /// <param name="previousNumIsos"></param>
         /// <returns></returns>
-        protected bool SeparatePlan(ExternalPlanSetup plan, List<List<Beam>> beamsPerIso, List<string> names, bool isAPPA = false, int previousNumIsos = 0)
+        protected bool SeparatePlan(ExternalPlanSetup plan, List<List<Beam>> beamsPerIso, List<IsocenterModel> names, bool isAPPA = false, int previousNumIsos = 0)
         {
             int percentComplete = 0;
             int calcItems = 4 * beamsPerIso.Count;
@@ -84,8 +85,8 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             {
                 //copy the plan, set the plan id based on the counter, and make a empty list to hold the beams that need to be removed
                 ExternalPlanSetup newplan = (ExternalPlanSetup)plan.Course.CopyPlanSetup(plan);
-                if(isAPPA) newplan.Id = $"{count + 1} {(names.ElementAt(count).Contains("upper") ? "Upper Legs" : "Lower Legs")}";
-                else newplan.Id = $"{count + 1} {names.ElementAt(count)}";
+                if(isAPPA) newplan.Id = $"{count + 1} {(names.ElementAt(count).IsocenterId.Contains("upper") ? "Upper Legs" : "Lower Legs")}";
+                else newplan.Id = $"{count + 1} {names.ElementAt(count).IsocenterId}";
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Created new plan {newplan.Id} as copy of {plan.Id}");
                 List<Beam> beamsToRemove = new List<Beam> { };
                 //can't add reference point to plan because it must be open in Eclipse for ESAPI to perform this function. Need to fix in v16

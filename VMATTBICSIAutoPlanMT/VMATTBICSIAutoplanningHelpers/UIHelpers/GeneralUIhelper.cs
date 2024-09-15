@@ -60,7 +60,6 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             string selectedTemplateId = "";
             SelectItemPrompt SIP = new SelectItemPrompt("Please select an existing template!", availableTemplateIds);
             SIP.ShowDialog();
-            // linq query used to check that the selected template id exists in the list of available template ids (returns null)
             if (SIP.GetSelection()) selectedTemplateId = availableTemplateIds.FirstOrDefault(x => string.Equals(x, SIP.GetSelectedItem()));
             return selectedTemplateId;
         }

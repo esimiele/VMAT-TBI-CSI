@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using VMATTBICSIAutoPlanningHelpers.Enums;
+using VMATTBICSIAutoPlanningHelpers.Models;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 
@@ -16,25 +17,25 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="selectedSS"></param>
         /// <param name="tsTargets"></param>
         /// <returns></returns>
-        public static List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> ConstructPlanObjectives(List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> obj,
-                                                                                                                              StructureSet selectedSS,
-                                                                                                                              List<Tuple<string,string>> tsTargets)
+        public static List<PlanObjectiveModel> ConstructPlanObjectives(List<PlanObjectiveModel> obj,
+                                                                  StructureSet selectedSS,
+                                                                  Dictionary<string,string> tsTargets)
         {
-            List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> tmp = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> { };
+            List<PlanObjectiveModel> tmp = new List<PlanObjectiveModel> { };
             if (selectedSS != null)
             {
-                foreach (Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation> itr in obj)
+                foreach (PlanObjectiveModel itr in obj)
                 {
-                    string volume = itr.Item1;
-                    if (tsTargets.Any(x => string.Equals(x.Item1, itr.Item1)))
+                    string volume = itr.StructureId;
+                    if (tsTargets.Any(x => string.Equals(x.Key, itr.StructureId)))
                     {
                         //volume is a target and has a corresponding ts target
                         //update volume with ts target id
-                        volume = tsTargets.First(x => string.Equals(x.Item1, itr.Item1)).Item2;
+                        volume = tsTargets.First(x => string.Equals(x.Key, itr.StructureId)).Value;
                     }
                     if (StructureTuningHelper.DoesStructureExistInSS(volume, selectedSS, true))
                     {
-                        tmp.Add(Tuple.Create(volume, itr.Item2, itr.Item3, itr.Item4, itr.Item5));
+                        tmp.Add(new PlanObjectiveModel(volume, itr.ConstraintType, itr.QueryDose, itr.QueryDoseUnits, itr.QueryVolume, Units.Percent));
                     }
                 }
             }

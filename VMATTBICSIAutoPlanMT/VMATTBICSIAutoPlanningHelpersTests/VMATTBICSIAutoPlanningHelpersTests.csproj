@@ -57,6 +57,7 @@
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="PresentationCore" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="Microsoft.VisualStudio.TestPlatform.TestFramework, Version=14.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
@@ -65,34 +66,52 @@
     <Reference Include="Microsoft.VisualStudio.TestPlatform.TestFramework.Extensions, Version=14.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\MSTest.TestFramework.2.2.7\lib\net45\Microsoft.VisualStudio.TestPlatform.TestFramework.Extensions.dll</HintPath>
     </Reference>
-    <Reference Include="Telerik.JustMock, Version=2023.2.719.137, Culture=neutral, PublicKeyToken=721b6c5bc0326b3a, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\..\Program Files (x86)\Progress\Telerik JustMock\Libraries\Telerik.JustMock.dll</HintPath>
+    <Reference Include="Telerik.JustMock, Version=2024.3.805.336, Culture=neutral, PublicKeyToken=721b6c5bc0326b3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\JustMock.Commercial.2024.3.805.336\lib\net472\Telerik.JustMock.dll</HintPath>
     </Reference>
     <Reference Include="VMS.TPS.Common.BusinessLogic.Interface">
-      <HintPath>..\..\..\VMS DLLs\15.6\15.6\VMS.TPS.Common.BusinessLogic.Interface.dll</HintPath>
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\VMS.TPS.Common.BusinessLogic.Interface.dll</HintPath>
     </Reference>
     <Reference Include="VMS.TPS.Common.Calculation.Interface">
-      <HintPath>..\..\..\VMS DLLs\15.6\15.6\VMS.TPS.Common.Calculation.Interface.dll</HintPath>
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\VMS.TPS.Common.Calculation.Interface.dll</HintPath>
     </Reference>
-    <Reference Include="VMS.TPS.Common.Model.API, Version=1.0.300.11, Culture=neutral, PublicKeyToken=305b81e210ec4b89, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\VMS DLLs\15.6\15.6\VMS.TPS.Common.Model.API.dll</HintPath>
+    <Reference Include="VMS.TPS.Common.Model.API">
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\VMS.TPS.Common.Model.API.dll</HintPath>
     </Reference>
     <Reference Include="VMS.TPS.Common.Model.Interface">
-      <HintPath>..\..\..\VMS DLLs\15.6\15.6\VMS.TPS.Common.Model.Interface.dll</HintPath>
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\VMS.TPS.Common.Model.Interface.dll</HintPath>
     </Reference>
-    <Reference Include="VMS.TPS.Common.Model.Types, Version=1.0.300.11, Culture=neutral, PublicKeyToken=305b81e210ec4b89, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\VMS DLLs\15.6\15.6\VMS.TPS.Common.Model.Types.dll</HintPath>
+    <Reference Include="VMS.TPS.Common.Model.Types">
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\VMS.TPS.Common.Model.Types.dll</HintPath>
     </Reference>
+    <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EqualityComparerClasses\DaemonModelComparer.cs" />
+    <Compile Include="EqualityComparerClasses\IsocenterModelComparer.cs" />
+    <Compile Include="EqualityComparerClasses\OptimizationConstraintComparer.cs" />
+    <Compile Include="EqualityComparerClasses\OptTSCreationCriteriaComparer.cs" />
+    <Compile Include="EqualityComparerClasses\PlanObjectiveModelComparer.cs" />
+    <Compile Include="EqualityComparerClasses\PlanTargetModelComparer.cs" />
+    <Compile Include="EqualityComparerClasses\RequestedOptTSStructureComparer.cs" />
+    <Compile Include="EqualityComparerClasses\RequestedPlanMetricComparer.cs" />
+    <Compile Include="EqualityComparerClasses\RingModelComparer.cs" />
+    <Compile Include="EqualityComparerClasses\TSManipulationComparer.cs" />
     <Compile Include="Helpers\CalculationHelperTests.cs" />
     <Compile Include="Helpers\ConfigurationHelperTests.cs" />
     <Compile Include="Helpers\ContourHelperTests.cs" />
-    <Compile Include="Helpers\ExportFormatTypeHelperTests.cs" />
+    <Compile Include="Helpers\CSITestBeamBuilder.cs" />
+    <Compile Include="EnumTypeHelpers\ExportFormatTypeHelperTests.cs" />
     <Compile Include="Helpers\IsoNameHelperTests.cs" />
+    <Compile Include="Helpers\OptimizationLoopHelperTests.cs" />
+    <Compile Include="Helpers\OptimizationSetupHelperTests.cs" />
+    <Compile Include="EnumTypeHelpers\OptimizationTypeHelperTests.cs" />
+    <Compile Include="Helpers\PlanObjectiveHelperTests.cs" />
+    <Compile Include="Helpers\PlanPrepHelperTests.cs" />
+    <Compile Include="Helpers\StructureTuningHelperTests.cs" />
+    <Compile Include="Helpers\TargetsHelperTests.cs" />
+    <Compile Include="Helpers\TBITestBeamBuilder.cs" />
+    <Compile Include="Helpers\TSManipulationTypeHelperTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

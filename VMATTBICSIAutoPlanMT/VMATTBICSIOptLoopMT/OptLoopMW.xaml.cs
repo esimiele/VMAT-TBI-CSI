@@ -6,11 +6,9 @@ using System.Windows.Controls;
 using System.IO;
 using Microsoft.Win32;
 using VMS.TPS.Common.Model.API;
-using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
-using VMATTBICSIAutoPlanningHelpers.Structs;
 using VMATTBICSIAutoPlanningHelpers.UIHelpers;
 using VMATTBICSIAutoPlanningHelpers.Prompts;
 using VMATTBICSIOptLoopMT.VMAT_CSI;
@@ -22,70 +20,64 @@ using System.Text;
 using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
 using VMATTBICSIAutoPlanningHelpers.Logging;
 using System.Diagnostics;
+using VMATTBICSIAutoPlanningHelpers.Models;
+using VMATTBICSIAutoPlanningHelpers.DataContainers;
+using VMATTBICSIAutoPlanningHelpers.Interfaces;
 
 namespace VMATTBICSIOptLoopMT
 {
     public partial class OptLoopMW : Window
     {
-        //configuration file
-        string configFile = "";
-        //point this to the directory holding the documentation files
-        string documentationPath;
-        //default number of optimizations to perform
-        string defautlNumOpt = "3";
-        //default plan normaliBzation (i.e., PTV100% = 90%) 
-        string defaultPlanNorm = "90";
-        //run coverage check
-        bool runCoverageCheckOption = false;
-        //run additional optimization option
-        bool runAdditionalOptOption = true;
-        //copy and save each optimized plan
-        bool copyAndSaveOption = false;
-        //is demo
-        bool demo = false;
-        //log file directory
-        string logFilePath;
-        //decision threshold
-        double threshold = 0.15;
-        //lower dose limit
-        double lowDoseLimit = 0.1;
-
-        //plan id, list<structure id, optimization objective type, dose, volume, priority>
-        List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> optConstraintsFromLogs = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
-
-        //structure, constraint type, dose, relative volume, dose value presentation (unless otherwise specified)
-        //note, if the constraint type is "mean", the relative volume value is ignored
-        public List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> planObj = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> { };
-
-        //ID, lower dose level, upper dose level, volume (%), priority, list of criteria that must be met to add the requested cooler/heater structures
-        public List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> requestedTSstructures = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>{ };
-
-        //structure id(or can put '<plan>' to get the plan dose value), metric requested(Dmax, Dmin, D<vol %>, V<dose %>), query value, return value representation(dose or volume as absolute or relative)
-        public List<Tuple<string, string, double, string>> planDoseInfo = new List<Tuple<string, string, double, string>> { };
-
-        private VMS.TPS.Common.Model.API.Application app = null;
-
-        List<ExternalPlanSetup> plans;
-        StructureSet selectedSS;
-        Patient pi = null;
-        bool runCoverageCheck = false;
-        bool runOneMoreOpt = false;
-        bool copyAndSavePlanItr = false;
-        bool useFlash = false;
-        bool logFileLoaded = false;
+        public List<PlanObjectiveModel> planObj = new List<PlanObjectiveModel> { };
+        public List<RequestedOptimizationTSStructureModel> requestedTSstructures = new List<RequestedOptimizationTSStructureModel>();
+        public List<RequestedPlanMetricModel> planDoseInfo = new List<RequestedPlanMetricModel> { };
+        public List<PlanOptimizationSetupModel> optConstraintsFromLogs = new List<PlanOptimizationSetupModel> { };
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
         public ObservableCollection<AutoPlanTemplateBase> PlanTemplates { get; set; }
         public AutoPlanTemplateBase selectedTemplate;
-        string selectedTemplateName = "";
+
+        private VMS.TPS.Common.Model.API.Application app = null;
+        //configuration file
+        private string configFile = "";
+        //point this to the directory holding the documentation files
+        private string documentationPath;
+        //default number of optimizations to perform
+        private string defautlNumOpt = "3";
+        //default plan normaliBzation (i.e., PTV100% = 90%) 
+        private string defaultPlanNorm = "90";
+        //run coverage check
+        private bool runCoverageCheckOption = false;
+        //run additional optimization option
+        private bool runAdditionalOptOption = true;
+        //copy and save each optimized plan
+        private bool copyAndSaveOption = false;
+        //is demo
+        private bool demo = false;
+        //log file directory
+        private string logFilePath;
+        //decision threshold
+        private double threshold = 0.15;
+        //lower dose limit
+        private double lowDoseLimit = 0.1;
+        private List<string> reminders = new List<string> { };
+        private List<ExternalPlanSetup> plans;
+        private StructureSet selectedSS;
+        private Patient pi = null;
+        private bool runCoverageCheck = false;
+        private bool runOneMoreOpt = false;
+        private bool copyAndSavePlanItr = false;
+        private bool useFlash = false;
+        private bool logFileLoaded = false;
+        
+        private string selectedTemplateName = "";
         //to be read from the plan prep log files
-        PlanType planType;
-        List<string> planUIDs = new List<string> { };
-        //plan id, target id, num fx, dose per fx, cumulative rx for this target
-        List<Tuple<string, string, int, DoseValue, double>> prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
+        private PlanType planType;
+        private List<string> planUIDs = new List<string> { };
+        private List<PrescriptionModel> prescriptions = new List<PrescriptionModel> { };
         //plan id, volume id
-        List<Tuple<string, string>> normalizationVolumes = new List<Tuple<string, string>> { };
+        private Dictionary<string, string> normalizationVolumes = new Dictionary<string, string> { };
         //list<original target id, ts target id>
-        private List<Tuple<string, string>> tsTargets = new List<Tuple<string, string>> { };
+        private Dictionary<string, string> tsTargets = new Dictionary<string, string> { };
 
         /// <summary>
         /// Constructor
@@ -120,7 +112,6 @@ namespace VMATTBICSIOptLoopMT
 
                 LoadPatient(patmrn);
             }
-            
             DisplayConfigurationParameters();
             return false;
         }
@@ -189,6 +180,10 @@ namespace VMATTBICSIOptLoopMT
                         LoadConfigurationSettingsForPlanType(planType);
                         OpenPatient(mrn);
                         LoadTemplatePlanChoices(planType);
+                        if(planType == PlanType.VMAT_TBI && reminders.Any(x => x.ToLower().Contains("base dose")))
+                        {
+                            if (!plans.First().Course.ExternalPlanSetups.Any(x => x.Id.ToLower().Contains("legs"))) reminders.Remove(reminders.First(x => x.ToLower().Contains("base dose")));
+                        }
                         selectPatientBtn.Background = System.Windows.Media.Brushes.DarkGray;
                     }
                 }
@@ -271,7 +266,7 @@ namespace VMATTBICSIOptLoopMT
                     if (optConstraintsFromLogs.Any())
                     {
                         ClearAllItemsFromUIList(optimizationParamSP);
-                        foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in optConstraintsFromLogs) AddListItemsToUI(itr.Item2, itr.Item1, optimizationParamSP);
+                        foreach (PlanOptimizationSetupModel itr in optConstraintsFromLogs) AddListItemsToUI(itr.OptimizationConstraints, itr.PlanId, optimizationParamSP);
                     }
                     else MessageBox.Show("No optimization constraints present in log file!");
                 }
@@ -297,22 +292,22 @@ namespace VMATTBICSIOptLoopMT
                 }
                 else thePlan = plans.First();
 
-                List<Tuple<string, OptimizationObjectiveType, double, double, int>> tmp = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { Tuple.Create("--select--", OptimizationObjectiveType.None, 0.0, 0.0, 0) };
-                List<List<Tuple<string, OptimizationObjectiveType, double, double, int>>> tmpList = new List<List<Tuple<string, OptimizationObjectiveType, double, double, int>>> { };
+                List<OptimizationConstraintModel> tmp = new List<OptimizationConstraintModel> { new OptimizationConstraintModel("--select--", OptimizationObjectiveType.None, 0.0, Units.cGy, 0.0, 0) };
+                List<List<OptimizationConstraintModel>> tmpList = new List<List<OptimizationConstraintModel>> { };
                 if (SPAndSV.Item1.Children.Count > 0)
                 {
-                    List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> optParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(SPAndSV.Item1, false).Item1;
-                    foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in optParametersListList)
+                    List<PlanOptimizationSetupModel> optParametersListList = OptimizationSetupUIHelper.ParseOptConstraints(SPAndSV.Item1, false).Item1;
+                    foreach (PlanOptimizationSetupModel itr in optParametersListList)
                     {
-                        if (itr.Item1 == thePlan.Id)
+                        if (string.Equals(itr.PlanId, thePlan.Id))
                         {
-                            tmp = new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(itr.Item2)
+                            tmp = new List<OptimizationConstraintModel>(itr.OptimizationConstraints)
                             {
-                                Tuple.Create("--select--", OptimizationObjectiveType.None, 0.0, 0.0, 0)
+                                new OptimizationConstraintModel("--select--", OptimizationObjectiveType.None, 0.0, Units.cGy, 0.0, 0)
                             };
                             tmpList.Add(tmp);
                         }
-                        else tmpList.Add(itr.Item2);
+                        else tmpList.Add(itr.OptimizationConstraints);
                     }
                 }
                 else
@@ -321,13 +316,13 @@ namespace VMATTBICSIOptLoopMT
                 }
                 ClearAllItemsFromUIList(SPAndSV.Item1);
                 int count = 0;
-                foreach (List<Tuple<string, OptimizationObjectiveType, double, double, int>> itr in tmpList) AddListItemsToUI(itr, plans.ElementAt(count++).Id, SPAndSV.Item1);
+                foreach (List<OptimizationConstraintModel> itr in tmpList) AddListItemsToUI(itr, plans.ElementAt(count++).Id, SPAndSV.Item1);
             }
             else
             {
-                List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> tmp = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> 
+                List<PlanObjectiveModel> tmp = new List<PlanObjectiveModel> 
                 { 
-                    Tuple.Create("--select--", OptimizationObjectiveType.None, 0.0, 0.0, DoseValuePresentation.Relative) 
+                    new PlanObjectiveModel("--select--", OptimizationObjectiveType.None, 0.0, Units.Percent, 0.0, Units.Percent) 
                 };
                 AddListItemsToUI(tmp, "", SPAndSV.Item1); 
                 planObjectiveHeader.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -363,11 +358,11 @@ namespace VMATTBICSIOptLoopMT
             {
                 ClearAllItemsFromUIList(planObjectiveParamSP);
                 //requires a structure set to properly function
-                planObj = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>>(PlanObjectiveHelper.ConstructPlanObjectives(selectedTemplate.GetPlanObjectives(), selectedSS, tsTargets));
+                planObj = new List<PlanObjectiveModel>(PlanObjectiveHelper.ConstructPlanObjectives(selectedTemplate.PlanObjectives, selectedSS, tsTargets));
                 PopulatePlanObjectivesTab(planObjectiveParamSP);
-                planDoseInfo = new List<Tuple<string, string, double, string>>(selectedTemplate.GetRequestedPlanDoseInfo());
-                requestedTSstructures = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>(selectedTemplate.GetRequestedOptTSStructures());
-                if (selectedTemplate.GetPlanObjectives().Any())
+                planDoseInfo = new List<RequestedPlanMetricModel>(selectedTemplate.RequestedPlanMetrics);
+                requestedTSstructures = new List<RequestedOptimizationTSStructureModel>(selectedTemplate.RequestedOptimizationTSStructures);
+                if (selectedTemplate.PlanObjectives.Any())
                 {
                     planObjectiveHeader.Background = System.Windows.Media.Brushes.ForestGreen;
                     optimizationSetupHeader.Background = System.Windows.Media.Brushes.PaleVioletRed;
@@ -376,10 +371,10 @@ namespace VMATTBICSIOptLoopMT
             else
             {
                 templateList.UnselectAll();
-                planObj = new List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>>();
+                planObj = new List<PlanObjectiveModel>();
                 ClearAllItemsFromUIList(planObjectiveParamSP);
-                planDoseInfo = new List<Tuple<string, string, double, string>>();
-                requestedTSstructures = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>();
+                planDoseInfo = new List<RequestedPlanMetricModel>();
+                requestedTSstructures = new List<RequestedOptimizationTSStructureModel> { };
                 planObjectiveHeader.Background = System.Windows.Media.Brushes.PaleVioletRed;
                 optimizationSetupHeader.Background = System.Windows.Media.Brushes.DarkGray;
             }
@@ -500,8 +495,8 @@ namespace VMATTBICSIOptLoopMT
             }
             if (normalizationVolumes.Any())
             {
-                initNormVolume.Text = normalizationVolumes.First().Item2;
-                if(normalizationVolumes.Count > 1) bstNormVolume.Text = normalizationVolumes.Last().Item2;
+                initNormVolume.Text = normalizationVolumes.First().Value;
+                if(normalizationVolumes.Count > 1) bstNormVolume.Text = normalizationVolumes.Last().Value;
             }
         }
 
@@ -513,7 +508,7 @@ namespace VMATTBICSIOptLoopMT
         {
             //clear the current list of optimization constraints and ones obtained from the plan to the user
             ClearAllItemsFromUIList(theSP);
-            foreach(ExternalPlanSetup itr in plans) AddListItemsToUI(OptimizationSetupUIHelper.ReadConstraintsFromPlan(itr), itr.Id, theSP);
+            foreach(ExternalPlanSetup itr in plans) AddListItemsToUI(OptimizationSetupHelper.ReadConstraintsFromPlan(itr), itr.Id, theSP);
         }
 
         private void PopulatePlanObjectivesTab(StackPanel theSP)
@@ -533,7 +528,7 @@ namespace VMATTBICSIOptLoopMT
             theSP.Children.Add(PlanObjectiveSetupUIHelper.GetObjHeader(theSP.Width));
         }
 
-        private void AddListItemsToUI<T>(List<Tuple<string, OptimizationObjectiveType, double, double, T>> defaultList, string planId, StackPanel theSP)
+        private void AddListItemsToUI(IEnumerable<IPlanConstraint> defaultList, string planId, StackPanel theSP)
         {
             int counter = 0;
             string clearBtnNamePrefix;
@@ -550,16 +545,16 @@ namespace VMATTBICSIOptLoopMT
                 //need special logic here because the entire stack panel is not cleared everytime a new item is added to the list
                 if(theSP.Children.Count == 0) AddPlanObjectivesHeader(theSP);
             }
-            for (int i = 0; i < defaultList.Count; i++)
+            foreach(IPlanConstraint itr in defaultList)
             {
                 counter++;
                 theSP.Children.Add(OptimizationSetupUIHelper.AddOptVolume(theSP, 
-                                                       selectedSS, 
-                                                       defaultList[i], 
-                                                       clearBtnNamePrefix, 
-                                                       counter, 
-                                                       new RoutedEventHandler(this.ClearItem_Click), 
-                                                       theSP.Name.Contains("template")));
+                                                                          selectedSS, 
+                                                                          itr, 
+                                                                          clearBtnNamePrefix, 
+                                                                          counter, 
+                                                                          new RoutedEventHandler(this.ClearItem_Click), 
+                                                                          theSP.Name.Contains("template")));
             }
         }
 
@@ -589,20 +584,32 @@ namespace VMATTBICSIOptLoopMT
             (bool prelimChecksFail, double planNorm, int numOptimizations) = PreliminaryChecksOptimizationLoopStart();
             if (prelimChecksFail) return;
 
-            (List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optimizationParamSP);
+            (List<PlanOptimizationSetupModel>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optimizationParamSP);
             if (!parsedOptimizationConstraints.Item1.Any())
             {
                 MessageBox.Show(parsedOptimizationConstraints.Item2.ToString());
                 return;
             }
-            List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> objectives = PlanObjectiveSetupUIHelper.ParsePlanObjectives(planObjectiveParamSP);
+            List<PlanObjectiveModel> objectives = PlanObjectiveSetupUIHelper.ParsePlanObjectives(planObjectiveParamSP);
             if (!objectives.Any())
             {
                 MessageBox.Show("Error! Missing plan objectives! Please add plan objectives and try again!");
                 return;
             }
+            if(reminders.Any())
+            {
+                ReminderPrompt rp = new ReminderPrompt(reminders);
+                rp.ShowDialog();
+                if (!rp.DialogResult.HasValue || !rp.DialogResult.Value) return;
+                if(!rp.ConfirmAll)
+                {
+                    MessageBox.Show("Error! Not all reminders confirmed and signed off. Exiting.");
+                    return;
+                }
+            }
+
             //determine if flash was used to prep the plan
-            if (parsedOptimizationConstraints.Item1.Any(x => x.Item2.Any(y => y.Item1.ToLower().Contains("flash")))) useFlash = true;
+            if (parsedOptimizationConstraints.Item1.Any(x => x.OptimizationConstraints.Any(y => y.StructureId.ToLower().Contains("flash")))) useFlash = true;
 
             //assign optimization constraints
             pi.BeginModifications();
@@ -616,25 +623,24 @@ namespace VMATTBICSIOptLoopMT
             copyAndSavePlanItr = copyAndSave.IsChecked.Value;
 
             //create a new instance of the structure dataContainer and assign the optimization loop parameters entered by the user to the various data members
-            OptDataContainer data = new OptDataContainer();
-            data.Construct(plans, 
-                           prescriptions,
-                           normalizationVolumes,
-                           objectives, 
-                           requestedTSstructures, 
-                           planDoseInfo,
-                           planType,
-                           planNorm, 
-                           numOptimizations, 
-                           runCoverageCheck, 
-                           runOneMoreOpt, 
-                           copyAndSavePlanItr, 
-                           useFlash, 
-                           threshold, 
-                           lowDoseLimit, 
-                           demo, 
-                           logFilePath, 
-                           app);
+            OptDataContainer data = new OptDataContainer(plans, 
+                                                         prescriptions,
+                                                         normalizationVolumes,
+                                                         objectives, 
+                                                         requestedTSstructures, 
+                                                         planDoseInfo,
+                                                         planType,
+                                                         planNorm, 
+                                                         numOptimizations, 
+                                                         runCoverageCheck, 
+                                                         runOneMoreOpt, 
+                                                         copyAndSavePlanItr, 
+                                                         useFlash, 
+                                                         threshold, 
+                                                         lowDoseLimit, 
+                                                         demo, 
+                                                         logFilePath, 
+                                                         app);
 
             //start the optimization loop (all saving to the database is performed in the progressWindow class)
             //use a bit of polymorphism
@@ -649,21 +655,21 @@ namespace VMATTBICSIOptLoopMT
         /// </summary>
         /// <param name="constraints"></param>
         /// <returns></returns>
-        private bool AssignRequestedOptimizationConstraints(List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> constraints)
+        private bool AssignRequestedOptimizationConstraints(List<PlanOptimizationSetupModel> constraints)
         {
-            foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in constraints)
+            foreach (PlanOptimizationSetupModel itr in constraints)
             {
                 ExternalPlanSetup thePlan = null;
                 //additional check if the plan was not found in the list of VMATplans
-                thePlan = plans.FirstOrDefault(x => string.Equals(x.Id, itr.Item1));
+                thePlan = plans.FirstOrDefault(x => string.Equals(x.Id, itr.PlanId));
                 if (thePlan != null)
                 {
-                    OptimizationSetupUIHelper.RemoveOptimizationConstraintsFromPLan(thePlan);
-                    OptimizationSetupUIHelper.AssignOptConstraints(itr.Item2, thePlan, true, 0.0);
+                    OptimizationSetupHelper.RemoveOptimizationConstraintsFromPLan(thePlan);
+                    OptimizationSetupHelper.AssignOptConstraints(itr.OptimizationConstraints, thePlan, true, 0.0);
                 }
                 else
                 {
-                    MessageBox.Show($"Error! Could not find requested plan: {itr.Item1}! Exiting");
+                    MessageBox.Show($"Error! Could not find requested plan: {itr.PlanId}! Exiting");
                     return true;
                 }
             }
@@ -843,6 +849,10 @@ namespace VMATTBICSIOptLoopMT
                                     if (value != "") copyAndSaveOption = bool.Parse(value); 
                                 }
                             }
+                            else if (line.Contains("add reminder"))
+                            {
+                                reminders.Add(line.Substring(line.IndexOf("{") + 1, line.IndexOf("}") - line.IndexOf("{") - 1));
+                            }
                         }
                     }
                     reader.Close();
@@ -881,7 +891,7 @@ namespace VMATTBICSIOptLoopMT
             {
                 MessageBox.Show($"Error could not load plan template file because: {e.Message}!");
             }
-            selectedTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.GetTemplateName(), selectedTemplateName));
+            selectedTemplate = PlanTemplates.FirstOrDefault(x => string.Equals(x.TemplateName, selectedTemplateName));
             if (selectedTemplate != null) templateList.SelectedItem = selectedTemplate;
         }
 
@@ -937,30 +947,32 @@ namespace VMATTBICSIOptLoopMT
                             {
                                 while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {
-                                    tsTargets.Add(LogHelper.ParseKeyValuePairFromLogFile(line));
+                                    KeyValuePair<string, string> tsTGT = LogHelper.ParseKeyValuePairFromLogFile(line);
+                                    tsTargets.Add(tsTGT.Key, tsTGT.Value);
                                 }
                             }
                             else if (line.Contains("Normalization volumes:"))
                             {
                                 while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {
-                                    normalizationVolumes.Add(LogHelper.ParseKeyValuePairFromLogFile(line));
+                                    KeyValuePair<string, string> normVol = LogHelper.ParseKeyValuePairFromLogFile(line);
+                                    normalizationVolumes.Add(normVol.Key, normVol.Value);
                                 }
                             }
                             else if (line.Contains("Optimization constraints:"))
                             {
                                 string planId = "";
-                                List<Tuple<string, OptimizationObjectiveType, double, double, int>> tmpConstraints = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+                                List<OptimizationConstraintModel> tmpConstraints = new List<OptimizationConstraintModel> { };
                                 while (!string.IsNullOrEmpty((line = reader.ReadLine().Trim())))
                                 {
                                     if (!line.Contains("{"))
                                     {
                                         if(tmpConstraints.Any())
                                         {
-                                            optConstraintsFromLogs.Add(new Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>(planId, new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(tmpConstraints)));
+                                            optConstraintsFromLogs.Add(new PlanOptimizationSetupModel(planId, new List<OptimizationConstraintModel>(tmpConstraints)));
                                         }
                                         planId = line;
-                                        tmpConstraints = new List<Tuple<string, OptimizationObjectiveType, double, double, int>> { };
+                                        tmpConstraints = new List<OptimizationConstraintModel> { };
                                     }
                                     else
                                     {
@@ -969,7 +981,7 @@ namespace VMATTBICSIOptLoopMT
                                 }
                                 if (tmpConstraints.Any())
                                 {
-                                    optConstraintsFromLogs.Add(new Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>(planId, new List<Tuple<string, OptimizationObjectiveType, double, double, int>>(tmpConstraints)));
+                                    optConstraintsFromLogs.Add(new PlanOptimizationSetupModel(planId, new List<OptimizationConstraintModel>(tmpConstraints)));
                                 }
                             }
                         }

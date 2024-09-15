@@ -14,8 +14,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="patientOpen"></param>
         /// <param name="isModified"></param>
         /// <param name="autoSave"></param>
-        /// <param name="log"></param>
-        public static void CloseApplication(Application app, bool patientOpen, bool isModified, bool autoSave, Logger log)
+        public static void CloseApplication(Application app, bool patientOpen, bool isModified, bool autoSave)
         {
             //be sure to close the patient before closing the application. Not doing so will result in unclosed timestamps in eclipse
             if (isModified)
@@ -24,8 +23,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 {
                     //Save the results without asking the user
                     app.SaveModifications();
-                    log.AppendLogOutput("Modifications saved to database!");
-                    log.ChangesSaved = true;
+                    Logger.GetInstance().AppendLogOutput("Modifications saved to database!");
+                    Logger.GetInstance().ChangesSaved = true;
                 }
                 else
                 {
@@ -35,28 +34,28 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     if (SCP.GetSelection())
                     {
                         app.SaveModifications();
-                        log.AppendLogOutput("Modifications saved to database!");
-                        log.ChangesSaved = true;
+                        Logger.GetInstance().AppendLogOutput("Modifications saved to database!");
+                        Logger.GetInstance().ChangesSaved = true;
                     }
                     else
                     {
-                        log.AppendLogOutput("Modifications NOT saved to database!");
-                        log.ChangesSaved = false;
+                        Logger.GetInstance().AppendLogOutput("Modifications NOT saved to database!");
+                        Logger.GetInstance().ChangesSaved = false;
                     }
                 }
             }
             else
             {
                 //no modifications made to database, don't bother saving
-                log.AppendLogOutput("No modifications made to database objects!");
-                log.ChangesSaved = false;
+                Logger.GetInstance().AppendLogOutput("No modifications made to database objects!");
+                Logger.GetInstance().ChangesSaved = false;
             }
-            log.User = $"{app.CurrentUser.Name} ({app.CurrentUser.Id})";
+            Logger.GetInstance().User = $"{app.CurrentUser.Name} ({app.CurrentUser.Id})";
             if (patientOpen)
             {
                 //if a patient was open, close the patient and dump the log file
                 app.ClosePatient();
-                if (log.Dump())
+                if (Logger.GetInstance().Dump())
                 {
                     MessageBox.Show("Error! Could not save log file!");
                 }

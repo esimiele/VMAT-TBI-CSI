@@ -3,93 +3,83 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Text;
 using System.IO;
-using VMS.TPS.Common.Model.Types;
 using VMATTBICSIAutoPlanningHelpers.Enums;
 using PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType;
 using FolderBrowserDialog = System.Windows.Forms.FolderBrowserDialog;
 using DialogResult = System.Windows.Forms.DialogResult;
 using System.Reflection;
+using VMATTBICSIAutoPlanningHelpers.Models;
+using System.Linq;
 
 namespace VMATTBICSIAutoPlanningHelpers.Logging
 {
     public class Logger
     {
+        /// <summary>
+        /// Helpful trick to force a static instance of the logger class and has this one instance accesible everywhere
+        /// </summary>
+        /// <returns></returns>
+        public static Logger GetInstance()
+        {
+            if (_instance != null) return _instance;
+            else return _instance = new Logger();
+        }
         #region Set methods
         //general patient info
-        public string MRN { set { mrn = value; } }
-        public void SetPlanType(PlanType type) { planType = type; }
+        public string MRN { set => mrn = value; }
         public string Template { set => template = value; }
         public string StructureSet { set => selectedSS = value; }
         public bool ChangesSaved { set => changesSaved = value; }
         public string User { set => userId = value; }
-        public string LogPath { get { return logPath; } set { logPath = value; } }
+        public string LogPath { set => logPath = value;  }
         //plan ID, target Id, numFx, dosePerFx, cumulative dose
-        public List<Tuple<string, string, int, DoseValue, double>> Prescriptions { set => prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(value); }
+        public List<PrescriptionModel> Prescriptions { set => prescriptions = new List<PrescriptionModel>(value); }
         public List<string> AddedPrelimTargetsStructures { set => addedPrelimTargets = new List<string>(value); }
         //ts generation and manipulation
         public List<string> AddedStructures { set => addedStructures = new List<string>(value); }
-        //structure ID, sparing type, margin
-        public List<Tuple<string, TSManipulationType, double>> StructureManipulations { set => structureManipulations = new List<Tuple<string, TSManipulationType, double>>(value); }
+        public List<RequestedTSManipulationModel> StructureManipulations { get; set; } = new List<RequestedTSManipulationModel>();
+     
         //plan id, list<original target id, ts target id>
-        public List<Tuple<string, string>> TSTargets { set => tsTargets = new List<Tuple<string, string>>(value); }
+        public Dictionary<string, string> TSTargets { set => tsTargets = new Dictionary<string, string>(value); }
         //plan id, normalization volume for plan
-        public List<Tuple<string, string>> NormalizationVolumes { set => normVolumes = new List<Tuple<string, string>>(value); }
+        public Dictionary<string,string> NormalizationVolumes { set => normVolumes = new Dictionary<string,string>(value); }
         //plan Id, list of isocenter names for this plan
-        public List<Tuple<string, List<string>>> IsoNames { set => isoNames = new List<Tuple<string, List<string>>>(value); }
+        public List<PlanIsocenterModel> PlanIsocenters { set => planIsocenters = new List<PlanIsocenterModel>(value); }
         //plan generation and beam placement
         public List<string> PlanUIDs { set => planUIDs = new List<string>(value); }
         //optimization setup
         //plan ID, <structure, constraint type, dose cGy, volume %, priority>
-        public List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> OptimizationConstraints { set => optimizationConstraints = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>>(value); }
+        public List<PlanOptimizationSetupModel> OptimizationConstraints { get; set; } = new List<PlanOptimizationSetupModel>();
         public ScriptOperationType OpType { set => opType = value; }
+        public PlanType PlanType { set => planType = value; }
         #endregion
 
+        private static Logger _instance;
         //path to location to write log file
-        private string logPath = "";
+        private string logPath = string.Empty;
         //stringbuilder object to log output from ts generation/manipulation and beam placement
-        private StringBuilder _logFromOperations;
-        private StringBuilder _logFromErrors;
-        private string userId;
-        private string mrn;
-        private PlanType planType;
-        private string template;
-        private string selectedSS;
+        private StringBuilder _logFromOperations = new StringBuilder();
+        private StringBuilder _logFromErrors = new StringBuilder();
+        private string userId = string.Empty;
+        private string mrn = string.Empty;
+        private PlanType planType = PlanType.None;
+        private string template = string.Empty;
+        private string selectedSS = string.Empty;
         bool changesSaved = false;
-        List<Tuple<string, string, int, DoseValue, double>> prescriptions;
-        private List<string> addedPrelimTargets;
-        private List<string> addedStructures;
-        private List<Tuple<string, TSManipulationType, double>> structureManipulations;
-        private List<Tuple<string, string>> tsTargets;
-        private List<Tuple<string, string>> normVolumes;
-        private List<Tuple<string, List<string>>> isoNames;
-        private List<string> planUIDs;
-        private List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> optimizationConstraints;
+        List<PrescriptionModel> prescriptions = new List<PrescriptionModel>();
+        private List<string> addedPrelimTargets = new List<string>();
+        private List<string> addedStructures = new List<string>();
+        private Dictionary<string, string> tsTargets = new Dictionary<string, string>();
+        private Dictionary<string, string> normVolumes = new Dictionary<string, string>();
+        private List<PlanIsocenterModel> planIsocenters = new List<PlanIsocenterModel>();
+        private List<string> planUIDs = new List<string>();
         private ScriptOperationType opType = ScriptOperationType.General;
 
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="path"></param>
-        /// <param name="theType"></param>
-        /// <param name="patient"></param>
-        public Logger(string path, PlanType theType, string patient)
+        public Logger()
         {
-            logPath = path;
-            planType = theType;
-            mrn = patient;
-
-            selectedSS = "";
-            prescriptions = new List<Tuple<string, string, int, DoseValue, double>> { };
-            addedPrelimTargets = new List<string> { };
-            addedStructures = new List<string> { };
-            structureManipulations = new List<Tuple<string, TSManipulationType, double>> { };
-            tsTargets = new List<Tuple<string, string>> { };
-            normVolumes = new List<Tuple<string, string>> { };
-            isoNames = new List<Tuple<string, List<string>>> { };
-            planUIDs = new List<string> { };
-            optimizationConstraints = new List<Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>>> { };
-            _logFromOperations = new StringBuilder();
-            _logFromErrors = new StringBuilder();
         }
 
         /// <summary>
@@ -224,7 +214,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             sb.AppendLine($"Template={template}");
             sb.AppendLine("");
             sb.AppendLine("Prescriptions:");
-            foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions) sb.AppendLine($"    {{{itr.Item1},{itr.Item2},{itr.Item3},{itr.Item4.Dose},{itr.Item5}}}");
+            foreach (PrescriptionModel itr in prescriptions) sb.AppendLine($"    {{{itr.PlanId},{itr.TargetId},{itr.NumberOfFractions},{itr.DosePerFraction.Dose},{itr.CumulativeDoseToTarget}}}");
             sb.AppendLine("");
 
             sb.AppendLine("Added TS structures:");
@@ -232,14 +222,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             sb.AppendLine("");
 
             sb.AppendLine("Structure manipulations:");
-            foreach (Tuple<string, TSManipulationType, double> itr in structureManipulations) sb.AppendLine($"    {{{itr.Item1},{itr.Item2},{itr.Item3}}}");
+            foreach (RequestedTSManipulationModel itr in StructureManipulations) sb.AppendLine($"    {{{itr.StructureId},{itr.ManipulationType},{itr.MarginInCM}}}");
             sb.AppendLine("");
 
             sb.AppendLine("Isocenter names:");
-            foreach (Tuple<string, List<string>> itr in isoNames)
+            foreach (PlanIsocenterModel itr in planIsocenters)
             {
-                sb.AppendLine($"    {itr.Item1}");
-                foreach (string s in itr.Item2)
+                sb.AppendLine($"    {itr.PlanId}");
+                foreach (string s in itr.Isocenters.Select(x => x.IsocenterId))
                 {
                     sb.AppendLine($"        {s}");
                 }
@@ -254,26 +244,26 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
             sb.AppendLine("");
 
             sb.AppendLine("TS Targets:");
-            foreach (Tuple<string, string> itr in tsTargets)
+            foreach (KeyValuePair<string,string> itr in tsTargets)
             {
-                sb.AppendLine($"    {{{itr.Item1},{itr.Item2}}}");
+                sb.AppendLine($"    {{{itr.Key},{itr.Value}}}");
             }
             sb.AppendLine("");
 
             sb.AppendLine("Normalization volumes:");
-            foreach (Tuple<string, string> itr in normVolumes)
+            foreach (KeyValuePair<string, string> itr in normVolumes)
             {
-                sb.AppendLine($"    {{{itr.Item1},{itr.Item2}}}");
+                sb.AppendLine($"    {{{itr.Key},{itr.Value}}}");
             }
             sb.AppendLine("");
 
             sb.AppendLine("Optimization constraints:");
-            foreach (Tuple<string, List<Tuple<string, OptimizationObjectiveType, double, double, int>>> itr in optimizationConstraints)
+            foreach (PlanOptimizationSetupModel itr in OptimizationConstraints)
             {
-                sb.AppendLine($"    {itr.Item1}");
-                foreach (Tuple<string, OptimizationObjectiveType, double, double, int> itr1 in itr.Item2)
+                sb.AppendLine($"    {itr.PlanId}");
+                foreach (OptimizationConstraintModel itr1 in itr.OptimizationConstraints)
                 {
-                    sb.AppendLine($"        {{{itr1.Item1},{itr1.Item2},{itr1.Item3},{itr1.Item4},{itr1.Item5}}}");
+                    sb.AppendLine($"        {{{itr1.StructureId},{itr1.ConstraintType},{itr1.QueryDose},{itr1.QueryVolume},{itr1.Priority}}}");
                 }
             }
             sb.AppendLine("");

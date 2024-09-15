@@ -27,20 +27,21 @@ namespace VMATCSIAutoPlanMT
                 string logPath = ConfigurationHelper.ReadLogPathFromConfigurationFile(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\configuration\\log_configuration.ini");
                 //if the log file path in the configuration file is empty, use the default path
                 if (string.IsNullOrEmpty(logPath)) logPath = ConfigurationHelper.GetDefaultLogPath();
-                Logger log = new Logger(logPath,
-                                        VMATTBICSIAutoPlanningHelpers.Enums.PlanType.VMAT_CSI,
-                                        theArguments.ElementAt(1));
+                
+                Logger.GetInstance().LogPath = logPath;
+                Logger.GetInstance().PlanType = VMATTBICSIAutoPlanningHelpers.Enums.PlanType.VMAT_CSI;
+                Logger.GetInstance().MRN = theArguments.ElementAt(1);
 
-                log.OpType = VMATTBICSIAutoPlanningHelpers.Enums.ScriptOperationType.AutoConvertHighToDefaultRes;
+                Logger.GetInstance().OpType = VMATTBICSIAutoPlanningHelpers.Enums.ScriptOperationType.AutoConvertHighToDefaultRes;
                 VMAT_CSI.AutoResConverter ARC = new VMAT_CSI.AutoResConverter(theArguments.ElementAt(1), theArguments.ElementAt(2));
                 bool result = ARC.Execute();
-                log.AppendLogOutput(ARC.GetLogOutput().ToString());
+                Logger.GetInstance().AppendLogOutput(ARC.GetLogOutput().ToString());
                 if (result)
                 {
-                    log.AppendLogOutput(ARC.GetErrorStackTrace());
-                    log.LogError("Unable to convert high resolution structures to default resolution! Try running the script normally and select the 'Generate Prelim Targets' tab");
+                    Logger.GetInstance().AppendLogOutput(ARC.GetErrorStackTrace());
+                    Logger.GetInstance().LogError("Unable to convert high resolution structures to default resolution! Try running the script normally and select the 'Generate Prelim Targets' tab");
                 }
-                AppClosingHelper.CloseApplication(ARC.GetAriaApplicationInstance(), ARC.GetIsPatientOpenStatus(), ARC.GetAriaIsModifiedStatus(), true, log);
+                AppClosingHelper.CloseApplication(ARC.GetAriaApplicationInstance(), ARC.GetIsPatientOpenStatus(), ARC.GetAriaIsModifiedStatus(), true);
                 Current.Shutdown();
             }
             else

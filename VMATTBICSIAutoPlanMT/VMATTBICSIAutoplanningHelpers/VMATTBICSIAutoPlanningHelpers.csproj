@@ -32,6 +32,24 @@
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>..\..\bin\VMAT-TBI-CSI\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="EvilDICOM, Version=2.0.6.5, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\EvilDICOM.2.0.6.5\lib\net472\EvilDICOM.dll</HintPath>
@@ -103,13 +121,11 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
-    <Reference Include="VMS.TPS.Common.Model.API, Version=1.0.300.11, Culture=neutral, PublicKeyToken=305b81e210ec4b89, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\VMS_TPS_resources\v15\VMS.TPS.Common.Model.API.dll</HintPath>
+    <Reference Include="VMS.TPS.Common.Model.API">
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\VMS.TPS.Common.Model.API.dll</HintPath>
     </Reference>
-    <Reference Include="VMS.TPS.Common.Model.Types, Version=1.0.300.11, Culture=neutral, PublicKeyToken=305b81e210ec4b89, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\VMS_TPS_resources\v15\VMS.TPS.Common.Model.Types.dll</HintPath>
+    <Reference Include="VMS.TPS.Common.Model.Types">
+      <HintPath>..\..\..\VMS_TPS_resources\16.1\VMS.TPS.Common.Model.Types.dll</HintPath>
     </Reference>
     <Reference Include="WindowsBase" />
   </ItemGroup>
@@ -119,24 +135,54 @@
     <Compile Include="BaseClasses\PlaceBeamsBase.cs" />
     <Compile Include="BaseClasses\PlanPrepBase.cs" />
     <Compile Include="BaseClasses\AutoPlanTemplateBase.cs" />
+    <Compile Include="DataContainers\PlanEvaluationDataContainer.cs" />
     <Compile Include="Delegates\AllDelegates.cs" />
     <Compile Include="Enums\AllEnums.cs" />
+    <Compile Include="EnumTypeHelpers\DVHMetricTypeHelper.cs" />
+    <Compile Include="EnumTypeHelpers\InequalityOperatorHelper.cs" />
+    <Compile Include="EnumTypeHelpers\UnitsTypeHelper.cs" />
     <Compile Include="Helpers\AppClosingHelper.cs" />
     <Compile Include="Helpers\CalculationHelper.cs" />
-    <Compile Include="Helpers\ExportFormatTypeHelper.cs" />
-    <Compile Include="Helpers\FlashTypeHelper.cs" />
+    <Compile Include="EnumTypeHelpers\ExportFormatTypeHelper.cs" />
+    <Compile Include="EnumTypeHelpers\FlashTypeHelper.cs" />
     <Compile Include="Helpers\PlanObjectiveHelper.cs" />
     <Compile Include="Helpers\PlanPrepHelper.cs" />
+    <Compile Include="Interfaces\IPlanConstraint.cs" />
+    <Compile Include="DataContainers\OptDataContainer.cs" />
+    <Compile Include="Interfaces\IPlanQualityEvaluation.cs" />
+    <Compile Include="Models\DaemonModel.cs" />
+    <Compile Include="Models\FieldJunctionModel.cs" />
+    <Compile Include="Models\IsocenterModel.cs" />
+    <Compile Include="Models\OptimizationConstraintModel.cs" />
+    <Compile Include="Models\OptTSCreationCriteriaModel.cs" />
+    <Compile Include="Models\PlanFieldJunctionModel.cs" />
+    <Compile Include="Models\PlanIsocenterModel.cs" />
+    <Compile Include="Models\PlanObjectiveModel.cs" />
+    <Compile Include="Models\PlanObjectivesDeviationModel.cs" />
+    <Compile Include="Models\PlanOptConstraintsDeviationModel.cs" />
+    <Compile Include="Models\PlanOptimizationSetupModel.cs" />
+    <Compile Include="Models\PlanTargetsModel.cs" />
+    <Compile Include="Models\PrescriptionModel.cs" />
+    <Compile Include="Models\RequestedOptimizationTSStructureModel.cs" />
+    <Compile Include="Models\RequestedPlanMetricModel.cs" />
+    <Compile Include="Models\RequestedTSStructureModel.cs" />
+    <Compile Include="Models\RequestedTSManipulationModel.cs" />
+    <Compile Include="Models\TargetModel.cs" />
+    <Compile Include="Models\TSCoolerStructureModel.cs" />
+    <Compile Include="Models\TSHeaterStructureModel.cs" />
+    <Compile Include="Models\TSRingStructureModel.cs" />
     <Compile Include="Helpers\RingHelper.cs" />
+    <Compile Include="Models\TSTargetCropOverlapModel.cs" />
+    <Compile Include="Models\UnionStructureModel.cs" />
     <Compile Include="PlanTemplateClasses\TBIAutoPlanTemplate.cs" />
-    <Compile Include="Structs\ImportExportDataStruct.cs" />
+    <Compile Include="Models\ImportExportDataModel.cs" />
     <Compile Include="UIHelpers\ConfigurationUIHelper.cs" />
     <Compile Include="Helpers\ContourHelper.cs" />
     <Compile Include="Helpers\OptimizationLoopHelper.cs" />
-    <Compile Include="Helpers\OptimizationTypeHelper.cs" />
+    <Compile Include="EnumTypeHelpers\OptimizationTypeHelper.cs" />
     <Compile Include="Helpers\PlanEvaluationHelper.cs" />
     <Compile Include="Helpers\TSHeaterCoolerHelper.cs" />
-    <Compile Include="Helpers\TSManipulationTypeHelper.cs" />
+    <Compile Include="EnumTypeHelpers\TSManipulationTypeHelper.cs" />
     <Compile Include="Helpers\WinUtilitiesModified.cs" />
     <Compile Include="Logging\LogHelper.cs" />
     <Compile Include="Prompts\SelectItemPrompt.xaml.cs">
@@ -151,19 +197,17 @@
     <Compile Include="Prompts\ConfirmPrompt.xaml.cs">
       <DependentUpon>ConfirmPrompt.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Structs\OptDataContainerStruct.cs" />
     <Compile Include="Helpers\OptimizationSetupHelper.cs" />
     <Compile Include="Helpers\StructureTuningHelper.cs" />
     <Compile Include="Helpers\TargetsHelper.cs" />
     <Compile Include="Logging\Logger.cs" />
-    <Compile Include="Structs\EvalPlanStruct.cs" />
     <Compile Include="UIHelpers\BeamPlacementUIHelper.cs" />
     <Compile Include="Helpers\ConfigurationHelper.cs" />
-    <Compile Include="Helpers\CTImageExport.cs" />
     <Compile Include="UIHelpers\CropOverlapOARUIHelper.cs" />
     <Compile Include="UIHelpers\ExportCTUIHelper.cs" />
     <Compile Include="UIHelpers\GeneralUIHelper.cs" />
     <Compile Include="Helpers\IsoNameHelper.cs" />
+    <Compile Include="UIHelpers\ImportSSUIHelper.cs" />
     <Compile Include="UIHelpers\OptimizationLoopUIHelper.cs" />
     <Compile Include="UIHelpers\OptimizationSetupUIHelper.cs" />
     <Compile Include="UIHelpers\PlanPrepUIHelper.cs" />

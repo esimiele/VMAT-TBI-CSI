@@ -40,7 +40,8 @@
     public enum PlanType
     {
         VMAT_TBI,
-        VMAT_CSI
+        VMAT_CSI,
+        None
     };
 
     /// <summary>
@@ -59,8 +60,38 @@
     {
         General,
         ExportCT,
+        ImportSS,
         GeneratePrelimTargets,
         PlanPrep,
         AutoConvertHighToDefaultRes
+    };
+
+    public enum Units
+    {
+        cGy,
+        Gy,
+        cc,
+        Percent,
+        None
+    };
+
+    public enum DVHMetric
+    {
+        Dmax,
+        Dmin,
+        Dmean,
+        DoseAtVolume,
+        VolumeAtDose,
+        None
+    };
+
+    public enum InequalityOperator
+    {
+        GreaterThan,
+        LessThan,
+        GreaterThanOrEqualTo,
+        LessThanOrEqualTo,
+        Equal,
+        None
     };
 }

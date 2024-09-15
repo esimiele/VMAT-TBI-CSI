@@ -8,31 +8,29 @@ using VMATTBICSIAutoPlanningHelpers.Prompts;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using SimpleProgressWindow;
 using System.Reflection;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
 {
     public class PlaceBeamsBase : SimpleMTbase
     {
         //get methods
-        public List<ExternalPlanSetup> GetGeneratedVMATPlans() { return vmatPlans; }
-        public List<Tuple<ExternalPlanSetup, List<Structure>>> GetFieldJunctionStructures() { return jnxs; }
-        public string GetErrorStackTrace() { return stackTraceError; }
+        public List<ExternalPlanSetup> VMATPlans { get; protected set; } = new List<ExternalPlanSetup>();
+        public List<PlanFieldJunctionModel> FieldJunctions { get; protected set; } = new List<PlanFieldJunctionModel> { };
+        public string StackTraceError { get; protected set; } = string.Empty;
 
         protected bool contourOverlap = false;
-        protected List<ExternalPlanSetup> vmatPlans = new List<ExternalPlanSetup> { };
         private string courseId;
         protected Course theCourse;
         protected StructureSet selectedSS;
         //plan ID, target Id, numFx, dosePerFx, cumulative dose
-        protected List<Tuple<string, string, int, DoseValue, double>> prescriptions;
+        protected List<PrescriptionModel> prescriptions;
         protected string calculationModel = "";
         protected string optimizationModel = "";
         protected string useGPUdose = "";
         protected string useGPUoptimization = "";
         protected string MRrestart = "";
         protected double contourOverlapMargin;
-        protected List<Tuple<ExternalPlanSetup,List<Structure>>> jnxs = new List<Tuple<ExternalPlanSetup, List<Structure>>> { };
-        protected string stackTraceError;
 
         #region virtual methods
         /// <summary>
@@ -45,14 +43,14 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             int numExistingPlans = 0;
             int calcItems = prescriptions.Count;
             int counter = 0;
-            foreach (Tuple<string, string, int, DoseValue, double> itr in prescriptions)
+            foreach (PrescriptionModel itr in prescriptions)
             {
-                if (theCourse.ExternalPlanSetups.Where(x => string.Equals(x.Id, itr.Item1)).Any())
+                if (theCourse.ExternalPlanSetups.Where(x => string.Equals(x.Id, itr.PlanId)).Any())
                 {
                     numExistingPlans++;
-                    ProvideUIUpdate(100 * ++counter / calcItems, $"Plan {itr.Item1} EXISTS in course {courseId}");
+                    ProvideUIUpdate(100 * ++counter / calcItems, $"Plan {itr.PlanId} EXISTS in course {courseId}");
                 }
-                else ProvideUIUpdate(100 * ++counter / calcItems, $"Plan {itr.Item1} does not exist in course {courseId}");
+                else ProvideUIUpdate(100 * ++counter / calcItems, $"Plan {itr.PlanId} does not exist in course {courseId}");
             }
             if (numExistingPlans > 0)
             {
@@ -71,7 +69,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// </summary>
         /// <param name="isoLocations"></param>
         /// <returns></returns>
-        protected virtual bool SetVMATBeams(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> isoLocations)
+        protected virtual bool SetVMATBeams(PlanIsocenterModel isoLocations)
         {
             //needs to be implemented by deriving class
             return true;
@@ -81,9 +79,9 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// Virtual method for calculating the isocenter positions for all plans
         /// </summary>
         /// <returns></returns>
-        protected virtual List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> GetIsocenterPositions()
+        protected virtual List<PlanIsocenterModel> GetIsocenterPositions()
         {
-            return new List<Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>>> { };
+            return new List<PlanIsocenterModel> { };
         }
         #endregion
 
@@ -93,10 +91,10 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// </summary>
         /// <param name="cId"></param>
         /// <param name="presc"></param>
-        public void Initialize(string cId, List<Tuple<string, string, int, DoseValue, double>> presc)
+        public void Initialize(string cId, List<PrescriptionModel> presc)
         {
             courseId = cId;
-            prescriptions = new List<Tuple<string, string, int, DoseValue, double>>(presc);
+            prescriptions = new List<PrescriptionModel>(presc);
         }
 
         /// <summary>
@@ -156,24 +154,24 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         protected bool CreateVMATPlans()
         {
             UpdateUILabel("Creating VMAT plans: ");
-            foreach (Tuple<string, string, int, DoseValue, double> itr in TargetsHelper.GetHighestRxPrescriptionForEachPlan(prescriptions))
+            foreach (PrescriptionModel itr in TargetsHelper.GetHighestRxPrescriptionForEachPlan(prescriptions))
             {
                 int counter = 0;
                 int calcItems = 5;
-                ProvideUIUpdate(0, $"Creating plan {itr.Item1}");
+                ProvideUIUpdate(0, $"Creating plan {itr.PlanId}");
                 ExternalPlanSetup thePlan = theCourse.AddExternalPlanSetup(selectedSS);
-                ProvideUIUpdate(100 * ++counter / calcItems, $"Created plan {itr.Item1}");
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Created plan {itr.PlanId}");
 
                 //100% dose prescribed in plan and plan ID is in the prescriptions
-                thePlan.SetPrescription(itr.Item3, itr.Item4, 1.0);
-                ProvideUIUpdate(100 * ++counter / calcItems, $"Set prescription for plan {itr.Item1}");
+                thePlan.SetPrescription(itr.NumberOfFractions, itr.DosePerFraction, 1.0);
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Set prescription for plan {itr.PlanId}");
 
-                string planName = itr.Item1;
+                string planName = itr.PlanId;
                 thePlan.Id = planName;
                 ProvideUIUpdate(100 * ++counter / calcItems, $"Set plan Id for {planName}");
 
                 //ask the user to set the calculation model if it was not configured
-                if (calculationModel == "")
+                if (string.IsNullOrEmpty(calculationModel))
                 {
                     SelectItemPrompt SIP = new SelectItemPrompt("No calculation model set!" + Environment.NewLine + "Please select a calculation model!", thePlan.GetModelsForCalculationType(CalculationType.PhotonVolumeDose).ToList());
                     SIP.ShowDialog();
@@ -200,8 +198,8 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 //v16 of Eclipse allows for the creation of a plan with a named target structure and named primary reference point. Neither of these options are available in v15
                 //plan.TargetVolumeID = selectedSS.Structures.First(x => x.Id == "xx");
                 //plan.PrimaryReferencePoint = plan.ReferencePoints.Fisrt(x => x.Id == "xx");
-                vmatPlans.Add(thePlan);
-                ProvideUIUpdate(100 * ++counter / calcItems, $"Added plan {itr.Item1} to stack!");
+                VMATPlans.Add(thePlan);
+                ProvideUIUpdate(100 * ++counter / calcItems, $"Added plan {itr.PlanId} to stack!");
             }
             ProvideUIUpdate(100, "Finished creating and initializing plans!");
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
@@ -267,20 +265,19 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="v"></param>
         /// <param name="plan"></param>
         /// <returns></returns>
-        protected VVector RoundIsocenterPositions(VVector v, ExternalPlanSetup plan)
+        protected VVector RoundIsocenterPosition(VVector v, ExternalPlanSetup plan)
         {
             int counter = 0;
             int calcItems = 3;
             ProvideUIUpdate(100 * ++counter / calcItems, "Rounding Y- and Z-positions to nearest integer values");
+            v = plan.StructureSet.Image.DicomToUser(v, plan);
             //round z position to the nearest integer
-            v = selectedSS.Image.DicomToUser(v, plan);
             v.x = Math.Round(v.x / 10.0f) * 10.0f;
             v.y = Math.Round(v.y / 10.0f) * 10.0f;
             v.z = Math.Round(v.z / 10.0f) * 10.0f;
             ProvideUIUpdate(100 * ++counter / calcItems, $"Calculated isocenter position (user coordinates): ({v.x}, {v.y}, {v.z})");
-            v = selectedSS.Image.UserToDicom(v, plan);
             ProvideUIUpdate(100 * ++counter / calcItems, "Adding calculated isocenter position to stack!");
-            return v;
+            return plan.StructureSet.Image.UserToDicom(v, plan);
         }
 
         /// <summary>
@@ -289,31 +286,30 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="isoLocations"></param>
         /// <param name="isoCount"></param>
         /// <returns></returns>
-        protected bool ContourFieldOverlap(Tuple<ExternalPlanSetup, List<Tuple<VVector, string, int>>> isoLocations, int isoCount)
+        protected bool ContourFieldOverlap(PlanIsocenterModel isoLocations, int isoCount)
         {
             UpdateUILabel("Contour field overlap:");
-
             ProvideUIUpdate($"Contour overlap margin: {contourOverlapMargin:0.0} cm");
             contourOverlapMargin *= 10;
             ProvideUIUpdate($"Contour overlap margin: {contourOverlapMargin:0.00} mm");
 
             int percentCompletion = 0;
-            int calcItems = 3 + 7 * isoLocations.Item2.Count - 1;
+            int calcItems = 3 + 7 * isoLocations.Isocenters.Count - 1;
             //grab target Id for this prescription item
-            if(!prescriptions.Any(x => string.Equals(x.Item1, isoLocations.Item1.Id)))
+            if(!prescriptions.Any(x => string.Equals(x.PlanId, isoLocations.PlanId)))
             {
-                ProvideUIUpdate($"Error! No matching prescrition found for iso plan name {isoLocations.Item1.Id}", true);
+                ProvideUIUpdate($"Error! No matching prescrition found for iso plan name {isoLocations.PlanId}", true);
                 return true;
             }
-            string targetId = prescriptions.First(x => string.Equals(x.Item1, isoLocations.Item1.Id)).Item2;
+            string targetId = prescriptions.First(x => string.Equals(x.PlanId, isoLocations.PlanId)).TargetId;
 
             if(!StructureTuningHelper.DoesStructureExistInSS(targetId, selectedSS, true))
             {
-                ProvideUIUpdate($"Error getting target structure ({targetId}) for plan: {isoLocations.Item1.Id}! Exiting!", true);
+                ProvideUIUpdate($"Error getting target structure ({targetId}) for plan: {isoLocations.PlanId}! Exiting!", true);
                 return true;
             }
             Structure target_tmp = StructureTuningHelper.GetStructureFromId(targetId, selectedSS);
-            ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Retrieved target: {target_tmp.Id} for plan: {isoLocations.Item1.Id}");
+            ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Retrieved target: {target_tmp.Id} for plan: {isoLocations.PlanId}");
 
             //grab the image and get the z resolution and dicom origin (we only care about the z position of the dicom origin)
             Image image = selectedSS.Image;
@@ -324,29 +320,26 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             ProvideUIUpdate($"DICOM origin: ({dicomOrigin.x:0.00}, {dicomOrigin.y:0.00}, {dicomOrigin.z:0.00}) mm");
 
             //center position between adjacent isocenters, number of image slices to contour on, start image slice location for contouring
-            List<Tuple<double, int, int>> overlap = new List<Tuple<double, int, int>> { };
+            List<FieldJunctionModel> overlap = new List<FieldJunctionModel> { };
             //calculate the center position between adjacent isocenters, number of image slices to contour on based on overlap and with additional user-specified margin (from main UI)
             //and the slice where the contouring should begin
-            List<Structure> tmpJnxList = new List<Structure> { };
-            for (int i = 1; i < isoLocations.Item2.Count; i++)
+            for (int i = 1; i < isoLocations.Isocenters.Count; i++)
             {
-                (bool fail, Tuple<double, int, int> result) = CalculateOverlapParameters(i,
-                                                                                         isoLocations.Item1,
-                                                                                         isoLocations.Item2.ElementAt(i - 1).Item1,
-                                                                                         isoLocations.Item2.ElementAt(i).Item1,
-                                                                                         zResolution,
-                                                                                         dicomOrigin.z);
+                (bool fail, FieldJunctionModel result) = CalculateOverlapParameters(i,
+                                                                                    VMATPlans.First(x => string.Equals(x.Id, isoLocations.PlanId,StringComparison.OrdinalIgnoreCase)),
+                                                                                    isoLocations.Isocenters.ElementAt(i - 1).IsocenterPosition,
+                                                                                    isoLocations.Isocenters.ElementAt(i).IsocenterPosition,
+                                                                                    zResolution,
+                                                                                    dicomOrigin.z);
                 if (fail) return true;
 
-                overlap.Add(result);
-
-                ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Starting slice to contour: {result.Item3}");
-                
+                ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Starting slice to contour: {result.StartSlice}");
                 //add a new junction structure (named TS_jnx<i>) to the stack. Contours will be added to these structure later
-                tmpJnxList.Add(selectedSS.AddStructure("CONTROL", $"TS_jnx{isoCount + i}"));
+                result.JunctionStructure = selectedSS.AddStructure("CONTROL", $"TS_jnx{isoCount + i}");
                 ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Added TS junction to stack: TS_jnx{isoCount + 1}");
+                overlap.Add(result);
             }
-            jnxs.Add(Tuple.Create(isoLocations.Item1, tmpJnxList));
+            FieldJunctions.Add(new PlanFieldJunctionModel(VMATPlans.First(x => string.Equals(x.Id, isoLocations.PlanId, StringComparison.OrdinalIgnoreCase)), overlap));
 
             //make a box at the min/max x,y positions of the target structure with no margin
             VVector[] targetBoundingBox = CreateTargetBoundingBox(target_tmp, 0.0);
@@ -354,19 +347,22 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
            
             //add the contours to each relevant plan for each structure in the jnxs stack
             int count = 0;
-            foreach (Tuple<double, int, int> value in overlap)
+            foreach(PlanFieldJunctionModel itr in FieldJunctions)
             {
-                percentCompletion = 0;
-                calcItems = value.Item2;
-                ProvideUIUpdate(0, $"Contouring junction: {tmpJnxList.ElementAt(count).Id}");
-                for (int i = value.Item3; i < (value.Item3 + value.Item2); i++)
+                foreach (FieldJunctionModel junction in overlap)
                 {
-                    tmpJnxList.ElementAt(count).AddContourOnImagePlane(targetBoundingBox, i);
-                    ProvideUIUpdate(100 * ++percentCompletion / calcItems);
+                    percentCompletion = 0;
+                    calcItems = junction.NumberOfCTSlices;
+                    ProvideUIUpdate(0, $"Contouring junction: {junction.JunctionStructure.Id}");
+                    for (int i = junction.StartSlice; i < (junction.StartSlice + junction.NumberOfCTSlices); i++)
+                    {
+                        junction.JunctionStructure.AddContourOnImagePlane(targetBoundingBox, i);
+                        ProvideUIUpdate(100 * ++percentCompletion / calcItems);
+                    }
+                    //only keep the portion of the box contour that overlaps with the target
+                    junction.JunctionStructure.SegmentVolume = junction.JunctionStructure.And(target_tmp.Margin(0));
+                    count++;
                 }
-                //only keep the portion of the box contour that overlaps with the target
-                tmpJnxList.ElementAt(count).SegmentVolume = tmpJnxList.ElementAt(count).And(target_tmp.Margin(0));
-                count++;
             }
             ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
             return false;
@@ -382,7 +378,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <param name="imageZResolution"></param>
         /// <param name="dicomOriginZ"></param>
         /// <returns></returns>
-        private (bool, Tuple<double,int,int>) CalculateOverlapParameters(int jnx, ExternalPlanSetup thePlan, VVector previousIso, VVector currentIso, double imageZResolution, double dicomOriginZ)
+        private (bool, FieldJunctionModel) CalculateOverlapParameters(int jnx, ExternalPlanSetup thePlan, VVector previousIso, VVector currentIso, double imageZResolution, double dicomOriginZ)
         {
             int percentCompletion = 0;
             int calcItems = 5;
@@ -413,9 +409,9 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             //calculate the center position between adjacent isocenters. NOTE: this calculation works from superior to inferior!
             double overlapCenter = previousIso.z + iso1Beam1.GetEditableParameters().ControlPoints.First().JawPositions.Y1 - contourOverlapMargin / 2 + numSlices / 2;
             ProvideUIUpdate(100 * ++percentCompletion / calcItems, $"Overlap center position: {overlapCenter:0.00} mm");
-            return (false, new Tuple<double, int, int>(overlapCenter, // the center location
-                                                       (int)(numSlices / imageZResolution), //total number of slices to contour
-                                                       (int)((overlapCenter - numSlices / 2 - dicomOriginZ) / imageZResolution))); // starting slice to contour
+            return (false, new FieldJunctionModel(overlapCenter, // the center location
+                                                  (int)(numSlices / imageZResolution), //total number of slices to contour
+                                                  (int)((overlapCenter - numSlices / 2 - dicomOriginZ) / imageZResolution))); // starting slice to contour
         }
 
         /// <summary>

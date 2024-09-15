@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using VMATTBICSIAutoPlanningHelpers.Structs;
 using VMATTBICSIAutoPlanningHelpers.BaseClasses;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
 using VMATTBICSIAutoPlanningHelpers.UIHelpers;
-using VMATTBICSIAutoPlanningHelpers.Enums;
+using VMATTBICSIAutoPlanningHelpers.Models;
+using VMATTBICSIAutoPlanningHelpers.DataContainers;
 
 namespace VMATTBICSIOptLoopMT.VMAT_CSI
 {
@@ -39,10 +39,10 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 //preliminary checks
                 UpdateUILabel("Preliminary checks:");
                 ProvideUIUpdate("Performing preliminary checks now:");
-                if (PreliminaryChecksSSAndImage(_data.selectedSS, TargetsHelper.GetAllTargetIds(_data.prescriptions))) return true;
-                if (PreliminaryChecksCouch(_data.selectedSS)) return true;
-                if (PreliminaryChecksPlans(_data.plans)) return true;
-                if (RunOptimizationLoop(_data.plans)) return true;
+                if (PreliminaryChecksSSAndImage(_data.StructureSet, TargetsHelper.GetAllTargetIds(_data.Prescriptions))) return true;
+                if (PreliminaryChecksCouch(_data.StructureSet)) return true;
+                if (PreliminaryChecksPlans(_data.Plans)) return true;
+                if (RunOptimizationLoop(_data.Plans)) return true;
                 OptimizationLoopFinished();
             }
             catch (Exception e)
@@ -59,9 +59,9 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
         protected void CalculateNumberOfItemsToComplete()
         {
             overallCalcItems = 3;
-            overallCalcItems += _data.plans.Count;
-            int optLoopItems = 5 * _data.numOptimizations * _data.plans.Count;
-            if (_data.oneMoreOpt) optLoopItems += 3;
+            overallCalcItems += _data.Plans.Count;
+            int optLoopItems = 5 * _data.NumberOfIterations * _data.Plans.Count;
+            if (_data.OneMoreOptimization) optLoopItems += 3;
             overallCalcItems += optLoopItems;
         }
 
@@ -213,7 +213,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
         /// <returns></returns>
         protected override bool ResolveRunOptions(List<ExternalPlanSetup> plans)
         {
-            if (_data.oneMoreOpt)
+            if (_data.OneMoreOptimization)
             {
                 UpdateUILabel("One more optimization:");
                 if (RunOneMoreOptionizationToLowerHotspots(plans)) return true;
@@ -230,7 +230,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
 
                     UpdateUILabel("Create plan sum:");
                     if (BuildPlanSum(evalPlan, plans)) return true;
-                    ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, evalPlan, _data.normalizationVolumes));
+                    ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.RequestedPlanMetrics, evalPlan, _data.NormalizationVolumes));
                 }
             }
             return false;
@@ -249,11 +249,11 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
 
             int percentComplete = 0;
             int calcItems = 4;
-            List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>> theList = new List<Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>>
+            List<RequestedOptimizationTSStructureModel> theList = new List<RequestedOptimizationTSStructureModel>
                         {
-                            new Tuple<string, double, double, double, int, List<Tuple<string, double, string, double>>>("TS_cooler101",107.0,101.0,0.0,100, new List<Tuple<string, double, string, double>>{ })
+                            new TSCoolerStructureModel("TS_cooler101",107.0,101.0,100, 0.0)
                         };
-            (bool fail, List<Tuple<string, OptimizationObjectiveType, double, double, int>> addedTSCoolerConstraint) = UpdateHeaterCoolerStructures(initialPlan, true, theList, false);
+            (bool fail, List<OptimizationConstraintModel> addedTSCoolerConstraint) = UpdateHeaterCoolerStructures(initialPlan, true, theList, false);
             if (fail)
             {
                 //user killed operation while generating heater and cooler structures
@@ -261,9 +261,9 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 return true;
             }
             ProvideUIUpdate(100 * ++percentComplete / calcItems);
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(initialPlan);
+            List<OptimizationConstraintModel> optParams = OptimizationSetupHelper.ReadConstraintsFromPlan(initialPlan);
             optParams.AddRange(addedTSCoolerConstraint);
-            ProvideUIUpdate(100 * ++percentComplete / calcItems, OptimizationLoopUIHelper.PrintPlanOptimizationConstraints(initialPlan.Id, optParams));
+            ProvideUIUpdate(100 * ++percentComplete / calcItems, OptimizationLoopUIHelper.PrintPlanOptimizationConstraints(initialPlan, optParams));
 
             UpdateConstraints(optParams, initialPlan);
             ProvideUIUpdate(100 * ++percentComplete / calcItems);
@@ -289,54 +289,42 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
         protected override bool RunSequentialPlansOptimizationLoop(List<ExternalPlanSetup> plans)
         {
             //a requirement for sequentional optimization
-            List<Tuple<string, string>> plansTargets = TargetsHelper.GetHighestRxPlanTargetList(_data.prescriptions);
+            Dictionary<string, string> plansTargets = TargetsHelper.GetHighestRxPlanTargetList(_data.Prescriptions);
             if(!plansTargets.Any())
             {
                 ProvideUIUpdate("Error! Prescriptions are missing! Cannot determine the appropriate target for each plan! Exiting!", true);
                 return true;
             }
             int percentComplete = 0;
-            int calcItems = 5 * plans.Count() * _data.numOptimizations;
+            int calcItems = 5 * plans.Count() * _data.NumberOfIterations;
             //first need to create a plan sum
-            evalPlan = CreatePlanSum(_data.selectedSS, plans);
+            evalPlan = CreatePlanSum(_data.StructureSet, plans);
             if (evalPlan == null) return true;
 
             foreach (ExternalPlanSetup itr in plans) InitializeOptimizationConstriants(itr);
 
             ProvideUIUpdate("Starting optimization loop!");
             int count = 0;
-            while(count < _data.numOptimizations)
+            while(count < _data.NumberOfIterations)
             {
-                bool oneMoreOptNextItr = _data.oneMoreOpt && count + 1 == _data.numOptimizations;
+                bool oneMoreOptNextItr = _data.OneMoreOptimization && count + 1 == _data.NumberOfIterations;
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Iteration {count + 1}:");
                 ProvideUIUpdate($"Elapsed time: {GetElapsedTime()}");
                 foreach (ExternalPlanSetup itr in plans)
                 {
-                    //string exeName = "ParallelTest";
-                    //string path = AppExePath(exeName);
-                    //if (!string.IsNullOrEmpty(path))
-                    //{
-                    //    ProcessStartInfo p = new ProcessStartInfo(path);
-                    //    p.Arguments = String.Format("{0} {1}", _data.id, itr.UID);
-                    //    Process.Start(p);
-                    //}
-                    //else ProvideUIUpdate("Executable path was empty");
-                    //Testing t = new Testing(_data.isDemo, itr);
-                    //Thread worker = new Thread(t.Run);
-                    //worker.Start(t);
                     ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Optimizing plan: {itr.Id}!");
-                    if (OptimizePlan(_data.isDemo, new OptimizationOptionsVMAT(OptimizationIntermediateDoseOption.NoIntermediateDose, ""), itr, _data.app)) return true;
+                    if (OptimizePlan(_data.IsDemo, new OptimizationOptionsVMAT(OptimizationIntermediateDoseOption.NoIntermediateDose, ""), itr, _data.Application)) return true;
                     ProvideUIUpdate(100 * ++percentComplete / calcItems, "Optimization finished! Calculating dose!");
-                    if (CalculateDose(_data.isDemo, itr, _data.app)) return true;
+                    if (CalculateDose(_data.IsDemo, itr, _data.Application)) return true;
                     ProvideUIUpdate(100 * ++percentComplete / calcItems, "Dose calculated, normalizing plan!");
                     //normalize
                     if(NormalizePlan(itr, 
-                                     TargetsHelper.GetTargetStructureForPlanType(_data.selectedSS, 
-                                                                                 OptimizationLoopHelper.GetNormaliztionVolumeIdForPlan(itr.Id, _data.normalizationVolumes), 
-                                                                                 _data.useFlash, 
-                                                                                 _data.planType), 
-                                     _data.relativeDose, 
-                                     _data.targetVolCoverage)) return true;
+                                     TargetsHelper.GetTargetStructureForPlanType(_data.StructureSet, 
+                                                                                 OptimizationLoopHelper.GetNormaliztionVolumeIdForPlan(itr.Id, _data.NormalizationVolumes), 
+                                                                                 _data.UseFlash, 
+                                                                                 _data.PlanType), 
+                                     _data.TreatmentPercentage, 
+                                     _data.TargetCoverageNormalization)) return true;
                     if (GetAbortStatus())
                     {
                         KillOptimizationLoop();
@@ -347,9 +335,9 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 }
                 
                 if (BuildPlanSum(evalPlan, plans)) return true;
-                ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, evalPlan, _data.normalizationVolumes));
+                ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.RequestedPlanMetrics, evalPlan, _data.NormalizationVolumes));
 
-                if (EvaluatePlanSumQuality(evalPlan, _data.planObj))
+                if (EvaluatePlanSumQuality(evalPlan, _data.PlanObjectives))
                 {
                     ProvideUIUpdate($"All plan objectives met for plan sum: {evalPlan.Id}! Exiting!");
                     return false;
@@ -357,7 +345,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 else
                 {
                     ProvideUIUpdate("All plan objectives NOT met! Updating heater and cooler structures!");
-                    (bool fail, List<Tuple<string, OptimizationObjectiveType, double, double, int>> updatedHeaterCoolerConstraints) = UpdateHeaterCoolerStructures(evalPlan, oneMoreOptNextItr, _data.requestedTSstructures);
+                    (bool fail, List<OptimizationConstraintModel> updatedHeaterCoolerConstraints) = UpdateHeaterCoolerStructures(evalPlan, oneMoreOptNextItr, _data.RequestedOptimizationTSStructures);
                     //did the user abort the program while updating the heater and cooler structures
                     if (fail)
                     {
@@ -368,21 +356,21 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                     foreach (ExternalPlanSetup itr in plans)
                     {
                         ProvideUIUpdate($"Adjusting optimization parameters for plan: {itr.Id}!");
-                        List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(itr);
+                        List<OptimizationConstraintModel> optParams = OptimizationSetupHelper.ReadConstraintsFromPlan(itr);
                         ProvideUIUpdate($"Evaluating quality of plan: {itr.Id}!");
-                        EvalPlanStruct e = EvaluatePlanSumComponentPlans(itr, optParams);
-                        if (e.wasKilled) return true;
+                        PlanEvaluationDataContainer e = EvaluatePlanSumComponentPlans(itr, optParams);
+                        if (e.OptimizationKilledByUser) return true;
 
-                        ProvideUIUpdate(OptimizationLoopUIHelper.PrintPlanOptimizationResultVsConstraints(itr, optParams, e.diffPlanOpt, e.totalCostPlanOpt));
-                        ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.requestedPlanDoseInfo, itr, _data.normalizationVolumes));
+                        ProvideUIUpdate(OptimizationLoopUIHelper.PrintPlanOptimizationResultVsConstraints(itr, optParams, e.PlanDifferenceFromOptConstraints, e.TotalOptimizationCostOptConstraints));
+                        ProvideUIUpdate(OptimizationLoopUIHelper.PrintAdditionalPlanDoseInfo(_data.RequestedPlanMetrics, itr, _data.NormalizationVolumes));
 
                         ProvideUIUpdate($"Scaling optimization parameters for heater cooler structures for plan: {itr.Id}!");
-                        e.updatedObj.AddRange(OptimizationLoopHelper.ScaleHeaterCoolerOptConstraints(itr.TotalDose.Dose, evalPlan.TotalDose.Dose, updatedHeaterCoolerConstraints));
+                        e.UpdatedOptimizationObjectives.AddRange(OptimizationLoopHelper.ScaleHeaterCoolerOptConstraints(itr.TotalDose.Dose, evalPlan.TotalDose.Dose, updatedHeaterCoolerConstraints));
 
-                        if(oneMoreOptNextItr) e.updatedObj = OptimizationLoopHelper.IncreaseOptConstraintPrioritiesForFinalOpt(e.updatedObj);
+                        if(oneMoreOptNextItr) e.UpdatedOptimizationObjectives = OptimizationLoopHelper.IncreaseOptConstraintPrioritiesForFinalOpt(e.UpdatedOptimizationObjectives);
 
-                        ProvideUIUpdate(100 * ++percentComplete / calcItems, OptimizationLoopUIHelper.PrintPlanOptimizationConstraints(itr.Id, e.updatedObj));
-                        UpdateConstraints(e.updatedObj, itr);
+                        ProvideUIUpdate(100 * ++percentComplete / calcItems, OptimizationLoopUIHelper.PrintPlanOptimizationConstraints(itr, e.UpdatedOptimizationObjectives));
+                        UpdateConstraints(e.UpdatedOptimizationObjectives, itr);
                     }
                 }
                 count++;
@@ -396,14 +384,13 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
         /// <param name="plan"></param>
         /// <param name="optParams"></param>
         /// <returns></returns>
-        private EvalPlanStruct EvaluatePlanSumComponentPlans(ExternalPlanSetup plan, List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams)
+        private PlanEvaluationDataContainer EvaluatePlanSumComponentPlans(ExternalPlanSetup plan, List<OptimizationConstraintModel> optParams)
         {
-            EvalPlanStruct e = new EvalPlanStruct();
-            e.Construct(); 
-            (double totalCostPlanOpt, List<Tuple<Structure, DVHData, double, double, double, int>> diffPlanOpt) = EvaluateResultVsOptimizationConstraints(plan, optParams);
-            e.totalCostPlanOpt = totalCostPlanOpt;
-            e.diffPlanOpt = diffPlanOpt;
-            e.updatedObj = DetermineNewOptimizationObjectives(plan, e.diffPlanOpt, e.totalCostPlanOpt, optParams);
+            PlanEvaluationDataContainer e = new PlanEvaluationDataContainer();
+            List<PlanOptConstraintsDeviationModel> diffPlanOpt = EvaluateResultVsOptimizationConstraints(plan, optParams);
+            e.TotalOptimizationCostOptConstraints = diffPlanOpt.Sum(x => x.OptimizationCost);
+            e.PlanDifferenceFromOptConstraints = diffPlanOpt;
+            e.UpdatedOptimizationObjectives = DetermineNewOptimizationObjectives(plan, e.PlanDifferenceFromOptConstraints, e.TotalOptimizationCostOptConstraints, optParams);
             return e;
         }
 
@@ -413,33 +400,17 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
         /// <param name="plan"></param>
         /// <param name="planObj"></param>
         /// <returns></returns>
-        private bool EvaluatePlanSumQuality(ExternalPlanSetup plan, List<Tuple<string, OptimizationObjectiveType, double, double, DoseValuePresentation>> planObj)
+        private bool EvaluatePlanSumQuality(ExternalPlanSetup plan, List<PlanObjectiveModel> planObj)
         {
             UpdateUILabel($"Plan sum evaluation: {plan.Id}");
             ProvideUIUpdate($"Parsing optimization objectives from plan: {plan.Id}");
-            List<Tuple<string, OptimizationObjectiveType, double, double, int>> optParams = OptimizationSetupUIHelper.ReadConstraintsFromPlan(plan);
+            List<OptimizationConstraintModel> optParams = OptimizationSetupHelper.ReadConstraintsFromPlan(plan);
             //get current optimization objectives from plan (we could use the optParams list, but we want the actual instances of the OptimizationObjective class so we can get the results from each objective)
-            (int, int, double, List<Tuple<Structure, DVHData, double, double>>) planObjectiveEvaluation = EvaluateResultVsPlanObjectives(plan, planObj, optParams);
+            List<PlanObjectivesDeviationModel> diffPlanObj = EvaluateResultVsPlanObjectives(plan, planObj, optParams);
             //all constraints met, exiting
-            if (planObjectiveEvaluation.Item1 == planObjectiveEvaluation.Item2) return true;
+            if ( diffPlanObj.All(x => x.ObjectiveMet == true)) return true;
             return false;
         }
-
-        //private string AppExePath(string exeName)
-        //{
-        //    return FirstExePathIn(Path.GetDirectoryName(GetSourceFilePath()), exeName);
-        //}
-
-        //private string FirstExePathIn(string dir, string exeName)
-        //{
-        //    return Directory.GetFiles(dir, "*.exe").FirstOrDefault(x => x.Contains(exeName));
-        //}
-
-        //private string GetSourceFilePath([CallerFilePath] string sourceFilePath = "")
-        //{
-        //    return @"\\enterprise.stanfordmed.org\depts\RadiationTherapy\Public\Users\ESimiele\Research\VMAT-TBI-CSI\bin\";
-        //}
-
         #endregion
     }
 }

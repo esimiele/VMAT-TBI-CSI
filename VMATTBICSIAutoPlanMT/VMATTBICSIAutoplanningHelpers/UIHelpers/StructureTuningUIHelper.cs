@@ -7,6 +7,8 @@ using System.Windows.Controls;
 using System.Text;
 using TSManipulationType = VMATTBICSIAutoPlanningHelpers.Enums.TSManipulationType;
 using VMATTBICSIAutoPlanningHelpers.Helpers;
+using VMATTBICSIAutoPlanningHelpers.EnumTypeHelpers;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
 {
@@ -67,7 +69,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <returns></returns>
         public static StackPanel AddTSVolume(StackPanel theSP, 
                                              StructureSet selectedSS, 
-                                             Tuple<string, string> listItem, 
+                                             RequestedTSStructureModel listItem, 
                                              string clearBtnPrefix, 
                                              int clearBtnCounter, 
                                              RoutedEventHandler clearEvtHndl)
@@ -108,7 +110,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                                             "DOSE_REGION" };
             
             foreach (string s in types) type_cb.Items.Add(s);
-            type_cb.Text = listItem.Item1;
+            type_cb.Text = listItem.DICOMType;
             sp.Children.Add(type_cb);
 
             ComboBox str_cb = new ComboBox();
@@ -120,7 +122,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             str_cb.HorizontalContentAlignment = HorizontalAlignment.Center;
             str_cb.Margin = new Thickness(50, 5, 0, 0);
 
-            if (!string.Equals(listItem.Item2, "--select--")) str_cb.Items.Add("--select--");
+            if (!string.Equals(listItem.StructureId, "--select--")) str_cb.Items.Add("--select--");
             //this code is used to fix the issue where the structure exists in the structure set, but doesn't populate as the default option in the combo box.
             int index = 0;
             //j is initially 1 because we already added "--select--" to the combo box
@@ -128,13 +130,13 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             foreach (Structure s in selectedSS.Structures)
             {
                 str_cb.Items.Add(s.Id);
-                if (string.Equals(s.Id.ToLower(),listItem.Item2.ToLower())) index = j;
+                if (string.Equals(s.Id.ToLower(),listItem.StructureId.ToLower())) index = j;
                 j++;
             }
             //if the structure does not exist in the structure set, add the requested structure id to the combobox option and set the selected index to the last item
-            if (!selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), listItem.Item2.ToLower())))
+            if (!selectedSS.Structures.Any(x => string.Equals(x.Id.ToLower(), listItem.StructureId.ToLower())))
             {
-                str_cb.Items.Add(listItem.Item2);
+                str_cb.Items.Add(listItem.StructureId);
                 str_cb.SelectedIndex = str_cb.Items.Count - 1;
             }
             else
@@ -165,10 +167,10 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// </summary>
         /// <param name="theSP"></param>
         /// <returns></returns>
-        public static (List<Tuple<string, string>>, StringBuilder) ParseCreateTSStructureList(StackPanel theSP)
+        public static (List<RequestedTSStructureModel>, StringBuilder) ParseCreateTSStructureList(StackPanel theSP)
         {
             StringBuilder sb = new StringBuilder();
-            List<Tuple<string, string>> TSStructureList = new List<Tuple<string, string>> { };
+            List<RequestedTSStructureModel> TSStructureList = new List<RequestedTSStructureModel> { };
             string dcmType = "";
             string structure = "";
             bool firstCombo = true;
@@ -194,10 +196,10 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                     if (dcmType == "--select--" || structure == "--select--")
                     {
                         sb.AppendLine("Error! \nStructure or DICOM Type not selected! \nSelect an option and try again");
-                        return (new List<Tuple<string, string>> { }, sb);
+                        return (new List<RequestedTSStructureModel> { }, sb);
                     }
                     //only add the current row to the structure sparing list if all the parameters were successful parsed
-                    else TSStructureList.Add(Tuple.Create(dcmType, structure));
+                    else TSStructureList.Add(new RequestedTSStructureModel(dcmType, structure));
                     firstCombo = true;
                 }
                 else headerObj = false;
@@ -283,7 +285,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <returns></returns>
         public static StackPanel AddTSManipulation(StackPanel theSP, 
                                                    List<string> structureIds, 
-                                                   Tuple<string, TSManipulationType, double> listItem, 
+                                                   RequestedTSManipulationModel listItem, 
                                                    string clearBtnPrefix, 
                                                    int clearSpareBtnCounter, 
                                                    SelectionChangedEventHandler typeChngHndl, 
@@ -316,7 +318,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 {
                     str_cb.Items.Add(itr);
                 }
-                str_cb.Items.Add(listItem.Item1);
+                str_cb.Items.Add(listItem.StructureId);
                 str_cb.SelectedIndex = str_cb.Items.Count - 1;
             }
             else
@@ -328,7 +330,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 foreach (string itr in structureIds)
                 {
                     str_cb.Items.Add(itr);
-                    if (itr.ToLower() == listItem.Item1.ToLower()) index = j;
+                    if (itr.ToLower() == listItem.StructureId.ToLower()) index = j;
                     j++;
                 }
                 str_cb.SelectedIndex = index;
@@ -348,7 +350,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             
             //add the possible manipulation types to the manipulation type combo box
             foreach (TSManipulationType s in Enum.GetValues(typeof(TSManipulationType))) type_cb.Items.Add(s);
-            if ((int)listItem.Item2 <= type_cb.Items.Count) type_cb.SelectedIndex = (int)listItem.Item2;
+            if ((int)listItem.ManipulationType <= type_cb.Items.Count) type_cb.SelectedIndex = (int)listItem.ManipulationType;
             else type_cb.SelectedIndex = 0;
             type_cb.SelectionChanged += typeChngHndl;
             sp.Children.Add(type_cb);
@@ -363,9 +365,9 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 TextAlignment = TextAlignment.Center,
                 VerticalContentAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(5, 5, 0, 0),
-                Text = String.Format("{0:0.0}", listItem.Item3)
+                Text = String.Format("{0:0.0}", listItem.MarginInCM)
             };
-            if (listItem.Item2 == TSManipulationType.None) addMargin.Visibility = Visibility.Hidden;
+            if (listItem.ManipulationType == TSManipulationType.None) addMargin.Visibility = Visibility.Hidden;
             sp.Children.Add(addMargin);
 
             Button clearStructBtn = new Button
@@ -430,10 +432,10 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// </summary>
         /// <param name="theSP"></param>
         /// <returns></returns>
-        public static (List<Tuple<string, TSManipulationType, double>>, StringBuilder) ParseTSManipulationList(StackPanel theSP)
+        public static (List<RequestedTSManipulationModel>, StringBuilder) ParseTSManipulationList(StackPanel theSP)
         {
             StringBuilder sb = new StringBuilder();
-            List<Tuple<string, TSManipulationType, double>> TSManipulationList = new List<Tuple<string, TSManipulationType, double>> { };
+            List<RequestedTSManipulationModel> TSManipulationList = new List<RequestedTSManipulationModel> { };
             string structure = "";
             string spareType = "";
             double margin = -1000.0;
@@ -465,16 +467,16 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                     if (structure == "--select--" || spareType == "--select--")
                     {
                         sb.AppendLine("Error! \nStructure or Sparing Type not selected! \nSelect an option and try again");
-                        return (new List<Tuple<string, TSManipulationType, double>> { }, sb);
+                        return (new List<RequestedTSManipulationModel> { }, sb);
                     }
                     //margin will not be assigned from the default value (-1000) if the input is empty, a whitespace, or NaN
                     else if (margin == -1000.0)
                     {
                         sb.AppendLine("Error! \nEntered margin value is invalid! \nEnter a new margin and try again");
-                        return (new List<Tuple<string, TSManipulationType, double>> { }, sb);
+                        return (new List<RequestedTSManipulationModel> { }, sb);
                     }
                     //only add the current row to the structure sparing list if all the parameters were successful parsed
-                    else TSManipulationList.Add(Tuple.Create(structure, TSManipulationTypeHelper.GetTSManipulationType(spareType), margin));
+                    else TSManipulationList.Add(new RequestedTSManipulationModel(structure, TSManipulationTypeHelper.GetTSManipulationType(spareType), margin));
                     firstCombo = true;
                     margin = -1000.0;
                 }

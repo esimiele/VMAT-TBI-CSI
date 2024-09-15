@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using VMATTBICSIAutoPlanningHelpers.Models;
 
 namespace VMATTBICSIAutoPlanningHelpers.Helpers
 {
@@ -9,14 +10,16 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="numVMATIsos"></param>
         /// <returns></returns>
-        public static List<string> GetCSIIsoNames(int numVMATIsos)
+        public static List<IsocenterModel> GetCSIIsoNames(int numVMATIsos)
         {
-            List<string> isoNames = new List<string> { };
-            isoNames.Add("Brain");
+            List<IsocenterModel> isoNames = new List<IsocenterModel>
+            {
+                new IsocenterModel("Brain")
+            };
             if(numVMATIsos > 1)
             {
-                if (numVMATIsos > 2) isoNames.Add("UpSpine");
-                isoNames.Add("LowSpine");
+                if (numVMATIsos > 2) isoNames.Add(new IsocenterModel("UpSpine"));
+                isoNames.Add(new IsocenterModel("LowSpine"));
             }
             return isoNames;
         }
@@ -27,37 +30,39 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="numVMATIsos"></param>
         /// <param name="numIsos"></param>
         /// <returns></returns>
-        public static List<string> GetTBIVMATIsoNames(int numVMATIsos, int numIsos)
+        public static List<IsocenterModel> GetTBIVMATIsoNames(int numVMATIsos, int numIsos)
         {
-            List<string> isoNames = new List<string> { };
-            isoNames.Add("Head");
+            List<IsocenterModel> isoNames = new List<IsocenterModel>
+            {
+                new IsocenterModel("Head")
+            };
             if (numVMATIsos > 1 || numIsos > 1)
             {
                 if (numIsos > numVMATIsos)
                 {
-                    if (numVMATIsos == 2) isoNames.Add("Pelvis");
+                    if (numVMATIsos == 2) isoNames.Add(new IsocenterModel("Pelvis"));
                     else
                     {
-                        isoNames.Add("Chest");
-                        if (numVMATIsos == 3) isoNames.Add("Pelvis");
+                        isoNames.Add(new IsocenterModel("Chest"));
+                        if (numVMATIsos == 3) isoNames.Add(new IsocenterModel("Pelvis"));
                         else if (numVMATIsos == 4)
                         {
-                            isoNames.Add("Abdomen");
-                            isoNames.Add("Pelvis");
+                            isoNames.Add(new IsocenterModel("Abdomen"));
+                            isoNames.Add(new IsocenterModel("Pelvis"));
                         }
                     }
                 }
                 else
                 {
-                    if (numVMATIsos == 2) isoNames.Add("Pelvis");
+                    if (numVMATIsos == 2) isoNames.Add(new IsocenterModel("Pelvis"));
                     else
                     {
-                        isoNames.Add("Chest");
-                        if (numVMATIsos == 3) isoNames.Add("Legs");
+                        isoNames.Add(new IsocenterModel("Chest"));
+                        if (numVMATIsos == 3) isoNames.Add(new IsocenterModel("Legs"));
                         else if (numVMATIsos == 4)
                         {
-                            isoNames.Add("Pelvis");
-                            isoNames.Add("Legs");
+                            isoNames.Add(new IsocenterModel("Pelvis"));
+                            isoNames.Add(new IsocenterModel("Legs"));
                         }
                     }
                 }
@@ -71,11 +76,13 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="numVMATIsos"></param>
         /// <param name="numIsos"></param>
         /// <returns></returns>
-        public static List<string> GetTBIAPPAIsoNames(int numVMATIsos, int numIsos)
+        public static List<IsocenterModel> GetTBIAPPAIsoNames(int numVMATIsos, int numIsos)
         {
-            List<string> isoNames = new List<string> { };
-            isoNames.Add("AP / PA upper legs");
-            if (numIsos == numVMATIsos + 2) isoNames.Add("AP / PA lower legs");
+            List<IsocenterModel> isoNames = new List<IsocenterModel>
+            {
+                new IsocenterModel("AP / PA upper legs")
+            };
+            if (numIsos == numVMATIsos + 2) isoNames.Add(new IsocenterModel("AP / PA lower legs"));
             return isoNames;
         }
     }

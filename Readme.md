@@ -9,7 +9,18 @@ An automated planning solution for VMAT TBI and VMAT CSI using the Eclipse Scrip
 	- Nataliya Kovalchuk: tester and project PI
 	- Jen-Yeu Wang: DICOM import/export developer and AI autosegmentation model developer
 
-## Initial public release of code
+## Updates
+### 9/15/2024
+- Migrated all Tuples in solution to dedicated classes for easier mantenance and debugging
+- Added unit tests for majority of methods in helpers library
+- Added ability to prompt the user with 'reminders' prior to starting the optimization loop (e.g., did you set avoid entry through this structure?)
+- Added tab to directly launch the import listener console. This is used when dicom import using the import listener failed on the first try (due to limitations in EvilDicom)
+- Changed default option of creating AP/PA plans for TBI. Now multiple plans are created instead placing all isocenters in a single plan
+- General bug fixes
+- All unit tests passing and code tested on 4 dry-run cases for both CSI and TBI. Performs as expected
+
+
+## Initial public release of code v1.0
 - The purpose of this code is to automate as much of the treatment planning process as possible for VMAT TBI and CSI following the planning techniques used at Stanford University
 - Code is now available to public following clinical release at Stanford
 - Feel free to download and use the code
@@ -94,6 +105,8 @@ An automated planning solution for VMAT TBI and VMAT CSI using the Eclipse Scrip
 	- VMATCSIAutoPlanMT
 	- VMATTBIAutoPlanMT
 	- VMATTBICSIAutoplanningHelpers
+	- VMATTBICSIOptLoopMT
+	- ImportListener
 
 ## Contributing
 - The authors welcome contributions, suggestions, issues, etc.
