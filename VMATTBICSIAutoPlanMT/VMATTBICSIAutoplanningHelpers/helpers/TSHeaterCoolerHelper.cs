@@ -136,7 +136,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     {
                         //dmax constraint
                         itr.QueryResult = plan.Dose.DoseMax3D.Dose;
-                        if (itr.QueryResultUnits == Units.Percent) itr.QueryResult *= (100 / plan.TotalDose.Dose);
+                        if (itr.QueryResultUnits == Units.Percent) itr.QueryResult *= (plan.TotalDose.Dose / 100);
                         else if (itr.QueryResultUnits == Units.Gy) itr.QueryResult /= 100;
                     }
                     else if (itr.DVHMetric == DVHMetric.Dmean)
