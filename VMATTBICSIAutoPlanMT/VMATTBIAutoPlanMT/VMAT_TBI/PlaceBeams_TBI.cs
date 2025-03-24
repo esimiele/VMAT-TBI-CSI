@@ -252,34 +252,32 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             int calcItems = 10;
             Image _image = selectedSS.Image;
             VVector userOrigin = _image.UserOrigin;
-            double isoSeparation = CalculateIsocenterSeparation(targetSupExtent, targetInfExtent, maxFieldYExtent, minOverlap, totalNumIsos - numVMATIsos);
 
             double offsetZ = lastVMATIsoZPosition - targetSupExtent;
             int isoCount = 0;
-            foreach(IsocenterModel itr in isos)
+            foreach (IsocenterModel itr in isos)
             {
                 VVector v = new VVector();
                 v.x = userOrigin.x;
                 v.y = userOrigin.y + offsetY;
                 //5-11-2020 update EAS (the first isocenter immediately inferior to the matchline is now a distance = offset away). This ensures the isocenters immediately inferior and superior to the 
                 //matchline are equidistant from the matchline
-                if(isoCount < 1)
+                if (isoCount < 1)
                 {
-                    v.z = targetSupExtent - isoCount * isoSeparation - offsetZ;
+                    v.z = targetSupExtent - offsetZ;
                 }
                 else
                 {
-                    double legsTargetExtent = StructureTuningHelper.GetStructureFromId("matchline", selectedSS).CenterPoint.z - targetInfExtent;
-                    if (legsTargetExtent < 600.0)
+                    if ((targetSupExtent - targetInfExtent) < 600.0)
                     {
-                        ProvideUIUpdate($"Separation between matchline center z and target inferior extent: {legsTargetExtent:0.0} mm");
-                        ProvideUIUpdate($"legs target extent is < 60 cm! Adjusting isocenter z position from {v.z:0.0} mm to {v.z:0.0} mm");
+                        ProvideUIUpdate($"Separation between matchline center z and target inferior extent: {(targetSupExtent - targetInfExtent):0.0} mm");
+                        ProvideUIUpdate($"legs target extent is < 60 cm! Adjusting isocenter z position from {(isos.First().IsocenterPosition.z - 390.0):0.0} mm to {(isos.First().IsocenterPosition.z - 200.0):0.0} mm");
                         v.z = isos.First().IsocenterPosition.z - 200.0;
                     }
-                    else v.z = v.z - 390.0;
+                    else v.z = isos.First().IsocenterPosition.z - 390.0;
                 }
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated isocenter position {isoCount + 1}");
-                itr.IsocenterPosition = RoundIsocenterPosition(v, legsPlans.First());
+                itr.IsocenterPosition = RoundIsocenterPosition(v, legsPlans.ElementAt(isoCount));
                 isoCount++;
             }
             return isos;

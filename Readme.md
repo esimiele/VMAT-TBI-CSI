@@ -10,6 +10,9 @@ An automated planning solution for VMAT TBI and VMAT CSI using the Eclipse Scrip
 	- Jen-Yeu Wang: DICOM import/export developer and AI autosegmentation model developer
 
 ## Updates
+### 3/24/25
+- Applied hotfix for lower leg iso placement for TBI autoplanner (when matchline to lower body extent was greater than 60 cm, iso was being placed relative to image origin rather than upper leg iso position --> now fixed)
+
 ### 9/15/2024
 - Migrated all Tuples in solution to dedicated classes for easier mantenance and debugging
 - Added unit tests for majority of methods in helpers library
