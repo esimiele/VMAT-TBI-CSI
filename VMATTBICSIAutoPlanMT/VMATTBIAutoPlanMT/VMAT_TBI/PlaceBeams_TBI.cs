@@ -252,7 +252,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             int calcItems = 10;
             Image _image = selectedSS.Image;
             VVector userOrigin = _image.UserOrigin;
-            double isoSeparation = CalculateIsocenterSeparation(targetSupExtent, targetInfExtent, maxFieldYExtent, minOverlap, totalNumIsos - numVMATIsos);
 
             double offsetZ = lastVMATIsoZPosition - targetSupExtent;
             int isoCount = 0;
@@ -278,7 +277,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     else v.z = isos.First().IsocenterPosition.z - 390.0;
                 }
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Calculated isocenter position {isoCount + 1}");
-                itr.IsocenterPosition = RoundIsocenterPosition(v, legsPlans.First());
+                itr.IsocenterPosition = RoundIsocenterPosition(v, legsPlans.ElementAt(isoCount));
                 isoCount++;
             }
             return isos;
