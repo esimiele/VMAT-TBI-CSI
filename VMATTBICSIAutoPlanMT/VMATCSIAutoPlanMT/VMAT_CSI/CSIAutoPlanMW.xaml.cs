@@ -37,7 +37,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //log file path
         string logPath;
         //struct to hold all the import/export info
-        ImportExportDataModel IEData;
+        ImportExportDataModel IEData = null;
         //flag to indicate whether a CT image has been exported (getting connection conflicts because the port is still being used from the first export)
         bool imgExported = false;
         //treatment units and associated photon beam energies

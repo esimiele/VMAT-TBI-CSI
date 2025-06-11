@@ -122,7 +122,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         public TBIAutoPlanMW(List<string> args)
         {
-            //args = new List<string> { "$TBIDryRun_3", "TBIDryRun_3" };
+            args = new List<string> { "$TBIDryRun_2", "TBIDryRun_2" };
             InitializeComponent();
             if (InitializeScript(args)) this.Close();
         }
