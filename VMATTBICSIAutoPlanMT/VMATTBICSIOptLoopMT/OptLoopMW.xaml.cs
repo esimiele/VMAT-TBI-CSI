@@ -441,20 +441,23 @@ namespace VMATTBICSIOptLoopMT
                     planTypeLabel.Content = "VMAT TBI";
                 }
 
-                thePlans = theCourse.ExternalPlanSetups.OrderBy(x => x.CreationDateTime).ToList();
-                if (thePlans.Count > 2)
+                thePlans = theCourse.ExternalPlanSetups.Where(x => x.Beams.Where(y => !y.IsSetupField).First().MLCPlanType == VMS.TPS.Common.Model.Types.MLCPlanType.VMAT).OrderBy(x => x.CreationDateTime).ToList();
+                if(!thePlans.Any()) MessageBox.Show($"Error! No plans found in course: {theCourse.Id}! Unable to determine which plan(s) should be used for optimization! Exiting!");
+                if (thePlans.Count > 1)
                 {
-                    MessageBox.Show($"Error! More than two plans found in course: {theCourse.Id}! Unable to determine which plan(s) should be used for optimization! Exiting!");
-                    thePlans = new List<ExternalPlanSetup> { };
-                }
-                else if (thePlans.Count < 1)
-                {
-                    MessageBox.Show($"Error! No plans found in course: {theCourse.Id}! Unable to determine which plan(s) should be used for optimization! Exiting!");
-                }
-                else if (thePlans.Count == 2 && (thePlans.First().StructureSet != thePlans.Last().StructureSet))
-                {
-                    MessageBox.Show($"Error! Structure set in first plan ({thePlans.First().Id}) is not the same as the structure set in second plan ({thePlans.Last().Id})! Exiting!");
-                    thePlans = new List<ExternalPlanSetup> { };
+                    if(planType == PlanType.VMAT_TBI)
+                    {
+                        SelectItemPrompt SIP = new SelectItemPrompt("Please select a plan to optimize:", thePlans.Select(x => x.Id).ToList());
+                        SIP.ShowDialog();
+                        if (!SIP.GetSelection()) return (new List<ExternalPlanSetup> { }, null);
+                        ExternalPlanSetup thePlan = thePlans.First(x => string.Equals(x.Id, SIP.GetSelectedItem()));
+                        thePlans = new List<ExternalPlanSetup> { thePlan };
+                    }
+                    else
+                    {
+                        MessageBox.Show($"Error! More than one vmat plan found in course: {theCourse.Id}! Unable to determine which plan(s) should be used for optimization! Exiting!");
+                        thePlans = new List<ExternalPlanSetup> { };
+                    }
                 }
             }
             if (thePlans.Any()) ss = thePlans.First().StructureSet;
