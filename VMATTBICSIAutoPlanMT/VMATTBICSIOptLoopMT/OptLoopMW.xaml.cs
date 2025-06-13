@@ -212,9 +212,10 @@ namespace VMATTBICSIOptLoopMT
             }
             else
             {
-                (string, string) result = sp.GetPatientMRN();
+                (string, PlanType, string) result = sp.GetPatientSelection();
                 mrn = result.Item1;
-                fullLogName = result.Item2;
+                planType = result.Item2;
+                fullLogName = result.Item3;
             }
 
             return (cancel, mrn, fullLogName);

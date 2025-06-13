@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Shapes;
+using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Logging;
 
 namespace VMATTBICSIOptLoopMT.Prompts
@@ -15,13 +14,15 @@ namespace VMATTBICSIOptLoopMT.Prompts
     {
         private string _patientMRN = "";
         private string _fullLogFileName = "";
+        private PlanType _planType = PlanType.None;
         private string logPath = "";
         private List<string> logsCSI = new List<string> { };
         private List<string> logsTBI = new List<string> { };
+        private List<string> planTypes = new List<string> { "--select--", "VMAT TBI", "VMAT CSI"};
         public bool selectionMade = false;
-        public (string,string) GetPatientMRN()
+        public (string,PlanType,string) GetPatientSelection()
         {
-            return (_patientMRN,_fullLogFileName);
+            return (_patientMRN,_planType,_fullLogFileName);
         }
 
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
@@ -33,6 +34,9 @@ namespace VMATTBICSIOptLoopMT.Prompts
             logPath = path;
             DataContext = this;
             LoadPatientMRNsFromLogs();
+            planTypeCB.Items.Clear();
+            foreach(string s in planTypes) planTypeCB.Items.Add(s);
+            planTypeCB.SelectedIndex = 0;
         }
 
         private void LoadPatientMRNsFromLogs()
@@ -79,7 +83,13 @@ namespace VMATTBICSIOptLoopMT.Prompts
             {
                 //give priority to the text box data
                 if (string.IsNullOrEmpty(MRNTB.Text)) _fullLogFileName = LogHelper.GetFullLogFileFromExistingMRN(_patientMRN, logPath);
-                else _patientMRN = MRNTB.Text;
+                else
+                {
+                    _patientMRN = MRNTB.Text;
+                    if (planTypeCB.SelectedItem.ToString().Contains("TBI")) _planType = PlanType.VMAT_TBI;
+                    else if (planTypeCB.SelectedItem.ToString().Contains("CSI")) _planType = PlanType.VMAT_CSI;
+                    else _planType = PlanType.None;
+                }
                 selectionMade = true;
             }
             this.Close();
@@ -94,12 +104,14 @@ namespace VMATTBICSIOptLoopMT.Prompts
                 mrnListTBI.UnselectAll();
                 _patientMRN = mrnListCSI.SelectedItem as string;
                 _fullLogFileName = logsCSI.FirstOrDefault(x => x.Contains(_patientMRN));
+                _planType = PlanType.VMAT_CSI;
             }
             else
             {
                 mrnListCSI.UnselectAll();
                 _fullLogFileName = "";
                 _patientMRN = "";
+                _planType = PlanType.None;
             }
         }
 
@@ -112,12 +124,14 @@ namespace VMATTBICSIOptLoopMT.Prompts
                 mrnListCSI.UnselectAll();
                 _patientMRN = mrnListTBI.SelectedItem as string;
                 _fullLogFileName = logsTBI.FirstOrDefault(x => x.Contains(_patientMRN));
+                _planType = PlanType.VMAT_TBI;
             }
             else
             {
                 mrnListTBI.UnselectAll();
                 _fullLogFileName = "";
                 _patientMRN = "";
+                _planType = PlanType.None;
             }
         }
     }
