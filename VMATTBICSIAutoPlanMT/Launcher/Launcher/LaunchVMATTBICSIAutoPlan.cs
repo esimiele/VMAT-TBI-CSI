@@ -44,10 +44,9 @@ namespace VMS.TPS
                     if (!string.IsNullOrEmpty(path))
                     {
                         ProcessStartInfo p = new ProcessStartInfo(path);
-                        string SSID = "/";
-                        if (context.StructureSet != null) SSID = context.StructureSet.Id;
-                        if (!addOptLaunchOption) p.Arguments = String.Format("{0} {1}",context.Patient.Id, SSID);
-                        else p.Arguments = String.Format("{0} {1} {2}",context.Patient.Id,SSID, true);
+                        p.Arguments = SerializeEclipseContext(context);
+                        if (addOptLaunchOption) p.Arguments += String.Format(" -opt true");
+                        else p.Arguments += String.Format(" -opt false");
                         Process.Start(p);
                     }
                     else MessageBox.Show(String.Format("Error! {0} executable NOT found!", exeName));
@@ -86,6 +85,19 @@ namespace VMS.TPS
         private string GetSourceFilePath([CallerFilePath] string sourceFilePath = "")
         {
             return sourceFilePath;
+        }
+
+        private string SerializeEclipseContext(ScriptContext context)
+        {
+            string serializedContext = "";
+            if (context != null)
+            {
+                if (context.Patient != null) serializedContext += string.Format("-m {0}", context.Patient.Id);
+                if (context.StructureSet != null) serializedContext += string.Format(" -s {0}", context.StructureSet.Id);
+                if (context.ExternalPlanSetup != null) serializedContext += string.Format(" -p {0}", context.ExternalPlanSetup.UID);
+                if (context.Course != null) serializedContext += string.Format(" -c {0}", context.Course.Id);
+            }
+            return serializedContext;
         }
     }
 }

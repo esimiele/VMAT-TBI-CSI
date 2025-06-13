@@ -18,8 +18,7 @@ namespace VMATCSIAutoPlanMT
         /// <param name="e"></param>
         private void Application_Startup(object sender, StartupEventArgs e)
         {
-            List<string> theArguments = new List<string> { };
-            for (int i = 0; i < e.Args.Length; i++) theArguments.Add(e.Args[i]);
+            List<string> theArguments = e.Args.ToList();
 
             if (theArguments.Any() && string.Equals(theArguments.First(), "-d"))
             {

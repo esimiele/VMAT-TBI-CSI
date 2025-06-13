@@ -134,10 +134,16 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             catch (Exception e) { MessageBox.Show(String.Format("Warning! Could not generate Aria application instance because: {0}", e.Message)); }
             string mrn = "";
             string ss = "";
-            if (args.Any())
+
+            if (args.Any(x => string.Equals("-m", x)))
             {
-                mrn = args.ElementAt(0);
-                ss = args.ElementAt(1);
+                int index = args.IndexOf("-m");
+                mrn = args.ElementAt(index + 1);
+            }
+            if (args.Any(x => string.Equals("-s", x)))
+            {
+                int index = args.IndexOf("-s");
+                ss = args.ElementAt(index + 1);
             }
 
             documentationPath = ConfigurationHelper.GetDefaultDocumentationPath();

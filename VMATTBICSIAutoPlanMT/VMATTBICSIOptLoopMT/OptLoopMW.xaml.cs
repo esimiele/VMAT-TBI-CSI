@@ -110,7 +110,7 @@ namespace VMATTBICSIOptLoopMT
                 string patmrn = "";
                 if (args.Any()) patmrn = args[0];
 
-                LoadPatient(patmrn);
+                LoadPatient(args.ToList());
             }
             DisplayConfigurationParameters();
             return false;
@@ -146,16 +146,21 @@ namespace VMATTBICSIOptLoopMT
         /// Utility method to load a patient into the script. Attempt to read the log file from the preparation script
         /// </summary>
         /// <param name="patmrn"></param>
-        private void LoadPatient(string patmrn)
+        private void LoadPatient(List<string> startupArgs)
         {
             if (app == null) return;
             string currentMRN;
             if (pi != null) currentMRN = pi.Id;
             else currentMRN = "-1";
-            string mrn = patmrn;
+            string mrn = string.Empty;
+            if (startupArgs.Any(x => string.Equals("-m", x)))
+            {
+                int index = startupArgs.IndexOf("-m");
+                mrn = startupArgs.ElementAt(index + 1);
+            }
             string fullLogName;
             bool cancel = false;
-            if (string.IsNullOrEmpty(patmrn))
+            if (string.IsNullOrEmpty(mrn))
             {
                 (bool, string, string) result = PromptUserForPatientSelection();
                 cancel = result.Item1;
@@ -249,7 +254,7 @@ namespace VMATTBICSIOptLoopMT
         #region button events
         private void SelectPatient_Click(object sender, RoutedEventArgs e)
         {
-            LoadPatient("");
+            LoadPatient(new List<string> { });
         }
 
         private void GetOptFromPlan_Click(object sender, RoutedEventArgs e)

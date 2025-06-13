@@ -24,9 +24,20 @@ namespace Launcher
             InitializeComponent();
             if (startupArgs.Any())
             {
-                if (startupArgs.Count > 2) LaunchOptBtn.Visibility = Visibility.Visible;
+                if (startupArgs.Any(x => string.Equals("-opt", x)))
+                {
+                    int index = startupArgs.IndexOf("-opt");
+                    if(bool.TryParse(startupArgs.ElementAt(index + 1), out bool addLaunchOptButton))
+                    {
+                        if(addLaunchOptButton) LaunchOptBtn.Visibility = Visibility.Visible;
+                    }
+                }
                 //patient mrn, structure set
-                arguments = $"{startupArgs.ElementAt(0)} {startupArgs.ElementAt(1)}";
+                for(int i = 0; i < startupArgs.Count; i++)
+                {
+                    arguments += $" {startupArgs.ElementAt(i)}";
+                }
+                arguments.TrimStart();
             }
         }
 
