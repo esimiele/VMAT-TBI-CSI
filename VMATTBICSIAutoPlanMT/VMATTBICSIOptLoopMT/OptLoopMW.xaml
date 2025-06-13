@@ -144,7 +144,7 @@
     </Window.Resources>
     <Grid>
         <StackPanel>
-            <Grid Width="740" VerticalAlignment="Top" Margin="0">
+            <Grid Width="770" VerticalAlignment="Top" Margin="0">
                 <Grid.Background>
                     <ImageBrush ImageSource="Images\StanfordMedicine1.png"  Stretch="Uniform" AlignmentY="Top" Opacity="0.25">
                         <ImageBrush.Transform>
@@ -168,9 +168,11 @@
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="370"/>
-                            <ColumnDefinition Width="370"/>
+                            <ColumnDefinition Width="400"/>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
                             <RowDefinition Height="*"/>
                             <RowDefinition Height="*"/>
                             <RowDefinition Height="*"/>
@@ -195,12 +197,28 @@
                             <Label Content="Plan type:" Grid.Column="0" FontSize="14" HorizontalAlignment="Right" VerticalAlignment="Center" ></Label>
                             <Label x:Name="planTypeLabel" Grid.Column="1" Content="type" FontSize="14" FontWeight="Bold" HorizontalAlignment="Left" VerticalAlignment="Center" ></Label>
                         </Grid>
-                        <Label Content="Plan Templates" Grid.Column="0" Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0"></Label>
-                        <ListBox x:Name="templateList" Grid.Column="0" Grid.Row="4" ItemsSource="{Binding PlanTemplates}" VerticalAlignment="Bottom" HorizontalContentAlignment="Center" Height="150" Width="300" DisplayMemberPath="TemplateName" Margin="0,0,0,5" SelectionChanged="Templates_SelectionChanged"/>
-
-                        <Grid Grid.Column="1" Grid.RowSpan="5" Margin="0,0,0,5">
+                        <Grid Margin="0" Grid.Column="0" Grid.Row="3">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Content="Base plan Id:" Grid.Column="0" FontSize="14" HorizontalAlignment="Right" VerticalAlignment="Center" ></Label>
+                            <ComboBox x:Name="basePlanIdCB" Grid.Column="1" Width="120" HorizontalAlignment="Left" VerticalAlignment="Center" SelectionChanged="Plans_SelectionChanged"></ComboBox>
+                        </Grid>
+                        <Grid Margin="0" Grid.Column="0" Grid.Row="4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Content="Boost plan Id:" Grid.Column="0" FontSize="14" HorizontalAlignment="Right" VerticalAlignment="Center" ></Label>
+                            <ComboBox x:Name="boostPlanIdCB" Grid.Column="1" Width="120" HorizontalAlignment="Left" VerticalAlignment="Center" ></ComboBox>
+                        </Grid>
+                        <Label Content="Plan Templates" Grid.Column="0" Grid.Row="5" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0"></Label>
+                        <ListBox x:Name="templateList" Grid.Column="0" Grid.Row="6" ItemsSource="{Binding PlanTemplates}" VerticalAlignment="Bottom" HorizontalContentAlignment="Center" Height="100" Width="300" DisplayMemberPath="TemplateName" Margin="0,0,0,5" SelectionChanged="Templates_SelectionChanged"/>
+
+                        <Grid Grid.Column="1" Grid.RowSpan="7" Margin="0,0,0,5">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.75*"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
@@ -233,8 +251,8 @@
                             <TextBox x:Name="boostRxTB" Grid.Column="2" Grid.Row="3" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Width="75" Height="20" Margin="0" IsReadOnly="True"></TextBox>
 
                             <Label Content="Normalization volumes:" Grid.Column="0" Grid.Row="4" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0"></Label>
-                            <TextBox x:Name="initNormVolume" Grid.Column="1" Grid.Row="4" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Width="75" Height="20" Margin="0" IsReadOnly="True"></TextBox>
-                            <TextBox x:Name="bstNormVolume" Grid.Column="2" Grid.Row="4" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Width="75" Height="20" Margin="0" IsReadOnly="True"></TextBox>
+                            <ComboBox x:Name="initNormVolumeCB" Grid.Column="1" Grid.Row="4" VerticalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Width="100" Height="20" Margin="0" IsReadOnly="True"></ComboBox>
+                            <ComboBox x:Name="bstNormVolumeCB" Grid.Column="2" Grid.Row="4" VerticalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Width="100" Height="20" Margin="0" IsReadOnly="True"></ComboBox>
 
                             <Label Content="Run coverage check:" Grid.Column="0" Grid.Row="5" Grid.ColumnSpan="2" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0"></Label>
                             <CheckBox x:Name="runCoverageCk" Grid.Column="2" Grid.Row="5" Margin="7,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"/>

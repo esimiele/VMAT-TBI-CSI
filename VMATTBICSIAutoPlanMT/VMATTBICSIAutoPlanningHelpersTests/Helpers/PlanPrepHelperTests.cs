@@ -178,7 +178,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
                 new VVector(0.0,0.0,-1.0),
             };
 
-            List<VVector> resultsShifts = PlanPrepHelper.CalculateShifts(testIsoPositions);
+            List<VVector> resultsShifts = PlanPrepHelper.CalculateShifts(testIsoPositions, new VVector(0,0,0));
             CollectionAssert.AreEqual(expectedShifts, resultsShifts);
         }
 

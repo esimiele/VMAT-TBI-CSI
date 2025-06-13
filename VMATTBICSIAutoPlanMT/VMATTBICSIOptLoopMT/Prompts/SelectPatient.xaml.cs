@@ -19,7 +19,7 @@ namespace VMATTBICSIOptLoopMT.Prompts
         private List<string> logsCSI = new List<string> { };
         private List<string> logsTBI = new List<string> { };
         private List<string> planTypes = new List<string> { "--select--", "VMAT TBI", "VMAT CSI"};
-        public bool selectionMade = false;
+        public bool selectionMade { get => _planType != PlanType.None; }
         public (string,PlanType,string) GetPatientSelection()
         {
             return (_patientMRN,_planType,_fullLogFileName);
@@ -28,7 +28,7 @@ namespace VMATTBICSIOptLoopMT.Prompts
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
         public ObservableCollection<string> PatientMRNsCSI { get; set; }
         public ObservableCollection<string> PatientMRNsTBI { get; set; }
-        public SelectPatient(string path)
+        public SelectPatient(string path, string mrn = "")
         {
             InitializeComponent();
             logPath = path;
@@ -37,6 +37,7 @@ namespace VMATTBICSIOptLoopMT.Prompts
             planTypeCB.Items.Clear();
             foreach(string s in planTypes) planTypeCB.Items.Add(s);
             planTypeCB.SelectedIndex = 0;
+            if(!string.IsNullOrEmpty(mrn)) MRNTB.Text = mrn;
         }
 
         private void LoadPatientMRNsFromLogs()
@@ -90,7 +91,6 @@ namespace VMATTBICSIOptLoopMT.Prompts
                     else if (planTypeCB.SelectedItem.ToString().Contains("CSI")) _planType = PlanType.VMAT_CSI;
                     else _planType = PlanType.None;
                 }
-                selectionMade = true;
             }
             this.Close();
         }
