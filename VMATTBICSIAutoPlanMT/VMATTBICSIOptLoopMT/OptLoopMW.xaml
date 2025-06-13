@@ -157,9 +157,9 @@
                         </ImageBrush.Transform>
                     </ImageBrush>
                 </Grid.Background>
-                
+
                 <StackPanel>
-                    
+
                     <Grid Margin="0,5,0,5">
                         <Label Content="VMAT Optimization loop script" HorizontalAlignment="Center" VerticalAlignment="Top" FontSize="16" FontWeight="Bold" Margin="0,0,0,0"></Label>
                         <Button x:Name="help" Height="20" Width="75" HorizontalAlignment="Right" VerticalAlignment="Top" Content="Help" Margin="0,7,20,0" Click="Help_Click"></Button>
@@ -179,7 +179,7 @@
                             <RowDefinition Height="*"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                            
+
                         <Button x:Name="selectPatientBtn" Content="Select Patient" Grid.Column="0" Grid.Row="0" FontWeight="Bold" Width="125" Height="22" Margin="0" HorizontalAlignment="Center" VerticalAlignment="Center" Click="SelectPatient_Click"></Button>
                         <Grid Margin="0" Grid.Column="0" Grid.Row="1">
                             <Grid.ColumnDefinitions>
@@ -203,7 +203,7 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Label Content="Base plan Id:" Grid.Column="0" FontSize="14" HorizontalAlignment="Right" VerticalAlignment="Center" ></Label>
-                            <ComboBox x:Name="basePlanIdCB" Grid.Column="1" Width="120" HorizontalAlignment="Left" VerticalAlignment="Center" SelectionChanged="Plans_SelectionChanged"></ComboBox>
+                            <ComboBox x:Name="basePlanIdCB" Grid.Column="1" Width="120" HorizontalAlignment="Left" VerticalAlignment="Bottom" SelectionChanged="Plans_SelectionChanged" Margin="0,0,0,4"></ComboBox>
                         </Grid>
                         <Grid Margin="0" Grid.Column="0" Grid.Row="4">
                             <Grid.ColumnDefinitions>
@@ -234,10 +234,10 @@
                                 <RowDefinition Height="*"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            
+
                             <Label Content="Base plan:" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0"></Label>
                             <Label Content="Boost plan:" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0"></Label>
-                            
+
                             <Label Content="Dose per fraction (cGy/fraction):" Grid.Column="0" Grid.Row="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0"></Label>
                             <TextBox x:Name="initDosePerFxTB" Grid.Column="1" Grid.Row="1" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Width="75" Height="20" Margin="0" IsReadOnly="True"></TextBox>
                             <TextBox x:Name="boostDosePerFxTB" Grid.Column="2" Grid.Row="1" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Width="75" Height="20" Margin="0" IsReadOnly="True"></TextBox>
@@ -271,7 +271,7 @@
                             <Button x:Name="targetNormInfo" Grid.Column="2" Grid.Row="9" Content="?" Height="22" Width="20" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="7,0,0,0" Click="targetNormInfo_Click"></Button>
                         </Grid>
                     </Grid>
-                    
+
                 </StackPanel>
             </Grid>
             <Grid Background="DarkGray" VerticalAlignment="Bottom" Margin="0">
