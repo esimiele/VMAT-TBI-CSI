@@ -105,6 +105,7 @@ namespace VMATTBICSIOptLoopMT.Prompts
                 _patientMRN = mrnListCSI.SelectedItem as string;
                 _fullLogFileName = logsCSI.FirstOrDefault(x => x.Contains(_patientMRN));
                 _planType = PlanType.VMAT_CSI;
+                MRNTB.Text = "";
             }
             else
             {
@@ -125,6 +126,7 @@ namespace VMATTBICSIOptLoopMT.Prompts
                 _patientMRN = mrnListTBI.SelectedItem as string;
                 _fullLogFileName = logsTBI.FirstOrDefault(x => x.Contains(_patientMRN));
                 _planType = PlanType.VMAT_TBI;
+                MRNTB.Text = "";
             }
             else
             {

@@ -25,7 +25,7 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <Label Content="Plan Type:" Grid.Column="0" HorizontalAlignment="Right"/>
-                        <ComboBox x:Name="planTypeCB" Grid.Column="1" Width="120" HorizontalAlignment="Left"/>
+                        <ComboBox x:Name="planTypeCB" Grid.Column="1" Width="120" HorizontalContentAlignment="Center" HorizontalAlignment="Left"/>
                     </Grid>
                 </StackPanel>
             </Grid>

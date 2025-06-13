@@ -203,7 +203,7 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Label Content="Base plan Id:" Grid.Column="0" FontSize="14" HorizontalAlignment="Right" VerticalAlignment="Center" ></Label>
-                            <ComboBox x:Name="basePlanIdCB" Grid.Column="1" Width="120" HorizontalAlignment="Left" VerticalAlignment="Bottom" SelectionChanged="Plans_SelectionChanged" Margin="0,0,0,4"></ComboBox>
+                            <ComboBox x:Name="basePlanIdCB" Grid.Column="1" Width="120" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalAlignment="Bottom" SelectionChanged="Plans_SelectionChanged" Margin="0,0,0,4"></ComboBox>
                         </Grid>
                         <Grid Margin="0" Grid.Column="0" Grid.Row="4">
                             <Grid.ColumnDefinitions>
@@ -211,7 +211,7 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Label Content="Boost plan Id:" Grid.Column="0" FontSize="14" HorizontalAlignment="Right" VerticalAlignment="Center" ></Label>
-                            <ComboBox x:Name="boostPlanIdCB" Grid.Column="1" Width="120" HorizontalAlignment="Left" VerticalAlignment="Center" ></ComboBox>
+                            <ComboBox x:Name="boostPlanIdCB" Grid.Column="1" Width="120" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalAlignment="Center" SelectionChanged="Plans_SelectionChanged"></ComboBox>
                         </Grid>
                         <Label Content="Plan Templates" Grid.Column="0" Grid.Row="5" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0"></Label>
                         <ListBox x:Name="templateList" Grid.Column="0" Grid.Row="6" ItemsSource="{Binding PlanTemplates}" VerticalAlignment="Bottom" HorizontalContentAlignment="Center" Height="100" Width="300" DisplayMemberPath="TemplateName" Margin="0,0,0,5" SelectionChanged="Templates_SelectionChanged"/>
@@ -251,8 +251,8 @@
                             <TextBox x:Name="boostRxTB" Grid.Column="2" Grid.Row="3" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Width="75" Height="20" Margin="0" IsReadOnly="True"></TextBox>
 
                             <Label Content="Normalization volumes:" Grid.Column="0" Grid.Row="4" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0"></Label>
-                            <ComboBox x:Name="initNormVolumeCB" Grid.Column="1" Grid.Row="4" VerticalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Width="100" Height="20" Margin="0" IsReadOnly="True"></ComboBox>
-                            <ComboBox x:Name="bstNormVolumeCB" Grid.Column="2" Grid.Row="4" VerticalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Width="100" Height="20" Margin="0" IsReadOnly="True"></ComboBox>
+                            <ComboBox x:Name="initNormVolumeCB" Grid.Column="1" Grid.Row="4" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Width="100" Height="20" Margin="0" IsReadOnly="True"></ComboBox>
+                            <ComboBox x:Name="bstNormVolumeCB" Grid.Column="2" Grid.Row="4" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" Width="100" Height="20" Margin="0" IsReadOnly="True"></ComboBox>
 
                             <Label Content="Run coverage check:" Grid.Column="0" Grid.Row="5" Grid.ColumnSpan="2" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0"></Label>
                             <CheckBox x:Name="runCoverageCk" Grid.Column="2" Grid.Row="5" Margin="7,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"/>
