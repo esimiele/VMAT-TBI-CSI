@@ -113,12 +113,14 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         bool isModified = false;
         bool autoSave = false;
         bool closePWOnFinish = false;
+        bool autoDoseRecalc = false;
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
         public ObservableCollection<TBIAutoPlanTemplate> PlanTemplates { get; set; }
         //temporary variable to add new templates to the list
         TBIAutoPlanTemplate prospectiveTemplate = null;
         //ProcessStartInfo optLoopProcess;
         private bool closeOpenPatientWindow = false;
+        private PlanPrep_TBI planPrep = null;
 
         public TBIAutoPlanMW(List<string> args)
         {
@@ -1476,7 +1478,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         #region plan preparation
         private void GenerateShiftNote_Click(object sender, RoutedEventArgs e)
         {
-            (ExternalPlanSetup thePlan, StringBuilder errorMessage) = PlanPrepUIHelper.RetrieveVMATPlan(pi, logPath, "VMAT TBI");
+            (ExternalPlanSetup thePlan, StringBuilder errorMessage) = PlanPrepUIHelper.RetrieveVMATPlan(pi, logPath, !string.IsNullOrEmpty(courseId) ? courseId : "VMAT TBI");
             if (thePlan == null)
             {
                 Logger.GetInstance().LogError(errorMessage);
@@ -1548,7 +1550,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
             //separate the plans
             pi.BeginModifications();
-            PlanPrep_TBI planPrep = new PlanPrep_TBI(VMATplan, appaPlan, removeFlash, closePWOnFinish);
+            planPrep = new PlanPrep_TBI(VMATplan, appaPlan, autoDoseRecalc, removeFlash, closePWOnFinish);
             bool result = planPrep.Execute();
             Logger.GetInstance().AppendLogOutput("Plan preparation:", planPrep.GetLogOutput());
             Logger.GetInstance().OpType = ScriptOperationType.PlanPrep;
@@ -1570,6 +1572,12 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
             isModified = true;
             planPreparationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+
+            if (!autoDoseRecalc)
+            {
+                calcDose.Visibility = Visibility.Visible;
+                calcDoseTB.Visibility = Visibility.Visible;
+            }
         }
 
         private void CalcDose_Click(object sender, RoutedEventArgs e)
@@ -1586,11 +1594,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             CUI.ShowDialog();
             if (!CUI.GetSelection()) return;
 
-            //let the user know the script is working
-            calcDoseTB.Background = System.Windows.Media.Brushes.Yellow;
-            calcDoseTB.Text = "WORKING";
-
-            //prep.CalculateDose();
+            planPrep.RecalculateDoseOnly = true;
+            bool result = planPrep.Execute();
+            Logger.GetInstance().AppendLogOutput("Plan prep dose recalculation:", planPrep.GetLogOutput());
+            Logger.GetInstance().OpType = ScriptOperationType.PlanPrep;
+            if (result) return;
 
             //let the user know this step has been completed
             calcDoseTB.Background = System.Windows.Media.Brushes.ForestGreen;
@@ -1845,6 +1853,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             configTB.Text += $"Check for potential couch collision: {checkTTCollision}" + Environment.NewLine;
             configTB.Text += $"Contour field ovelap: {contourOverlap}" + Environment.NewLine;
             configTB.Text += $"Contour field overlap margin: {contourFieldOverlapMargin} cm" + Environment.NewLine;
+            configTB.Text += $"Automatic dose recalculation during plan preparation: {autoDoseRecalc}" + Environment.NewLine;
             configTB.Text += "Available linacs:" + Environment.NewLine;
             foreach (string l in linacs) configTB.Text += $"    {l}" + Environment.NewLine;
             configTB.Text += "Available photon energies:" + Environment.NewLine;
@@ -1987,6 +1996,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                                 else if (parameter == "MR level restart") MRrestartLevel = value;
                                 //other parameters that should be updated
                                 else if (parameter == "use flash by default") useFlashByDefault = bool.Parse(value);
+                                else if (parameter == "auto dose recalculation") { if (value != "") autoDoseRecalc = bool.Parse(value); }
                                 else if (parameter == "default flash type") { if (value != "") defaultFlashType = value; }
                                 else if (parameter == "calculation model") { if (value != "") calculationModel = value; }
                                 else if (parameter == "optimization model") { if (value != "") optimizationModel = value; }

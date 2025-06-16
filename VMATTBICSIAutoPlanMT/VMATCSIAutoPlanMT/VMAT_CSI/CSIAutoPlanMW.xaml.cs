@@ -104,12 +104,14 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         bool isModified = false;
         bool autoSave = false;
         bool closePWOnFinish = false;
+        bool autoDoseRecalc = false;
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
         public ObservableCollection<CSIAutoPlanTemplate> PlanTemplates { get; set; }
         //temporary variable to add new templates to the list
         CSIAutoPlanTemplate prospectiveTemplate = null;
         //ProcessStartInfo optLoopProcess;
         private bool closeOpenPatientWindow = false;
+        private PlanPrep_CSI planPrep = null;
 
         public CSIAutoPlanMW(List<string> args)
         {
@@ -1832,7 +1834,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //methods related to plan preparation
         private void GenerateShiftNote_Click(object sender, RoutedEventArgs e)
         {
-            (ExternalPlanSetup VMATPlan, StringBuilder errorMessage) = PlanPrepUIHelper.RetrieveVMATPlan(pi, logPath, "VMAT CSI");
+            (ExternalPlanSetup VMATPlan, StringBuilder errorMessage) = PlanPrepUIHelper.RetrieveVMATPlan(pi, logPath, !string.IsNullOrEmpty(courseId) ? courseId : "VMAT CSI");
             if (VMATPlan == null)
             {
                 Logger.GetInstance().LogError(errorMessage);
@@ -1867,7 +1869,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             //separate the plans
             pi.BeginModifications();
-            PlanPrep_CSI planPrep = new PlanPrep_CSI(vmatPlan, closePWOnFinish);
+            planPrep = new PlanPrep_CSI(vmatPlan, autoDoseRecalc, closePWOnFinish);
             bool result = planPrep.Execute();
             Logger.GetInstance().AppendLogOutput("Plan preparation:", planPrep.GetLogOutput());
             Logger.GetInstance().OpType = ScriptOperationType.PlanPrep;
@@ -1889,31 +1891,37 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
 
             isModified = true;
             planPreparationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
+
+            if(!autoDoseRecalc)
+            {
+                calcDose.Visibility = Visibility.Visible;
+                calcDoseTB.Visibility = Visibility.Visible;
+            }
         }
 
         private void CalculateDose_Click(object sender, RoutedEventArgs e)
         {
-            ////the shift note must be retireved and the plans must be separated before calculating dose
-            //if (shiftTB.Text == "NO" || separateTB.Text == "NO")
-            //{
-            //    Logger.GetInstance().LogError("Error! \nYou must generate the shift note AND separate the plan before calculating dose to each plan!");
-            //    return;
-            //}
+            //the shift note must be retireved and the plans must be separated before calculating dose
+            if (shiftTB.Text == "NO" || separateTB.Text == "NO")
+            {
+                Logger.GetInstance().LogError("Error! \nYou must generate the shift note AND separate the plan before calculating dose to each plan!");
+                return;
+            }
 
-            ////ask the user if they are sure they want to do this. Each plan will calculate dose sequentially, which will take time
-            //ConfirmPrompt CUI = new ConfirmPrompt("Warning!" + Environment.NewLine + "This will take some time as each plan needs to be calculated sequentionally!" + Environment.NewLine + "Continue?!");
-            //CUI.ShowDialog();
-            //if (!CUI.GetSelection()) return;
+            //ask the user if they are sure they want to do this. Each plan will calculate dose sequentially, which will take time
+            ConfirmPrompt CUI = new ConfirmPrompt("Warning!" + Environment.NewLine + "This will take some time as each plan needs to be calculated sequentionally!" + Environment.NewLine + "Continue?!");
+            CUI.ShowDialog();
+            if (!CUI.GetSelection()) return;
 
-            ////let the user know the script is working
-            //calcDoseTB.Background = System.Windows.Media.Brushes.Yellow;
-            //calcDoseTB.Text = "WORKING";
+            planPrep.RecalculateDoseOnly = true;
+            bool result = planPrep.Execute();
+            Logger.GetInstance().AppendLogOutput("Plan prep dose recalculation:", planPrep.GetLogOutput());
+            Logger.GetInstance().OpType = ScriptOperationType.PlanPrep;
+            if (result) return;
 
-            //prep.CalculateDose();
-
-            ////let the user know this step has been completed
-            //calcDoseTB.Background = System.Windows.Media.Brushes.ForestGreen;
-            //calcDoseTB.Text = "YES";
+            //let the user know this step has been completed
+            calcDoseTB.Background = System.Windows.Media.Brushes.ForestGreen;
+            calcDoseTB.Text = "YES";
         }
         #endregion
 
@@ -2245,6 +2253,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             configTB.Text += $"Course Id: {courseId}" + Environment.NewLine;
             configTB.Text += $"Contour field ovelap: {contourOverlap}" + Environment.NewLine;
             configTB.Text += $"Contour field overlap margin: {contourFieldOverlapMargin} cm" + Environment.NewLine;
+            configTB.Text += $"Automatic dose recalculation during plan preparation: {autoDoseRecalc}" + Environment.NewLine;
             configTB.Text += "Available linacs:" + Environment.NewLine;
             foreach (string l in linacs) configTB.Text += $"    {l}" + Environment.NewLine;
             configTB.Text += "Available photon energies:" + Environment.NewLine;
@@ -2421,9 +2430,9 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                         line = ConfigurationHelper.CropLine(line, ",");
                                     }
                                     c.Add(double.Parse(line.Substring(0, line.IndexOf("}"))));
-                                    for (int i = 0; i < c.Count(); i++) 
-                                    { 
-                                        if (i < 5) collRot[i] = c.ElementAt(i); 
+                                    for (int i = 0; i < c.Count(); i++)
+                                    {
+                                        if (i < 5) collRot[i] = c.ElementAt(i);
                                     }
                                 }
                                 else if (parameter == "course Id") courseId = value;
@@ -2433,6 +2442,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                                 //other parameters that should be updated
                                 else if (parameter == "calculation model") { if (value != "") calculationModel = value; }
                                 else if (parameter == "optimization model") { if (value != "") optimizationModel = value; }
+                                else if (parameter == "auto dose recalculation") { if (value != "") autoDoseRecalc = bool.Parse(value); }
                                 else if (parameter == "contour field overlap") { if (value != "") contourOverlap = bool.Parse(value); }
                                 else if (parameter == "contour field overlap margin") { if (value != "") contourFieldOverlapMargin = value; }
                             }
