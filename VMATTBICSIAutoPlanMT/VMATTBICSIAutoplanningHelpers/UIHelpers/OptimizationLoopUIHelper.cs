@@ -89,6 +89,8 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         /// <returns></returns>
         public static string GetRunSetupInfoHeader(List<ExternalPlanSetup> plans, 
                                                    PlanType type, 
+                                                   bool useFlash,
+                                                   Dictionary<string,string> normVolumes,
                                                    bool coverageCheck, 
                                                    int numOpt, 
                                                    bool oneMoreOpt, 
@@ -106,9 +108,16 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             sb.AppendLine($"Copy and save each optimized plan: {copyAndSavePlans}");
             sb.AppendLine($"Plan normalization:");
 
-            foreach (ExternalPlanSetup itr in plans)
+            foreach (KeyValuePair<string,string> itr in normVolumes)
             {
-                sb.AppendLine($"     Plan: {itr.Id}, PTV V{itr.TotalDose.Dose}cGy = {targetCoverage:0.0}%");
+                sb.AppendLine($"     Plan: {itr.Key}, Normalization volume: {itr.Value}, Normalization: V{plans.First(x => string.Equals(itr.Key, x.Id, StringComparison.OrdinalIgnoreCase)).TotalDose.Dose}cGy = {targetCoverage:0.0}%");
+            }
+
+            if(type == PlanType.VMAT_TBI && useFlash)
+            {
+                sb.AppendLine("");
+                sb.AppendLine("I found structures in the optimization list that have the keyword 'flash'!");
+                sb.AppendLine("I'm assuming you want to include flash in the optimization! Stop the loop if this is a mistake!");
             }
             return sb.ToString();
         }

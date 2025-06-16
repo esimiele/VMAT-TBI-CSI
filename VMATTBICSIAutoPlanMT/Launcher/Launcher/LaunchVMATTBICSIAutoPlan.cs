@@ -94,8 +94,6 @@ namespace VMS.TPS
             {
                 if (context.Patient != null) serializedContext += string.Format("-m {0}", context.Patient.Id);
                 if (context.StructureSet != null) serializedContext += string.Format(" -s {0}", context.StructureSet.Id);
-                if (context.ExternalPlanSetup != null) serializedContext += string.Format(" -p {0}", context.ExternalPlanSetup.UID);
-                if (context.Course != null) serializedContext += string.Format(" -c {0}", context.Course.Id);
             }
             return serializedContext;
         }

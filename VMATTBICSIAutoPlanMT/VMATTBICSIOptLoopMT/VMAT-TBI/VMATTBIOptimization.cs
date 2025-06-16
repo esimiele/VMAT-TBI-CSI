@@ -147,32 +147,37 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                     ProvideUIUpdate($"Error! Could not retrieve bolus structure! Exiting!", true);
                     return true;
                 }
-                (IEnumerable<ExternalPlanSetup> otherPlans, StringBuilder planIdList) = OptimizationLoopHelper.GetOtherPlansWithSameSSWithCalculatedDose(_data.Plans.First().Course.Patient.Courses, _data.StructureSet);
-                calcItems += otherPlans.Count();
-                ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved list of plans that use structure set: {_data.StructureSet.Id} and have dose calculated");
 
-                List<ExternalPlanSetup> planRecalcList = new List<ExternalPlanSetup> { };
-                if (otherPlans.Any())
+                if (supports.Any(x => StructureTuningHelper.IsOverlap(x, bolus.MeshGeometry.Positions)))
                 {
-                    ProvideUIUpdate("The following plans have dose calculated and use the same structure set:");
-                    ProvideUIUpdate(planIdList.ToString());
+                    (IEnumerable<ExternalPlanSetup> otherPlans, StringBuilder planIdList) = OptimizationLoopHelper.GetOtherPlansWithSameSSWithCalculatedDose(_data.Plans.First().Course.Patient.Courses, _data.StructureSet);
+                    calcItems += otherPlans.Count();
+                    ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved list of plans that use structure set: {_data.StructureSet.Id} and have dose calculated");
 
-                    foreach (ExternalPlanSetup itr in otherPlans) if (!_data.Plans.Any(x => x == itr)) planRecalcList.Add(itr);
-                    ProvideUIUpdate(100 * ++percentComplete / calcItems, "Revised plan list to exclude plans that will be optimized");
-                    calcItems += planRecalcList.Count;
+                    List<ExternalPlanSetup> planRecalcList = new List<ExternalPlanSetup> { };
+                    if (otherPlans.Any())
+                    {
+                        ProvideUIUpdate("The following plans have dose calculated and use the same structure set:");
+                        ProvideUIUpdate(planIdList.ToString());
 
-                    //reset dose matrix for ALL plans
-                    ResetDoseMatrix(otherPlans, percentComplete, calcItems);
+                        foreach (ExternalPlanSetup itr in otherPlans) if (!_data.Plans.Any(x => x == itr)) planRecalcList.Add(itr);
+                        ProvideUIUpdate(100 * ++percentComplete / calcItems, "Revised plan list to exclude plans that will be optimized");
+                        calcItems += planRecalcList.Count;
+
+                        //reset dose matrix for ALL plans
+                        ResetDoseMatrix(otherPlans, percentComplete, calcItems);
+                    }
+                    foreach (Structure itr in supports)
+                    {
+                        //crop the couch structures
+                        ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Cropping {bolus.Id} from support structure: {itr.Id}");
+                        ContourHelper.CropStructureFromStructure(bolus, itr, 0.0);
+                    }
+                    //only recalculate dose for all plans that are not currently up for optimization
+                    if (planRecalcList.Any()) ReCalculateDose(planRecalcList, percentComplete, calcItems);
+                    ProvideUIUpdate(100, "Finished cropping bolus from support structures");
                 }
-                foreach (Structure itr in supports)
-                {
-                    //crop the couch structures
-                    ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Cropping {bolus.Id} from support structure: {itr.Id}");
-                    ContourHelper.CropStructureFromStructure(bolus, itr, 0.0);
-                }
-                //only recalculate dose for all plans that are not currently up for optimization
-                if (planRecalcList.Any()) ReCalculateDose(planRecalcList, percentComplete, calcItems);
-                ProvideUIUpdate(100, "Finished cropping bolus from support structures");
+                else ProvideUIUpdate("No overlap detected between bolus and support structures. Ok to proceed.");
             }
             else
             {
@@ -293,16 +298,16 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             else
             {
                 //reset dose calculation matrix for each plan in the current course. Sorry! You will have to recalculate dose to EVERY plan!
-                string calcModel = _data.Plans.First().GetCalculationModel(CalculationType.PhotonVolumeDose);
                 List<ExternalPlanSetup> plansWithCalcDose = new List<ExternalPlanSetup> { };
-                foreach (ExternalPlanSetup itr in plans.First().Course.ExternalPlanSetups)
+                (IEnumerable<ExternalPlanSetup> planIdList, StringBuilder message) = OptimizationLoopHelper.GetOtherPlansWithSameSSWithCalculatedDose(plans.First().Course.Patient.Courses, _data.StructureSet);
+                ProvideUIUpdate("The following plans have dose calculated and use the same structure set:");
+                ProvideUIUpdate(message.ToString());
+                foreach (ExternalPlanSetup itr in planIdList)
                 {
-                    if (itr.IsDoseValid && itr.StructureSet == _data.StructureSet)
-                    {
-                        itr.ClearCalculationModel(CalculationType.PhotonVolumeDose);
-                        itr.SetCalculationModel(CalculationType.PhotonVolumeDose, calcModel);
-                        plansWithCalcDose.Add(itr);
-                    }
+                    string calcModel = itr.GetCalculationModel(CalculationType.PhotonVolumeDose);
+                    itr.ClearCalculationModel(CalculationType.PhotonVolumeDose);
+                    itr.SetCalculationModel(CalculationType.PhotonVolumeDose, calcModel);
+                    plansWithCalcDose.Add(itr);
                 }
                 //reset the bolus dose to undefined
                 bolus.ResetAssignedHU();

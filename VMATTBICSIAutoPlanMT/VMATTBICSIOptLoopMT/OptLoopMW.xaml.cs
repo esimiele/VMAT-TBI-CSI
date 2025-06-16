@@ -144,8 +144,6 @@ namespace VMATTBICSIOptLoopMT
         private void LoadPatient(List<string> startupArgs)
         {
             if (app == null) return;
-            string currentMRN = "-1";
-            if (pi != null) currentMRN = pi.Id;
             string mrn = string.Empty;
             if (startupArgs.Any(x => string.Equals("-m", x)))
             {
@@ -160,6 +158,7 @@ namespace VMATTBICSIOptLoopMT
                 cancel = result.Item1;
                 mrn = result.Item2;
                 planType = result.Item3;
+                planTypeLabel.Content = planType;
                 fullLogName = result.Item4;
             }
             else
@@ -172,6 +171,7 @@ namespace VMATTBICSIOptLoopMT
                     cancel = result.Item1;
                     mrn = result.Item2;
                     planType = result.Item3;
+                    planTypeLabel.Content = planType;
                     fullLogName = result.Item4;
                 }
             }
@@ -179,39 +179,37 @@ namespace VMATTBICSIOptLoopMT
             {
                 if (!string.IsNullOrEmpty(mrn))
                 {
-                    if(!string.Equals(mrn,currentMRN))
+                    if (!string.IsNullOrEmpty(fullLogName) && !LoadLogFile(fullLogName)) logFileLoaded = true;
+                    LoadConfigurationSettingsForPlanType(planType);
+
+                    pi = OpenPatient(mrn);
+                    if(!ReferenceEquals(pi, null))
                     {
-                        if (!string.IsNullOrEmpty(fullLogName) && !LoadLogFile(fullLogName)) logFileLoaded = true;
-                        LoadConfigurationSettingsForPlanType(planType);
-
-                        pi = OpenPatient(mrn);
-                        if(!ReferenceEquals(pi, null))
+                        PatMRNLabel.Content = pi.Id;
+                        plans = GetPlans();
+                        if (plans.Any())
                         {
-                            PatMRNLabel.Content = pi.Id;
-                            plans = GetPlans();
-                            if (plans.Any())
+                            if (!plans.All(x => string.Equals(plans.First().StructureSet.UID, x.StructureSet.UID)))
                             {
-                                if (!plans.All(x => string.Equals(plans.First().StructureSet.UID, x.StructureSet.UID)))
-                                {
-                                    MessageBox.Show("Error! Base plan and boost plan do NOT share the same structure set! Update plan selection and try again");
-                                    plans = new List<ExternalPlanSetup>();
-                                    return;
-                                }
-                                selectedSS = plans.First().StructureSet;
-
-                                UpdateAvailablePlans(theCourse.ExternalPlanSetups.Where(x => x.Beams.Any()).Where(x => x.Beams.Where(y => !y.IsSetupField).First().MLCPlanType == VMS.TPS.Common.Model.Types.MLCPlanType.VMAT).Select(x => x.Id));
-
-                                planObjectiveHeader.Background = System.Windows.Media.Brushes.PaleVioletRed;
+                                MessageBox.Show("Error! Base plan and boost plan do NOT share the same structure set! Update plan selection and try again");
+                                plans = new List<ExternalPlanSetup>();
+                                return;
                             }
-                        }
-                        LoadTemplatePlanChoices(planType);
+                            selectedSS = plans.First().StructureSet;
+                            UpdateNormalizationComboBoxes(selectedSS.Structures.Select(x => x.Id));
 
-                        if (planType == PlanType.VMAT_TBI && reminders.Any(x => x.ToLower().Contains("base dose")))
-                        {
-                            if (!plans.First().Course.ExternalPlanSetups.Any(x => x.Id.ToLower().Contains("legs"))) reminders.Remove(reminders.First(x => x.ToLower().Contains("base dose")));
+                            UpdateAvailablePlans(theCourse.ExternalPlanSetups.Where(x => x.Beams.Any()).Where(x => x.Beams.Where(y => !y.IsSetupField).First().MLCPlanType == VMS.TPS.Common.Model.Types.MLCPlanType.VMAT).Select(x => x.Id));
+
+                            planObjectiveHeader.Background = System.Windows.Media.Brushes.PaleVioletRed;
                         }
-                        selectPatientBtn.Background = System.Windows.Media.Brushes.LightGray;
                     }
+                    LoadTemplatePlanChoices(planType);
+
+                    if (planType == PlanType.VMAT_TBI && reminders.Any(x => x.ToLower().Contains("base dose")))
+                    {
+                        if (plans.Any() && !plans.First().Course.ExternalPlanSetups.Any(x => x.Id.ToLower().Contains("legs"))) reminders.Remove(reminders.First(x => x.ToLower().Contains("base dose")));
+                    }
+                    selectPatientBtn.Background = System.Windows.Media.Brushes.LightGray;
                 }
                 else MessageBox.Show($"Entered MRN: {mrn} is invalid! Please re-enter and try again");
             }
@@ -339,17 +337,8 @@ namespace VMATTBICSIOptLoopMT
                 theCourse = courses.FirstOrDefault(x => string.Equals(x.Id, SIP.GetSelectedItem()));
             }
             else theCourse = courses.First();
-            if (theCourse.Id.ToLower().Contains("csi"))
-            {
-                planType = PlanType.VMAT_CSI;
-                planTypeLabel.Content = "VMAT CSI";
-            }
-            else
-            {
-                planType = PlanType.VMAT_TBI;
-                planTypeLabel.Content = "VMAT TBI";
-            }
-            thePlans = theCourse.ExternalPlanSetups.Where(x => x.Beams.Where(y => !y.IsSetupField).First().MLCPlanType == VMS.TPS.Common.Model.Types.MLCPlanType.VMAT).ToList();
+            
+            thePlans = theCourse.ExternalPlanSetups.Where(x => x.Beams.Any()).Where(x => x.Beams.Where(y => !y.IsSetupField).First().MLCPlanType == VMS.TPS.Common.Model.Types.MLCPlanType.VMAT).ToList();
             if (!thePlans.Any()) MessageBox.Show($"Error! No plans found in course: {theCourse.Id}! Unable to determine which plan(s) should be used for optimization! Exiting!");
             if (thePlans.Count > 1)
             {
@@ -363,8 +352,18 @@ namespace VMATTBICSIOptLoopMT
                 }
                 else
                 {
-                    MessageBox.Show($"More than one vmat plan found in course: {theCourse.Id}! Unable to auto-determine which plan(s) should be used for optimization! Please select base/boost plan(s) in UI!");
-                    thePlans = new List<ExternalPlanSetup> { };
+                    SelectItemPrompt SIP = new SelectItemPrompt("Does this CSI case include a sequential boost?", new List<string> { "No", "Yes"});
+                    SIP.ShowDialog();
+                    if (!SIP.GetSelection()) return new List<ExternalPlanSetup> { };
+                    if(string.Equals(SIP.GetSelectedItem(), "yes", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return thePlans;
+                    }
+                    else
+                    {
+                        UpdateAvailablePlans(thePlans.Select(x => x.Id));
+                        thePlans = new List<ExternalPlanSetup> { };
+                    }
                 }
             }
 
@@ -375,7 +374,7 @@ namespace VMATTBICSIOptLoopMT
         #region button events
         private void SelectPatient_Click(object sender, RoutedEventArgs e)
         {
-            LoadPatient(new List<string> { });
+            LoadPatient(new List<string> { "-m", !ReferenceEquals(pi, null) ? $"{pi.Id}" : "" });
         }
 
         private void GetOptFromPlan_Click(object sender, RoutedEventArgs e)
@@ -500,7 +499,7 @@ namespace VMATTBICSIOptLoopMT
                     plans = new List<ExternalPlanSetup> { theCourse.ExternalPlanSetups.First(x => string.Equals(x.Id, basePlanIdCB.SelectedItem.ToString(), StringComparison.OrdinalIgnoreCase))};
                 }
             }
-            if(!string.Equals(selectedSS.UID, plans.First().StructureSet.UID))
+            if(ReferenceEquals(selectedSS, null) || !string.Equals(selectedSS.UID, plans.First().StructureSet.UID))
             {
                 selectedSS = plans.First().StructureSet;
                 UpdateNormalizationComboBoxes(selectedSS.Structures.Select(x => x.Id));
@@ -571,8 +570,7 @@ namespace VMATTBICSIOptLoopMT
             templateList.UnselectAll();
             selectedSS = null;
             plans = new List<ExternalPlanSetup> { };
-            planUIDs = new List<string> { };
-            initDosePerFxTB.Text = initNumFxTB.Text = initRxTB.Text = numOptLoops.Text = "";
+            initDosePerFxTB.Text = initNumFxTB.Text = initRxTB.Text = "";
             ClearAllItemsFromUIList(optimizationParamSP);
             ClearAllItemsFromUIList(planObjectiveParamSP);
         }
@@ -615,6 +613,11 @@ namespace VMATTBICSIOptLoopMT
                     }
                     else bstNormVolumeCB.SelectedIndex = 0;
                 }
+            }
+            else
+            {
+                initNormVolumeCB.SelectedIndex = 0;
+                if (planType == PlanType.VMAT_CSI && plans.Count > 1) bstNormVolumeCB.SelectedIndex = 0;
             }
         }
 
@@ -702,29 +705,34 @@ namespace VMATTBICSIOptLoopMT
             (bool prelimChecksFail, double planNorm, int numOptimizations) = PreliminaryChecksOptimizationLoopStart();
             if (prelimChecksFail) return;
 
-            (List<PlanOptimizationSetupModel>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optimizationParamSP);
-            if (!parsedOptimizationConstraints.Item1.Any())
-            {
-                MessageBox.Show(parsedOptimizationConstraints.Item2.ToString());
-                return;
-            }
             List<PlanObjectiveModel> objectives = PlanObjectiveSetupUIHelper.ParsePlanObjectives(planObjectiveParamSP);
             if (!objectives.Any())
             {
                 MessageBox.Show("Error! Missing plan objectives! Please add plan objectives and try again!");
                 return;
             }
-            if(reminders.Any())
+            if (reminders.Any())
             {
                 ReminderPrompt rp = new ReminderPrompt(reminders);
                 rp.ShowDialog();
                 if (!rp.DialogResult.HasValue || !rp.DialogResult.Value) return;
-                if(!rp.ConfirmAll)
+                if (!rp.ConfirmAll)
                 {
                     MessageBox.Show("Error! Not all reminders confirmed and signed off. Exiting.");
                     return;
                 }
             }
+
+            (List<PlanOptimizationSetupModel>, StringBuilder) parsedOptimizationConstraints = OptimizationSetupUIHelper.ParseOptConstraints(optimizationParamSP);
+            if (!parsedOptimizationConstraints.Item1.Any())
+            {
+                MessageBox.Show(parsedOptimizationConstraints.Item2.ToString());
+                return;
+            }
+
+            normalizationVolumes.Clear();
+            normalizationVolumes.Add(basePlanIdCB.SelectedItem.ToString(), initNormVolumeCB.SelectedItem.ToString());
+            if(planType == PlanType.VMAT_CSI && plans.Count > 1) normalizationVolumes.Add(boostPlanIdCB.SelectedItem.ToString(), bstNormVolumeCB.SelectedItem.ToString());
 
             //determine if flash was used to prep the plan
             if (parsedOptimizationConstraints.Item1.Any(x => x.OptimizationConstraints.Any(y => y.StructureId.ToLower().Contains("flash")))) useFlash = true;
@@ -822,9 +830,19 @@ namespace VMATTBICSIOptLoopMT
                 MessageBox.Show("Error! Base and boost plans are the same! Cannot proceed with optimization! Fix and try again");
                 return (true, planNorm, numOptimizations);
             }
+            if (planObjectiveParamSP.Children.Count == 0)
+            {
+                MessageBox.Show("No plan objectives present! Please add plan objectives and try again!");
+                return (true, planNorm, numOptimizations);
+            }
             if (optimizationParamSP.Children.Count == 0)
             {
                 MessageBox.Show("No optimization parameters present to assign to the VMAT plan!");
+                return (true, planNorm, numOptimizations);
+            }
+            if (string.Equals(initNormVolumeCB.SelectedItem.ToString(),"--select--", StringComparison.OrdinalIgnoreCase) || (planType == PlanType.VMAT_CSI && plans.Count > 1 && string.Equals(bstNormVolumeCB.SelectedItem.ToString(), "--select--",StringComparison.OrdinalIgnoreCase)))
+            {
+                MessageBox.Show("Error! Normalization volumes are not appropriately assigned! Please fix and try again!");
                 return (true, planNorm, numOptimizations);
             }
             if (!int.TryParse(numOptLoops.Text, out numOptimizations))
@@ -938,6 +956,7 @@ namespace VMATTBICSIOptLoopMT
             configFile = file;
             try
             {
+                reminders.Clear();
                 using (StreamReader reader = new StreamReader(configFile))
                 {
                     string line;

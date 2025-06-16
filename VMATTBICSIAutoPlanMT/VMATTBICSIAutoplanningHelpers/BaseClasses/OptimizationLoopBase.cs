@@ -67,7 +67,9 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         protected void PrintRunSetupInfo()
         {
             ProvideUIUpdate(OptimizationLoopUIHelper.GetRunSetupInfoHeader(_data.Plans, 
-                                                                           _data.PlanType, 
+                                                                           _data.PlanType,
+                                                                           _data.UseFlash,
+                                                                           _data.NormalizationVolumes,
                                                                            _data.RunCoverageCheck, 
                                                                            _data.NumberOfIterations, 
                                                                            _data.OneMoreOptimization, 
@@ -712,7 +714,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             }
             if (target == null || target.IsEmpty)
             {
-                ProvideUIUpdate($"Error! Target/normalization structure for plan {plan.Id} is NOT null or empty! Cannot normalize! Exiting!", true);
+                ProvideUIUpdate($"Error! Target/normalization structure for plan {plan.Id} is null or empty! Cannot normalize! Exiting!", true);
                 return true;
             }
             //how to normalize a plan in the ESAPI workspace:

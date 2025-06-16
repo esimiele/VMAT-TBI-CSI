@@ -30,14 +30,14 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
         /// <param name="mrn"></param>
         /// <param name="logFilePath"></param>
         /// <returns></returns>
-        public static string GetFullLogFileFromExistingMRN(string mrn, string logFilePath)
+        public static string GetFullLogFileFromExistingMRN(string mrn, string logFilePath, string additionalContext = "")
         {
             string logName = "";
-            if (Directory.Exists(logFilePath + "\\preparation\\"))
+            if (Directory.Exists(logFilePath + "\\preparation\\" + additionalContext + "\\"))
             {
-                if(Directory.GetFiles(logFilePath + "\\preparation\\", ".", SearchOption.AllDirectories).Any(x => x.Contains(mrn + ".txt")))
+                if(Directory.GetFiles(logFilePath + "\\preparation\\" + additionalContext + "\\", ".", SearchOption.AllDirectories).Any(x => x.Contains(mrn + ".txt")))
                 {
-                    logName = Directory.GetFiles(logFilePath + "\\preparation\\", ".", SearchOption.AllDirectories).First(x => x.Contains(mrn + ".txt"));
+                    logName = Directory.GetFiles(logFilePath + "\\preparation\\" + additionalContext + "\\", ".", SearchOption.AllDirectories).First(x => x.Contains(mrn + ".txt"));
                 }
             }
             return logName;
