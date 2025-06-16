@@ -245,7 +245,8 @@ namespace VMATTBICSIOptLoopMT
             {
                 basePlanIdCB.Items.Add(id);
             }
-            basePlanIdCB.SelectedIndex = basePlanIdCB.Items.IndexOf(plans.First().Id);
+            if (plans.Any()) basePlanIdCB.SelectedIndex = basePlanIdCB.Items.IndexOf(plans.First().Id);
+            else basePlanIdCB.SelectedIndex = 0;
 
             if (planType == PlanType.VMAT_CSI && plans.Count > 1)
             {
@@ -253,7 +254,8 @@ namespace VMATTBICSIOptLoopMT
                 {
                     boostPlanIdCB.Items.Add(id);
                 }
-                boostPlanIdCB.SelectedIndex = boostPlanIdCB.Items.IndexOf(plans.Last().Id);
+                if (plans.Any()) boostPlanIdCB.SelectedIndex = boostPlanIdCB.Items.IndexOf(plans.Last().Id);
+                else boostPlanIdCB.SelectedIndex = 0;
             }
         }
 
@@ -361,7 +363,7 @@ namespace VMATTBICSIOptLoopMT
                 }
                 else
                 {
-                    MessageBox.Show($"More than one vmat plan found in course: {theCourse.Id}! Unable to determine which plan(s) should be used for optimization!");
+                    MessageBox.Show($"More than one vmat plan found in course: {theCourse.Id}! Unable to auto-determine which plan(s) should be used for optimization! Please select base/boost plan(s) in UI!");
                     thePlans = new List<ExternalPlanSetup> { };
                 }
             }
@@ -487,6 +489,8 @@ namespace VMATTBICSIOptLoopMT
                     if (!plans.All(x => string.Equals(plans.First().StructureSet.UID, x.StructureSet.UID)))
                     {
                         MessageBox.Show("Error! Base plan and boost plan do NOT share the same structure set! Update plan selection and try again");
+                        basePlanIdCB.SelectedIndex = 0;
+                        boostPlanIdCB.SelectedIndex = 0;
                         plans = new List<ExternalPlanSetup>();
                         return;
                     }
@@ -496,7 +500,7 @@ namespace VMATTBICSIOptLoopMT
                     plans = new List<ExternalPlanSetup> { theCourse.ExternalPlanSetups.First(x => string.Equals(x.Id, basePlanIdCB.SelectedItem.ToString(), StringComparison.OrdinalIgnoreCase))};
                 }
             }
-            if(string.Equals(selectedSS.UID, plans.First().StructureSet.UID))
+            if(!string.Equals(selectedSS.UID, plans.First().StructureSet.UID))
             {
                 selectedSS = plans.First().StructureSet;
                 UpdateNormalizationComboBoxes(selectedSS.Structures.Select(x => x.Id));
@@ -567,6 +571,7 @@ namespace VMATTBICSIOptLoopMT
             templateList.UnselectAll();
             selectedSS = null;
             plans = new List<ExternalPlanSetup> { };
+            planUIDs = new List<string> { };
             initDosePerFxTB.Text = initNumFxTB.Text = initRxTB.Text = numOptLoops.Text = "";
             ClearAllItemsFromUIList(optimizationParamSP);
             ClearAllItemsFromUIList(planObjectiveParamSP);
@@ -800,6 +805,21 @@ namespace VMATTBICSIOptLoopMT
             if (!plans.Any())
             {
                 MessageBox.Show("No plans found!");
+                return (true, planNorm, numOptimizations);
+            }
+            if (!plans.All(x => string.Equals(x.Course.Id, plans.First().Course.Id)))
+            {
+                MessageBox.Show("Error! Plans parsed from log file belong to separate courses! They must exist in the source course! Please fix and try again");
+                return (true, planNorm, numOptimizations);
+            }
+            if (!plans.All(x => string.Equals(plans.First().StructureSet.UID, x.StructureSet.UID)))
+            {
+                MessageBox.Show("Error! Base plan and boost plan do NOT share the same structure set! Update plan selection and try again");
+                return (true, planNorm, numOptimizations);
+            }
+            if(planType == PlanType.VMAT_CSI && plans.Count > 1 && plans.All(x => string.Equals(x.UID, plans.First().UID)))
+            {
+                MessageBox.Show("Error! Base and boost plans are the same! Cannot proceed with optimization! Fix and try again");
                 return (true, planNorm, numOptimizations);
             }
             if (optimizationParamSP.Children.Count == 0)
