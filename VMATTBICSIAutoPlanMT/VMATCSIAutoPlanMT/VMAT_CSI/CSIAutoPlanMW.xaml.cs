@@ -1892,11 +1892,12 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             isModified = true;
             planPreparationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
 
-            if(!autoDoseRecalc)
+            if (planPrep.recalcNeeded && !autoDoseRecalc)
             {
                 calcDose.Visibility = Visibility.Visible;
                 calcDoseTB.Visibility = Visibility.Visible;
             }
+            else planPreparationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
         }
 
         private void CalculateDose_Click(object sender, RoutedEventArgs e)
@@ -1922,6 +1923,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             //let the user know this step has been completed
             calcDoseTB.Background = System.Windows.Media.Brushes.ForestGreen;
             calcDoseTB.Text = "YES";
+            planPreparationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
         }
         #endregion
 

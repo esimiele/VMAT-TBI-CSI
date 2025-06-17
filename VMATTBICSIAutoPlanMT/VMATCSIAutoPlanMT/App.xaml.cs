@@ -19,7 +19,7 @@ namespace VMATCSIAutoPlanMT
         private void Application_Startup(object sender, StartupEventArgs e)
         {
             List<string> theArguments = e.Args.ToList();
-
+            //theArguments = new List<string> { "-m", "$CSIDryRun_3", "-s", "C230822_CSI" };
             if (theArguments.Any() && string.Equals(theArguments.First(), "-d"))
             {
                 //called from import listener. Need to auto-downsample some important structures

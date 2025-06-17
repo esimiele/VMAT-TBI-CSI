@@ -124,7 +124,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
         public TBIAutoPlanMW(List<string> args)
         {
-            args = new List<string> { "$TBIDryRun_2", "TBIDryRun_2" };
             InitializeComponent();
             if (InitializeScript(args)) this.Close();
         }
@@ -1571,13 +1570,13 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             separateTB.Text = "YES";
 
             isModified = true;
-            planPreparationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
-
-            if (!autoDoseRecalc)
+            
+            if (planPrep.recalcNeeded && !autoDoseRecalc)
             {
                 calcDose.Visibility = Visibility.Visible;
                 calcDoseTB.Visibility = Visibility.Visible;
             }
+            else planPreparationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
         }
 
         private void CalcDose_Click(object sender, RoutedEventArgs e)
@@ -1603,6 +1602,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             //let the user know this step has been completed
             calcDoseTB.Background = System.Windows.Media.Brushes.ForestGreen;
             calcDoseTB.Text = "YES";
+            planPreparationTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
         }
 
         private void PlanSum_Click(object sender, RoutedEventArgs e)

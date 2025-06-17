@@ -11,9 +11,9 @@ namespace VMATTBIAutoPlanMT
     {
         private void Application_Startup(object sender, StartupEventArgs e)
         {
-            List<string> theArguments = e.Args.ToList();
-
-            VMAT_TBI.TBIAutoPlanMW mw = new VMAT_TBI.TBIAutoPlanMW(theArguments);
+            string[] startupArgs = e.Args;
+            //startupArgs = new string[] { "-m", "$TBIDryRun_2", "-s", "TBIDryRun_2" };
+            VMAT_TBI.TBIAutoPlanMW mw = new VMAT_TBI.TBIAutoPlanMW(startupArgs.ToList());
             if (!mw.GetCloseOpenPatientWindowStatus()) mw.Show();
         }
     }

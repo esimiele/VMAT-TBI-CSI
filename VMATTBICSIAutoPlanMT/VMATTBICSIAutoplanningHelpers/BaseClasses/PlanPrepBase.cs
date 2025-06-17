@@ -15,7 +15,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         protected int numVMATIsos = 0;
         protected int numIsos;
         public List<ExternalPlanSetup> separatedPlans = new List<ExternalPlanSetup> { };
-        protected bool recalcNeeded = false;
+        public bool recalcNeeded = false;
         protected bool _autoDoseRecalculation = false;
         protected bool _recalculateDoseOnly = false;
 
@@ -160,8 +160,9 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// <returns></returns>
         protected bool ReCalculateDose()
         {
+            UpdateUILabel("Recalculating dose:");
             int percentComplete = 0;
-            int calcItems = 4 * separatedPlans.Count;
+            int calcItems = separatedPlans.Count;
             //loop through each plan in the separatedPlans list and calculate dose for each plan
             foreach (ExternalPlanSetup p in separatedPlans)
             {

@@ -35,6 +35,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                     if (theCourse.ExternalPlanSetups.Where(x => !x.Id.ToLower().Contains("legs")).Count() > 1)
                     {
                         thePlan = PromptForUserToSelectPlan(theCourse);
+                        if (ReferenceEquals(thePlan, null)) return (thePlan, sb.AppendLine("No plan selected. Exiting"));
                     }
                     else thePlan = tmp;
                 }
@@ -47,6 +48,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                     if (theCourse.ExternalPlanSetups.Where(x => !x.Id.ToLower().Contains("legs")).Count() > 1)
                     {
                         thePlan = PromptForUserToSelectPlan(theCourse);
+                        if (ReferenceEquals(thePlan, null)) return (thePlan, sb.AppendLine("No plan selected. Exiting"));
                     }
                     else thePlan = theCourse.ExternalPlanSetups.First();
                 }
@@ -68,7 +70,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             StringBuilder sb = new StringBuilder();
             sb.AppendLine($"Multiple plans found in {theCourse.Id} course!");
             sb.AppendLine("Please select a plan to prep!");
-            SelectItemPrompt SIP = new SelectItemPrompt(sb.ToString(), theCourse.ExternalPlanSetups.Where(x => !x.Id.ToLower().Contains("legs")).Select(x => x.Id).ToList());
+            SelectItemPrompt SIP = new SelectItemPrompt(sb.ToString(), theCourse.ExternalPlanSetups.Where(x => x.Beams.Any(y => !y.IsSetupField) && !x.Id.ToLower().Contains("leg")).Select(x => x.Id).ToList());
             SIP.ShowDialog();
             if (!SIP.GetSelection()) return null;
             //get the plan the user chose from the combobox

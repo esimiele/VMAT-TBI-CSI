@@ -198,7 +198,7 @@ namespace VMATTBICSIOptLoopMT
                             selectedSS = plans.First().StructureSet;
                             UpdateNormalizationComboBoxes(selectedSS.Structures.Select(x => x.Id));
 
-                            UpdateAvailablePlans(theCourse.ExternalPlanSetups.Where(x => x.Beams.Any()).Where(x => x.Beams.Where(y => !y.IsSetupField).First().MLCPlanType == VMS.TPS.Common.Model.Types.MLCPlanType.VMAT).Select(x => x.Id));
+                            UpdateAvailablePlans(theCourse.ExternalPlanSetups.Where(x => x.Beams.Any(y => !y.IsSetupField) && !x.Id.ToLower().Contains("leg")).Select(x => x.Id));
 
                             planObjectiveHeader.Background = System.Windows.Media.Brushes.PaleVioletRed;
                         }
@@ -207,7 +207,7 @@ namespace VMATTBICSIOptLoopMT
 
                     if (planType == PlanType.VMAT_TBI && reminders.Any(x => x.ToLower().Contains("base dose")))
                     {
-                        if (plans.Any() && !plans.First().Course.ExternalPlanSetups.Any(x => x.Id.ToLower().Contains("legs"))) reminders.Remove(reminders.First(x => x.ToLower().Contains("base dose")));
+                        if (plans.Any() && !plans.First().Course.ExternalPlanSetups.Any(x => x.Id.ToLower().Contains("leg"))) reminders.Remove(reminders.First(x => x.ToLower().Contains("base dose")));
                     }
                     selectPatientBtn.Background = System.Windows.Media.Brushes.LightGray;
                 }
@@ -338,7 +338,7 @@ namespace VMATTBICSIOptLoopMT
             }
             else theCourse = courses.First();
             
-            thePlans = theCourse.ExternalPlanSetups.Where(x => x.Beams.Any()).Where(x => x.Beams.Where(y => !y.IsSetupField).First().MLCPlanType == VMS.TPS.Common.Model.Types.MLCPlanType.VMAT).ToList();
+            thePlans = theCourse.ExternalPlanSetups.Where(x => x.Beams.Any(y => !y.IsSetupField) && !x.Id.ToLower().Contains("leg")).ToList();
             if (!thePlans.Any()) MessageBox.Show($"Error! No plans found in course: {theCourse.Id}! Unable to determine which plan(s) should be used for optimization! Exiting!");
             if (thePlans.Count > 1)
             {
@@ -374,7 +374,7 @@ namespace VMATTBICSIOptLoopMT
         #region button events
         private void SelectPatient_Click(object sender, RoutedEventArgs e)
         {
-            LoadPatient(new List<string> { "-m", !ReferenceEquals(pi, null) ? $"{pi.Id}" : "" });
+            LoadPatient(new List<string> { "-m", "" });
         }
 
         private void GetOptFromPlan_Click(object sender, RoutedEventArgs e)
