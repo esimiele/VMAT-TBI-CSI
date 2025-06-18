@@ -339,7 +339,11 @@ namespace VMATTBICSIOptLoopMT
             else theCourse = courses.First();
             
             thePlans = theCourse.ExternalPlanSetups.Where(x => x.Beams.Any(y => !y.IsSetupField) && !x.Id.ToLower().Contains("leg")).ToList();
-            if (!thePlans.Any()) MessageBox.Show($"Error! No plans found in course: {theCourse.Id}! Unable to determine which plan(s) should be used for optimization! Exiting!");
+            if (!thePlans.Any())
+            {
+                MessageBox.Show($"Error! No plans found in course: {theCourse.Id}! Unable to determine which plan(s) should be used for optimization! Exiting!");
+                return new List<ExternalPlanSetup> { };
+            }
             if (thePlans.Count > 1)
             {
                 if (planType == PlanType.VMAT_TBI)
