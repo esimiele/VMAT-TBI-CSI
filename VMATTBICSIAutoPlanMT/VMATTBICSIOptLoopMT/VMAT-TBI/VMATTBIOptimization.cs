@@ -38,7 +38,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                 SetAbortUIStatus("Runnning");
                 PrintRunSetupInfo();
                 //preliminary checks
-                if (PreliminaryChecksSSAndImage(_data.StructureSet, TargetsHelper.GetAllTargetIds(_data.Prescriptions))) return true;
+                if (PreliminaryChecksSSAndImage(_data.StructureSet, TargetsHelper.GetAllTargetIds(_data.Prescriptions).Any() ? TargetsHelper.GetAllTargetIds(_data.Prescriptions) : _data.NormalizationVolumes.Select(x => x.Value))) return true;
                 if (PreliminaryChecksCouch(_data.StructureSet)) return true;
                 if (PreliminaryChecksSpinningManny(_data.StructureSet)) return true;
                 if (_data.UseFlash && PreliminaryChecksBolusOverlapWithSupport()) return true;

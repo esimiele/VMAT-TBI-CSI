@@ -753,24 +753,24 @@ namespace VMATTBICSIOptLoopMT
             copyAndSavePlanItr = copyAndSave.IsChecked.Value;
 
             //create a new instance of the structure dataContainer and assign the optimization loop parameters entered by the user to the various data members
-            OptDataContainer data = new OptDataContainer(plans, 
-                                                         prescriptions,
-                                                         normalizationVolumes,
-                                                         objectives, 
-                                                         requestedTSstructures, 
-                                                         planDoseInfo,
-                                                         planType,
-                                                         planNorm, 
-                                                         numOptimizations, 
-                                                         runCoverageCheck, 
-                                                         runOneMoreOpt, 
-                                                         copyAndSavePlanItr, 
-                                                         useFlash, 
-                                                         threshold, 
-                                                         lowDoseLimit, 
-                                                         demo, 
-                                                         logFilePath, 
-                                                         app);
+            OptDataContainer data = new OptDataContainer(plans, //ui
+                                                         prescriptions, //from logs. If not found or empty, overridden with plan normalization volume dictionary at runtime
+                                                         normalizationVolumes, //from ui
+                                                         objectives, //from preparation logs and ui (if template selected)
+                                                         requestedTSstructures, //from template
+                                                         planDoseInfo, //from template
+                                                         planType, //determined from logs and user input
+                                                         planNorm, //from ui
+                                                         numOptimizations, //from ui
+                                                         runCoverageCheck, // from ui
+                                                         runOneMoreOpt, //from ui
+                                                         copyAndSavePlanItr, //from ui
+                                                         useFlash, //determined at runtime
+                                                         threshold, //set in general config file
+                                                         lowDoseLimit, //set in general config file
+                                                         demo, //set in general config file
+                                                         logFilePath, //set in general log file config or internally in code
+                                                         app); //constructed at runtime
 
             //start the optimization loop (all saving to the database is performed in the progressWindow class)
             //use a bit of polymorphism

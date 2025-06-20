@@ -1004,9 +1004,14 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             Dictionary<string, string> plansTargets = TargetsHelper.GetHighestRxPlanTargetList(_data.Prescriptions);
             if (!plansTargets.Any())
             {
-                ProvideUIUpdate("Error! Could not retrieve list of plans and associated targets! Exiting", true);
-                wasKilled = true;
-                return (wasKilled, heaterCoolerOptConstraints);
+                ProvideUIUpdate("Could not retrieve list of plans and associated targets! Using normalization volumes instead");
+                plansTargets = new Dictionary<string, string>(_data.NormalizationVolumes);
+                if(!plansTargets.Any())
+                {
+                    ProvideUIUpdate("Error! Dictionary of plan ids and normalization volumes is empty! Unable to update heater/cooler structures! Exiting!", true);
+                    wasKilled = true;
+                    return (wasKilled, heaterCoolerOptConstraints);
+                }
             }
 
             string targetId = "";

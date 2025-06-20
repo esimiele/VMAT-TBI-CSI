@@ -39,7 +39,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
                 //preliminary checks
                 UpdateUILabel("Preliminary checks:");
                 ProvideUIUpdate("Performing preliminary checks now:");
-                if (PreliminaryChecksSSAndImage(_data.StructureSet, TargetsHelper.GetAllTargetIds(_data.Prescriptions))) return true;
+                if (PreliminaryChecksSSAndImage(_data.StructureSet, TargetsHelper.GetAllTargetIds(_data.Prescriptions).Any() ? TargetsHelper.GetAllTargetIds(_data.Prescriptions) : _data.NormalizationVolumes.Select(x => x.Value))) return true;
                 if (PreliminaryChecksCouch(_data.StructureSet)) return true;
                 if (PreliminaryChecksPlans(_data.Plans)) return true;
                 if (RunOptimizationLoop(_data.Plans)) return true;
@@ -292,8 +292,13 @@ namespace VMATTBICSIOptLoopMT.VMAT_CSI
             Dictionary<string, string> plansTargets = TargetsHelper.GetHighestRxPlanTargetList(_data.Prescriptions);
             if(!plansTargets.Any())
             {
-                ProvideUIUpdate("Error! Prescriptions are missing! Cannot determine the appropriate target for each plan! Exiting!", true);
-                return true;
+                ProvideUIUpdate("Prescriptions are missing! Using dictionary of plan normalization volumes as a surrogate");
+                plansTargets = new Dictionary<string, string>(_data.NormalizationVolumes);
+                if(!plansTargets.Any())
+                {
+                    ProvideUIUpdate("Error! plan normalization volume dictionary is empty! Cannot determine the appropriate target for each plan! Exiting!", true);
+                    return true;
+                }
             }
             int percentComplete = 0;
             int calcItems = 5 * plans.Count() * _data.NumberOfIterations;
