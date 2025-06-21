@@ -22,10 +22,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="name"></param>
         /// <param name="priority"></param>
         /// <returns></returns>
-        public static string GenerateCooler(ExternalPlanSetup plan, TSCoolerStructureModel ts)
+        public static Structure GenerateCooler(ExternalPlanSetup plan, TSCoolerStructureModel ts)
         {
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine($"Generating cooler structure: {ts.TSStructureId} now");
+            Structure coolerStructure = null;
             //create an empty optiization objective
             StructureSet ss = plan.StructureSet;
             //grab the relevant dose, dose leve, priority, etc. parameters
@@ -34,15 +33,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             if (ss.CanAddStructure("CONTROL", ts.TSStructureId))
             {
                 //add the cooler structure to the structure list and convert the doseLevel isodose volume to a structure. Add this new structure to the list with a max dose objective of Rx * 105% and give it a priority of 80
-                Structure coolerStructure = ss.AddStructure("CONTROL", ts.TSStructureId);
+                coolerStructure = ss.AddStructure("CONTROL", ts.TSStructureId);
                 coolerStructure.ConvertDoseLevelToStructure(d, dv);
-                if (coolerStructure.IsEmpty)
-                {
-                    sb.AppendLine($"Cooler structure ({ts.TSStructureId}) is empty! Attempting to remove.");
-                    if (ss.CanRemoveStructure(coolerStructure)) ss.RemoveStructure(coolerStructure);
-                }
             }
-            return sb.ToString();
+            return coolerStructure;
         }
 
         /// <summary>
@@ -56,10 +50,9 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <param name="name"></param>
         /// <param name="priority"></param>
         /// <returns></returns>
-        public static string GenerateHeater(ExternalPlanSetup plan, Structure target, TSHeaterStructureModel ts)
+        public static Structure GenerateHeater(ExternalPlanSetup plan, Structure target, TSHeaterStructureModel ts)
         {
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine($"Generating heater structure: {ts.TSStructureId} now");
+            Structure heaterStructure = null;
             //similar to the generateCooler method
             StructureSet ss = plan.StructureSet;
             PlanningItemDose d = plan.Dose;
@@ -67,7 +60,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             if (ss.CanAddStructure("CONTROL", ts.TSStructureId))
             {
                 //segment lower isodose volume
-                Structure heaterStructure = ss.AddStructure("CONTROL", ts.TSStructureId);
+                heaterStructure = ss.AddStructure("CONTROL", ts.TSStructureId);
                 heaterStructure.ConvertDoseLevelToStructure(d, dv);
                 //segment higher isodose volume
                 Structure dummy = ss.AddStructure("CONTROL", "dummy");
@@ -79,13 +72,8 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                 ss.RemoveStructure(dummy);
                 //only keep the overlapping regions of the heater structure with the taget structure
                 ContourHelper.ContourOverlap(target, heaterStructure, 0.0);
-                if (heaterStructure.IsEmpty)
-                {
-                    sb.AppendLine($"Heater structure {ts.TSStructureId} is empty! Attempting to remove.");
-                    if (ss.CanRemoveStructure(heaterStructure)) ss.RemoveStructure(heaterStructure);
-                }
             }
-            return sb.ToString();
+            return heaterStructure;
         }
 
         /// <summary>

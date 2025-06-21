@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 
 namespace VMATTBIAutoPlanMT
@@ -10,10 +11,9 @@ namespace VMATTBIAutoPlanMT
     {
         private void Application_Startup(object sender, StartupEventArgs e)
         {
-            List<string> theArguments = new List<string> { };
-            for (int i = 0; i < e.Args.Length; i++) theArguments.Add(e.Args[i]);
-
-            VMAT_TBI.TBIAutoPlanMW mw = new VMAT_TBI.TBIAutoPlanMW(theArguments);
+            string[] startupArgs = e.Args;
+            //startupArgs = new string[] { "-m", "$TBIDryRun_2", "-s", "TBIDryRun_2" };
+            VMAT_TBI.TBIAutoPlanMW mw = new VMAT_TBI.TBIAutoPlanMW(startupArgs.ToList());
             if (!mw.GetCloseOpenPatientWindowStatus()) mw.Show();
         }
     }

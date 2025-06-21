@@ -1,23 +1,57 @@
-# VMAT TBI and CSI autoplanning code
+# VMAT TBI and CSI autoplanning code updates
 
-## updates
-9/25/23
+## 6/20/2025
+### Launcher
+- Updated logic for launcher to explicitly specify which context items are being passed
+
+### TBI
+- Fixed issue with incorrect shift note
+- Added configuration option to automatically calculate dose for separated plans during plan preparation. If set to false, the user will be present with the option to recalculate dose for all plans (if applicable)
+- Fixed issue causing crashing during beam placement where plan Id was too long for leg plans (only occurred when updating the requested number of vmat isocenters)
+- Fixed issue where beam numbering was incorrect for leg fields
+
+### CSI
+- Fixed issue with incorrect shift note
+- Added configuration option to automatically calculate dose for separated plans during plan preparation. If set to false, the user will be present with the option to recalculate dose for all plans (if applicable)
+
+### Optimization
+- Significantly improved logic for patient/plan selection
+    - especially in cases where the plan preparation log file is missing or there is more than one log file present (e.g., if patient requires both TBI and CSI treatments)
+- Added dropdown menus that allow user to manually select plans and their associated normalization volumes in UI
+- Fixed issue causing crash during heater/cooler generation where optimization constraints were trying to be added to plan(s) for structures that do not exist
+- Fixed issue that caused optimization loop to stop where plan prescriptions are absent from log files
+    - In such case, the plan normalization volumes will be used instead for heater/cooler generation
+- Updated reporting information for plan normalization, normalization volume, and target normalization
+
+### 3/24/25
+- Applied hotfix for lower leg iso placement for TBI autoplanner (when matchline to lower body extent was greater than 60 cm, iso was being placed relative to image origin rather than upper leg iso position --> now fixed)
+
+### 9/15/2024
+- Migrated all Tuples in solution to dedicated classes for easier mantenance and debugging
+- Added unit tests for majority of methods in helpers library
+- Added ability to prompt the user with 'reminders' prior to starting the optimization loop (e.g., did you set avoid entry through this structure?)
+- Added tab to directly launch the import listener console. This is used when dicom import using the import listener failed on the first try (due to limitations in EvilDicom)
+- Changed default option of creating AP/PA plans for TBI. Now multiple plans are created instead placing all isocenters in a single plan
+- General bug fixes
+- All unit tests passing and code tested on 4 dry-run cases for both CSI and TBI. Performs as expected
+
+## 9/25/23
 ### general
 - Hot fix for VMAT CSI import logic where the log file path was not being set correctly when the default log file path should be used
 
+## 9/24/23
 ### general
-update 9/24/23
 - Implemented TBI TT collision check
 - Implemented custom course Id specification via configuration files for both TBI and CSI
 - minor bug fixes
 
-update 9/23/23
+## 9/23/23
 ### general
 - fix for documentation buttons (targeting wrong pdf files)
 - changed structure of binaries per suggestion of crcrewso
 - minor change to build events
 
-update 4/14/23
+## 4/14/23
 ### general
 - Major refactoring of code to simplify and improve efficiency
 - Major improvements in logging, particularly organization and error reporting
@@ -33,7 +67,7 @@ where the changed WERE saved to the database. It is this log file that the optim
 - no need to explicitly add optimization constraints for rings, automatically handled by code for the appropriate plan
 - enhanced logging of errors
 
-###beam placement 
+### beam placement 
 - Contour overlap feature now works
 - optimization constraints are automatically to the appropriate plan for added field junctions
 - enhanced logging of errors
@@ -47,7 +81,7 @@ where the changed WERE saved to the database. It is this log file that the optim
 ### optimization
 - updated search for log file from prep script (primarily updated which directories are searched to match the updated logic in the prep script)
 
-update 3/28/23
+## 3/28/23
 ### general
 - introduced sequential optimization as a feature
 - much of the parameters for sequential optimization are controlled through both the UI and through the configuration files
@@ -84,13 +118,13 @@ update 3/28/23
 - revised and simplified plan evaulation logic
 - introduced logic to build a plan sum from two plans
 
-update 1/10/2023
+## 1/10/2023
 - introduced preliminary algorithm to contour the arms to avoid in optimizer
 - updated isocenter placement algorithm
 - update ring placement algorithm
 - ran single test case (by hard-coding necessary changes in executable)
 
-update 1/3/2023
+## 1/3/2023
 - fixed issue where VMAT TBI option would result in a 'cannot open patient' error popping up
 - fixed issue where the optimization constaint assignment success message would display even if nothing was assigned
 - fixed VMAT CSI iso naming (brain, upspine, lowspine)

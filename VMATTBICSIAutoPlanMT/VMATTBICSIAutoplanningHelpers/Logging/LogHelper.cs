@@ -14,20 +14,30 @@ namespace VMATTBICSIAutoPlanningHelpers.Logging
 {
     public static class LogHelper
     {
+
+        public static int GetNumberofMatchingLogFilesForMRN(string mrn, string logFilePath)
+        {
+            if (Directory.Exists(logFilePath + "\\preparation\\"))
+            {
+                return Directory.GetFiles(logFilePath + "\\preparation\\", ".", SearchOption.AllDirectories).Count(x => x.Contains(mrn + ".txt"));
+            }
+            else return 0;
+        }
+
         /// <summary>
         /// Helper method to get the full log file path for a given patient mrn and initial log path specified in the log configuration .ini file
         /// </summary>
         /// <param name="mrn"></param>
         /// <param name="logFilePath"></param>
         /// <returns></returns>
-        public static string GetFullLogFileFromExistingMRN(string mrn, string logFilePath)
+        public static string GetFullLogFileFromExistingMRN(string mrn, string logFilePath, string additionalContext = "")
         {
             string logName = "";
-            if (Directory.Exists(logFilePath + "\\preparation\\"))
+            if (Directory.Exists(logFilePath + "\\preparation\\" + additionalContext + "\\"))
             {
-                if(Directory.GetFiles(logFilePath + "\\preparation\\", ".", SearchOption.AllDirectories).Any(x => x.Contains(mrn + ".txt")))
+                if(Directory.GetFiles(logFilePath + "\\preparation\\" + additionalContext + "\\", ".", SearchOption.AllDirectories).Any(x => x.Contains(mrn + ".txt")))
                 {
-                    logName = Directory.GetFiles(logFilePath + "\\preparation\\", ".", SearchOption.AllDirectories).First(x => x.Contains(mrn + ".txt"));
+                    logName = Directory.GetFiles(logFilePath + "\\preparation\\" + additionalContext + "\\", ".", SearchOption.AllDirectories).First(x => x.Contains(mrn + ".txt"));
                 }
             }
             return logName;

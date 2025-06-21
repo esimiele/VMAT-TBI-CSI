@@ -13,9 +13,10 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         /// </summary>
         /// <param name="vmat"></param>
         /// <param name="closePW"></param>
-        public PlanPrep_CSI(ExternalPlanSetup vmat, bool closePW)
+        public PlanPrep_CSI(ExternalPlanSetup vmat, bool autoRecalc, bool closePW)
         {
             VMATPlan = vmat;
+            _autoDoseRecalculation = autoRecalc;
             SetCloseOnFinish(closePW, 3000);
         }
 
@@ -27,12 +28,22 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         public override bool Run()
         {
             UpdateUILabel("Running:");
-            if (PreliminaryChecks()) return true;
-            if (SeparatePlans()) return true;
-            if (recalcNeeded && ReCalculateDose()) return true;
-            UpdateUILabel("Finished!");
-            ProvideUIUpdate(100, "Finished separating plans!");
-            ProvideUIUpdate($"Run time: {GetElapsedTime()} (mm:ss)");
+            if(_recalculateDoseOnly)
+            {
+                if (recalcNeeded && ReCalculateDose()) return true;
+                UpdateUILabel("Finished!");
+                ProvideUIUpdate(100, "Finished calculating dose!");
+                ProvideUIUpdate($"Run time: {GetElapsedTime()} (mm:ss)");
+            }
+            else
+            {
+                if (PreliminaryChecks()) return true;
+                if (SeparatePlans()) return true;
+                if (_autoDoseRecalculation && recalcNeeded && ReCalculateDose()) return true;
+                UpdateUILabel("Finished!");
+                ProvideUIUpdate(100, "Finished separating plans!");
+                ProvideUIUpdate($"Run time: {GetElapsedTime()} (mm:ss)");
+            }
             return false;
         }
         #endregion

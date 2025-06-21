@@ -14,8 +14,17 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         protected ExternalPlanSetup VMATPlan = null;
         protected int numVMATIsos = 0;
         protected int numIsos;
-        protected List<ExternalPlanSetup> separatedPlans = new List<ExternalPlanSetup> { };
-        protected bool recalcNeeded = false;
+        public List<ExternalPlanSetup> separatedPlans = new List<ExternalPlanSetup> { };
+        public bool recalcNeeded = false;
+        protected bool _autoDoseRecalculation = false;
+        protected bool _recalculateDoseOnly = false;
+
+        public bool RecalculateDoseOnly
+        {
+            get { return _recalculateDoseOnly = false; }
+            set { _recalculateDoseOnly = value; }
+        }
+
 
         /// <summary>
         /// Helper method to verify the name formatting of all the beam Ids is appropriate and will not cause problems with this script
@@ -149,10 +158,11 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         /// Helper method to recalculate dose for all plans in the separatedPlans list
         /// </summary>
         /// <returns></returns>
-        public bool ReCalculateDose()
+        protected bool ReCalculateDose()
         {
+            UpdateUILabel("Recalculating dose:");
             int percentComplete = 0;
-            int calcItems = 4 * separatedPlans.Count;
+            int calcItems = separatedPlans.Count;
             //loop through each plan in the separatedPlans list and calculate dose for each plan
             foreach (ExternalPlanSetup p in separatedPlans)
             {

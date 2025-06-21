@@ -828,12 +828,12 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             {
                 if (NumberofIsocenters == NumberofVMATIsocenters + 2)
                 {
-                    PlanIsocentersList.Add(new PlanIsocenterModel("_upper legs", new IsocenterModel("AP / PA upper legs")));
-                    PlanIsocentersList.Add(new PlanIsocenterModel("_lower legs", new IsocenterModel("AP / PA lower legs")));
+                    PlanIsocentersList.Add(new PlanIsocenterModel("_upper legs", new IsocenterModel("upper legs")));
+                    PlanIsocentersList.Add(new PlanIsocenterModel("_lower legs", new IsocenterModel("lower legs")));
                 }
                 else
                 {
-                    PlanIsocentersList.Add(new PlanIsocenterModel("_legs", new IsocenterModel("AP / PA legs")));
+                    PlanIsocentersList.Add(new PlanIsocenterModel("_legs", new IsocenterModel("legs")));
                 }
             }
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Retrieved appropriate isocenter names:");

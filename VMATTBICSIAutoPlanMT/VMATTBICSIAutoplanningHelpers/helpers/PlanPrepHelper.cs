@@ -36,7 +36,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             if (appaPlans.Any()) isoNames.AddRange(IsoNameHelper.GetTBIAPPAIsoNames(numVMATIsos, numIsos));
 
             //vector to hold the x,y,z shifts from CT ref and the shifts between each adjacent iso for each axis (LR, AntPost, SupInf)
-            List<VVector> shifts = CalculateShifts(isoPositions);
+            List<VVector> shifts = CalculateShifts(isoPositions, vmatPlan.StructureSet.Image.UserOrigin);
 
             //create the message
             double TT = -1;
@@ -82,8 +82,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
                     //if numVMATisos == numIsos this message won't be displayed. Otherwise, we have exhausted the vmat isos and need to add these lines to the shift note
                     sb.AppendLine("Rotate Spinning Manny, shift to opposite Couch Lat");
                     sb.AppendLine("Upper Leg iso - same Couch Lng as Pelvis iso");
-                    //let the therapists know that they need to shift couch lateral to the opposite side if the initial lat shift was non-zero
-                    if (!CalculationHelper.AreEqual(itr.x, 0.0)) sb.AppendLine("Shift couch lateral to opposite side!");
                 }
                 else
                 {
@@ -116,7 +114,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             List<VVector> isoPositions = ExtractIsoPositions(vmatPlan);
 
             //vector to hold the isocenter name, the x,y,z shifts from CT ref, and the shifts between each adjacent iso for each axis (LR, AntPost, SupInf)
-            List<VVector> shifts = CalculateShifts(isoPositions);
+            List<VVector> shifts = CalculateShifts(isoPositions, vmatPlan.StructureSet.Image.UserOrigin);
 
             //create the message
             double TT = -1;
@@ -145,7 +143,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             StringBuilder sb = new StringBuilder();
             if(TT != -1)
             {
-                sb.AppendLine("***Bars out***");
+                sb.AppendLine("***Bars in***");
             }
             else sb.AppendLine("No couch surface structure found in plan!");
 
@@ -184,8 +182,6 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
             foreach (Beam b in plan.Beams.Where(x => !x.IsSetupField).OrderByDescending(o => o.IsocenterPosition.z))
             {
                 VVector v = b.IsocenterPosition;
-                v = plan.StructureSet.Image.DicomToUser(v, plan);
-
                 if (!isoPositions.Any(k => CalculationHelper.AreEqual(k.z, v.z)))
                 {
                     isoPositions.Add(v);
@@ -233,16 +229,16 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// </summary>
         /// <param name="isoPositions"></param>
         /// <returns></returns>
-        public static List<VVector> CalculateShifts(List<VVector> isoPositions)
+        public static List<VVector> CalculateShifts(List<VVector> isoPositions, VVector uOrigin)
         {
             List<VVector> shifts = new List<VVector> { };
 
             double SupInfShifts;
             double AntPostShifts;
             double LRShifts;
-            double priorSupInfPos = 0.0;
-            double priorAntPostPos = 0.0;
-            double priorLRPos = 0.0;
+            double priorSupInfPos = uOrigin.z;
+            double priorAntPostPos = uOrigin.y;
+            double priorLRPos = uOrigin.x;
             int count = 0;
             foreach (VVector pos in isoPositions)
             {

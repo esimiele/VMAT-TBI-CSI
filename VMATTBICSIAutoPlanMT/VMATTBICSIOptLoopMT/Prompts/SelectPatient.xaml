@@ -11,13 +11,21 @@
             <Grid VerticalAlignment="Top" Background="White" Height="Auto">
                 <StackPanel>
                     <Label Content="Manual Entry" FontWeight="Bold" VerticalAlignment="Top" HorizontalAlignment="Center"/>
-                    <Grid Margin="10,0,10,10" HorizontalAlignment="Center">
+                    <Grid Margin="10,0,10,10" HorizontalAlignment="Center" Width="240">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="0.5*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <Label Content="Patient MRN:" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0"></Label>
                         <TextBox x:Name="MRNTB" Height="22" Width="120" Grid.Column="1" TextAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0"></TextBox>
+                    </Grid>
+                    <Grid Margin="5" HorizontalAlignment="Center" Width="240">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="0.5*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Plan Type:" Grid.Column="0" HorizontalAlignment="Right"/>
+                        <ComboBox x:Name="planTypeCB" Grid.Column="1" Width="120" HorizontalContentAlignment="Center" HorizontalAlignment="Left"/>
                     </Grid>
                 </StackPanel>
             </Grid>

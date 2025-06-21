@@ -23,11 +23,12 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         /// <param name="appa"></param>
         /// <param name="flash"></param>
         /// <param name="closePW"></param>
-        public PlanPrep_TBI(ExternalPlanSetup vmat, List<ExternalPlanSetup> appa, bool flash, bool closePW)
+        public PlanPrep_TBI(ExternalPlanSetup vmat, List<ExternalPlanSetup> appa, bool autoRecalc, bool flash, bool closePW)
         {
             //copy arguments into local variables
             VMATPlan = vmat;
             appaPlans = appa;
+            _autoDoseRecalculation = autoRecalc;
             removeFlash = flash;
             SetCloseOnFinish(closePW, 3000);
         }
@@ -40,16 +41,27 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         public override bool Run()
         {
             UpdateUILabel("Running:");
-            if (PreliminaryChecks()) return true;
-            if(removeFlash)
+            if(_recalculateDoseOnly)
             {
-                if (RemoveFlashRunSequence()) return true;
+                if (recalcNeeded && ReCalculateDose()) return true;
+                UpdateUILabel("Finished!");
+                ProvideUIUpdate(100, "Finished calculating dose!");
+                ProvideUIUpdate($"Run time: {GetElapsedTime()} (mm:ss)");
             }
-            if (SeparatePlans()) return true;
-            if (recalcNeeded && ReCalculateDose()) return true;
-            UpdateUILabel("Finished!");
-            ProvideUIUpdate(100, "Finished separating plans!");
-            ProvideUIUpdate($"Run time: {GetElapsedTime()} (mm:ss)");
+            else
+            {
+                if (PreliminaryChecks()) return true;
+                if (removeFlash)
+                {
+                    if (RemoveFlashRunSequence()) return true;
+                }
+                if (SeparatePlans()) return true;
+                if (_autoDoseRecalculation && recalcNeeded && ReCalculateDose()) return true;
+                UpdateUILabel("Finished!");
+                ProvideUIUpdate(100, "Finished separating plans!");
+                ProvideUIUpdate($"Run time: {GetElapsedTime()} (mm:ss)");
+            }
+            
             return false;
         }
         #endregion

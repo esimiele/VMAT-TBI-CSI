@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Shapes;
+using VMATTBICSIAutoPlanningHelpers.Enums;
 using VMATTBICSIAutoPlanningHelpers.Logging;
 
 namespace VMATTBICSIOptLoopMT.Prompts
@@ -15,24 +14,30 @@ namespace VMATTBICSIOptLoopMT.Prompts
     {
         private string _patientMRN = "";
         private string _fullLogFileName = "";
+        private PlanType _planType = PlanType.None;
         private string logPath = "";
         private List<string> logsCSI = new List<string> { };
         private List<string> logsTBI = new List<string> { };
-        public bool selectionMade = false;
-        public (string,string) GetPatientMRN()
+        private List<string> planTypes = new List<string> { "--select--", "VMAT TBI", "VMAT CSI"};
+        public bool selectionMade { get => _planType != PlanType.None; }
+        public (string,PlanType,string) GetPatientSelection()
         {
-            return (_patientMRN,_fullLogFileName);
+            return (_patientMRN,_planType,_fullLogFileName);
         }
 
         //ATTENTION! THE FOLLOWING LINE HAS TO BE FORMATTED THIS WAY, OTHERWISE THE DATA BINDING WILL NOT WORK!
         public ObservableCollection<string> PatientMRNsCSI { get; set; }
         public ObservableCollection<string> PatientMRNsTBI { get; set; }
-        public SelectPatient(string path)
+        public SelectPatient(string path, string mrn = "")
         {
             InitializeComponent();
             logPath = path;
             DataContext = this;
             LoadPatientMRNsFromLogs();
+            planTypeCB.Items.Clear();
+            foreach(string s in planTypes) planTypeCB.Items.Add(s);
+            planTypeCB.SelectedIndex = 0;
+            if(!string.IsNullOrEmpty(mrn)) MRNTB.Text = mrn;
         }
 
         private void LoadPatientMRNsFromLogs()
@@ -78,9 +83,14 @@ namespace VMATTBICSIOptLoopMT.Prompts
             if (!string.IsNullOrEmpty(MRNTB.Text) || !string.IsNullOrEmpty(_patientMRN))
             {
                 //give priority to the text box data
-                if (string.IsNullOrEmpty(MRNTB.Text)) _fullLogFileName = LogHelper.GetFullLogFileFromExistingMRN(_patientMRN, logPath);
-                else _patientMRN = MRNTB.Text;
-                selectionMade = true;
+                if (string.IsNullOrEmpty(MRNTB.Text)) _fullLogFileName = LogHelper.GetFullLogFileFromExistingMRN(_patientMRN, logPath, _planType == PlanType.VMAT_CSI ? "CSI" : "TBI");
+                else
+                {
+                    _patientMRN = MRNTB.Text;
+                    if (planTypeCB.SelectedItem.ToString().Contains("TBI")) _planType = PlanType.VMAT_TBI;
+                    else if (planTypeCB.SelectedItem.ToString().Contains("CSI")) _planType = PlanType.VMAT_CSI;
+                    else _planType = PlanType.None;
+                }
             }
             this.Close();
         }
@@ -94,12 +104,15 @@ namespace VMATTBICSIOptLoopMT.Prompts
                 mrnListTBI.UnselectAll();
                 _patientMRN = mrnListCSI.SelectedItem as string;
                 _fullLogFileName = logsCSI.FirstOrDefault(x => x.Contains(_patientMRN));
+                _planType = PlanType.VMAT_CSI;
+                MRNTB.Text = "";
             }
             else
             {
                 mrnListCSI.UnselectAll();
                 _fullLogFileName = "";
                 _patientMRN = "";
+                _planType = PlanType.None;
             }
         }
 
@@ -112,12 +125,15 @@ namespace VMATTBICSIOptLoopMT.Prompts
                 mrnListCSI.UnselectAll();
                 _patientMRN = mrnListTBI.SelectedItem as string;
                 _fullLogFileName = logsTBI.FirstOrDefault(x => x.Contains(_patientMRN));
+                _planType = PlanType.VMAT_TBI;
+                MRNTB.Text = "";
             }
             else
             {
                 mrnListTBI.UnselectAll();
                 _fullLogFileName = "";
                 _patientMRN = "";
+                _planType = PlanType.None;
             }
         }
     }

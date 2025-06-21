@@ -32,7 +32,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         private double targetMargin;
         private int numVMATIsos;
         private int totalNumIsos;
-        private int totalNumVMATBeams;
+        private int totalNumBeams = 0;
         protected double checkIsoPlacementLimit = 5.0;
         protected bool checkIsoPlacement = false;
         private bool checkTTCollision = false;
@@ -76,7 +76,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             selectedSS = ss;
             planIsocenters = new List<PlanIsocenterModel>(planInfo);
             numVMATIsos = planIsocenters.First().Isocenters.Count;
-            if (planIsocenters.Count > 1) totalNumIsos = numVMATIsos + planIsocenters.Last().Isocenters.Count;
+            if (planIsocenters.Count > 1) totalNumIsos = planIsocenters.Select(x => x.Isocenters).Count();
             else totalNumIsos = numVMATIsos;
             collRot = coll;
             jawPos = new List<VRect<double>>(jp);
@@ -435,7 +435,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
                     //all even beams (e.g., 2, 4, etc.) will be CCW and all odd beams will be CW
                     GantryDirection direction;
-                    if (totalNumVMATBeams % 2 == 0)
+                    if (totalNumBeams % 2 == 0)
                     {
                         direction = GantryDirection.CounterClockwise;
                         gantryStart = 179.0;
@@ -452,13 +452,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                     ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added arc beam to iso: {isoCount + 1}");
 
                     //id = <beam num> <rotation direction> <iso name><coll rotation>
-                    b.Id = $"{totalNumVMATBeams + 1} {(direction == GantryDirection.CounterClockwise ? "CCW" : "CW")} {itr.IsocenterId}{(j > 1 ? "90" : "")}";
+                    b.Id = $"{++totalNumBeams} {(direction == GantryDirection.CounterClockwise ? "CCW" : "CW")} {itr.IsocenterId}{(j > 1 ? "90" : "")}";
                     ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Assigned beam id: {b.Id}");
 
                     b.CreateOrReplaceDRR(DRR);
                     ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Assigned DRR to beam: {b.Id}");
-
-                    totalNumVMATBeams++;
                 }
                 isoCount++;
             }
@@ -485,7 +483,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             ProvideUIUpdate("Preparation complete!");
 
             //place the beams for the VMAT plan
-            int count = totalNumVMATBeams;
             ProvideUIUpdate($"Assigning isocenter: {1}");
             ExternalPlanSetup plan = legsPlans.First(x => string.Equals(planIso.PlanId, x.Id, StringComparison.OrdinalIgnoreCase));
 
@@ -512,11 +509,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             float[,] MLCpos = BuildMLCArray(x1, x2);
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Generated MLC positions for iso: {planIso.Isocenters.First().IsocenterId}");
             
-            CreateStaticBeam(++count, plan, planIso.PlanId.Contains("upper") ? "Upper" : "Lower", 0.0, MLCpos, jaws, planIso.Isocenters.First().IsocenterPosition);
+            CreateStaticBeam(++totalNumBeams, plan, planIso.PlanId.Contains("upper") ? "Upper" : "Lower", 0.0, MLCpos, jaws, planIso.Isocenters.First().IsocenterPosition);
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added AP beam to iso: {planIso.Isocenters.First().IsocenterId}");
 
             //PA field
-            CreateStaticBeam(++count, plan, planIso.PlanId.Contains("upper") ? "Upper" : "Lower", 180.0, MLCpos, jaws, planIso.Isocenters.First().IsocenterPosition);
+            CreateStaticBeam(++totalNumBeams, plan, planIso.PlanId.Contains("upper") ? "Upper" : "Lower", 180.0, MLCpos, jaws, planIso.Isocenters.First().IsocenterPosition);
             ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Added PA beam to iso: {planIso.Isocenters.First().IsocenterId}");
 
             

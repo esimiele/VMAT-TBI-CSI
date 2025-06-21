@@ -12,7 +12,10 @@ namespace VMATTBICSIOptLoopMT
     {
         private void Application_Startup(object sender, StartupEventArgs e)
         {
-            OptLoopMW mw = new OptLoopMW(e.Args);
+            string[] startupArgs = e.Args;
+            //startupArgs = new string[] { "-m", "$TBIDryRun_1", "-s", "TBIDryRun_1" };
+            //startupArgs = new string[] { "-m", "$CSIDryRun_3", "-s", "C230822_CSI" };
+            OptLoopMW mw = new OptLoopMW(startupArgs);
             mw.Show();
         }
     }

@@ -67,7 +67,9 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
         protected void PrintRunSetupInfo()
         {
             ProvideUIUpdate(OptimizationLoopUIHelper.GetRunSetupInfoHeader(_data.Plans, 
-                                                                           _data.PlanType, 
+                                                                           _data.PlanType,
+                                                                           _data.UseFlash,
+                                                                           _data.NormalizationVolumes,
                                                                            _data.RunCoverageCheck, 
                                                                            _data.NumberOfIterations, 
                                                                            _data.OneMoreOptimization, 
@@ -712,7 +714,7 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             }
             if (target == null || target.IsEmpty)
             {
-                ProvideUIUpdate($"Error! Target/normalization structure for plan {plan.Id} is NOT null or empty! Cannot normalize! Exiting!", true);
+                ProvideUIUpdate($"Error! Target/normalization structure for plan {plan.Id} is null or empty! Cannot normalize! Exiting!", true);
                 return true;
             }
             //how to normalize a plan in the ESAPI workspace:
@@ -1002,9 +1004,14 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             Dictionary<string, string> plansTargets = TargetsHelper.GetHighestRxPlanTargetList(_data.Prescriptions);
             if (!plansTargets.Any())
             {
-                ProvideUIUpdate("Error! Could not retrieve list of plans and associated targets! Exiting", true);
-                wasKilled = true;
-                return (wasKilled, heaterCoolerOptConstraints);
+                ProvideUIUpdate("Could not retrieve list of plans and associated targets! Using normalization volumes instead");
+                plansTargets = new Dictionary<string, string>(_data.NormalizationVolumes);
+                if(!plansTargets.Any())
+                {
+                    ProvideUIUpdate("Error! Dictionary of plan ids and normalization volumes is empty! Unable to update heater/cooler structures! Exiting!", true);
+                    wasKilled = true;
+                    return (wasKilled, heaterCoolerOptConstraints);
+                }
             }
 
             string targetId = "";
@@ -1028,17 +1035,32 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
                 if(itr.AllCriteriaMet(isFinalOptimization))
                 {
                     ProvideUIUpdate($"All conditions met for: {itr.TSStructureId}! Adding to structure set!");
+                    Structure heaterCoolerStructure;
                     if (itr.GetType() == typeof(TSCoolerStructureModel))
                     {
                         //cooler
-                        ProvideUIUpdate(TSHeaterCoolerHelper.GenerateCooler(plan, (itr as TSCoolerStructureModel)));
+                        ProvideUIUpdate($"Generating cooler structure: {itr.TSStructureId} now");
+                        heaterCoolerStructure = TSHeaterCoolerHelper.GenerateCooler(plan, (itr as TSCoolerStructureModel));
                     }
                     else
                     {
                         //heater
-                        ProvideUIUpdate(TSHeaterCoolerHelper.GenerateHeater(plan, target, (itr as TSHeaterStructureModel)));
+                        ProvideUIUpdate($"Generating heater structure: {itr.TSStructureId} now");
+                        heaterCoolerStructure = TSHeaterCoolerHelper.GenerateHeater(plan, target, (itr as TSHeaterStructureModel));
                     }
-                    heaterCoolerOptConstraints.AddRange(itr.Constraints);
+                    if (ReferenceEquals(heaterCoolerStructure, null) || heaterCoolerStructure.IsEmpty)
+                    {
+                        ProvideUIUpdate($"Heater/Cooler structure ({itr.TSStructureId}) is null or empty! Removing from structure set");
+                        if (_data.StructureSet.CanRemoveStructure(heaterCoolerStructure))
+                        {
+                            _data.StructureSet.RemoveStructure(heaterCoolerStructure);
+                        }
+                    }
+                    else
+                    {
+                        ProvideUIUpdate($"{itr.TSStructureId} structure generated successfully. Adding optimization constraints now");
+                        heaterCoolerOptConstraints.AddRange(itr.Constraints);
+                    }
                 }
                 else ProvideUIUpdate($"All conditions NOT met for: {itr.TSStructureId}! Skipping!");
                 
