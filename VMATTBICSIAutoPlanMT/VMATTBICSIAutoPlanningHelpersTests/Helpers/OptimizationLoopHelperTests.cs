@@ -51,6 +51,15 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             Mock.Arrange(() => p5.StructureSet).Returns(ss2);
             Mock.Arrange(() => p6.StructureSet).Returns(ss1);
 
+            Beam b = Mock.Create<Beam>();
+
+            Mock.Arrange(() => p1.Beams).Returns(new List<Beam> { b });
+            Mock.Arrange(() => p2.Beams).Returns(new List<Beam> { b });
+            Mock.Arrange(() => p3.Beams).Returns(new List<Beam> { b });
+            Mock.Arrange(() => p4.Beams).Returns(new List<Beam> { b });
+            Mock.Arrange(() => p5.Beams).Returns(new List<Beam> { b });
+            Mock.Arrange(() => p6.Beams).Returns(new List<Beam> { b });
+
             Mock.Arrange(() => p1.Id).Returns("1");
             Mock.Arrange(() => p2.Id).Returns("2");
             Mock.Arrange(() => p3.Id).Returns("3");

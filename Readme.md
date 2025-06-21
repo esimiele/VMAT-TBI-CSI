@@ -10,17 +10,7 @@ An automated planning solution for VMAT TBI and VMAT CSI using the Eclipse Scrip
 	- Jen-Yeu Wang: DICOM import/export developer and AI autosegmentation model developer
 
 ## Updates
-### 3/24/25
-- Applied hotfix for lower leg iso placement for TBI autoplanner (when matchline to lower body extent was greater than 60 cm, iso was being placed relative to image origin rather than upper leg iso position --> now fixed)
-
-### 9/15/2024
-- Migrated all Tuples in solution to dedicated classes for easier mantenance and debugging
-- Added unit tests for majority of methods in helpers library
-- Added ability to prompt the user with 'reminders' prior to starting the optimization loop (e.g., did you set avoid entry through this structure?)
-- Added tab to directly launch the import listener console. This is used when dicom import using the import listener failed on the first try (due to limitations in EvilDicom)
-- Changed default option of creating AP/PA plans for TBI. Now multiple plans are created instead placing all isocenters in a single plan
-- General bug fixes
-- All unit tests passing and code tested on 4 dry-run cases for both CSI and TBI. Performs as expected
+See [Changes log](https://github.com/esimiele/VMAT-TBI-CSI/blob/master/ChangesLog.md)
 
 
 ## Initial public release of code v1.0

@@ -32,6 +32,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VMATTBICSIAutoPlanningHelpe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VMATTBICSIOptLoopMTTests", "VMATTBICSIOptLoopMTTests\VMATTBICSIOptLoopMTTests.csproj", "{22BFFEFD-0469-40B6-B578-11B66C92C6D0}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_documentation", "_documentation", "{F90C1943-BCDD-4598-AC43-2406FD2668E2}"
+	ProjectSection(SolutionItems) = preProject
+		_documentation\VMAT-CSI_PrepScript_QuickStartGuide.pdf = _documentation\VMAT-CSI_PrepScript_QuickStartGuide.pdf
+		_documentation\VMAT-TBI-CSI_OptLoop_Guide.pdf = _documentation\VMAT-TBI-CSI_OptLoop_Guide.pdf
+		_documentation\VMAT-TBI-CSI_OptLoop_QuickStartGuide.pdf = _documentation\VMAT-TBI-CSI_OptLoop_QuickStartGuide.pdf
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

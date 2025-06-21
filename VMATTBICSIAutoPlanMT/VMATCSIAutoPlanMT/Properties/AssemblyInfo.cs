@@ -50,8 +50,8 @@ using VMS.TPS.Common.Model.API;
 // You can specify all the values or you can default the Build and Revision Numbers
 // by using the '*' as shown below:
 // TODO: Replace the following version attributes by creating AssemblyInfo.cs. You can do this in the properties of the Visual Studio project.
-[assembly: AssemblyVersion("1.2.*")]
-[assembly: AssemblyFileVersion("1.0.0.1")]
+[assembly: AssemblyVersion("1.3.*")]
+[assembly: AssemblyFileVersion("1.3.0.1")]
 
 // TODO: Uncomment the following line if the script requires write access.
 [assembly: ESAPIScript(IsWriteable = true)]
