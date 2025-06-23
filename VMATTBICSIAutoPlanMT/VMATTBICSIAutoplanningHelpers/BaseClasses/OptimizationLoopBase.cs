@@ -259,7 +259,8 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             List<Structure> couchStructures = ss.Structures.Where(x => x.Id.ToLower().Contains("couch") || 
                                                                   x.Id.ToLower().Contains("rail") || 
                                                                   string.Equals(x.Id.ToLower(), "spinmannysurface") || 
-                                                                  string.Equals(x.Id.ToLower(), "couchmannysurfac")).ToList();
+                                                                  string.Equals(x.Id.ToLower(), "couchmannysurfac") ||
+                                                                  string.Equals(x.Id.ToLower(), "spinmancfrp")).ToList();
             calcItems += couchStructures.Count;
             foreach (Structure itr in couchStructures)
             {

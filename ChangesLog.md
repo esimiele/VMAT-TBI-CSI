@@ -1,5 +1,10 @@
 # VMAT TBI and CSI autoplanning code updates
 
+## 6/23/2025
+- added additional structure ids for revised spinning manny version (v2). 
+    - No critical code needed to be changed, only add additional string ids when searching for spinning manny couch
+    - pushed directly to master branch
+
 ## 6/20/2025
 ### Launcher
 - Updated logic for launcher to explicitly specify which context items are being passed

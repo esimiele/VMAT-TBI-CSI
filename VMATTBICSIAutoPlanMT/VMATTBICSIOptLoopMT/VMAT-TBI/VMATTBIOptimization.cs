@@ -95,7 +95,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, "Matchline structure present in structure set and is NOT empty");
                 //if a matchline contour is present and filled, does the spinning manny couch exist in the structure set? 
                 //If not, let the user know so they can decide if they want to continue of stop the optimization loop
-                if (!StructureTuningHelper.DoesStructureExistInSS(new List<string> { "spinmannysurface", "couchmannysurfac" }, ss, true))
+                if (!StructureTuningHelper.DoesStructureExistInSS(new List<string> { "spinmannysurface", "couchmannysurfac", "spinmancfrp" }, ss, true))
                 {
                     ConfirmPrompt CP = new ConfirmPrompt("I found a matchline, but no spinning manny couch or it's empty!" + Environment.NewLine + Environment.NewLine + "Continue?!");
                     CP.ShowDialog();
@@ -108,7 +108,7 @@ namespace VMATTBICSIOptLoopMT.VMAT_TBI
             }
             else ProvideUIUpdate(100 * ++percentComplete / calcItems, "Matchline structure not found");
 
-            Structure spinningManny = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinmannysurface" || x.Id.ToLower() == "couchmannysurfac");
+            Structure spinningManny = ss.Structures.FirstOrDefault(x => x.Id.ToLower() == "spinmannysurface" || x.Id.ToLower() == "couchmannysurfac" || x.Id.ToLower() == "spinmancfrp");
             if (spinningManny == null) ProvideUIUpdate(100 * ++percentComplete / calcItems, "Spinning Manny structure not found");
             else ProvideUIUpdate(100 * ++percentComplete / calcItems, "Retrieved Spinning Manny structure");
 
