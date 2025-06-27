@@ -63,11 +63,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         private static StringBuilder BuildTBIShiftNote(double TT, List<IsocenterModel> isoNames, List<VVector> shifts, int numVMATIsos, int numIsos)
         {
             StringBuilder sb = new StringBuilder();
-            if (TT != -1)
-            {
-                sb.AppendLine("***Bars out***");
-            }
-            else sb.AppendLine("No couch surface structure found in plan!");
+            //if (TT != -1)
+            //{
+            //    sb.AppendLine("***Bars out***");
+            //}
+            //else sb.AppendLine("No couch surface structure found in plan!");
 
             if (numIsos > numVMATIsos) sb.AppendLine("VMAT TBI setup per procedure. Please ensure the matchline on Spinning Manny and the bag matches");
             else sb.AppendLine("VMAT TBI setup per procedure. No Spinning Manny.");
@@ -141,11 +141,11 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         private static StringBuilder BuildCSIShiftNote(double TT, List<IsocenterModel> isoNames, List<VVector> shiftsBetweenIsos)
         {
             StringBuilder sb = new StringBuilder();
-            if(TT != -1)
-            {
-                sb.AppendLine("***Bars in***");
-            }
-            else sb.AppendLine("No couch surface structure found in plan!");
+            //if(TT != -1)
+            //{
+            //    sb.AppendLine("***Bars in***");
+            //}
+            //else sb.AppendLine("No couch surface structure found in plan!");
 
             sb.AppendLine("VMAT CSI setup per procedure.");
             if(TT != -1) sb.AppendLine($"TT = {TT:0.0} cm for all plans");

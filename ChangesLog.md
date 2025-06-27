@@ -1,5 +1,9 @@
 # VMAT TBI and CSI autoplanning code updates
 
+## 6/26/2025
+- per Nataliya, all TBI/CSI linac couches are IGRT --> no bars in/out
+    - No critical code adjusted, pushing directly to master branch
+
 ## 6/23/2025
 - added additional structure ids for revised spinning manny version (v2). 
     - No critical code needed to be changed, only add additional string ids when searching for spinning manny couch
