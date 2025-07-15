@@ -76,7 +76,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             selectedSS = ss;
             planIsocenters = new List<PlanIsocenterModel>(planInfo);
             numVMATIsos = planIsocenters.First().Isocenters.Count;
-            if (planIsocenters.Count > 1) totalNumIsos = planIsocenters.Select(x => x.Isocenters).Count();
+            if (planIsocenters.Count > 1) totalNumIsos = planIsocenters.SelectMany(x => x.Isocenters).Count();
             else totalNumIsos = numVMATIsos;
             collRot = coll;
             jawPos = new List<VRect<double>>(jp);
