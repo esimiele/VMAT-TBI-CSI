@@ -407,7 +407,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             ProvideUIUpdate(100, "Preparation complete!");
 
             //place the beams for the VMAT plan
-            VRect<double> jp;
+            ;
             calcItems = 0;
             percentComplete = 0;
             int isoCount = 0;
@@ -418,19 +418,30 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 //beam counter
                 for (int j = 0; j < itr.NumberOfBeams; j++)
                 {
-                    //second isocenter and third beam requires the x-jaw positions to be mirrored about the y-axis (these jaw positions are in the fourth element of the jawPos list)
-                    //this is generally the isocenter located in the pelvis and we want the beam aimed at the kidneys-area
-                    if (isoCount == 1 && j == 2) jp = jawPos.ElementAt(j + 1);
-                    else if (isoCount == 1 && j == 3) jp = jawPos.ElementAt(j - 1);
-                    else jp = jawPos.ElementAt(j);
-                    
                     double coll = collRot[j];
+                    VRect<double> jp = jawPos.ElementAt(j);
                     if ((totalNumIsos > numVMATIsos) && (isoCount == (numVMATIsos - 1)))
                     {
-                        //zero collimator rotations of two main fields for beams in isocenter immediately superior to matchline. 
-                        //Adjust the third beam such that collimator rotation is 90 degrees. Do not adjust 4th beam
-                        if (j < 2) coll = 0.0;
-                        else if (j == 2) coll = 90.0;
+                        if (j < 2)
+                        {
+                            //zero collimator rotations of two main fields for beams in isocenter immediately superior to matchline. 
+                            coll = 0.0;
+                        }
+                        else
+                        {
+                            //We want the x-jaw positions to be mirrored about the y-axis for the 3rd and 4th pelvis (or last vmat isocenter) fields 
+                            //This means the 3rd 'pelvis' vmat field will be aimed superior, whereas the 4th pelvis field will 
+                            if (j == 2)
+                            {
+                                jp = jawPos.ElementAt(j + 1);
+                            }
+                            else if (j == 3)
+                            {
+                                //Adjust the forth beam such that collimator rotation is 90 degrees (interfaces with upper legs). Do not adjust 3rd beam
+                                coll = 90.0;
+                                jp = jawPos.ElementAt(j - 1);
+                            }
+                        }
                     }
 
                     //all even beams (e.g., 2, 4, etc.) will be CCW and all odd beams will be CW

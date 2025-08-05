@@ -23,21 +23,24 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
             if (!string.IsNullOrEmpty(fullLogName))
             {
                 (string initPlanUID, StringBuilder errorMessage) = LogHelper.LoadVMATPlanUIDFromLogFile(fullLogName);
-                if (string.IsNullOrEmpty(initPlanUID))
+                if (!string.IsNullOrEmpty(initPlanUID))
                 {
-                    sb.Append(errorMessage);
-                    return (thePlan, sb);
-                }
-                ExternalPlanSetup tmp = pi.Courses.SelectMany(x => x.ExternalPlanSetups).FirstOrDefault(x => string.Equals(x.UID, initPlanUID));
-                if (tmp != null)
-                {
-                    Course theCourse = tmp.Course;
-                    if (theCourse.ExternalPlanSetups.Where(x => !x.Id.ToLower().Contains("legs")).Count() > 1)
+                    ExternalPlanSetup tmp = pi.Courses.SelectMany(x => x.ExternalPlanSetups).FirstOrDefault(x => string.Equals(x.UID, initPlanUID));
+                    if (tmp != null)
                     {
-                        thePlan = PromptForUserToSelectPlan(theCourse);
-                        if (ReferenceEquals(thePlan, null)) return (thePlan, sb.AppendLine("No plan selected. Exiting"));
+                        Course theCourse = tmp.Course;
+                        if (theCourse.ExternalPlanSetups.Where(x => !x.Id.ToLower().Contains("legs")).Count() > 1)
+                        {
+                            thePlan = PromptForUserToSelectPlan(theCourse);
+                            if (ReferenceEquals(thePlan, null)) return (thePlan, sb.AppendLine("No plan selected. Exiting"));
+                        }
+                        else thePlan = tmp;
                     }
-                    else thePlan = tmp;
+                }
+                else
+                {
+                    sb.AppendLine("Warning:");
+                    sb.Append(errorMessage);
                 }
             }
             if (thePlan == null)
