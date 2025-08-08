@@ -78,12 +78,10 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers
         /// <returns></returns>
         public static List<IsocenterModel> GetTBIAPPAIsoNames(int numVMATIsos, int numIsos)
         {
-            List<IsocenterModel> isoNames = new List<IsocenterModel>
-            {
-                new IsocenterModel("upper legs"),
-            };
-            if (numIsos == numVMATIsos + 2) isoNames.Add(new IsocenterModel("lower legs"));
-            return isoNames;
+            if (numIsos == numVMATIsos + 1) return new List<IsocenterModel> { new IsocenterModel("legs") };
+            else if (numIsos == numVMATIsos + 2) return new List<IsocenterModel> { new IsocenterModel("upper legs"), new IsocenterModel("lower legs") };
+            else if (numIsos == numVMATIsos + 3) return new List<IsocenterModel> { new IsocenterModel("upper legs"), new IsocenterModel("mid legs"), new IsocenterModel("lower legs") };
+            else throw new System.Exception($"Error! Total number of leg isos is > 3 ({numIsos - numVMATIsos})! Please fix and try again");
         }
     }
 }
