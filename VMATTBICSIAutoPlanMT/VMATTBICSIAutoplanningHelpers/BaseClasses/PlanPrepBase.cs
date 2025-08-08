@@ -94,7 +94,14 @@ namespace VMATTBICSIAutoPlanningHelpers.BaseClasses
             {
                 //copy the plan, set the plan id based on the counter, and make a empty list to hold the beams that need to be removed
                 ExternalPlanSetup newplan = (ExternalPlanSetup)plan.Course.CopyPlanSetup(plan);
-                if(isAPPA) newplan.Id = $"{count + 1} {(names.ElementAt(count).IsocenterId.Contains("upper") ? "Upper Legs" : "Lower Legs")}";
+                if (isAPPA)
+                {
+                    string planId;
+                    if (names.ElementAt(count).IsocenterId.Contains("upper")) planId = "Upper Legs";
+                    else if (names.ElementAt(count).IsocenterId.Contains("mid")) planId = "Mid Legs";
+                    else planId = "Lower Legs";
+                    newplan.Id = $"{count + 1} {planId}";
+                }
                 else newplan.Id = $"{count + 1} {names.ElementAt(count).IsocenterId}";
                 ProvideUIUpdate(100 * ++percentComplete / calcItems, $"Created new plan {newplan.Id} as copy of {plan.Id}");
                 List<Beam> beamsToRemove = new List<Beam> { };

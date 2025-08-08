@@ -1493,9 +1493,9 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             VMATplan = thePlan;
 
             List<ExternalPlanSetup> appaPlans = new List<ExternalPlanSetup> { };
-            if (VMATplan.Course.ExternalPlanSetups.Any(x => x.Id.ToLower().Contains("legs")))
+            if (VMATplan.Course.ExternalPlanSetups.Any(x => x.Id.ToLower().Contains("leg")))
             {
-                appaPlans = VMATplan.Course.ExternalPlanSetups.Where(x => x.Id.ToLower().Contains("legs")).ToList();
+                appaPlans = VMATplan.Course.ExternalPlanSetups.Where(x => x.Id.ToLower().Contains("leg")).ToList();
                 if (appaPlans.Any(x => x.TreatmentOrientation != PatientOrientation.FeetFirstSupine))
                 {
                     StringBuilder sb = new StringBuilder();
