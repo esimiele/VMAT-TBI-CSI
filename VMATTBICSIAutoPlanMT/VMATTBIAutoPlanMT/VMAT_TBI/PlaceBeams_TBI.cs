@@ -407,7 +407,6 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             ProvideUIUpdate(100, "Preparation complete!");
 
             //place the beams for the VMAT plan
-            ;
             calcItems = 0;
             percentComplete = 0;
             int isoCount = 0;

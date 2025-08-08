@@ -1,5 +1,14 @@
 # VMAT TBI and CSI autoplanning code updates
 
+## 8/8/2025
+- Implemented fixes for issues 31 and 32
+    - Bug in generating shift notes when plan UID is missing from prep log file
+    - Crash during plan preparation when > 2 leg isos are used for TBI
+    - Change beam order and collimator rotation of inf-most VMAT iso
+        - first two beams use collimator 0.0 deg
+        - third beam has collimator +/- 3 deg and faces superior anatomy
+        - fourth beam has collimator 90 deg and faces lower anatomy
+
 ## 6/26/2025
 - per Nataliya, all TBI/CSI linac couches are IGRT --> no bars in/out
     - No critical code adjusted, pushing directly to master branch
