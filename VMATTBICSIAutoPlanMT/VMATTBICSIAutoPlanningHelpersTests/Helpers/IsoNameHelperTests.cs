@@ -20,7 +20,7 @@ namespace VMATTBICSIAutoPlanningHelpers.Helpers.Tests
             List<Tuple<int, int, List<IsocenterModel>>> isoNumPairs = new List<Tuple<int, int, List<IsocenterModel>>>
             {
                 Tuple.Create(2,2, new List < IsocenterModel > { new IsocenterModel("Head"), new IsocenterModel("Pelvis")}),
-                Tuple.Create(3,3, new List < IsocenterModel > { new IsocenterModel("Head"), new IsocenterModel("Chest"), new IsocenterModel("Legs") }),
+                Tuple.Create(3,3, new List < IsocenterModel > { new IsocenterModel("Head"), new IsocenterModel("Pelvis"), new IsocenterModel("Legs") }),
                 Tuple.Create(2,3, new List < IsocenterModel > { new IsocenterModel("Head"), new IsocenterModel("Pelvis") }),
                 Tuple.Create(4,6, new List < IsocenterModel > { new IsocenterModel("Head"), new IsocenterModel("Chest"), new IsocenterModel("Abdomen"), new IsocenterModel("Pelvis") }),
             };

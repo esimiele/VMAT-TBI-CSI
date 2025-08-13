@@ -1,5 +1,9 @@
 # VMAT TBI and CSI autoplanning code updates
 
+## 8/13/25
+- Changed default iso names for TBI
+	- For 3 vmat isos (no ap/pa), default iso names have been changed to head, pelvis, legs
+
 ## 8/8/2025
 - Implemented fixes for issues 31 and 32
     - Bug in generating shift notes when plan UID is missing from prep log file
