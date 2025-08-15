@@ -135,6 +135,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             catch (Exception e) { MessageBox.Show($"Warning! Could not generate Aria application instance because: {e.Message}"); }
             string mrn = "";
             string ss = "";
+            string planUID = "";
             if (args.Any(x => string.Equals("-m", x)))
             {
                 int index = args.IndexOf("-m");
@@ -144,6 +145,11 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 int index = args.IndexOf("-s");
                 ss = args.ElementAt(index + 1);
+            }
+            if (args.Any(x => string.Equals("-p", x)))
+            {
+                int index = args.IndexOf("-p");
+                planUID = args.ElementAt(index + 1);
             }
 
             IEData = new ImportExportDataModel();
@@ -159,6 +165,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
             {
                 if(OpenPatient(mrn)) return true;
                 InitializeStructureSetSelection(ss);
+                if (!string.IsNullOrEmpty(planUID)) InitializePlanFromContext(planUID);
 
                 //check the version information of Eclipse installed on this machine. If it is older than version 15.6, let the user know that this script may not work properly on their system
                 if (!double.TryParse(app.ScriptEnvironment.VersionInfo.Substring(0, app.ScriptEnvironment.VersionInfo.LastIndexOf(".")), out double vinfo)) Logger.GetInstance().LogError("Warning! Could not parse Eclise version number! Proceed with caution!");
@@ -223,6 +230,22 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 patientMRNLabel.Content = pi.Id;
             }
             else Logger.GetInstance().LogError("Could not open patient!");
+        }
+
+        private void InitializePlanFromContext(string uid)
+        {
+            if (pi != null)
+            {
+                if (pi.Courses.SelectMany(x => x.ExternalPlanSetups).Any(x => string.Equals(x.UID, uid)))
+                {
+                    VMATplans.Add(pi.Courses.SelectMany(x => x.ExternalPlanSetups).First(x => string.Equals(x.UID, uid)));
+                }
+                else
+                {
+                    Logger.GetInstance().LogError($"Error! Attempted to load vmat plan from script context. However, no plan with UID ({uid}) found for patient {pi.Name}!");
+                }
+            }
+            else Logger.GetInstance().LogError("Could not open patient!", true);
         }
         #endregion
 
@@ -1654,6 +1677,13 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 isModified = true;
                 optimizationSetupTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
                 Logger.GetInstance().OptimizationConstraints = parsedOptimizationConstraints.Item1;
+                if (Logger.GetInstance().PlanUIDs.Any())
+                {
+                    foreach(string itr in VMATplans.OrderBy(x => x.CreationDateTime).Select(y => y.UID))
+                    {
+                        Logger.GetInstance().PlanUIDs.Add(itr);
+                    }
+                }
             }
 
             //ConfirmPrompt CUI = new ConfirmPrompt();
@@ -1834,15 +1864,19 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
         //methods related to plan preparation
         private void GenerateShiftNote_Click(object sender, RoutedEventArgs e)
         {
-            (ExternalPlanSetup VMATPlan, StringBuilder errorMessage) = PlanPrepUIHelper.RetrieveVMATPlan(pi, logPath, !string.IsNullOrEmpty(courseId) ? courseId : "VMAT CSI");
-            if (VMATPlan == null)
+            if(!VMATplans.Any())
             {
-                Logger.GetInstance().LogError(errorMessage);
-                return;
-            }
+                (ExternalPlanSetup VMATPlan, StringBuilder errorMessage) = PlanPrepUIHelper.RetrieveVMATPlan(pi, logPath, !string.IsNullOrEmpty(courseId) ? courseId : "VMAT CSI");
+                if (VMATPlan == null)
+                {
+                    Logger.GetInstance().LogError(errorMessage);
+                    return;
+                }
 
-            VMATplans.Add(VMATPlan);
-            Clipboard.SetText(PlanPrepHelper.GetCSIShiftNote(VMATPlan).ToString());
+                VMATplans.Add(VMATPlan);
+            }
+            
+            Clipboard.SetText(PlanPrepHelper.GetCSIShiftNote(VMATplans.First()).ToString());
             MessageBox.Show("Shifts have been copied to the clipboard! \r\nPaste them into the journal note!");
 
             //let the user know this step has been completed (they can now do the other steps like separate plans and calculate dose)

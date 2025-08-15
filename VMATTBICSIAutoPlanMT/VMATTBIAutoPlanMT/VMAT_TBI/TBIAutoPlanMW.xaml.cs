@@ -135,6 +135,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             catch (Exception e) { MessageBox.Show(String.Format("Warning! Could not generate Aria application instance because: {0}", e.Message)); }
             string mrn = "";
             string ss = "";
+            string planUID = "";
 
             if (args.Any(x => string.Equals("-m", x)))
             {
@@ -145,6 +146,11 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             {
                 int index = args.IndexOf("-s");
                 ss = args.ElementAt(index + 1);
+            }
+            if (args.Any(x => string.Equals("-p", x)))
+            {
+                int index = args.IndexOf("-p");
+                planUID = args.ElementAt(index + 1);
             }
 
             documentationPath = ConfigurationHelper.GetDefaultDocumentationPath();
@@ -159,6 +165,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
             {
                 if (OpenPatient(mrn)) return true;
                 InitializeStructureSetSelection(ss);
+                if(!string.IsNullOrEmpty(planUID)) InitializePlanFromContext(planUID);
 
                 //check the version information of Eclipse installed on this machine. If it is older than version 15.6, let the user know that this script may not work properly on their system
                 if (!double.TryParse(app.ScriptEnvironment.VersionInfo.Substring(0, app.ScriptEnvironment.VersionInfo.LastIndexOf(".")), out double vinfo)) Logger.GetInstance().LogError("Warning! Could not parse Eclise version number! Proceed with caution!");
@@ -240,6 +247,22 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 patientMRNLabel.Content = pi.Id;
             }
             else Logger.GetInstance().LogError("Could not open patient!");
+        }
+
+        private void InitializePlanFromContext(string uid)
+        {
+            if (pi != null)
+            {
+                if(pi.Courses.SelectMany(x => x.ExternalPlanSetups).Any(x => string.Equals(x.UID, uid)))
+                {
+                    VMATplan = pi.Courses.SelectMany(x => x.ExternalPlanSetups).First(x => string.Equals(x.UID, uid));
+                }
+                else
+                {
+                    Logger.GetInstance().LogError($"Error! Attempted to load vmat plan from script context. However, no plan with UID ({uid}) found for patient {pi.Name}!");
+                }
+            }
+            else Logger.GetInstance().LogError("Could not open patient!",true);
         }
         #endregion
 
@@ -1398,6 +1421,8 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 isModified = true;
                 optimizationSetupTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
                 Logger.GetInstance().OptimizationConstraints = parsedOptimizationConstraints.Item1;
+
+                if (Logger.GetInstance().PlanUIDs.Any()) Logger.GetInstance().PlanUIDs = new List<string> { VMATplan.UID };
             }
 
             //confirmUI CUI = new confirmUI();
@@ -1484,18 +1509,21 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
         #region plan preparation
         private void GenerateShiftNote_Click(object sender, RoutedEventArgs e)
         {
-            (ExternalPlanSetup thePlan, StringBuilder errorMessage) = PlanPrepUIHelper.RetrieveVMATPlan(pi, logPath, !string.IsNullOrEmpty(courseId) ? courseId : "VMAT TBI");
-            if (thePlan == null)
+            if(VMATplan == null)
             {
-                Logger.GetInstance().LogError(errorMessage);
-                return;
+                (ExternalPlanSetup thePlan, StringBuilder errorMessage) = PlanPrepUIHelper.RetrieveVMATPlan(pi, logPath, !string.IsNullOrEmpty(courseId) ? courseId : "VMAT TBI");
+                if (thePlan == null)
+                {
+                    Logger.GetInstance().LogError(errorMessage);
+                    return;
+                }
+                VMATplan = thePlan;
             }
-            VMATplan = thePlan;
 
             List<ExternalPlanSetup> appaPlans = new List<ExternalPlanSetup> { };
-            if (VMATplan.Course.ExternalPlanSetups.Any(x => x.Id.ToLower().Contains("leg")))
+            if (VMATplan.Course.ExternalPlanSetups.Any(x => x.Id.ToLower().Contains("leg") && x.ApprovalStatus != PlanSetupApprovalStatus.Rejected))
             {
-                appaPlans = VMATplan.Course.ExternalPlanSetups.Where(x => x.Id.ToLower().Contains("leg")).ToList();
+                appaPlans = VMATplan.Course.ExternalPlanSetups.Where(x => x.Id.ToLower().Contains("leg") && x.ApprovalStatus != PlanSetupApprovalStatus.Rejected).ToList();
                 if (appaPlans.Any(x => x.TreatmentOrientation != PatientOrientation.FeetFirstSupine))
                 {
                     StringBuilder sb = new StringBuilder();
@@ -1535,10 +1563,10 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 if (!CUI.GetSelection()) return;
             }
 
-            List<ExternalPlanSetup> appaPlan = new List<ExternalPlanSetup> { };
-            if (VMATplan.Course.ExternalPlanSetups.Any(x => x.Id.ToLower().Contains("legs")))
+            List<ExternalPlanSetup> appaPlans = new List<ExternalPlanSetup> { };
+            if (VMATplan.Course.ExternalPlanSetups.Any(x => x.Id.ToLower().Contains("leg") && x.ApprovalStatus != PlanSetupApprovalStatus.Rejected))
             {
-                appaPlan = VMATplan.Course.ExternalPlanSetups.Where(x => x.Id.ToLower().Contains("legs")).ToList();
+                appaPlans = VMATplan.Course.ExternalPlanSetups.Where(x => x.Id.ToLower().Contains("leg") && x.ApprovalStatus != PlanSetupApprovalStatus.Rejected).ToList();
             }
 
             bool removeFlash = false;
@@ -1556,7 +1584,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
 
             //separate the plans
             pi.BeginModifications();
-            planPrep = new PlanPrep_TBI(VMATplan, appaPlan, autoDoseRecalc, removeFlash, closePWOnFinish);
+            planPrep = new PlanPrep_TBI(VMATplan, appaPlans, autoDoseRecalc, removeFlash, closePWOnFinish);
             bool result = planPrep.Execute();
             Logger.GetInstance().AppendLogOutput("Plan preparation:", planPrep.GetLogOutput());
             Logger.GetInstance().OpType = ScriptOperationType.PlanPrep;
