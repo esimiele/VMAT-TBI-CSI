@@ -1422,7 +1422,7 @@ namespace VMATTBIAutoPlanMT.VMAT_TBI
                 optimizationSetupTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
                 Logger.GetInstance().OptimizationConstraints = parsedOptimizationConstraints.Item1;
 
-                if (Logger.GetInstance().PlanUIDs.Any()) Logger.GetInstance().PlanUIDs = new List<string> { VMATplan.UID };
+                if (!Logger.GetInstance().PlanUIDs.Any()) Logger.GetInstance().PlanUIDs = new List<string> { VMATplan.UID };
             }
 
             //confirmUI CUI = new confirmUI();

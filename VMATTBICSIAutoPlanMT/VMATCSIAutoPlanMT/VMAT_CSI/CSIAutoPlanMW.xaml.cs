@@ -1677,7 +1677,7 @@ namespace VMATCSIAutoPlanMT.VMAT_CSI
                 isModified = true;
                 optimizationSetupTabItem.Background = System.Windows.Media.Brushes.ForestGreen;
                 Logger.GetInstance().OptimizationConstraints = parsedOptimizationConstraints.Item1;
-                if (Logger.GetInstance().PlanUIDs.Any())
+                if (!Logger.GetInstance().PlanUIDs.Any())
                 {
                     foreach(string itr in VMATplans.OrderBy(x => x.CreationDateTime).Select(y => y.UID))
                     {
