@@ -19,7 +19,8 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         {
             ExternalPlanSetup thePlan = null;
             StringBuilder sb = new StringBuilder();
-            string fullLogName = LogHelper.GetFullLogFileFromExistingMRN(pi.Id, logPath);
+            string fullLogName = string.Empty;
+            if (LogHelper.GetNumberofMatchingLogFilesForMRN(pi.Id, logPath) == 1) fullLogName = LogHelper.GetFullLogFileFromExistingMRN(pi.Id, logPath);
             if (!string.IsNullOrEmpty(fullLogName))
             {
                 (string initPlanUID, StringBuilder errorMessage) = LogHelper.LoadVMATPlanUIDFromLogFile(fullLogName);
