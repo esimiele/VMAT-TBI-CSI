@@ -19,7 +19,8 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
         {
             ExternalPlanSetup thePlan = null;
             StringBuilder sb = new StringBuilder();
-            string fullLogName = LogHelper.GetFullLogFileFromExistingMRN(pi.Id, logPath);
+            string fullLogName = string.Empty;
+            if (LogHelper.GetNumberofMatchingLogFilesForMRN(pi.Id, logPath) == 1) fullLogName = LogHelper.GetFullLogFileFromExistingMRN(pi.Id, logPath);
             if (!string.IsNullOrEmpty(fullLogName))
             {
                 (string initPlanUID, StringBuilder errorMessage) = LogHelper.LoadVMATPlanUIDFromLogFile(fullLogName);
@@ -29,7 +30,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                     if (tmp != null)
                     {
                         Course theCourse = tmp.Course;
-                        if (theCourse.ExternalPlanSetups.Where(x => !x.Id.ToLower().Contains("legs")).Count() > 1)
+                        if (theCourse.ExternalPlanSetups.Where(x => !x.Id.ToLower().Contains("leg")).Count() > 1)
                         {
                             thePlan = PromptForUserToSelectPlan(theCourse);
                             if (ReferenceEquals(thePlan, null)) return (thePlan, sb.AppendLine("No plan selected. Exiting"));
@@ -48,7 +49,7 @@ namespace VMATTBICSIAutoPlanningHelpers.UIHelpers
                 if (pi.Courses.Any(x => string.Equals(x.Id.ToLower(), courseId.ToLower())))
                 {
                     Course theCourse = pi.Courses.FirstOrDefault(x => string.Equals(x.Id.ToLower(), courseId.ToLower()));
-                    if (theCourse.ExternalPlanSetups.Where(x => !x.Id.ToLower().Contains("legs")).Count() > 1)
+                    if (theCourse.ExternalPlanSetups.Where(x => !x.Id.ToLower().Contains("leg")).Count() > 1)
                     {
                         thePlan = PromptForUserToSelectPlan(theCourse);
                         if (ReferenceEquals(thePlan, null)) return (thePlan, sb.AppendLine("No plan selected. Exiting"));
