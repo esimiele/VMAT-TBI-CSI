@@ -2,6 +2,18 @@
 
 An automated planning solution for VMAT TBI and VMAT CSI using the Eclipse Scripting Application Programming Interface (ESAPI)
 
+## *Attention!!*
+
+12/1/2025
+
+*THIS REPOSITORY WILL NO LONGER BE SUPPORTED STARTING JANUARY 2026! ONLY CRITICAL BUGS FIXES WILL BE ADDRESSED!*
+The actively maintained version of the VMAT TBI autoplanning code can be found here:
+
+[VMAT-TBI-CSI-TMLI](https://github.com/esimiele/VMAT-TBI-CSI-TMLI)
+
+See the readme in that repo for details (includes automated planning for VMAT CSI/TMI/TMLI as well). 
+*All users of this repository should begin migrating to the new version of the code as this repository will NOT be supported indefinitely!*
+
 ## Authors
 - Primary contributors and authors:
 	- Eric Simiele: primary developer and maintainer of code
